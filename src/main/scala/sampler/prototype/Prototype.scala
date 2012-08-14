@@ -76,13 +76,14 @@ trait EmpiricalMetric[T]{
 
 
 //
-// Reading and writing tables of data
+// Handling tables of data
 //
 
-class TableParam[T](val name: String)(implicit val m: Manifest[T])
+class TableHeader[T](val name: String)(implicit val m: Manifest[T])
+class TableColumn[T](val values: IndexedSeq[T], val name: Option[String] = None)(implicit val m: Manifest[T])
 
 trait TableReader{
-	def get[T](params: TableParam[T]): IndexedSeq[T]
+	def get[T](params: TableHeader[T]): IndexedSeq[T]
 }
 trait TableWriter{
 	def apply(path: Path, overwrite: Boolean = false, append: Boolean = false)(params: IndexedSeq[_]*): Unit
