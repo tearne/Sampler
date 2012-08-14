@@ -15,13 +15,15 @@
  * limitations under the License.
  */
 
-package ahvla.sampler.prototype
+package sampler.prototype
 
 import shapeless.HList
 import java.nio.file.Path
 import shapeless.Sized
 import shapeless.Nat
 import scala.collection.IndexedSeqLike
+import scala.collection.generic.GenericTraversableTemplate
+import scala.collection.mutable.ListBuffer
 
 trait Probability{
 	def sample
@@ -35,9 +37,12 @@ trait Random extends scala.util.Random
 
 trait Model[Conf, In, Out] extends (Conf => In => Out)
 
-trait Optimiser[Conf, Domain, Value <: Ordered[Value]] extends (Conf => (Domain, Value))
+trait Optimise[Conf, Domain, Value <: Ordered[Value]] extends (Conf => (Domain, Value))
 trait Sweep[Conf, Domain, Value] extends (Conf => Traversable[(Domain, Value)])
-trait SensitivityAnalysis[Range] extends ((Table,  Seq[Range]) => Table)
+
+trait Runner[Result]{
+	def run(job: Seq[() => Result]): IndexedSeq[Result]
+}
 
 trait Samplable[T]{
 	def sample(implicit rand: Random): T
@@ -60,7 +65,7 @@ trait Empirical[T] extends Samplable[T]{
 	def flatMap[B](f: T => Empirical[B]): Empirical[B]
 }
 
-trait Distribution[T <: Ordered[T]] extends Empirical[T]{
+trait Distribution[T] extends Empirical[T]{
 	def cdf(elem: T): Double 
 	def quantile(p: Probability): T
 }
@@ -69,16 +74,16 @@ trait EmpiricalMetric[T]{
 	def distance(a: Empirical[T], b: Empirical[T])
 }
 
-trait Table extends IndexedSeqLike[HList, Table]{
-	def values: IndexedSeq[HList]
-	def headers: IndexedSeq[String]
-}
+
+//
+// Reading and writing tables of data
+//
+
+class TableParam[T](val name: String)(implicit val m: Manifest[T])
 
 trait TableReader{
-	def apply(path: Path)
+	def get[T](params: TableParam[T]): IndexedSeq[T]
 }
-
 trait TableWriter{
-	def wholeFile(data: Table, path: Path, overwrite: Boolean = false)
-	def line(entry: HList)
+	def apply(path: Path, overwrite: Boolean = false, append: Boolean = false)(params: IndexedSeq[_]*): Unit
 }

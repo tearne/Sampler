@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package ahvla.sampler.math
+package sampler.math
 
 import org.specs2.mutable.Specification
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-import ahvla.sampler.prototype._
+import sampler.prototype._
 
 @RunWith(classOf[JUnitRunner])
 class ProbabilitySpec extends Specification{
