@@ -18,6 +18,8 @@
 package sampler.prototype
 
 import java.nio.file.Path
+import sampler.data.TableColumn
+import sampler.data.TableColumnMatcher
 
 class AnovaRunner(rExePath: Path, numLevels: Int = 4){
 	
