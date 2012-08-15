@@ -74,13 +74,32 @@ trait EmpiricalMetric[T]{
 	def distance(a: Empirical[T], b: Empirical[T])
 }
 
-
 //
 // Handling tables of data
 //
 
 class TableHeader[T](val name: String)(implicit val m: Manifest[T])
 class TableColumn[T](val values: IndexedSeq[T], val name: Option[String] = None)(implicit val m: Manifest[T])
+
+class TableColumnMatcher[T](implicit desired: Manifest[T]){
+	def unapply(tc: TableColumn[_]): Option[TableColumn[T]] = {
+		if(tc.m == desired) Some(tc.asInstanceOf[TableColumn[T]])
+		else None
+	}
+}
+object TableColumnMatcher{
+	lazy val IntTC = new TableColumnMatcher[Int]
+	lazy val DoubleTC = new TableColumnMatcher[Double]
+}
+
+class Def[C](implicit desired : Manifest[C]) {
+	def unapply[X](c : X)(implicit m : Manifest[X]) : Option[C] = {
+		println("unapply "+m.toString+", "+desired.toString+", "+c.toString)
+		def sameArgs = desired.typeArguments.zip(m.typeArguments).forall {case (desired,actual) => desired >:> actual}
+		if (desired >:> m && sameArgs) Some(c.asInstanceOf[C])
+     	else None
+     }
+}
 
 trait TableReader{
 	def get[T](params: TableHeader[T]): IndexedSeq[T]

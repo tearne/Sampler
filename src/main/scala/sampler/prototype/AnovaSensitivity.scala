@@ -24,17 +24,16 @@ class AnovaRunner(rExePath: Path, numLevels: Int = 4){
 	trait Factor{
 		val name: String
 	}
-	implicit def doubleToFactor(c: TableColumn[Double]): TableColumn[Factor] = {
-		null
-	}
 	
+	def int2Factor(tc: TableColumn[Int]): TableColumn[Factor] = {println("1"); null}
+	def double2Factor(tc: TableColumn[Double]): TableColumn[Factor] = {println("2"); null}
 	
 	def apply(independent: IndexedSeq[TableColumn[_]], dependent: IndexedSeq[Double]): AnovaResults = {
-		val factorisedInputs = independent.map{_ match {
-			case c: TableColumn[Factor] => c
-			case c: TableColumn[_] => c.asInstanceOf[TableColumn[Factor]]//val cast: TableColumn[Factor] = c; cast
+		import TableColumnMatcher._
+		val factorisedColumns: IndexedSeq[TableColumn[Factor]] = independent.map{_ match{
+			case IntTC(tc) => int2Factor(tc) 
+			case DoubleTC(tc) =>  double2Factor(tc)
 		}}
-		
 		null
 	}
 }
