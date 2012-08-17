@@ -15,24 +15,14 @@
  * limitations under the License.
  */
 
-package sampler.prototype
+package sampler.io
 
-import shapeless.HList
 import java.nio.file.Path
-import shapeless.Sized
-import shapeless.Nat
-import scala.collection.IndexedSeqLike
-import scala.collection.generic.GenericTraversableTemplate
-import scala.collection.mutable.ListBuffer
-import sampler.math.Random
-import sampler.math.Probability
+import sampler.data.TableHeader
 
-trait Model[Conf, In, Out] extends (Conf => In => Out)
-
-trait Optimise[Conf, Domain, Value <: Ordered[Value]] extends (Conf => (Domain, Value))
-trait Sweep[Conf, Domain, Value] extends (Conf => Traversable[(Domain, Value)])
-
-trait Runner[Result]{
-	def run(job: Seq[() => Result]): IndexedSeq[Result]
+trait TableReader{
+	def get[T](params: TableHeader[T]): IndexedSeq[T]
 }
-
+trait TableWriter{
+	def apply(path: Path, overwrite: Boolean = false, append: Boolean = false)(params: IndexedSeq[_]*): Unit
+}

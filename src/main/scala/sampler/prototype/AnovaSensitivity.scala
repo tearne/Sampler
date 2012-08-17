@@ -24,8 +24,12 @@ import java.io.PrintStream
 import java.io.File
 import scala.collection.mutable.HashMap
 import com.typesafe.config.ConfigFactory
+import sampler.data.TableColumn
+import sampler.data.TableColumnMatcher
 
 class AnovaRunner(rExePath: Path, numLevels: Int = 4){
+	
+	case class Bin(lower: Double, upper: Double)
 	
 	case class Factor(index: Int){
 		override def toString() = "Class:"+index

@@ -15,24 +15,12 @@
  * limitations under the License.
  */
 
-package sampler.prototype
+package sampler.math
 
-import shapeless.HList
-import java.nio.file.Path
-import shapeless.Sized
-import shapeless.Nat
-import scala.collection.IndexedSeqLike
-import scala.collection.generic.GenericTraversableTemplate
-import scala.collection.mutable.ListBuffer
-import sampler.math.Random
-import sampler.math.Probability
-
-trait Model[Conf, In, Out] extends (Conf => In => Out)
-
-trait Optimise[Conf, Domain, Value <: Ordered[Value]] extends (Conf => (Domain, Value))
-trait Sweep[Conf, Domain, Value] extends (Conf => Traversable[(Domain, Value)])
-
-trait Runner[Result]{
-	def run(job: Seq[() => Result]): IndexedSeq[Result]
+trait Probability{
+	def sample
 }
-
+object Probability{
+	def apply(value: Double): Probability = null
+}
+class ProbabilityException extends Exception

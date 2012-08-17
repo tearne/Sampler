@@ -20,7 +20,6 @@ package sampler.math
 import org.specs2.mutable.Specification
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-import sampler.prototype._
 
 @RunWith(classOf[JUnitRunner])
 class ProbabilitySpec extends Specification{
