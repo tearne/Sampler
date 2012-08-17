@@ -22,8 +22,9 @@ class Population(popSize : Int, percentInfected: Double) {
 		
 	// TODO add check to make sure calculations have been performed correctly and population is right size
 		
+	val rand = new Random()
+
 	def sampleWithReplacement(numToSample: Int) : Int = {
-		val rand = new Random()
 		
 		var numDetected = 0
 		
@@ -32,6 +33,30 @@ class Population(popSize : Int, percentInfected: Double) {
 			
 			if(pop(indexToSample)) 
 				numDetected = numDetected.+(1)
+		}
+		
+		numDetected
+	}
+	
+	def sampleWithoutReplacement(numToSample: Int) : Int = {
+		
+		def removeElement(index: Int, population : List[Boolean]) : List[Boolean] = {
+			val (start, _ :: end) = population.splitAt(index)
+	
+			start ::: end
+		}
+		
+		var popToSample = pop
+		
+		var numDetected = 0
+		
+		for(i <- 0 until numToSample){
+			val indexToSample = rand.nextInt(popToSample.size)
+			
+			if(popToSample(indexToSample)) 
+				numDetected = numDetected.+(1)
+					
+			popToSample = removeElement(indexToSample, popToSample)
 		}
 		
 		numDetected
