@@ -35,3 +35,4 @@ trait Sweep[Conf, Domain, Value] extends (Conf => Traversable[(Domain, Value)])
 trait Runner[Result]{
 	def run(job: Seq[() => Result]): IndexedSeq[Result]
 }
+
