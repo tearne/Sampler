@@ -16,3 +16,13 @@ project/plugins/project/
 
 # Scala-IDE specific
 .scala_dependencies
+
+.DS_Store
+.RData
+.Rapp.history
+.Rhistory
+anova_JSON.txt
+data.csv
+script.txt
+src/.DS_Store
+src/main/scala/sampler/prototype/Scratch.scala
