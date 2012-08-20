@@ -63,13 +63,27 @@ trait Distribution[T] extends Empirical[T]{
 	def quantile(p: Probability): T
 }
 
-object Distance{
-	def mean[T <: Double](a: Empirical[T], b: Empirical[T]) = {
-		math.abs(Statistic.mean(a)-Statistic.mean(b))
+class Distance(val stat: Statistic){
+	def mean[T](a: Empirical[T], b: Empirical[T])(implicit num: Fractional[T]) = {
+		import num._
+		abs(stat.mean(a)-stat.mean(b))
 	}
 }
+object Distance{
+	val instance = new Distance(new Statistic)
+	def mean[T](a: Empirical[T], b: Empirical[T])(implicit num: Fractional[T]) = 
+		instance.mean(a,b)(num)
+}
 
+class Statistic{
+	def mean[T](emp: Empirical[T])(implicit num: Fractional[T]) = {
+		import num._
+		emp.counts.foldLeft(num.zero){case (acc, (v,c)) => {
+			acc + v * num.fromInt(c)
+		}} / num.fromInt(emp.size)	
+	}
+}
 object Statistic{
-	def mean[T <: Double](emp: Empirical[T]): Double =
-		emp.counts.foldLeft(0.0){case (acc, (v,c)) => acc + v*c}/emp.size
+	val instance = new Statistic
+	def mean[T](emp: Empirical[T])(implicit num: Fractional[T]) = instance.mean(emp)
 }
