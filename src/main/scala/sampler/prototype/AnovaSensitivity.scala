@@ -35,7 +35,12 @@ class AnovaRunner(rExePath: Path, numLevels: Int = 4){
 		override def toString() = "Class:"+index
 	}
 	
-	def listToBin(list: IndexedSeq[Int]): Bin = {
+	def listToBinForInt(list: IndexedSeq[Int]): Bin = {
+		val bin = Bin(list.min, list.max)
+		bin
+	}
+	
+	def listToBinForDouble(list: IndexedSeq[Double]): Bin = {
 		val bin = Bin(list.min, list.max)
 		bin
 	}
@@ -48,7 +53,7 @@ class AnovaRunner(rExePath: Path, numLevels: Int = 4){
 		val sortedGroups = tc.values.sortWith(_ < _).grouped(numPerBin).toList
 		
 		val binList : List[Bin] = sortedGroups.map{_ match{
-			case myList => listToBin(myList)
+			case myList => listToBinForInt(myList)
 		}}
 		
 		var paramList: IndexedSeq[Factor] = IndexedSeq()
@@ -78,7 +83,43 @@ class AnovaRunner(rExePath: Path, numLevels: Int = 4){
 		returnTC
 	}
 	
-	def double2Factor(tc: TableColumn[Double]): TableColumn[Factor] = {println("2"); null}
+	def double2Factor(tc: TableColumn[Double]): TableColumn[Factor] = {
+		val numPerBin = (tc.values.size.toDouble / numLevels.toDouble).ceil.toInt
+		if(numPerBin ==1)
+			throw new RuntimeException("Cannot perform ANOVA when number of levels is the same as the number of data points") // R crashes
+		
+		val sortedGroups = tc.values.sortWith(_ < _).grouped(numPerBin).toList
+		
+		val binList : List[Bin] = sortedGroups.map{_ match{
+			case myList => listToBinForDouble(myList)
+		}}
+		
+		var paramList: IndexedSeq[Factor] = IndexedSeq()
+		
+		for(value <- tc.values) {
+				for(i <- 0 until binList.size) {
+					val toTest = value
+					val lower = binList(i).lower
+					var upper = binList(i).upper+1
+
+					try {
+						upper = binList(i+1).lower
+					}
+					catch {
+					  case ioobe: IndexOutOfBoundsException =>
+					}
+					
+					val result = (toTest) match {
+					  	case a if(toTest >= lower && toTest < upper) => paramList = paramList :+ Factor(i)
+						case _ => 
+					}
+				}
+			}
+		
+		val returnTC = new TableColumn(paramList, tc.name)
+		
+		returnTC
+	}
 	
 	def apply(independent: IndexedSeq[TableColumn[_]], dependent: TableColumn[Double]): AnovaResults = {
 		import TableColumnMatcher._
