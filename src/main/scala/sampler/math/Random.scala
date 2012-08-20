@@ -17,4 +17,6 @@
 
 package sampler.math
 
-trait Random extends scala.util.Random
+class Random extends scala.util.Random{
+	def nextIndex(size: Int) = throw new UnsupportedOperationException("TODO")
+}
