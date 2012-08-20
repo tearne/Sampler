@@ -24,21 +24,38 @@ trait Samplable[T]{
 	def sample(implicit rand: Random): T
 }
 
-trait Empirical[T] extends Samplable[T]{
-	def +(item: T): Unit
-	def ++(items: TraversableOnce[T]): Unit
-	def +(that: Empirical[T]): Empirical[T]
+class Empirical[T](val samples: IndexedSeq[T]) extends Samplable[T]{
+	lazy val counts: Map[T, Int] = samples.groupBy(identity).mapValues(_.size)
+	lazy val size = counts.values.sum
+	lazy val relFreq = counts.mapValues(count => count.asInstanceOf[Double]/size)
 	
-	def apply(obs: T): Int
-	def relativeFreq(obs: T): Probability
-	def counts(): Map[T, Int]
-
-	def filter(predicate: T => Boolean): Empirical[T]
+	def +(item: T) = new Empirical(this.samples :+ item)
+	def ++(items: TraversableOnce[T]) = new Empirical(this.samples ++ items)
+	def +(that: Empirical[T]): Empirical[T] = new Empirical(this.samples ++ that.samples)
 	
-	def toDistribution(implicit order: Ordering[T]): Distribution[T]
+	def apply(obs: T): Option[Int] = counts.get(obs)
+	def relativeFreq(obs: T): Option[Probability] = relFreq.get(obs).map(p => Probability(p))
+	def sample(implicit rnd: Random): T = samples(rnd.nextIndex(samples.size))
 	
-	def map[B](f: T => B): Empirical[B]
-	def flatMap[B](f: T => Empirical[B]): Empirical[B]
+	def filter(predicate: T => Boolean): Empirical[T] = 
+		throw new UnsupportedOperationException("TODO")
+	
+	def toDistribution(implicit order: Ordering[T]): Distribution[T] =
+		throw new UnsupportedOperationException("TODO")
+	
+	def map[B](f: T => B): Empirical[B] = 
+		throw new UnsupportedOperationException("TODO")
+	def flatMap[B](f: T => Empirical[B]): Empirical[B] = 
+		throw new UnsupportedOperationException("TODO")
+	
+	def canEqual[T: Manifest](other: Any): Boolean = other.isInstanceOf[Empirical[_]]
+	override def equals(other: Any) = other match {
+		case that: Empirical[T] => 
+			(that canEqual this) && (that.counts equals counts)
+		case _ => false
+	}
+	
+	override def hashCode() = counts.hashCode
 }
 
 trait Distribution[T] extends Empirical[T]{
@@ -46,6 +63,13 @@ trait Distribution[T] extends Empirical[T]{
 	def quantile(p: Probability): T
 }
 
-trait EmpiricalMetric[T]{
-	def distance(a: Empirical[T], b: Empirical[T])
+object Distance{
+	def mean[T <: Double](a: Empirical[T], b: Empirical[T]) = {
+		math.abs(Statistic.mean(a)-Statistic.mean(b))
+	}
+}
+
+object Statistic{
+	def mean[T <: Double](emp: Empirical[T]): Double =
+		emp.counts.foldLeft(0.0){case (acc, (v,c)) => acc + v*c}/emp.size
 }
