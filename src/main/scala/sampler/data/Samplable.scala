@@ -19,9 +19,54 @@ package sampler.data
 
 import sampler.math.Probability
 import sampler.math.Random
+import scala.annotation.tailrec
+import scala.collection.GenSeq
 
-trait Samplable[T]{
-	def sample(implicit rand: Random): T
+trait Samplable[A]{ self =>
+	//NOTE: Passing the Random explicitly as arg since we don't necessarily 
+	// want to have the random sent to other remote nodes during distributed
+	// computation.  This was we have options.
+	def sample(implicit r: Random): A
+	
+	def sampleUntil(condition: GenSeq[A] => Boolean, r: Random): GenSeq[A] = {
+		@tailrec
+		def prepend(previous: GenSeq[A]): GenSeq[A] = {
+			if(condition(previous)) previous
+			else prepend(previous.+:(sample(r)))
+		}
+		prepend(Nil)
+	}
+	
+	def map[B](f: A => B)(implicit r: Random) = new Samplable[B]{
+		override def sample(implicit r: Random) = f(self.sample(r))
+	}
+	
+	def flatMap[B](f: A => Samplable[B])(implicit r: Random) = new Samplable[B]{
+		override def sample(implicit r: Random) = f(self.sample(r)).sample(r)
+	}
+	
+	def filer(predicate: A => Boolean)(implicit r: Random) = new Samplable[A]{
+		@tailrec
+		override def sample(implicit r: Random): A = {
+			val s = self.sample(r)
+			if(predicate(s)) s
+			else sample(r)
+		}
+	}
+}
+
+object Samplable{
+	//Basic building blocks
+	def uniform(lower: Double, upper: Double)(implicit r: Random) = new Samplable[Double]{
+		def sample(implicit r: Random) = (upper - lower) * r.nextDouble
+	}
+	def uniform[T](items: IndexedSeq[T])(implicit r: Random) = new Samplable[T]{
+		val size = items.size
+		def sample(implicit r: Random) = items(r.nextInt(size))
+	}
+	def binaryPopulation(numInfected: Int, size: Int)(implicit r: Random) = new Samplable[Boolean]{
+		def sample(implicit r: Random) = r.nextInt(size) < numInfected
+	}
 }
 
 class Empirical[T](val samples: IndexedSeq[T]) extends Samplable[T]{
@@ -35,19 +80,10 @@ class Empirical[T](val samples: IndexedSeq[T]) extends Samplable[T]{
 	
 	def apply(obs: T): Option[Int] = counts.get(obs)
 	def relativeFreq(obs: T): Option[Probability] = relFreq.get(obs).map(p => Probability(p))
-	def sample(implicit rnd: Random): T = samples(rnd.nextIndex(samples.size))
-	
-	def filter(predicate: T => Boolean): Empirical[T] = 
-		throw new UnsupportedOperationException("TODO")
-	
+	def sample(implicit r: Random): T = samples(r.nextInt(samples.size))
+
 	def toDistribution(implicit order: Ordering[T]): Distribution[T] =
 		throw new UnsupportedOperationException("TODO")
-	
-	def map[B](f: T => B): Empirical[B] = 
-		throw new UnsupportedOperationException("TODO")
-	def flatMap[B](f: T => Empirical[B]): Empirical[B] = 
-		throw new UnsupportedOperationException("TODO")
-	
 	def canEqual[T: Manifest](other: Any): Boolean = other.isInstanceOf[Empirical[_]]
 	override def equals(other: Any) = other match {
 		case that: Empirical[T] => 
