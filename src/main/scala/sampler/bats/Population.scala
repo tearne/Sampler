@@ -2,7 +2,7 @@ package sampler.bats
 
 import scala.util.Random
 
-class Population(popSize : Int, percentInfected: Double) {
+class Population(val popSize : Int, val percentInfected: Double) {
 
 	// TODO add checker for valid percentInfected
 	
