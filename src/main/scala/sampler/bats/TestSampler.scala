@@ -13,8 +13,15 @@ object TestSampler {
 
 		val population = new Population(popSize, proportionInfected)
 
+		val precision = 0.1
+		val confidence = 0.95
+		
 		val sampleSizeCalculator = new SampleSizeCalculator()
 		
-		sampleSizeCalculator.bestSampleSize(population, 0.0, 0.0)
+		val minSampleSize = sampleSizeCalculator.bestSampleSize(
+				population, proportionInfected, precision, confidence)
+				
+		println("The minimum sample size required to detect a prevalence of " + proportionInfected + 
+				" (precision " + precision + ") with confidence of " + (confidence*100).toInt + "% is " + minSampleSize)
 	}
 }
