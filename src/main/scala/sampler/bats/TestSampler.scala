@@ -18,10 +18,14 @@ object TestSampler {
 		
 		val sampleSizeCalculator = new SampleSizeCalculator()
 		
-		val minSampleSize = sampleSizeCalculator.bestSampleSize(
-				population, proportionInfected, precision, confidence)
-				
-		println("The minimum sample size required to detect a prevalence of " + proportionInfected + 
-				" (precision " + precision + ") with confidence of " + (confidence*100).toInt + "% is " + minSampleSize)
+//		val minSampleSize = sampleSizeCalculator.bestSampleSize(
+//				population, proportionInfected, precision, confidence)
+//				
+//		println("The minimum sample size required to detect a prevalence of " + proportionInfected + 
+//				" (precision " + precision + ") with confidence of " + (confidence*100).toInt + "% is " + minSampleSize)
+		
+		val prevCalc = new PrevalenceCalculator()
+		
+		prevCalc.resultsDistribution(0.1, 0.1, 100, 10)
 	}
 }
