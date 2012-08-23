@@ -26,6 +26,13 @@ import scala.collection.generic.GenericTraversableTemplate
 import scala.collection.mutable.ListBuffer
 import sampler.math.Random
 import sampler.math.Probability
+import sampler.data.Empirical
+
+
+trait Distribution[T] extends Empirical[T]{
+	def cdf(elem: T): Double 
+	def quantile(p: Probability): T
+}
 
 trait Model[Conf, In, Out] extends (Conf => In => Out)
 

@@ -17,10 +17,8 @@
 
 package sampler.data
 
-import sampler.math.Probability
 import sampler.math.Random
 import scala.annotation.tailrec
-import scala.collection.GenSeq
 
 trait Samplable[A]{ self =>
 	//NOTE: Passing the Random explicitly as arg since we don't necessarily 
@@ -28,13 +26,13 @@ trait Samplable[A]{ self =>
 	// computation.  This was we have options.
 	def sample(implicit r: Random): A
 	
-	def sampleUntil(condition: GenSeq[A] => Boolean, r: Random): GenSeq[A] = {
+	def buildEmpirical(condition: Seq[A] => Boolean)(implicit r: Random): Empirical[A] = {
 		@tailrec
-		def prepend(previous: GenSeq[A]): GenSeq[A] = {
+		def prepend(previous: Seq[A]): Seq[A] = {
 			if(condition(previous)) previous
 			else prepend(previous.+:(sample(r)))
 		}
-		prepend(Nil)
+		Empirical(prepend(sample(r) :: Nil))
 	}
 	
 	def map[B](f: A => B)(implicit r: Random) = new Samplable[B]{
@@ -56,70 +54,30 @@ trait Samplable[A]{ self =>
 }
 
 object Samplable{
-	//Basic building blocks
 	def uniform(lower: Double, upper: Double)(implicit r: Random) = new Samplable[Double]{
 		def sample(implicit r: Random) = (upper - lower) * r.nextDouble
 	}
+	
 	def uniform[T](items: IndexedSeq[T])(implicit r: Random) = new Samplable[T]{
 		val size = items.size
 		def sample(implicit r: Random) = items(r.nextInt(size))
 	}
+	
+	def withoutReplacement[T](items: IndexedSeq[T], sampleSize: Int) = new Samplable[List[T]]{
+		def sample(implicit r: Random) = {
+			@tailrec
+			def takeAnother(acc: List[T], bag: IndexedSeq[T]): List[T] = {
+				if(acc.size == sampleSize) acc
+				else{ 
+					val item = bag(r.nextInt(bag.size))
+					takeAnother(item +: acc, bag diff List(item))
+				}
+			}
+			
+			takeAnother(Nil, items)
+		}
+	}
 	def binaryPopulation(numInfected: Int, size: Int)(implicit r: Random) = new Samplable[Boolean]{
 		def sample(implicit r: Random) = r.nextInt(size) < numInfected
 	}
-}
-
-class Empirical[T](val samples: IndexedSeq[T]) extends Samplable[T]{
-	lazy val counts: Map[T, Int] = samples.groupBy(identity).mapValues(_.size)
-	lazy val size = counts.values.sum
-	lazy val relFreq = counts.mapValues(count => count.asInstanceOf[Double]/size)
-	
-	def +(item: T) = new Empirical(this.samples :+ item)
-	def ++(items: TraversableOnce[T]) = new Empirical(this.samples ++ items)
-	def +(that: Empirical[T]): Empirical[T] = new Empirical(this.samples ++ that.samples)
-	
-	def apply(obs: T): Option[Int] = counts.get(obs)
-	def relativeFreq(obs: T): Option[Probability] = relFreq.get(obs).map(p => Probability(p))
-	def sample(implicit r: Random): T = samples(r.nextInt(samples.size))
-
-	def toDistribution(implicit order: Ordering[T]): Distribution[T] =
-		throw new UnsupportedOperationException("TODO")
-	def canEqual[T: Manifest](other: Any): Boolean = other.isInstanceOf[Empirical[_]]
-	override def equals(other: Any) = other match {
-		case that: Empirical[T] => 
-			(that canEqual this) && (that.counts equals counts)
-		case _ => false
-	}
-	
-	override def hashCode() = counts.hashCode
-}
-
-trait Distribution[T] extends Empirical[T]{
-	def cdf(elem: T): Double 
-	def quantile(p: Probability): T
-}
-
-class Distance(val stat: Statistic){
-	def mean[T](a: Empirical[T], b: Empirical[T])(implicit num: Fractional[T]) = {
-		import num._
-		abs(stat.mean(a)-stat.mean(b))
-	}
-}
-object Distance{
-	val instance = new Distance(new Statistic)
-	def mean[T](a: Empirical[T], b: Empirical[T])(implicit num: Fractional[T]) = 
-		instance.mean(a,b)(num)
-}
-
-class Statistic{
-	def mean[T](emp: Empirical[T])(implicit num: Fractional[T]) = {
-		import num._
-		emp.counts.foldLeft(num.zero){case (acc, (v,c)) => {
-			acc + v * num.fromInt(c)
-		}} / num.fromInt(emp.size)	
-	}
-}
-object Statistic{
-	val instance = new Statistic
-	def mean[T](emp: Empirical[T])(implicit num: Fractional[T]) = instance.mean(emp)
 }
