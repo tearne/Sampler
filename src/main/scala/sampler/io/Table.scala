@@ -20,6 +20,8 @@ package sampler.io
 import java.nio.file.Path
 import sampler.data.TableHeader
 import sampler.data.TableColumn
+import java.io.FileOutputStream
+import java.io.PrintStream
 
 trait TableReader{
 	def get[T](params: TableHeader[T]): IndexedSeq[T]
@@ -40,6 +42,35 @@ class CSVTableWriter(path: Path, overwrite: Boolean = false, append: Boolean = f
 					TableWriterException("each column must have name for the column header")
 			case _ =>
 		}}
+		
+		val csvFile = new FileOutputStream(path.toString)
+		val csvStream = new PrintStream(csvFile)
+		
+		for(i <- 0 until columns.length) {
+			csvStream.print(columns(i).name.get)
+			if(i < columns.length-1)
+				csvStream.print(",")
+		}
+
+		csvStream.print("\n")
+		
+		var mainSeq : Seq[Seq[Any]] = Seq()
+		
+		columns.map{_ match {
+			case a => mainSeq = mainSeq :+ a.values
+		}}
+		
+		mainSeq=mainSeq.transpose
+		
+		mainSeq.map{_ match{
+			case a => {for(i <- 0 until a.length) {
+				csvStream.print(a(i)) 
+				if(i< a.length-1) {csvStream.print(",")}}	
+				csvStream.print("\n")
+			}
+		}}
+		
+		csvStream.close()
 	}
 }
 

@@ -58,7 +58,7 @@ class CSVTableWriterSpec extends Specification{
 	
 	"CSVTableWriter" should {
 		"write ?four? lines of data" in new fileSetup with fileTearDown {
-			false
+			writer.apply(tc1, tc2)
 		}
 	}
 	
@@ -74,14 +74,10 @@ class CSVTableWriterSpec extends Specification{
 				
 		val tc1 = new TableColumn(params1, Some("P1"))
 		val tc2 = new TableColumn(params2, Some("P2"))
-				
-		println("In setup")
 	}
 	
 	trait fileTearDown extends After {
-		def after = {
-			println("In breakdown")
-			Files.deleteIfExists(file)
-		}
+		def after = Files.deleteIfExists(file)
+//		def after = {}
 	}
 }
