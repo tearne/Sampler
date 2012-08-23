@@ -17,10 +17,13 @@
 
 package sampler.math
 
-trait Probability{
-	def sample
+case class Probability(val value: Double){
+	def sample = null
+	def >(q: Probability) = value > q.value
+	def <(q: Probability) = value < q.value
 }
 object Probability{
-	def apply(value: Double): Probability = null
+	val zero = Probability(0)
 }
+
 class ProbabilityException extends Exception

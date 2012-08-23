@@ -53,14 +53,16 @@ class SampleSizeCalculator() {
 		
 			resultsMap = resultsMap.+=((numToSample, totalResultInRange))
 		
-//			println(numToSample + " => " + totalResultInRange + "\t" + numUpdates + " updates")
+			println(numToSample + " => " + totalResultInRange + "\t" + numUpdates*2000 + " samples")
 
 			if(totalResultInRange > confidence){
-				var prevConf = resultsMap.get(numToSample-1).getOrElse(0.0)
-				if(prevConf > confidence){
-					minimumSampleSize = numToSample-1
+//				var prevConf = resultsMap.get(numToSample-1).getOrElse(0.0)
+//				if(prevConf > confidence){
+//					minimumSampleSize = numToSample-1
+					minimumSampleSize = numToSample
 					break				
-				}
+//				}
+//				
 			}
 		
 		}}
