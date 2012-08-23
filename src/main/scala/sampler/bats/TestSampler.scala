@@ -13,7 +13,7 @@ object TestSampler {
 
 		val population = new Population(popSize, proportionInfected)
 
-		val precision = 0.1
+		val precision = 0.05
 		val confidence = 0.95
 		
 		val sampleSizeCalculator = new SampleSizeCalculator()
