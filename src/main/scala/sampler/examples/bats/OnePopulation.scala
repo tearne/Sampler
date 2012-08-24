@@ -6,6 +6,8 @@ import sampler.data.Distance
 import sampler.data.Empirical
 import sampler.math.Probability
 import sampler.util.Implicits
+import sampler.data.Distribution
+import sampler.data.ParallelEmpiricalBuilder
 
 object AnotherOnePopulation extends App with Implicits{
 	/*
@@ -31,13 +33,16 @@ object AnotherOnePopulation extends App with Implicits{
 	val population = (1 to popSize).map(_ < numInfected)
 		
 	def empiricalObjective(numSampled: Int) = {
-		Samplable.withoutReplacement(population, numSampled)	// Start with base model
-		.map(_.count(identity) / numSampled.toDouble)			// Transform to model of sample prevalance
-		.parallelBuildEmpirical(chunkSize){samples =>			// Sample the model until convergence
+		val model = 
+			Distribution.withoutReplacement(population, numSampled)	// Start with base model
+			.map(_.count(identity) / numSampled.toDouble)			// Transform to model of sample prevalance
+		
+		// Sample the model until convergence
+		ParallelEmpiricalBuilder(model, chunkSize){samples =>			
 			val distance = Distance.mean(Empirical(samples.seq.take(samples.size - chunkSize)), Empirical(samples.seq))
 			(distance < convergenceCriterion) || (samples.size > 1e8)
 		}
-		.map(samplePrev => math.abs(samplePrev - truePrev) < precision)	// Transform samples to in/out of tolerance
+		.map(samplePrev => math.abs(samplePrev - truePrev) < precision)		// Transform samples to in/out of tolerance
 	}
 	
 	val result = {

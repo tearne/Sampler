@@ -28,20 +28,4 @@ trait Implicits {
 	class RichSeq[T](seq: Seq[T]){
 		def toEmpirical() = new Empirical(seq.toIndexedSeq)
 	}
-
-	implicit def samplableToParalle[T](samplable: Samplable[T]) = new ParallelSamplable(samplable)
-	
-	class ParallelSamplable[T](samplable: Samplable[T]){
-		def parallelBuildEmpirical(chunkSize: Int)(condition: GenSeq[T] => Boolean)(implicit r: Random): Empirical[T] = {
-			@tailrec
-			def takeMore(previous: GenSeq[T]): GenSeq[T] = {
-				if(condition(previous)) previous
-				else takeMore{
-					previous ++ ((1 to chunkSize).par.map(i => samplable.sample))
-				}
-			}
-			val kickstart = (1 to chunkSize).par.map(i => samplable.sample)
-			Empirical(takeMore(kickstart).seq)
-		}
-	}
 }

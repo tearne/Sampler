@@ -19,10 +19,10 @@ package sampler.data
 
 import sampler.math.Random
 import sampler.math.Probability
-import sampler.prototype.Distribution
+import scala.annotation.tailrec
+import scala.collection.parallel.ParSeq
 
-
-class Empirical[A](val samples: IndexedSeq[A]){
+class Empirical[A](val samples: IndexedSeq[A]) extends Samplable[A]{
 	lazy val counts: Map[A, Int] = samples.groupBy(identity).mapValues(_.size)
 	lazy val size = counts.values.sum
 	lazy val relFreq = counts.mapValues(count => count.asInstanceOf[Double]/size)
@@ -32,6 +32,9 @@ class Empirical[A](val samples: IndexedSeq[A]){
 	def relativeFreq(obs: A): Option[Probability] = relFreq.get(obs).map(p => Probability(p))
 	
 	def map[B](f: A => B)(implicit r: Random) = new Empirical[B](samples.map(f))
+	def flatMap[B](f: A => Empirical[B])(implicit r: Random) = new Empirical[B](
+		samples.flatMap(s =>f(s).samples)
+	)
 	
 	def +(item: A) = new Empirical[A](samples :+ item)
 	def ++(items: TraversableOnce[A]) = new Empirical[A](samples ++ items)
@@ -72,6 +75,20 @@ object Distance{
 				b.relativeFreq(i).map(_.value).getOrElse(0.0)
 		)
 		indexes.map(distAtIndex(_)).max
+	}
+}
+
+object ParallelEmpiricalBuilder{
+	def apply[T](samplable: Samplable[T], chunkSize: Int)(condition: ParSeq[T] => Boolean)(implicit r: Random): Empirical[T] = {
+		@tailrec
+		def takeMore(previous: ParSeq[T]): ParSeq[T] = {
+			if(condition(previous)) previous
+			else takeMore{
+				previous ++ ((1 to chunkSize).par.map(i => samplable.sample))
+			}
+		}
+		val kickstart = (1 to chunkSize).par.map(i => samplable.sample)
+		Empirical(takeMore(kickstart).seq)
 	}
 }
 
