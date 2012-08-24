@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2012 Crown Copyright 
+ *                    Animal Health and Veterinary Laboratories Agency
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package sampler.examples.bats
 
 import sampler.math.Random
@@ -5,11 +22,11 @@ import sampler.data.Samplable
 import sampler.data.Distance
 import sampler.data.Empirical
 import sampler.math.Probability
-import sampler.util.Implicits
 import sampler.data.Distribution
-import sampler.data.ParallelEmpiricalBuilder
+import sampler.data.FrequencyTableBuilder
+import sampler.data.FrequencyTable
 
-object AnotherOnePopulation extends App with Implicits{
+object AnotherOnePopulation extends App{
 	/*
 	 * In a population of a given size, and sampling with replacement,
 	 * how many samples should be taken to be % confident of observing
@@ -19,7 +36,7 @@ object AnotherOnePopulation extends App with Implicits{
 	val start = System.currentTimeMillis
 	
 	//Domain parameters
-	val popSize = 100;
+	val popSize = 100
 	val truePrev = 0.1
 	val precision = 0.09
 	val confidence = Probability(0.95)
@@ -38,8 +55,8 @@ object AnotherOnePopulation extends App with Implicits{
 			.map(_.count(identity) / numSampled.toDouble)			// Transform to model of sample prevalance
 		
 		// Sample the model until convergence
-		ParallelEmpiricalBuilder(model, chunkSize){samples =>			
-			val distance = Distance.mean(Empirical(samples.seq.take(samples.size - chunkSize)), Empirical(samples.seq))
+		FrequencyTableBuilder.parallel(model, chunkSize){samples =>			
+			val distance = Distance.mean(FrequencyTable(samples.seq.take(samples.size - chunkSize)), FrequencyTable(samples.seq))
 			(distance < convergenceCriterion) || (samples.size > 1e8)
 		}
 		.map(samplePrev => math.abs(samplePrev - truePrev) < precision)		// Transform samples to in/out of tolerance
@@ -49,7 +66,7 @@ object AnotherOnePopulation extends App with Implicits{
 		(1 to popSize).view
 			.map{n => 
 				val eo = empiricalObjective(n)
-				val confidence = eo.relativeFreq(true).getOrElse(Probability.zero)
+				val confidence = eo.probabilityMap.get(true).getOrElse(Probability.zero)
 				println("Sample size = %d, empirical size = %d, confidence = %s".format(n, eo.size, confidence.toString))
 				(n, confidence)
 			}

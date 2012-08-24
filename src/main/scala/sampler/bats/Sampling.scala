@@ -1,9 +1,9 @@
 package sampler.bats
 
-import sampler.data.Empirical
 import sampler.data.Distance
 import scala.collection.mutable.HashMap
 import scala.util.control.Breaks._
+import sampler.data.FrequencyTable
 
 class SampleSizeCalculator() {
 
@@ -24,8 +24,8 @@ class SampleSizeCalculator() {
 				resultsSeq2 = resultsSeq2 :+ (population.sampleWithoutReplacement(numToSample).toDouble) / numToSample
 			}
 		
-			var eo1 = new Empirical(resultsSeq1)
-			var eo2 = new Empirical(resultsSeq2)
+			var eo1 = new FrequencyTable(resultsSeq1)
+			var eo2 = new FrequencyTable(resultsSeq2)
 		
 			var numUpdates = 0
 		
@@ -46,8 +46,8 @@ class SampleSizeCalculator() {
 		
 			var totalResultInRange = 0.0
 		
-			eo1.relFreq.map{_ match {
-				case (x, y) if (x >= lowerBound && x <= upperBound) => totalResultInRange = totalResultInRange + y
+			eo1.probabilityMap.map{_ match {
+				case (x, y) if (x >= lowerBound && x <= upperBound) => totalResultInRange = totalResultInRange + y.value
 				case _ =>
 			}}
 		
@@ -90,8 +90,8 @@ class PrevalenceCalculator(){
 				resultsSeq2 = resultsSeq2 :+ (population.sampleWithoutReplacement(sampleSize).toDouble) / sampleSize
 			}
 	
-			var eo1 = new Empirical(resultsSeq1)
-			var eo2 = new Empirical(resultsSeq2)
+			var eo1 = new FrequencyTable(resultsSeq1)
+			var eo2 = new FrequencyTable(resultsSeq2)
 	
 			var numUpdates = 0
 	
@@ -112,8 +112,8 @@ class PrevalenceCalculator(){
 	
 			var totalResultInRange = 0.0
 		
-			eo1.relFreq.map{_ match {
-				case (x, y) if (x >= lowerBound && x <= upperBound) => totalResultInRange = totalResultInRange + y
+			eo1.probabilityMap.map{_ match {
+				case (x, y) if (x >= lowerBound && x <= upperBound) => totalResultInRange = totalResultInRange + y.value
 				case _ =>
 			}}
 			
