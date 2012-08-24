@@ -27,6 +27,7 @@ import org.specs2.specification.Scope
 import java.nio.file.Files
 import org.specs2.mutable.Before
 import org.specs2.mutable.After
+import scala.io.Source
 
 @RunWith(classOf[JUnitRunner])
 class CSVTableWriterSpec extends Specification{
@@ -57,8 +58,26 @@ class CSVTableWriterSpec extends Specification{
 	}
 	
 	"CSVTableWriter" should {
-		"write ?four? lines of data" in new fileSetup with fileTearDown {
-			writer.apply(tc1, tc2)
+		"create the file" in new fileSetup with fileTearDown {
+			writer.apply(tc1, tc2, tc3)
+			Files.exists(file) == true
+		}
+		"write the four lines containing the headers and data points" in new fileSetup with fileTearDown {
+			writer.apply(tc1, tc2, tc3)
+			
+//			read in file and check correct contents
+			val expectedLine1 = "P1,P2,P3"
+			val expectedLine2 = "1,3.0,one"
+			val expectedLine3 = "2,2.0,two"
+			val expectedLine4 = "3,1.0,three"
+				
+			val source = Source.fromFile(filePath.toString())
+			val sourceString = source.mkString
+			
+			val lines = sourceString.split("\n")
+			val expectedLines = Array(expectedLine1, expectedLine2, expectedLine3, expectedLine4)
+			
+			lines mustEqual expectedLines
 		}
 	}
 	
@@ -71,9 +90,11 @@ class CSVTableWriterSpec extends Specification{
 				
 		val params1 = IndexedSeq(1,2,3)
 		val params2 = IndexedSeq(3.0,2.0,1.0)
+		val params3 = IndexedSeq("one", "two", "three")
 				
 		val tc1 = new TableColumn(params1, Some("P1"))
 		val tc2 = new TableColumn(params2, Some("P2"))
+		val tc3 = new TableColumn(params3, Some("P3"))
 	}
 	
 	trait fileTearDown extends After {

@@ -37,38 +37,45 @@ class CSVTableWriter(path: Path, overwrite: Boolean = false, append: Boolean = f
 	}
 	
 	def apply(columns: TableColumn[_]*){
-		columns.map{_ match {
+		columns.map{
 			case a if(a.name.getOrElse(false) == false) => throw new 
 					TableWriterException("each column must have name for the column header")
 			case _ =>
-		}}
+		}
+		
+		def makeCSVLine(tokens: Iterable[Any]) = {
+			val newLine: String = System.getProperty("line.separator")
+			val it = tokens.iterator
+			val builder = new StringBuilder()
+			it.foreach(dat => {
+				builder.append(dat)
+				if(it.hasNext)
+					builder.append(",")
+			})
+			builder.append(newLine)
+			builder.toString
+		}
 		
 		val csvFile = new FileOutputStream(path.toString)
 		val csvStream = new PrintStream(csvFile)
 		
-		for(i <- 0 until columns.length) {
-			csvStream.print(columns(i).name.get)
-			if(i < columns.length-1)
-				csvStream.print(",")
-		}
-
-		csvStream.print("\n")
-		
+		var names: Seq[Any] = Seq()
 		var mainSeq : Seq[Seq[Any]] = Seq()
 		
-		columns.map{_ match {
-			case a => mainSeq = mainSeq :+ a.values
-		}}
+		columns.map{
+			case a => {
+				names = names :+ a.name.get
+				mainSeq = mainSeq :+ a.values
+			}
+		}
+
+		csvStream.print(makeCSVLine(names))
 		
 		mainSeq=mainSeq.transpose
 		
-		mainSeq.map{_ match{
-			case a => {for(i <- 0 until a.length) {
-				csvStream.print(a(i)) 
-				if(i< a.length-1) {csvStream.print(",")}}	
-				csvStream.print("\n")
-			}
-		}}
+		mainSeq.map{
+			case a => csvStream.print(makeCSVLine(a))
+		}
 		
 		csvStream.close()
 	}
