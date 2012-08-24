@@ -18,43 +18,40 @@
 package sampler.io
 
 import java.nio.file.Path
-import sampler.data.TableHeader
-import sampler.data.TableColumn
+import sampler.data.Header
+import sampler.data.Column
 import java.io.FileOutputStream
 import java.io.PrintStream
 import scala.io.Source
 import java.io.FileNotFoundException
+import scala.reflect.Manifest
+import scala.collection.immutable.WrappedString
 
 trait TableReader{
-	def get[T](params: TableHeader[T]): IndexedSeq[T]
+	def get[T](params: Header[T]): Column[T]
 }
 trait TableWriter{
-	def apply(columns: TableColumn[_]*): Unit
+	def apply(columns: Column[_]*): Unit
 }
 
 class CSVTableReader(path: Path) extends TableReader{
 	
-	var source: Iterable[Array[String]] = _
+	val source = Source.fromFile(path.toString())
+			.getLines()
+			.map(_.split(",").map(_.trim))
+			.toIterable
 	
-	try {
-		source = Source.fromFile(path.toString()).getLines().map(_.split(",").map(_.trim)).toIterable
-	} catch {
-		case e: FileNotFoundException => throw new ReaderFileException(path.toString() + " does not point to a file")
-		case _ =>
-	}
-	
-	def get[T](params: TableHeader[T]): IndexedSeq[T] = {
-		
+	def get[T](header: Header[T]): Column[T] = {
 		val it = source.iterator
-		
 		val headers = it.next()
 		
-		headers.map{
-			case a if (params.name == a) => println(headers.indexOf(a))
-			case _ =>
+		val columnIdx = headers.indexWhere(_ == header.name) match{
+			case i: Int if i<0 => throw new UnsupportedOperationException("Header not found, TODO: improve exception")
+			case i: Int => i
 		}
 		
-		null
+		val values = it.map(row => header.parse(row(columnIdx))).toIndexedSeq
+		new Column(values, Option(header.name))(header.m)
 	}
 }
 
@@ -64,7 +61,7 @@ class CSVTableWriter(path: Path, overwrite: Boolean = false, append: Boolean = f
 		throw new TableWriterException("Invalid csv file name supplied to csv writer")
 	}
 	
-	def apply(columns: TableColumn[_]*){
+	def apply(columns: Column[_]*){
 		columns.map{
 			case a if(a.name.getOrElse(false) == false) => throw new 
 					TableWriterException("each column must have name for the column header")

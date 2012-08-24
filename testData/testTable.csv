@@ -1,0 +1,4 @@
+MyDoubles,	TheirBools
+1.000, 		true
+2, 			false  
+3.,			false

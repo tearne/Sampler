@@ -24,8 +24,8 @@ import java.io.PrintStream
 import java.io.File
 import scala.collection.mutable.HashMap
 import com.typesafe.config.ConfigFactory
-import sampler.data.TableColumn
-import sampler.data.TableColumnMatcher
+import sampler.data.Column
+import sampler.data.ColumnMatcher
 
 class AnovaRunner(rExePath: Path, numLevels: Int = 4){
 	
@@ -45,7 +45,7 @@ class AnovaRunner(rExePath: Path, numLevels: Int = 4){
 		bin
 	}
 	
-	def int2Factor(tc: TableColumn[Int]): TableColumn[Factor] = {
+	def int2Factor(tc: Column[Int]): Column[Factor] = {
 		val numPerBin = (tc.values.size.toDouble / numLevels.toDouble).ceil.toInt
 		if(numPerBin ==1)
 			throw new RuntimeException("Cannot perform ANOVA when number of levels is the same as the number of data points") // R crashes
@@ -78,12 +78,12 @@ class AnovaRunner(rExePath: Path, numLevels: Int = 4){
 				}
 			}
 		
-		val returnTC = new TableColumn(paramList, tc.name)
+		val returnTC = new Column(paramList, tc.name)
 		
 		returnTC
 	}
 	
-	def double2Factor(tc: TableColumn[Double]): TableColumn[Factor] = {
+	def double2Factor(tc: Column[Double]): Column[Factor] = {
 		val numPerBin = (tc.values.size.toDouble / numLevels.toDouble).ceil.toInt
 		if(numPerBin ==1)
 			throw new RuntimeException("Cannot perform ANOVA when number of levels is the same as the number of data points") // R crashes
@@ -116,14 +116,14 @@ class AnovaRunner(rExePath: Path, numLevels: Int = 4){
 				}
 			}
 		
-		val returnTC = new TableColumn(paramList, tc.name)
+		val returnTC = new Column(paramList, tc.name)
 		
 		returnTC
 	}
 	
-	def apply(independent: IndexedSeq[TableColumn[_]], dependent: TableColumn[Double]): AnovaResults = {
-		import TableColumnMatcher._
-		val factorisedColumns: IndexedSeq[TableColumn[Factor]] = independent.map{_ match{
+	def apply(independent: IndexedSeq[Column[_]], dependent: Column[Double]): AnovaResults = {
+		import ColumnMatcher._
+		val factorisedColumns: IndexedSeq[Column[Factor]] = independent.map{_ match{
 			case IntTC(tc) => int2Factor(tc) 
 			case DoubleTC(tc) =>  double2Factor(tc)
 		}}

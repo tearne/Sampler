@@ -22,7 +22,7 @@ import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import java.nio.file.Paths
 import java.io.File
-import sampler.data.TableColumn
+import sampler.data.Column
 import org.specs2.specification.Scope
 import java.nio.file.Files
 import org.specs2.mutable.Before
@@ -49,8 +49,8 @@ class CSVTableWriterSpec extends Specification{
 				val params1 = IndexedSeq(1,2,3)
 				val params2 = IndexedSeq(3.0,2.0,1.0)
 				
-				val tc1 = new TableColumn(params1)
-				val tc2 = new TableColumn(params2, Some("Parameter2"))
+				val tc1 = new Column(params1)
+				val tc2 = new Column(params2, Some("Parameter2"))
 				
 				writer.apply(tc1, tc2) must throwA[TableWriterException]
 			}
@@ -92,9 +92,9 @@ class CSVTableWriterSpec extends Specification{
 		val params2 = IndexedSeq(3.0,2.0,1.0)
 		val params3 = IndexedSeq("one", "two", "three")
 				
-		val tc1 = new TableColumn(params1, Some("P1"))
-		val tc2 = new TableColumn(params2, Some("P2"))
-		val tc3 = new TableColumn(params3, Some("P3"))
+		val tc1 = new Column(params1, Some("P1"))
+		val tc2 = new Column(params2, Some("P2"))
+		val tc3 = new Column(params3, Some("P3"))
 	}
 	
 	trait fileTearDown extends After {
