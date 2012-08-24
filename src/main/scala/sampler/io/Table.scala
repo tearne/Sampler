@@ -22,12 +22,40 @@ import sampler.data.TableHeader
 import sampler.data.TableColumn
 import java.io.FileOutputStream
 import java.io.PrintStream
+import scala.io.Source
+import java.io.FileNotFoundException
 
 trait TableReader{
 	def get[T](params: TableHeader[T]): IndexedSeq[T]
 }
 trait TableWriter{
 	def apply(columns: TableColumn[_]*): Unit
+}
+
+class CSVTableReader(path: Path) extends TableReader{
+	
+	var source: Iterable[Array[String]] = _
+	
+	try {
+		source = Source.fromFile(path.toString()).getLines().map(_.split(",").map(_.trim)).toIterable
+	} catch {
+		case e: FileNotFoundException => throw new ReaderFileException(path.toString() + " does not point to a file")
+		case _ =>
+	}
+	
+	def get[T](params: TableHeader[T]): IndexedSeq[T] = {
+		
+		val it = source.iterator
+		
+		val headers = it.next()
+		
+		headers.map{
+			case a if (params.name == a) => println(headers.indexOf(a))
+			case _ =>
+		}
+		
+		null
+	}
 }
 
 class CSVTableWriter(path: Path, overwrite: Boolean = false, append: Boolean = false) extends TableWriter{
@@ -82,3 +110,4 @@ class CSVTableWriter(path: Path, overwrite: Boolean = false, append: Boolean = f
 }
 
 class TableWriterException(msg: String) extends RuntimeException(msg)
+class ReaderFileException(msg: String) extends RuntimeException(msg)
