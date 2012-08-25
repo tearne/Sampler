@@ -25,6 +25,10 @@ import sampler.math.Probability
 import sampler.data.Distribution
 import sampler.data.FrequencyTableBuilder
 import sampler.data.FrequencyTable
+import scala.collection.mutable.ListBuffer
+import sampler.io.CSVTableWriter
+import java.nio.file.Paths
+import sampler.data.Types.Column
 
 object AnotherOnePopulation extends App{
 	/*
@@ -36,18 +40,18 @@ object AnotherOnePopulation extends App{
 	val start = System.currentTimeMillis
 	
 	//Domain parameters
-	val popSize = 100
-	val truePrev = 0.1
+	val populationSize = 100
+	val truePrevalence = 0.1
 	val precision = 0.09
-	val confidence = Probability(0.95)
+	val requiredConfidence = Probability(0.95)
 	
 	//Meta-parameters
 	val chunkSize = 2000
-	val convergenceCriterion = 0.0001
+	val convergenceCriterion = 0.001
 	
 	implicit val random = new Random
-	val numInfected = (popSize*truePrev).round.toInt
-	val population = (1 to popSize).map(_ < numInfected)
+	val numInfected = (populationSize*truePrevalence).round.toInt
+	val population = (1 to populationSize).map(_ < numInfected)
 		
 	def empiricalObjective(numSampled: Int) = {
 		val model = 
@@ -56,26 +60,38 @@ object AnotherOnePopulation extends App{
 		
 		// Sample the model until convergence
 		FrequencyTableBuilder.parallel(model, chunkSize){samples =>			
-			val distance = Distance.mean(FrequencyTable(samples.seq.take(samples.size - chunkSize)), FrequencyTable(samples.seq))
+			val distance = Distance.max(FrequencyTable(samples.seq.take(samples.size - chunkSize)), FrequencyTable(samples.seq))
 			(distance < convergenceCriterion) || (samples.size > 1e8)
 		}
-		.map(samplePrev => math.abs(samplePrev - truePrev) < precision)		// Transform samples to in/out of tolerance
+		.map(samplePrev => math.abs(samplePrev - truePrevalence) < precision)		// Transform samples to in/out of tolerance
 	}
 	
+	val sampleSizeList = ListBuffer[Int]()
+	val confidenceList = ListBuffer[Probability]()
+	
 	val result = {
-		(1 to popSize).view
+		(1 to populationSize)
+			.view
 			.map{n => 
 				val eo = empiricalObjective(n)
 				val confidence = eo.probabilityMap.get(true).getOrElse(Probability.zero)
 				println("Sample size = %d, empirical size = %d, confidence = %s".format(n, eo.size, confidence.toString))
+				sampleSizeList.+=(n)
+				confidenceList.+=(confidence)
 				(n, confidence)
 			}
-			.find(_._2 > confidence)
+			.find(_._2 > requiredConfidence)
 			.get._1
 	}
 	
-	println("Estimated minimum sample size required to detect a prevalence of " + truePrev + 
-				" (precision " + precision + ") with confidence of " + confidence + "% is " + result)
+	new CSVTableWriter(Paths.get("OnePopulation.csv"))(
+		Column(sampleSizeList.toList, Some("SampleSize")),
+		Column(confidenceList.toList, Some("Confidence"))
+	)
+	
+	
+	println("Estimated minimum sample size required to detect a prevalence of " + truePrevalence + 
+				" (precision " + precision + ") with confidence of " + requiredConfidence + "% is " + result)
 	
 	println("took " + (System.currentTimeMillis - start) + "ms.")
 }
