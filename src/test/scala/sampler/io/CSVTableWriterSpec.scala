@@ -79,6 +79,12 @@ class CSVTableWriterSpec extends Specification{
 			
 			lines mustEqual expectedLines
 		}
+		"write ints" in todo
+		"write doubles" in todo
+		"write strings" in todo
+		"write factors" in todo
+		"write booleans" in todo
+		"write probabilities by their containing value" in todo
 	}
 	
 	val path = Paths.get(new File("").getAbsolutePath())

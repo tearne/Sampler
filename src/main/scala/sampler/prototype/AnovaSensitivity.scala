@@ -30,12 +30,12 @@ class AnovaRunner(rExePath: Path, numLevels: Int = 4){
 	
 	case class Bin(lower: Double, upper: Double)
 	
-	def listToBinForInt(list: IndexedSeq[Int]): Bin = {
+	def listToBinForInt(list: Seq[Int]): Bin = {
 		val bin = Bin(list.min, list.max)
 		bin
 	}
 	
-	def listToBinForDouble(list: IndexedSeq[Double]): Bin = {
+	def listToBinForDouble(list: Seq[Double]): Bin = {
 		val bin = Bin(list.min, list.max)
 		bin
 	}

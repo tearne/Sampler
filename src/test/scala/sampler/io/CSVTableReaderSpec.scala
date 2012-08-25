@@ -29,6 +29,11 @@ class CSVTableReaderSpec extends Specification{
 			val header = new Header[Boolean]("TheirBools")
 			instance.get(header) mustEqual Column(IndexedSeq(true, false, false), Some("TheirBools"))
 		}
+		
+		"retrieve string data" in todo
+		"retrieve int data" in todo
+		"retrieve factor data" in todo
+		"retrieve probability data" in todo
 	}
 	
 	trait fileSetup extends Scope {

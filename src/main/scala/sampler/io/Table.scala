@@ -86,7 +86,7 @@ class CSVTableWriter(path: Path, overwrite: Boolean = false, append: Boolean = f
 		var names: Seq[Any] = Seq()
 		var mainSeq : Seq[Seq[Any]] = Seq()
 		
-		columns.map{
+		columns.map(_.toStringColumn).map{
 			case a => {
 				names = names :+ a.name.get
 				mainSeq = mainSeq :+ a.values
