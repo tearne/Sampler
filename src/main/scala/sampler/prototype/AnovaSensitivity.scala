@@ -24,16 +24,11 @@ import java.io.PrintStream
 import java.io.File
 import scala.collection.mutable.HashMap
 import com.typesafe.config.ConfigFactory
-import sampler.data.Column
-import sampler.data.ColumnMatcher
+import sampler.data.Types._
 
 class AnovaRunner(rExePath: Path, numLevels: Int = 4){
 	
 	case class Bin(lower: Double, upper: Double)
-	
-	case class Factor(index: Int){
-		override def toString() = "Class:"+index
-	}
 	
 	def listToBinForInt(list: IndexedSeq[Int]): Bin = {
 		val bin = Bin(list.min, list.max)
@@ -72,7 +67,7 @@ class AnovaRunner(rExePath: Path, numLevels: Int = 4){
 					}
 					
 					val result = (toTest) match {
-					  	case a if(toTest >= lower && toTest < upper) => paramList = paramList :+ Factor(i)
+					  	case a if(toTest >= lower && toTest < upper) => paramList = paramList :+ Factor(i.toString)
 						case _ => 
 					}
 				}
@@ -110,7 +105,7 @@ class AnovaRunner(rExePath: Path, numLevels: Int = 4){
 					}
 					
 					val result = (toTest) match {
-					  	case a if(toTest >= lower && toTest < upper) => paramList = paramList :+ Factor(i)
+					  	case a if(toTest >= lower && toTest < upper) => paramList = paramList :+ Factor(i.toString)
 						case _ => 
 					}
 				}
@@ -122,10 +117,9 @@ class AnovaRunner(rExePath: Path, numLevels: Int = 4){
 	}
 	
 	def apply(independent: IndexedSeq[Column[_]], dependent: Column[Double]): AnovaResults = {
-		import ColumnMatcher._
 		val factorisedColumns: IndexedSeq[Column[Factor]] = independent.map{_ match{
-			case IntTC(tc) => int2Factor(tc) 
-			case DoubleTC(tc) =>  double2Factor(tc)
+			case IntColumn(tc) => int2Factor(tc) 
+			case DoubleColumn(tc) =>  double2Factor(tc)
 		}}
 		
 		val mainPath = Paths.get("")

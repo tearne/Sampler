@@ -22,7 +22,7 @@ import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import java.nio.file.Paths
 import java.io.File
-import sampler.data.Column
+import sampler.data.Types._
 import org.specs2.specification.Scope
 import java.nio.file.Files
 import org.specs2.mutable.Before

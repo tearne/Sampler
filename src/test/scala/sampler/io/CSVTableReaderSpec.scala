@@ -7,8 +7,7 @@ import java.nio.file.Paths
 import java.nio.file.Files
 import java.io.File
 import org.specs2.specification.Scope
-import sampler.data.Header
-import sampler.data.Column
+import sampler.data.Types._
 
 @RunWith(classOf[JUnitRunner])
 class CSVTableReaderSpec extends Specification{
@@ -22,21 +21,13 @@ class CSVTableReaderSpec extends Specification{
 //		}
 		
 		"retrieve double data" in new fileSetup {
-			val reader = new CSVTableReader(filePath)
-			
-			import sampler.data.HeaderImplicits._
 			val header = new Header[Double]("MyDoubles")
-			
-			reader.get(header) mustEqual Column(IndexedSeq(1.0, 2.0, 3.0), Some("MyDoubles"))
+			instance.get(header) mustEqual Column(IndexedSeq(1.0, 2.0, 3.0), Some("MyDoubles"))
 		}
 		
 		"retrieve boolean data" in new fileSetup {
-			val reader = new CSVTableReader(filePath)
-			
-			import sampler.data.HeaderImplicits._
 			val header = new Header[Boolean]("TheirBools")
-			
-			reader.get(header) mustEqual Column(IndexedSeq(true, false, false), Some("TheirBools"))
+			instance.get(header) mustEqual Column(IndexedSeq(true, false, false), Some("TheirBools"))
 		}
 	}
 	
@@ -44,5 +35,6 @@ class CSVTableReaderSpec extends Specification{
 		val path = Paths.get(new File("").getAbsolutePath())
 		val testPath = path.resolve("testData")
 		val filePath = testPath.resolve("testTable.csv")
+		val instance = new CSVTableReader(filePath)
 	}
 }

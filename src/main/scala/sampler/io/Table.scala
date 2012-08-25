@@ -18,8 +18,7 @@
 package sampler.io
 
 import java.nio.file.Path
-import sampler.data.Header
-import sampler.data.Column
+import sampler.data.Types._
 import java.io.FileOutputStream
 import java.io.PrintStream
 import scala.io.Source
@@ -47,11 +46,11 @@ class CSVTableReader(path: Path) extends TableReader{
 		
 		val columnIdx = headers.indexWhere(_ == header.name) match{
 			case i: Int if i<0 => throw new UnsupportedOperationException("Header not found, TODO: improve exception")
-			case i: Int => i
+			case i => i 
 		}
 		
-		val values = it.map(row => header.parse(row(columnIdx))).toIndexedSeq
-		new Column(values, Option(header.name))(header.m)
+		val values = it.map(row => header.cType(row(columnIdx))).toIndexedSeq
+		new Column(values, Option(header.name))(header.cType)
 	}
 }
 
