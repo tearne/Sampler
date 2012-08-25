@@ -31,38 +31,33 @@ import scala.io.Source
 
 @RunWith(classOf[JUnitRunner])
 class CSVTableWriterSpec extends Specification{
-	"CSVTableWriter" should{
-		"throw an exception" in {
-			"supplied file path does not point to a csv file" in {
-				val path = Paths.get(new File("").getAbsolutePath())
-				val filePath = path.resolve("invalidFile.notacsv")
-				
-				new CSVTableWriter(filePath) must throwA[TableWriterException]	
-			}
-			"unparsable values" in todo
-			"header not found in table columns" in {
-				val path = Paths.get(new File("").getAbsolutePath())
-				val filePath = path.resolve("testFile.csv")
-				
-				val writer = new CSVTableWriter(filePath)
-				
-				val params1 = IndexedSeq(1,2,3)
-				val params2 = IndexedSeq(3.0,2.0,1.0)
-				
-				val tc1 = new Column(params1)
-				val tc2 = new Column(params2, Some("Parameter2"))
-				
-				writer.apply(tc1, tc2) must throwA[TableWriterException]
-			}
-		} 
-	}
+
+	val path = Paths.get(new File("").getAbsolutePath())
+	val filePath = path.resolve("testFile.csv")
+	val file = Files.createFile(filePath)
 	
-	"CSVTableWriter" should {
-		"create the file" in new fileSetup with fileTearDown {
+	"CSVTableWriter" should{
+		"throw exception on unparsable values" in todo
+		"throw exception if header name is None" in {
+			val path = Paths.get(new File("").getAbsolutePath())
+			val filePath = path.resolve("testFile.csv")
+			
+			val writer = new CSVTableWriter(filePath)
+			
+			val params1 = IndexedSeq(1,2,3)
+			val params2 = IndexedSeq(3.0,2.0,1.0)
+			
+			val tc1 = new Column(params1)
+			val tc2 = new Column(params2, Some("Parameter2"))
+			
+			writer.apply(tc1, tc2) must throwA[TableWriterException]
+		}
+		"throw exception if columns of different lengths" in todo
+		"create a file" in new fileSetup with fileTearDown {
 			writer.apply(tc1, tc2, tc3)
 			Files.exists(file) == true
 		}
-		"write the four lines containing the headers and data points" in new fileSetup with fileTearDown {
+		"write four lines containing the headers and data" in new fileSetup with fileTearDown {
 			writer.apply(tc1, tc2, tc3)
 			
 //			read in file and check correct contents
@@ -79,18 +74,15 @@ class CSVTableWriterSpec extends Specification{
 			
 			lines mustEqual expectedLines
 		}
+		
 		"write ints" in todo
 		"write doubles" in todo
 		"write strings" in todo
 		"write factors" in todo
 		"write booleans" in todo
-		"write probabilities by their containing value" in todo
+		"write probabilities with their containing value" in todo
 	}
-	
-	val path = Paths.get(new File("").getAbsolutePath())
-	val filePath = path.resolve("testFile.csv")
-	val file = Files.createFile(filePath)
-			
+
 	trait fileSetup extends Scope {
 		val writer = new CSVTableWriter(filePath)
 				

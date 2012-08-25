@@ -25,6 +25,7 @@ import scala.io.Source
 import java.io.FileNotFoundException
 import scala.reflect.Manifest
 import scala.collection.immutable.WrappedString
+import java.io.FileWriter
 
 trait TableReader{
 	def get[T](params: Header[T]): Column[T]
@@ -55,53 +56,29 @@ class CSVTableReader(path: Path) extends TableReader{
 }
 
 class CSVTableWriter(path: Path, overwrite: Boolean = false, append: Boolean = false) extends TableWriter{
-	
-	if(path.toString.endsWith(".csv") == false) {
-		throw new TableWriterException("Invalid csv file name supplied to csv writer")
-	}
-	
 	def apply(columns: Column[_]*){
-		columns.map{
-			case a if(a.name.getOrElse(false) == false) => throw new 
-					TableWriterException("each column must have name for the column header")
-			case _ =>
-		}
-		
-		def makeCSVLine(tokens: Iterable[Any]) = {
-			val newLine: String = System.getProperty("line.separator")
+		def makeCSVLine(tokens: Iterable[String]) = {
+			val newLine = System.getProperty("line.separator")
 			val it = tokens.iterator
 			val builder = new StringBuilder()
-			it.foreach(dat => {
-				builder.append(dat)
-				if(it.hasNext)
-					builder.append(",")
+			it.foreach(value => {
+				builder.append(value)
+				if(it.hasNext) builder.append(",")
 			})
 			builder.append(newLine)
 			builder.toString
 		}
 		
-		val csvFile = new FileOutputStream(path.toString)
-		val csvStream = new PrintStream(csvFile)
+		val writer = new FileWriter(path.toFile)
 		
-		var names: Seq[Any] = Seq()
-		var mainSeq : Seq[Seq[Any]] = Seq()
-		
-		columns.map(_.toStringColumn).map{
-			case a => {
-				names = names :+ a.name.get
-				mainSeq = mainSeq :+ a.values
-			}
-		}
-
-		csvStream.print(makeCSVLine(names))
-		
-		mainSeq=mainSeq.transpose
-		
-		mainSeq.map{
-			case a => csvStream.print(makeCSVLine(a))
+		columns.map{col =>
+			if(col.name.isEmpty) throw new TableWriterException("Found unnamed column")
+			col.toStringColumn.values
+		}.transpose.foreach{row =>
+			writer.append(makeCSVLine(row))
 		}
 		
-		csvStream.close()
+		writer.close
 	}
 }
 

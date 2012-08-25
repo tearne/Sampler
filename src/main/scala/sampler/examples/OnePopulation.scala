@@ -15,12 +15,10 @@
  * limitations under the License.
  */
 
-package sampler.examples.bats
+package sampler.examples
 
 import sampler.math.Random
-import sampler.data.Samplable
 import sampler.data.Distance
-import sampler.data.Empirical
 import sampler.math.Probability
 import sampler.data.Distribution
 import sampler.data.FrequencyTableBuilder
