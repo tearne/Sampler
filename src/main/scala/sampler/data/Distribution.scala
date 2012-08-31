@@ -21,6 +21,7 @@ import sampler.math.Random
 import scala.annotation.tailrec
 import scala.collection.GenSeq
 import scala.collection.parallel.ParSeq
+import org.apache.commons.math3.distribution.NormalDistribution
 
 trait Distribution[A] extends Samplable[A]{ self =>
 	def sample(implicit r: Random): A
@@ -40,7 +41,7 @@ object Distribution{
 	}
 	
 	def uniform(lower: Double, upper: Double)(implicit r: Random) = new Distribution[Double]{
-		def sample(implicit r: Random) = (upper - lower) * r.nextDouble
+		def sample(implicit r: Random) = (upper - lower) * r.nextDouble()
 	}
 	
 	def uniform[T](items: IndexedSeq[T])(implicit r: Random) = new Distribution[T]{
@@ -62,7 +63,14 @@ object Distribution{
 			takeAnother(Nil, items)
 		}
 	}
+	
 	def binaryPopulation(numInfected: Int, size: Int)(implicit r: Random) = new Distribution[Boolean]{
 		def sample(implicit r: Random) = r.nextInt(size) < numInfected
+	}
+	
+	def normal(mean:Double, variance: Double) = new Distribution[Double]{
+		val d = new NormalDistribution(0,variance)
+		def sample(implicit r: Random) = d.sample
+		def density(value: Double) = d.density(value)
 	}
 }
