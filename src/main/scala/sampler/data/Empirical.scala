@@ -57,6 +57,17 @@ object FrequencyTable{
 	def apply[T](seq: Seq[T]) = new FrequencyTable(seq.toIndexedSeq)
 }
 object FrequencyTableBuilder{
+	def serial[T](samplable: Samplable[T])(condition: Seq[T] => Boolean)(implicit r: Random): FrequencyTable[T] ={
+		@tailrec
+		def takeMore(previous: Seq[T]): Seq[T] = {
+			if(condition(previous)) previous
+			else takeMore{
+				(samplable.sample) +: previous 
+			}
+		}
+		FrequencyTable(takeMore(Nil))
+	}
+	
 	def parallel[T](samplable: Samplable[T], chunkSize: Int)(condition: ParSeq[T] => Boolean)(implicit r: Random): FrequencyTable[T] = {
 		@tailrec
 		def takeMore(previous: ParSeq[T]): ParSeq[T] = {
@@ -71,7 +82,7 @@ object FrequencyTableBuilder{
 }
 
 case class Particle[A](value: A, weight: Double)
-class WeightsTable[A](particles: GenSeq[Particle[A]]) extends Empirical[A]{
+class WeightsTable[A](val particles: Seq[Particle[A]]) extends Empirical[A]{
 	val normalised: IndexedSeq[Particle[A]] = {
 		val total = particles.map(_.weight).sum
 		val normalised = particles.map(particle => Particle(particle.value, particle.weight / total))
@@ -87,7 +98,7 @@ class WeightsTable[A](particles: GenSeq[Particle[A]]) extends Empirical[A]{
 	val size = particles.size
 	val probabilityMap = normalised.map(p => (p.value, Probability(p.weight))).toMap
 	def sample(implicit r: Random): A = {
-		val rnd = r.nextDouble
+		val rnd = r.nextDouble()
 		val index = cumulativeWeights.zipWithIndex.find(_._1 > rnd) match {
 			case None => cumulativeWeights.size		
 			case Some(tuple) => tuple._2 - 1
@@ -95,7 +106,14 @@ class WeightsTable[A](particles: GenSeq[Particle[A]]) extends Empirical[A]{
 		normalised(index).value
 	}
 	
-	//TODO map & flatMap
+	def map[B](f: Particle[A] => Particle[B]): WeightsTable[B] = {
+		new WeightsTable(particles.map{p => f(p)})
+	}
+	def mapValues[B](f: A => B): Seq[B] = {
+		particles.map(p => f(p.value))
+	}
+	//TODO flatMap
+	
 	
 	lazy val weightsMap = normalised.map(p => (p.value, p.weight)).toMap
 	def canEqual[A: Manifest](other: Any): Boolean = other.isInstanceOf[WeightsTable[_]]
