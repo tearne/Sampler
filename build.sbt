@@ -17,7 +17,8 @@ libraryDependencies ++= Seq(
 	"com.typesafe" % "config" % "0.4.1",
 	"com.typesafe.akka" % "akka-actor" % "2.0.2", 
 	"com.typesafe.akka" % "akka-remote" % "2.0.2",
-	"com.chuusai" %% "shapeless" % "1.2.2"
+	"com.chuusai" %% "shapeless" % "1.2.2",
+	"org.apache.commons" % "commons-math3" % "3.0"
 )
 
 scalaVersion := "2.9.2"
