@@ -71,10 +71,13 @@ class CSVTableWriter(path: Path, overwrite: Boolean = false, append: Boolean = f
 		
 		val writer = new FileWriter(path.toFile)
 		
-		columns.map{col =>
-			if(col.name.isEmpty) throw new TableWriterException("Found unnamed column")
-			col.toStringColumn.values
-		}.transpose.foreach{row =>
+		val headerLine = makeCSVLine(columns.map(col => 
+			col.name.getOrElse(throw new TableWriterException("Found unnamed column"))
+		))
+		
+		writer.append(headerLine)
+		
+		columns.map(col => col.toStringColumn.values).transpose.foreach{row =>
 			writer.append(makeCSVLine(row))
 		}
 		
