@@ -18,5 +18,6 @@
 package sampler.math
 
 class Random extends scala.util.Random{
-	def nextIndex(size: Int) = throw new UnsupportedOperationException("TODO")
+	def nextDouble(min: Double, max: Double): Double = 
+		(max - min) * nextDouble() + min
 }
