@@ -1,4 +1,1 @@
-MyDoubles,	TheirBools
-1.000, 		true
-2, 			false  
-3.,			false
+MyDoubles,TheirBools,Strings,MyInts,Factor,Prob1,true,A,2,Factor1,0.7892,   false,ListOf,3,AnotherFactor,0.23,"  false  ",Strings,6,A_Third,0.64

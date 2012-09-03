@@ -26,6 +26,7 @@ import java.io.FileNotFoundException
 import scala.reflect.Manifest
 import scala.collection.immutable.WrappedString
 import java.io.FileWriter
+import scala.util.matching.Regex
 
 trait TableReader{
 	def get[T](params: Header[T]): Column[T]
@@ -38,6 +39,7 @@ class CSVTableReader(path: Path) extends TableReader{
 	
 	val source = Source.fromFile(path.toString())
 			.getLines()
+			.map(_.replace("\"",""))
 			.map(_.split(",").map(_.trim))
 			.toIterable
 	

@@ -20,6 +20,10 @@ class CSVTableReaderSpec extends Specification{
 //			}
 //		}
 		
+		"throw an exception" in {
+			"requested a header which doens't exist" in todo
+		}
+		
 		"retrieve double data" in new fileSetup {
 			val header = new Header[Double]("MyDoubles")
 			instance.get(header) mustEqual Column(IndexedSeq(1.0, 2.0, 3.0), Some("MyDoubles"))

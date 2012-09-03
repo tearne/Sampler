@@ -26,3 +26,4 @@ data.csv
 script.txt
 src/.DS_Store
 src/main/scala/sampler/prototype/Scratch.scala
+/testData
