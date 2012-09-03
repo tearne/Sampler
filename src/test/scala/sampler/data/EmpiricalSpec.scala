@@ -30,9 +30,9 @@ class FrequencyTableSpec extends Specification{
 	//					6		    3
 	//				  5,6		  2,3
 	//	4,5,6		4,5,6		1,2,3,4
-	val d1 = new FrequencyTable[Int](IndexedSeq(4, 5, 6))
-	val d2 = new FrequencyTable[Int](IndexedSeq(4, 5,5, 6,6,6))
-	val d3 = new FrequencyTable[Int](IndexedSeq(1, 2,2, 3,3,3, 4))
+	val d1 = FrequencyTable[Int](IndexedSeq(4, 5, 6))
+	val d2 = FrequencyTable[Int](IndexedSeq(4, 5,5, 6,6,6))
+	val d3 = FrequencyTable[Int](IndexedSeq(1, 2,2, 3,3,3, 4))
 	
 	"Discrete distributions" should {
 		"add together, summing counts" in { todo			
@@ -68,9 +68,9 @@ class FrequencyTableSpec extends Specification{
 			todo
 		}
 		"Override equals and hashcode" in {
-			val instance1a = new FrequencyTable[Int](IndexedSeq(4, 5))
-			val instance1b = new FrequencyTable[Int](IndexedSeq(4, 5))
-			val instance2 = new FrequencyTable[Int](IndexedSeq(4, 5,5))
+			val instance1a = FrequencyTable[Int](IndexedSeq(4, 5))
+			val instance1b = FrequencyTable[Int](IndexedSeq(4, 5))
+			val instance2 = FrequencyTable[Int](IndexedSeq(4, 5,5))
 			
 			(instance1a mustEqual instance1b) and
 			(instance1a mustNotEqual instance2) and
