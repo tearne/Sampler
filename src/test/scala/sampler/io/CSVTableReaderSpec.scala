@@ -8,6 +8,7 @@ import java.nio.file.Files
 import java.io.File
 import org.specs2.specification.Scope
 import sampler.data.Types._
+import sampler.math.Probability
 
 @RunWith(classOf[JUnitRunner])
 class CSVTableReaderSpec extends Specification{
@@ -21,7 +22,10 @@ class CSVTableReaderSpec extends Specification{
 //		}
 		
 		"throw an exception" in {
-			"requested a header which doens't exist" in todo
+			"requested a header which doens't exist" in new fileSetup {
+				val header = new Header[Double]("DoesntExist")
+			instance.get(header) must throwA[UnsupportedOperationException]
+			}
 		}
 		
 		"retrieve double data" in new fileSetup {
@@ -34,10 +38,32 @@ class CSVTableReaderSpec extends Specification{
 			instance.get(header) mustEqual Column(IndexedSeq(true, false, false), Some("TheirBools"))
 		}
 		
-		"retrieve string data" in todo
-		"retrieve int data" in todo
-		"retrieve factor data" in todo
-		"retrieve probability data" in todo
+		"retrieve string data" in new fileSetup {
+			val header = new Header[String]("Strings")
+			instance.get(header) mustEqual Column(IndexedSeq("A", "ListOf", "Strings"), Some("Strings"))
+		}
+		
+		"retrieve int data" in new fileSetup {
+			val header = new Header[Int]("MyInts")
+			instance.get(header) mustEqual Column(IndexedSeq(2,3,6), Some("MyInts"))
+		}
+		
+		"retrieve factor data" in new fileSetup {
+			val header = new Header[Factor]("SomeFactors")
+			instance.get(header) mustEqual Column(IndexedSeq(Factor("Factor1"), Factor("AnotherFactor"), Factor("A_Third"))
+					, Some("SomeFactors"))
+		}
+		
+		"retrieve probability data" in new fileSetup {
+			val header = new Header[Probability]("Probs")
+			instance.get(header) mustEqual Column(IndexedSeq(Probability(0.789), Probability(0.2), Probability(0.64))
+					, Some("Probs"))
+		}
+		
+		"test will fail" in new fileSetup {
+			val header = new Header[String]("ToFail")
+			instance.get(header) mustEqual Column(IndexedSeq("NoQuote", "With\"Quote", "NoQuote"), Some("ToFail"))
+		}
 	}
 	
 	trait fileSetup extends Scope {
