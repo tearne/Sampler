@@ -47,3 +47,12 @@ class ParallelCollectionRunner[T] extends JobRunner[T]{
 class AkkaRunner[T](abort: Seq[Option[T]] => Boolean) extends JobRunner[T]{
 	def apply(jobs: Seq[() => Option[T]]): Option[Seq[Option[T]]] = null
 }
+
+object Runner{
+	def serial[T](abort: Seq[Option[T]] => Boolean = (_: Seq[Option[T]]) => false) = 
+		new SerialRunner(abort)
+	
+	def parallelCollection[T]() = new ParallelCollectionRunner[T]()
+	
+	//TODO Akka runner
+}

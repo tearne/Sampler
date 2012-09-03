@@ -65,7 +65,7 @@ object ABC{
 	): WeightsTable[model.Parameters] = {
 		type P = model.Parameters
 		
-		val popZero: WeightsTable[P] = new WeightsTable(
+		val popZero: WeightsTable[P] = WeightsTable(
 			(1 to particles).par.map(i => Particle(prior.sample(r), 1.0)).seq
 		)
 		
@@ -85,14 +85,22 @@ object ABC{
 							.samples.count(identity) //Pimp to use a counting statistic?
 						val fHat = numSuccess.toDouble / reps
 			
-						if(numSuccess != 0){
+						val res = if(numSuccess != 0){
 							val numerator = fHat * prior.density(candidate)
 							val denominator = population.particles.map{p => 
 								p.weight * p.value.perturbDensity(candidate)
 							}.sum
-							Some(Particle(candidate, numerator / denominator))
+							if(numerator > 0 && denominator > 0)
+								Some(Particle(candidate, numerator / denominator))
+							else
+								None
 						} 
-						else tryParticle(failures + 1)
+						else None
+						
+						res match {
+							case s: Some[Particle[P]] => s
+							case None => tryParticle(failures + 1)
+						}
 					}
 				}
 				
@@ -107,7 +115,7 @@ object ABC{
 				case None => None
 				case Some(particleOpts: Seq[Option[Particle[P]]]) => {
 					val particles = particleOpts.flatten
-					if(particles.size == results.get.size) Some(new WeightsTable(particles))
+					if(particles.size == results.get.size) Some(WeightsTable(particles))
 					else None
 				}
 			}
@@ -127,7 +135,10 @@ object ABC{
 						refine(population, numAttempts - 1, retryTolerance, lastGoodTolerance, newDecentFactor)
 					}
 					case Some(newPop) => {
-						writer match { case Some(w) => w(newPop, tolerance) }
+						writer match { 
+							case Some(w) => w(newPop, tolerance) 
+							case _ =>
+						}
 //						populationWriter.model.populationWriter(newPop, tolerance)
 						refine(newPop, numAttempts - 1, tolerance * decentFactor, tolerance, decentFactor)
 					}

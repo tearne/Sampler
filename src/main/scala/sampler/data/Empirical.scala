@@ -22,39 +22,80 @@ import sampler.math.Probability
 import scala.annotation.tailrec
 import scala.collection.parallel.ParSeq
 import scala.collection.GenSeq
+import scala.collection.Seq
+import scala.collection.IndexedSeq
+import scala.collection.TraversableOnce
+import scala.math.Ordering
+import scala.math.Fractional
 
-trait Empirical[A] extends Samplable[A]{
+trait Empirical[A] extends Samplable[A]{ self => 
 	val size: Int
 	val probabilityMap: Map[A, Probability]
 	def sample(implicit r: Random): A
+	
+	//TODO would like to define filter here, but not sure how
 }
 
-class FrequencyTable[A](val samples: IndexedSeq[A]) extends Empirical[A]{
-	lazy val counts: Map[A, Int] = samples.groupBy(identity).mapValues(_.size)
-
+trait FrequencyTable[A] extends Empirical[A]{ self =>
+	val samples: IndexedSeq[A]
+	
 	lazy val size = counts.values.sum
+	lazy val probabilityMap = counts.mapValues(count => Probability(count.asInstanceOf[Double]/size))
 	def sample(implicit r: Random): A = samples(r.nextInt(samples.size))
-	val probabilityMap = counts.mapValues(count => Probability(count.asInstanceOf[Double]/size))
 	
-	def map[B](f: A => B) = new FrequencyTable[B](samples.map(f))
-	def flatMap[B](f: A => FrequencyTable[B])(implicit r: Random) = new FrequencyTable[B](
-		samples.flatMap(s =>f(s).samples)
-	)
+	lazy val counts: Map[A, Int] = samples.groupBy(identity).mapValues(_.size)
 	
-	def +(item: A) = new FrequencyTable[A](samples :+ item)
-	def ++(items: TraversableOnce[A]) = new FrequencyTable[A](samples ++ items)
-	def +(that: FrequencyTable[A]): FrequencyTable[A] = new FrequencyTable[A](samples ++ that.samples)
+	//TODO Can push this up into Empirical?
+	override def filter(pred: A => Boolean): FrequencyTable[A] = new FrequencyTable[A]{
+		val samples = self.samples
+		
+		@tailrec
+		override def sample(implicit r: Random) = {
+			val value = self.sample
+			if (pred(value)) value 
+			else this.sample
+		}
+	}
+	
+	def map[B](f: A => B) = new FrequencyTable[B]{
+		val samples = self.samples.map(f)
+	}
+	
+	def flatMap[B](f: A => FrequencyTable[B])(implicit r: Random) = new FrequencyTable[B]{
+		val samples = self.samples.flatMap(s =>f(s).samples)
+	}
+	
+	def +(item: A) = new FrequencyTable[A]{
+		val samples = item +: self.samples
+	}
+	def ++(items: TraversableOnce[A]) = new FrequencyTable[A]{
+		val samples = self.samples ++ items
+	}
+	def +(that: FrequencyTable[A]): FrequencyTable[A] = new FrequencyTable[A]{
+		val samples = self.samples ++ that.samples
+	}
+	
+	def rightTail(itemInclusive: A)(implicit o: Ordering[A]): Probability = {
+		val ordered = counts.keys.toList.sorted(o)	
+		val value = ordered.dropWhile(i => o.lt(i,itemInclusive)).foldLeft(0.0){
+			case (acc, i) => acc + probabilityMap(i).value
+		}
+		Probability(value)
+	}
 	
 	def canEqual[A: Manifest](other: Any): Boolean = other.isInstanceOf[FrequencyTable[_]]
 	override def equals(other: Any) = other match {
-		case that: FrequencyTable[A] => 
+		case that: FrequencyTable[_] => 
 			(that canEqual this) && (that.counts equals counts)
 		case _ => false
 	}
 	override def hashCode() = counts.hashCode
 }
+
 object FrequencyTable{
-	def apply[T](seq: Seq[T]) = new FrequencyTable(seq.toIndexedSeq)
+	def apply[T](seq: Seq[T]) = new FrequencyTable[T]{
+		val samples = seq.toIndexedSeq
+	}
 }
 object FrequencyTableBuilder{
 	def serial[T](samplable: Samplable[T])(condition: Seq[T] => Boolean)(implicit r: Random): FrequencyTable[T] ={
@@ -82,8 +123,42 @@ object FrequencyTableBuilder{
 }
 
 case class Particle[A](value: A, weight: Double)
-class WeightsTable[A](val particles: Seq[Particle[A]]) extends Empirical[A]{
-	val normalised: IndexedSeq[Particle[A]] = {
+trait WeightsTable[A] extends Empirical[A]{ self =>
+	val particles: Seq[Particle[A]]
+	
+	lazy val size = particles.size	//Why must this be lazy to avoid a null pointer exception?
+	lazy val probabilityMap = normalised.map(p => (p.value, Probability(p.weight))).toMap
+	def sample(implicit r: Random): A = {
+		//TODO Use the alias method
+		val rnd = r.nextDouble()
+		val index = cumulativeWeights.zipWithIndex.find(_._1 > rnd) match {
+			case None => {
+				println(cumulativeWeights)
+				println(normalised)
+				cumulativeWeights.size
+			}
+			case Some(tuple) => tuple._2
+		}
+		normalised(index).value
+	}
+	
+	def discardWeights(): FrequencyTable[A] = new FrequencyTable[A]{
+		val samples = particles.map(_.value).toIndexedSeq
+	}
+	
+	//TODO Can push this up into Empirical?
+	override def filter(pred: A => Boolean) = new WeightsTable[A]{
+		val particles = self.particles
+		
+		@tailrec
+		override def sample(implicit r: Random) = {
+			val value = self.sample
+			if (pred(value)) value 
+			else this.sample
+		}
+	}
+	
+	lazy val normalised: IndexedSeq[Particle[A]] = {
 		val total = particles.map(_.weight).sum
 		val normalised = particles.map(particle => Particle(particle.value, particle.weight / total))
 		//Check weights
@@ -93,36 +168,30 @@ class WeightsTable[A](val particles: Seq[Particle[A]]) extends Empirical[A]{
 			throw new RuntimeException("Sum not 1: "+sum)
 		normalised.toIndexedSeq
 	}	
-	lazy val cumulativeWeights = normalised.scanLeft(0.0){case (acc, particle) => acc + particle.weight}
+	lazy val cumulativeWeights = normalised.scanLeft(0.0){case (acc, particle) => acc + particle.weight}.tail
 	
-	val size = particles.size
-	val probabilityMap = normalised.map(p => (p.value, Probability(p.weight))).toMap
-	def sample(implicit r: Random): A = {
-		val rnd = r.nextDouble()
-		val index = cumulativeWeights.zipWithIndex.find(_._1 > rnd) match {
-			case None => cumulativeWeights.size		
-			case Some(tuple) => tuple._2 - 1
-		}
-		normalised(index).value
-	}
-	
-	def map[B](f: Particle[A] => Particle[B]): WeightsTable[B] = {
-		new WeightsTable(particles.map{p => f(p)})
-	}
 	def mapValues[B](f: A => B): Seq[B] = {
 		particles.map(p => f(p.value))
 	}
-	//TODO flatMap
-	
+	//TODO Map doesn't work at the moment, doesn't consolidate weights
+//	def map[B](f: Particle[A] => Particle[B]): WeightsTable[B] = new WeightsTable[B]{
+//		val particles = self.particles.map{p => f(p)}
+//	}
+	//TODO flatMap?
 	
 	lazy val weightsMap = normalised.map(p => (p.value, p.weight)).toMap
 	def canEqual[A: Manifest](other: Any): Boolean = other.isInstanceOf[WeightsTable[_]]
 	override def equals(other: Any) = other match {
-		case that: WeightsTable[A] => 
+		case that: WeightsTable[_] => 
 			(that canEqual this) && (that.weightsMap == weightsMap)
 		case _ => false
 	}
 	override def hashCode() = weightsMap.hashCode
+}
+object WeightsTable{
+	def apply[T](p: Seq[Particle[T]]): WeightsTable[T] = new WeightsTable[T]{
+		val particles: Seq[Particle[T]] = p
+	}
 }
 
 class Distance(val stat: Statistic){

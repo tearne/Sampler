@@ -35,7 +35,7 @@ trait Samplable[A]{ self =>
 		prepend(sample(r) :: Nil)
 	}
 	
-	def filter(predicate: A => Boolean)(implicit r: Random) = new Samplable[A]{
+	def filter(predicate: A => Boolean) = new Samplable[A]{
 		@tailrec
 		override def sample(implicit r: Random): A = {
 			val s = self.sample(r)
