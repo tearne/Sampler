@@ -9,7 +9,7 @@ object Types {
 	}
 	
 	case class Factor(name: String){
-		override def toString() = "Factor: "+name
+		override def toString() = name
 		
 //		TODO factor could be used to check inputs in ANOVA table and error if unexpected factor read in
 	}

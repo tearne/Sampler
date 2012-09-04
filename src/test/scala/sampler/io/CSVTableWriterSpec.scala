@@ -37,13 +37,15 @@ class CSVTableWriterSpec extends Specification{
 	val file = Files.createFile(filePath)
 	
 	"CSVTableWriter" should{
-		"throw exception on unparsable values" in todo
-		"throw exception if header name is None" in {
-			val path = Paths.get(new File("").getAbsolutePath())
-			val filePath = path.resolve("testFile.csv")
-			
-			val writer = new CSVTableWriter(filePath)
-			
+		"throw exception on unparsable values" in new fileSetup with fileTearDown {
+			todo
+		}
+
+		"throw exception when no data supplied" in new fileSetup with fileTearDown {
+			writer.apply() must throwA[TableWriterException]
+		}
+		
+		"throw exception if header name is None" in new fileSetup with fileTearDown {
 			val params1 = IndexedSeq(1,2,3)
 			val params2 = IndexedSeq(3.0,2.0,1.0)
 			
@@ -52,7 +54,17 @@ class CSVTableWriterSpec extends Specification{
 			
 			writer.apply(tc1, tc2) must throwA[TableWriterException]
 		}
-		"throw exception if columns of different lengths" in todo
+		
+		"throw exception if columns of different lengths" in new fileSetup with fileTearDown {
+			val params1 = IndexedSeq(1,2,3)
+			val params2 = IndexedSeq("Lots", "and", "Lots", "and", "Lots", "of", "Entries")
+			
+			val col1 = new Column(params1, Some("SomeInts"))
+			val col2 = new Column(params2, Some("LoadsaStrings"))
+
+			writer.apply(col1, col2) must throwA[TableWriterException]
+		}
+		
 		"create a file" in new fileSetup with fileTearDown {
 			val params = IndexedSeq(1,2,3)
 			val col = new Column(params, Some("MyInts"))
@@ -109,9 +121,53 @@ class CSVTableWriterSpec extends Specification{
 			lines mustEqual expectedLines
 		}
 		
-		"write factors" in todo
-		"write booleans" in todo
-		"write probabilities with their containing value" in todo
+		"write factors" in new fileSetup with fileTearDown {
+			val factors = IndexedSeq(Factor("F1"), Factor("F2"))
+			val factorCol = new Column(factors, Some("MyFactors"))
+			
+			writer.apply(factorCol)
+			
+			val expectedLine1 = "MyFactors"
+			val expectedLine2 = "F1"
+			val expectedLine3 = "F2"
+			
+			val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
+			val expectedLines = Array(expectedLine1, expectedLine2, expectedLine3)
+			
+			lines mustEqual expectedLines
+		}
+		
+		"write booleans" in new fileSetup with fileTearDown {
+			val booleans = IndexedSeq(true, false)
+			val booleanCol = new Column(booleans, Some("MyBools"))
+			
+			writer.apply(booleanCol)
+			
+			val expectedLine1 = "MyBools"
+			val expectedLine2 = "true"
+			val expectedLine3 = "false"
+			
+			val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
+			val expectedLines = Array(expectedLine1, expectedLine2, expectedLine3)
+			
+			lines mustEqual expectedLines
+		}
+		
+		"write probabilities with their containing value" in new fileSetup with fileTearDown {
+			val booleans = IndexedSeq(true, false)
+			val booleanCol = new Column(booleans, Some("MyBools"))
+			
+			writer.apply(booleanCol)
+			
+			val expectedLine1 = "MyBools"
+			val expectedLine2 = "true"
+			val expectedLine3 = "false"
+			
+			val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
+			val expectedLines = Array(expectedLine1, expectedLine2, expectedLine3)
+			
+			lines mustEqual expectedLines
+		}
 	}
 
 	trait fileSetup extends Scope {

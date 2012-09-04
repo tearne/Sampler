@@ -59,6 +59,18 @@ class CSVTableReader(path: Path) extends TableReader{
 
 class CSVTableWriter(path: Path, overwrite: Boolean = false, append: Boolean = false) extends TableWriter{
 	def apply(columns: Column[_]*){
+		
+		try {
+			val colLength1 = columns(0).values.length
+			
+			columns.foreach {
+				case a  if(a.values.length == colLength1) =>
+				case _ => throw new TableWriterException("attempted to write a table where columns not of equal length")
+			}
+		} catch {
+			case ioobe: IndexOutOfBoundsException => throw new TableWriterException("Tried to write a table with no data")
+		}
+		
 		def makeCSVLine(tokens: Iterable[String]) = {
 			val newLine = System.getProperty("line.separator")
 			val it = tokens.iterator
