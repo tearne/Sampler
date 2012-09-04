@@ -83,8 +83,8 @@ object AnotherOnePopulation extends App{
 	}
 	
 	new CSVTableWriter(Paths.get("OnePopulation.csv"))(
-		Column(sampleSizeList.toList, Some("SampleSize")),
-		Column(confidenceList.toList, Some("Confidence"))
+		Column(sampleSizeList.toList, "SampleSize"),
+		Column(confidenceList.toList, "Confidence")
 	)
 	
 	

@@ -4,7 +4,7 @@ import sampler.math.Probability
 
 object Types {
 	case class Header[T](val name: String)(implicit val cType: ColumnType[T])  
-	case class Column[T](val values: Seq[T], val name: Option[String] = None)(implicit val cType: ColumnType[T]){
+	case class Column[T](val values: Seq[T], val name: String)(implicit val cType: ColumnType[T]){
 		def toStringColumn(): Column[String] = Column(values.map(v => cType.toString(v)), name)
 	}
 //	object Column{

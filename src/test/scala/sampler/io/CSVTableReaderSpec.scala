@@ -24,6 +24,8 @@ class CSVTableReaderSpec extends Specification{
 				val header = new Header[Double]("DoesntExist")
 				instance.get(header) must throwA[UnsupportedOperationException]
 			}
+			
+			"data in table is unparsable / has the wrong type" in todo
 		}
 		
 		"retrieve data from file when" in {
@@ -31,7 +33,7 @@ class CSVTableReaderSpec extends Specification{
 				val header = new Header[Double]("MyDoubles")
 				instance.get(header) mustEqual Column(
 						Seq(1.0, 2.0, 3.0), 
-						Some("MyDoubles")
+						"MyDoubles"
 				)
 			}
 			
@@ -39,7 +41,7 @@ class CSVTableReaderSpec extends Specification{
 				val header = new Header[Boolean]("TheirBools")
 				instance.get(header) mustEqual Column(
 						Seq(true, false, false), 
-						Some("TheirBools")
+						"TheirBools"
 				)
 			}
 			
@@ -47,7 +49,7 @@ class CSVTableReaderSpec extends Specification{
 				val header = new Header[String]("Strings")
 				instance.get(header) mustEqual Column(
 						Seq("A", "ListOf", "Strings"), 
-						Some("Strings")
+						"Strings"
 				)
 			}
 			
@@ -55,7 +57,7 @@ class CSVTableReaderSpec extends Specification{
 				val header = new Header[Int]("MyInts")
 				instance.get(header) mustEqual Column(
 						Seq(2,3,6), 
-						Some("MyInts")
+						"MyInts"
 				)
 			}
 			
@@ -67,7 +69,7 @@ class CSVTableReaderSpec extends Specification{
 							Factor("AnotherFactor"), 
 							Factor("A_Third")
 						), 
-						Some("SomeFactors")
+						"SomeFactors"
 				)
 			}
 			
@@ -79,7 +81,7 @@ class CSVTableReaderSpec extends Specification{
 							Probability(0.2), 
 							Probability(0.64)
 						), 
-						Some("Probs")
+						"Probs"
 				)
 			}
 		}
@@ -88,7 +90,7 @@ class CSVTableReaderSpec extends Specification{
 			val header = new Header[String]("ToFail")
 			instance.get(header) mustEqual Column(
 					Seq("NoQuote", "With\"Quote", "NoQuote"), 
-					Some("ToFail")
+					"ToFail"
 			)
 //			TODO fix quote removal
 		}

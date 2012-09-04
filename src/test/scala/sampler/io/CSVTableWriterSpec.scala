@@ -45,22 +45,12 @@ class CSVTableWriterSpec extends Specification{
 				writer.apply() must throwA[TableWriterException]
 			}
 			
-			"when the header name is None" in new fileSetup with fileTearDown {
-				val params1 = Seq(1,2,3)
-				val params2 = Seq(3.0,2.0,1.0)
-						
-				val tc1 = new Column(params1)
-				val tc2 = new Column(params2, Some("Parameter2"))
-				
-				writer.apply(tc1, tc2) must throwA[TableWriterException]
-			}
-			
 			"columns are of different lengths" in new fileSetup with fileTearDown {
 				val params1 = Seq(1,2,3)
 				val params2 = "Lots and lots and lots of entries".split(" ")
 						
-				val col1 = new Column(params1, Some("SomeInts"))
-				val col2 = new Column(params2, Some("LoadsaStrings"))
+				val col1 = new Column(params1, "SomeInts")
+				val col2 = new Column(params2, "LoadsaStrings")
 				
 				writer.apply(col1, col2) must throwA[TableWriterException]
 			}
@@ -68,7 +58,7 @@ class CSVTableWriterSpec extends Specification{
 		
 		"create a file" in new fileSetup with fileTearDown {
 			val params = Seq(1,2,3)
-			val col = new Column(params, Some("MyInts"))
+			val col = new Column(params, "MyInts")
 			
 			writer.apply(col)
 			Files.exists(file) == true
@@ -78,7 +68,7 @@ class CSVTableWriterSpec extends Specification{
 			
 			"when the data type is ints" in new fileSetup with fileTearDown {
 				val ints = Seq(1,2)
-				val intCol = new Column(ints, Some("MyInts"))
+				val intCol = new Column(ints, "MyInts")
 				
 				writer.apply(intCol)
 				val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
@@ -90,7 +80,7 @@ class CSVTableWriterSpec extends Specification{
 			
 			"when the data type is doubles" in new fileSetup with fileTearDown {
 				val doubles = Seq(2.000,1.0)
-				val doubleCol = new Column(doubles, Some("MyDoubles"))
+				val doubleCol = new Column(doubles, "MyDoubles")
 				
 				writer.apply(doubleCol)
 				val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
@@ -102,7 +92,7 @@ class CSVTableWriterSpec extends Specification{
 			
 			"when the data type is strings" in new fileSetup with fileTearDown {
 				val strings = Seq("String", "List")
-				val stringCol = new Column(strings, Some("MyStrings"))
+				val stringCol = new Column(strings, "MyStrings")
 				
 				writer.apply(stringCol)
 				val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
@@ -114,7 +104,7 @@ class CSVTableWriterSpec extends Specification{
 			
 			"when the data type is factors" in new fileSetup with fileTearDown {
 				val factors = Seq(Factor("F1"), Factor("F2"))
-				val factorCol = new Column(factors, Some("MyFactors"))
+				val factorCol = new Column(factors, "MyFactors")
 				
 				writer.apply(factorCol)
 				val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
@@ -126,7 +116,7 @@ class CSVTableWriterSpec extends Specification{
 			
 			"when the data type is booleans" in new fileSetup with fileTearDown {
 				val booleans = Seq(true, false)
-				val booleanCol = new Column(booleans, Some("MyBools"))
+				val booleanCol = new Column(booleans, "MyBools")
 				
 				writer.apply(booleanCol)
 				val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
@@ -138,7 +128,7 @@ class CSVTableWriterSpec extends Specification{
 			
 			"when the data type is probabilities" in new fileSetup with fileTearDown {
 				val booleans = Seq(true, false)
-				val booleanCol = new Column(booleans, Some("MyBools"))
+				val booleanCol = new Column(booleans, "MyBools")
 				
 				writer.apply(booleanCol)
 				val lines = Source.fromFile(filePath.toString()).mkString.split("\n")

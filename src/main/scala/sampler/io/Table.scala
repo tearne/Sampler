@@ -62,7 +62,7 @@ class CSVTableReader(path: Path) extends TableReader{
 		}
 		
 		val values = it.map(row => header.cType(row(columnIdx))).toIndexedSeq
-		new Column(values, Option(header.name))(header.cType)
+		new Column(values, header.name)(header.cType)
 	}
 }
 
@@ -95,7 +95,7 @@ class CSVTableWriter(path: Path, overwrite: Boolean = false, append: Boolean = f
 		val writer = new FileWriter(path.toFile)
 		
 		val headerLine = makeCSVLine(columns.map(col => 
-			col.name.getOrElse(throw new TableWriterException("Found unnamed column"))
+			col.name
 		))
 		
 		writer.append(headerLine)

@@ -136,11 +136,11 @@ class AnovaRunner(rExePath: Path, numLevels: Int = 4){
 		val nParameters = independent.length
 
 		for(i <- 0 until factorisedColumns.length){
-			dataStream.print(factorisedColumns(i).name.getOrElse("iv"+1))
+			dataStream.print(factorisedColumns(i).name)
 			dataStream.print(",")
 		}
 		
-		dataStream.print(dependent.name.getOrElse("depVar"))
+		dataStream.print(dependent.name)
 		dataStream.println
 		
 		for(i <- 0 until nIterations) {
@@ -180,12 +180,12 @@ class AnovaRunner(rExePath: Path, numLevels: Int = 4){
 		scriptStream.println("data=read.csv(\"" + "data.csv" + "\")")
 
 		for(i <- 0 until nParameters){
-			val paramName = factorisedColumns(i).name.getOrElse("iv"+i)
+			val paramName = factorisedColumns(i).name
 			
 			scriptStream.println(paramName.trim() + "=data$" + paramName.trim())
 		}
 
-		val depVarName = dependent.name.getOrElse("depVar")
+		val depVarName = dependent.name
 		
 		scriptStream.println(depVarName.trim() + "=data$" + depVarName.trim())
 
@@ -193,7 +193,7 @@ class AnovaRunner(rExePath: Path, numLevels: Int = 4){
 		scriptStream.print(depVarName.trim())
 		scriptStream.print("~")
 		for(i <- 0 until nParameters){
-			val paramName = factorisedColumns(i).name.getOrElse("iv"+i)
+			val paramName = factorisedColumns(i).name
 			scriptStream.print(paramName.trim())
 			if(i<nParameters-1)
 				scriptStream.print("+")

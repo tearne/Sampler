@@ -97,8 +97,8 @@ object SimpleABC extends App{
 	object Writer extends PopulationWriter{
 		def apply(p: WeightsTable[Parameters], tolerance: Double){
 			new CSVTableWriter(wd.resolve(tolerance+".csv")).apply(
-				Column(p.mapValues(_.m), Some("m")),
-				Column(p.mapValues(_.v), Some("v"))
+				Column(p.mapValues(_.m), "m"),
+				Column(p.mapValues(_.v), "v")
 			)
 		}
 	}
