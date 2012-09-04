@@ -54,30 +54,61 @@ class CSVTableWriterSpec extends Specification{
 		}
 		"throw exception if columns of different lengths" in todo
 		"create a file" in new fileSetup with fileTearDown {
-			writer.apply(tc1, tc2, tc3)
+			val params = IndexedSeq(1,2,3)
+			val col = new Column(params, Some("MyInts"))
+			
+			writer.apply(col)
 			Files.exists(file) == true
 		}
-		"write four lines containing the headers and data" in new fileSetup with fileTearDown {
-			writer.apply(tc1, tc2, tc3)
+		
+		"write ints" in new fileSetup with fileTearDown {
+			val ints = IndexedSeq(1,2)
+			val intCol = new Column(ints, Some("MyInts"))
 			
-//			read in file and check correct contents
-			val expectedLine1 = "P1,P2,P3"
-			val expectedLine2 = "1,3.0,one"
-			val expectedLine3 = "2,2.0,two"
-			val expectedLine4 = "3,1.0,three"
+			writer.apply(intCol)
+			
+			val expectedLine1 = "MyInts"
+			val expectedLine2 = "1"
+			val expectedLine3 = "2"
 				
-			val source = Source.fromFile(filePath.toString())
-			val sourceString = source.mkString
-			
-			val lines = sourceString.split("\n")
-			val expectedLines = Array(expectedLine1, expectedLine2, expectedLine3, expectedLine4)
+			val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
+			val expectedLines = Array(expectedLine1, expectedLine2, expectedLine3)
 			
 			lines mustEqual expectedLines
 		}
 		
-		"write ints" in todo
-		"write doubles" in todo
-		"write strings" in todo
+		"write doubles" in new fileSetup with fileTearDown {
+			val doubles = IndexedSeq(2.000,1.0)
+			val doubleCol = new Column(doubles, Some("MyDoubles"))
+			
+			writer.apply(doubleCol)
+			
+			val expectedLine1 = "MyDoubles"
+			val expectedLine2 = "2.0"
+			val expectedLine3 = "1.0"
+			
+			val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
+			val expectedLines = Array(expectedLine1, expectedLine2, expectedLine3)
+			
+			lines mustEqual expectedLines
+		}
+		
+		"write strings" in new fileSetup with fileTearDown {
+			val strings = IndexedSeq("String", "List")
+			val stringCol = new Column(strings, Some("MyStrings"))
+			
+			writer.apply(stringCol)
+			
+			val expectedLine1 = "MyStrings"
+			val expectedLine2 = "String"
+			val expectedLine3 = "List"
+			
+			val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
+			val expectedLines = Array(expectedLine1, expectedLine2, expectedLine3)
+			
+			lines mustEqual expectedLines
+		}
+		
 		"write factors" in todo
 		"write booleans" in todo
 		"write probabilities with their containing value" in todo
@@ -85,14 +116,6 @@ class CSVTableWriterSpec extends Specification{
 
 	trait fileSetup extends Scope {
 		val writer = new CSVTableWriter(filePath)
-				
-		val params1 = IndexedSeq(1,2,3)
-		val params2 = IndexedSeq(3.0,2.0,1.0)
-		val params3 = IndexedSeq("one", "two", "three")
-				
-		val tc1 = new Column(params1, Some("P1"))
-		val tc2 = new Column(params2, Some("P2"))
-		val tc3 = new Column(params3, Some("P3"))
 	}
 	
 	trait fileTearDown extends After {
