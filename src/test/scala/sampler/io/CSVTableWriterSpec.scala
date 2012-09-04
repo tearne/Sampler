@@ -28,6 +28,7 @@ import java.nio.file.Files
 import org.specs2.mutable.Before
 import org.specs2.mutable.After
 import scala.io.Source
+import sampler.math.Probability
 
 @RunWith(classOf[JUnitRunner])
 class CSVTableWriterSpec extends Specification{
@@ -37,136 +38,115 @@ class CSVTableWriterSpec extends Specification{
 	val file = Files.createFile(filePath)
 	
 	"CSVTableWriter" should{
-		"throw exception on unparsable values" in new fileSetup with fileTearDown {
-			todo
-		}
 
-		"throw exception when no data supplied" in new fileSetup with fileTearDown {
-			writer.apply() must throwA[TableWriterException]
-		}
-		
-		"throw exception if header name is None" in new fileSetup with fileTearDown {
-			val params1 = IndexedSeq(1,2,3)
-			val params2 = IndexedSeq(3.0,2.0,1.0)
-			
-			val tc1 = new Column(params1)
-			val tc2 = new Column(params2, Some("Parameter2"))
-			
-			writer.apply(tc1, tc2) must throwA[TableWriterException]
-		}
-		
-		"throw exception if columns of different lengths" in new fileSetup with fileTearDown {
-			val params1 = IndexedSeq(1,2,3)
-			val params2 = IndexedSeq("Lots", "and", "Lots", "and", "Lots", "of", "Entries")
-			
-			val col1 = new Column(params1, Some("SomeInts"))
-			val col2 = new Column(params2, Some("LoadsaStrings"))
+		"throw an exception" in {
 
-			writer.apply(col1, col2) must throwA[TableWriterException]
+			"when no data is supplied to the apply method" in new fileSetup with fileTearDown {
+				writer.apply() must throwA[TableWriterException]
+			}
+			
+			"when the header name is None" in new fileSetup with fileTearDown {
+				val params1 = Seq(1,2,3)
+				val params2 = Seq(3.0,2.0,1.0)
+						
+				val tc1 = new Column(params1)
+				val tc2 = new Column(params2, Some("Parameter2"))
+				
+				writer.apply(tc1, tc2) must throwA[TableWriterException]
+			}
+			
+			"columns are of different lengths" in new fileSetup with fileTearDown {
+				val params1 = Seq(1,2,3)
+				val params2 = "Lots and lots and lots of entries".split(" ")
+						
+				val col1 = new Column(params1, Some("SomeInts"))
+				val col2 = new Column(params2, Some("LoadsaStrings"))
+				
+				writer.apply(col1, col2) must throwA[TableWriterException]
+			}
 		}
 		
 		"create a file" in new fileSetup with fileTearDown {
-			val params = IndexedSeq(1,2,3)
+			val params = Seq(1,2,3)
 			val col = new Column(params, Some("MyInts"))
 			
 			writer.apply(col)
 			Files.exists(file) == true
 		}
 		
-		"write ints" in new fileSetup with fileTearDown {
-			val ints = IndexedSeq(1,2)
-			val intCol = new Column(ints, Some("MyInts"))
+		"write data to a file" in {
 			
-			writer.apply(intCol)
-			
-			val expectedLine1 = "MyInts"
-			val expectedLine2 = "1"
-			val expectedLine3 = "2"
+			"when the data type is ints" in new fileSetup with fileTearDown {
+				val ints = Seq(1,2)
+				val intCol = new Column(ints, Some("MyInts"))
 				
-			val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
-			val expectedLines = Array(expectedLine1, expectedLine2, expectedLine3)
+				writer.apply(intCol)
+				val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
+				
+				val expectedLines = Array("MyInts", "1", "2") 
+				
+				lines mustEqual expectedLines
+			}
 			
-			lines mustEqual expectedLines
-		}
-		
-		"write doubles" in new fileSetup with fileTearDown {
-			val doubles = IndexedSeq(2.000,1.0)
-			val doubleCol = new Column(doubles, Some("MyDoubles"))
+			"when the data type is doubles" in new fileSetup with fileTearDown {
+				val doubles = Seq(2.000,1.0)
+				val doubleCol = new Column(doubles, Some("MyDoubles"))
+				
+				writer.apply(doubleCol)
+				val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
+				
+				val expectedLines = Array("MyDoubles", "2.0", "1.0")
+				
+				lines mustEqual expectedLines
+			}
 			
-			writer.apply(doubleCol)
+			"when the data type is strings" in new fileSetup with fileTearDown {
+				val strings = Seq("String", "List")
+				val stringCol = new Column(strings, Some("MyStrings"))
+				
+				writer.apply(stringCol)
+				val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
+				
+				val expectedLines = Array("MyStrings", "String", "List")
+				
+				lines mustEqual expectedLines
+			}
 			
-			val expectedLine1 = "MyDoubles"
-			val expectedLine2 = "2.0"
-			val expectedLine3 = "1.0"
+			"when the data type is factors" in new fileSetup with fileTearDown {
+				val factors = Seq(Factor("F1"), Factor("F2"))
+				val factorCol = new Column(factors, Some("MyFactors"))
+				
+				writer.apply(factorCol)
+				val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
+				
+				val expectedLines = Array("MyFactors", "F1", "F2")
+				
+				lines mustEqual expectedLines
+			}
 			
-			val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
-			val expectedLines = Array(expectedLine1, expectedLine2, expectedLine3)
+			"when the data type is booleans" in new fileSetup with fileTearDown {
+				val booleans = Seq(true, false)
+				val booleanCol = new Column(booleans, Some("MyBools"))
+				
+				writer.apply(booleanCol)
+				val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
+				
+				val expectedLines = Array("MyBools", "true", "false")
+				
+				lines mustEqual expectedLines
+			}
 			
-			lines mustEqual expectedLines
-		}
-		
-		"write strings" in new fileSetup with fileTearDown {
-			val strings = IndexedSeq("String", "List")
-			val stringCol = new Column(strings, Some("MyStrings"))
-			
-			writer.apply(stringCol)
-			
-			val expectedLine1 = "MyStrings"
-			val expectedLine2 = "String"
-			val expectedLine3 = "List"
-			
-			val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
-			val expectedLines = Array(expectedLine1, expectedLine2, expectedLine3)
-			
-			lines mustEqual expectedLines
-		}
-		
-		"write factors" in new fileSetup with fileTearDown {
-			val factors = IndexedSeq(Factor("F1"), Factor("F2"))
-			val factorCol = new Column(factors, Some("MyFactors"))
-			
-			writer.apply(factorCol)
-			
-			val expectedLine1 = "MyFactors"
-			val expectedLine2 = "F1"
-			val expectedLine3 = "F2"
-			
-			val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
-			val expectedLines = Array(expectedLine1, expectedLine2, expectedLine3)
-			
-			lines mustEqual expectedLines
-		}
-		
-		"write booleans" in new fileSetup with fileTearDown {
-			val booleans = IndexedSeq(true, false)
-			val booleanCol = new Column(booleans, Some("MyBools"))
-			
-			writer.apply(booleanCol)
-			
-			val expectedLine1 = "MyBools"
-			val expectedLine2 = "true"
-			val expectedLine3 = "false"
-			
-			val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
-			val expectedLines = Array(expectedLine1, expectedLine2, expectedLine3)
-			
-			lines mustEqual expectedLines
-		}
-		
-		"write probabilities with their containing value" in new fileSetup with fileTearDown {
-			val booleans = IndexedSeq(true, false)
-			val booleanCol = new Column(booleans, Some("MyBools"))
-			
-			writer.apply(booleanCol)
-			
-			val expectedLine1 = "MyBools"
-			val expectedLine2 = "true"
-			val expectedLine3 = "false"
-			
-			val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
-			val expectedLines = Array(expectedLine1, expectedLine2, expectedLine3)
-			
-			lines mustEqual expectedLines
+			"when the data type is probabilities" in new fileSetup with fileTearDown {
+				val booleans = Seq(true, false)
+				val booleanCol = new Column(booleans, Some("MyBools"))
+				
+				writer.apply(booleanCol)
+				val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
+				
+				val expectedLines = Array("MyBools", "true", "false")
+				
+				lines mustEqual expectedLines
+			}
 		}
 	}
 

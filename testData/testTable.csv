@@ -1,1 +1,1 @@
-MyDoubles,TheirBools,Strings,MyInts,SomeFactors,Probs,ToFail1,TRUE,A,2,Factor1,0.789,NoQuote2,   false,ListOf,3,AnotherFactor,0.2,With"Quote3,  false  ,Strings,6,A_Third,0.64,NoQuote
+MyDoubles,TheirBools,Strings,MyInts,SomeFactors,Probs,ToFail1.0,TRUE,A,2,Factor1,0.789,NoQuote2,   false,ListOf,3,AnotherFactor,0.2,With"Quote3,  false  ,Strings,6,A_Third,0.64,NoQuote

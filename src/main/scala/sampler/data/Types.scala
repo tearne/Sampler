@@ -7,6 +7,9 @@ object Types {
 	case class Column[T](val values: Seq[T], val name: Option[String] = None)(implicit val cType: ColumnType[T]){
 		def toStringColumn(): Column[String] = Column(values.map(v => cType.toString(v)), name)
 	}
+//	object Column{
+//		def apply(values: Seq[T], val name: String) = Column(values, Some(name))
+//	}
 	
 	case class Factor(name: String){
 		override def toString() = name
