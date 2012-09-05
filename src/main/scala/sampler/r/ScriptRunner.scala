@@ -6,7 +6,7 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import scala.io.Source
 
-object ScriptRunner {
+class ScriptRunner {
 	def apply(script: String, scriptTarget: Path){
 		val writer = new FileWriter(scriptTarget.toFile)
 		val parentPath = scriptTarget.toAbsolutePath.getParent.toFile

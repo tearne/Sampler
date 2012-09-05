@@ -183,5 +183,6 @@ pdf("graph.pdf", width=8.27, height=5.83)
 ggplot(values, aes(x=SampleSize, y=minDetectable)) + geom_line()
 dev.off()
 """
-	ScriptRunner(script, workDir.resolve("script.r"))
+	val scriptRunner = new ScriptRunner()
+	scriptRunner.apply(script, workDir.resolve("script.r"))
 }
