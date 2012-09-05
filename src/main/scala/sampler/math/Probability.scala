@@ -21,9 +21,12 @@ case class Probability(val value: Double){
 	def sample = null
 	def >(q: Probability) = value > q.value
 	def <(q: Probability) = value < q.value
+	
+	if(value > 1 || value < 0)
+		throw new ProbabilityException(value + "is not a valid probability")
 }
 object Probability{
 	val zero = Probability(0)
 }
 
-class ProbabilityException extends Exception
+class ProbabilityException(msg: String) extends RuntimeException
