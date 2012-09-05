@@ -36,17 +36,15 @@ trait TableWriter{
 }
 
 class CSVTableReader(path: Path) extends TableReader{
-
 	val source = readFile(path)
 	
 	private def readFile(path: Path): Iterable[Array[String]] = {
 		try {
-			val source = Source.fromFile(path.toString())
+			Source.fromFile(path.toString())
 					.getLines()
 					.map(_.replace("\"",""))
 					.map(_.split(",").map(_.trim))
 					.toIterable
-			source
 		} catch {
 			case fnfe: FileNotFoundException => throw new TableReaderException("the file " + path + " does not exist")
 		}

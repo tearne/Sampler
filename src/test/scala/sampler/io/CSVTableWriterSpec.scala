@@ -38,6 +38,9 @@ class CSVTableWriterSpec extends Specification{
 	val file = Files.createFile(filePath)
 	
 	"CSVTableWriter" should{
+		
+		"some test to do with append" in todo
+		"some test to do with overwrite" in todo
 
 		"throw an exception" in {
 
@@ -146,6 +149,5 @@ class CSVTableWriterSpec extends Specification{
 	
 	trait fileTearDown extends After {
 		def after = Files.deleteIfExists(file)
-//		def after = {}
 	}
 }
