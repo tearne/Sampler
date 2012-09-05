@@ -9,6 +9,7 @@ import java.io.File
 import org.specs2.specification.Scope
 import sampler.data.Types._
 import sampler.math.Probability
+import java.io.FileNotFoundException
 
 @RunWith(classOf[JUnitRunner])
 class CSVTableReaderSpec extends Specification{
@@ -17,7 +18,7 @@ class CSVTableReaderSpec extends Specification{
 		"throw an exception" in {
 			"the path points to a file that does not exist" in new fileSetup {
 				val nonExistentPath = testPath.resolve("thisFileDoesntExist.csv")
-				new CSVTableReader(nonExistentPath) must throwA[TableReaderException]
+				new CSVTableReader(nonExistentPath) must throwA[FileNotFoundException]
 			}
 
 			"requested a header which doens't exist" in new fileSetup {

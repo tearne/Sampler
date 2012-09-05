@@ -35,12 +35,57 @@ class CSVTableWriterSpec extends Specification{
 
 	val path = Paths.get(new File("").getAbsolutePath())
 	val filePath = path.resolve("testFile.csv")
-	val file = Files.createFile(filePath)
+	
 	
 	"CSVTableWriter" should{
 		
-		"some test to do with append" in todo
-		"some test to do with overwrite" in todo
+		"have an option to overwrite an existing file" in {
+			
+			"overwrite a file when option set to overwrite" in new fileSetup with fileTearDown {
+				val params1 = Seq(1,2,3)
+				val params2 = Seq("one", "two", "three")
+				val col1 = new Column(params1, "Header")
+				val col2 = new Column(params2, "Header")
+				
+				writer.apply(col1)
+				
+				val writer2 = new CSVTableWriter(filePath, true)
+				
+				writer2.apply(col2)
+				
+				val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
+				
+				val expectedLines = Array("Header", "one", "two", "three") 
+				
+				lines mustEqual expectedLines
+			}
+			
+			"throw an exception when file is present and overwrite is set to false" in new fileSetup with fileTearDown {
+				val params1 = Seq(1,2,3)
+				val params2 = Seq("one", "two", "three")
+				val col1 = new Column(params1, "Header")
+				val col2 = new Column(params2, "Header")
+				
+				writer.apply(col1)
+				
+				val writer2 = new CSVTableWriter(filePath, false)
+				
+				writer2.apply(col2) must throwA[TableWriterException]
+			}
+			
+			"throw an exception when file is present and overwrite is set to false" in new fileSetup with fileTearDown {
+				val params1 = Seq(1,2,3)
+				val params2 = Seq("one", "two", "three")
+				val col1 = new Column(params1, "Header")
+				val col2 = new Column(params2, "Header")
+				
+				writer.apply(col1)
+				
+				val writer2 = new CSVTableWriter(filePath, false)
+				
+				writer2.apply(col2) must throwA[TableWriterException]
+			}
+		}
 
 		"throw an exception" in {
 
@@ -64,7 +109,7 @@ class CSVTableWriterSpec extends Specification{
 			val col = new Column(params, "MyInts")
 			
 			writer.apply(col)
-			Files.exists(file) == true
+			Files.exists(filePath) == true
 		}
 		
 		"write data to a file" in {
@@ -148,6 +193,8 @@ class CSVTableWriterSpec extends Specification{
 	}
 	
 	trait fileTearDown extends After {
-		def after = Files.deleteIfExists(file)
+		def after = {
+				Files.deleteIfExists(filePath)
+		}
 	}
 }

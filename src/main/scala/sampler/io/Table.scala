@@ -27,6 +27,8 @@ import scala.reflect.Manifest
 import scala.collection.immutable.WrappedString
 import java.io.FileWriter
 import scala.util.matching.Regex
+import java.io.File
+import java.nio.file.Files
 
 trait TableReader{
 	def get[T](params: Header[T]): Column[T]
@@ -36,19 +38,11 @@ trait TableWriter{
 }
 
 class CSVTableReader(path: Path) extends TableReader{
-	val source = readFile(path)
-	
-	private def readFile(path: Path): Iterable[Array[String]] = {
-		try {
-			Source.fromFile(path.toString())
+	val source = Source.fromFile(path.toString())
 					.getLines()
 					.map(_.replace("\"",""))
 					.map(_.split(",").map(_.trim))
 					.toIterable
-		} catch {
-			case fnfe: FileNotFoundException => throw new TableReaderException("the file " + path + " does not exist")
-		}
-	}
 	
 	def get[T](header: Header[T]): Column[T] = {
 		val it = source.iterator
@@ -68,8 +62,14 @@ class CSVTableReader(path: Path) extends TableReader{
 	}
 }
 
-class CSVTableWriter(path: Path, overwrite: Boolean = false, append: Boolean = false) extends TableWriter{
+class CSVTableWriter(path: Path, overwrite: Boolean = false) extends TableWriter{
 	def apply(columns: Column[_]*){
+		
+		if(overwrite == false) {
+			if(Files.exists(path)) {
+				throw new TableWriterException("")
+			}
+		}
 		
 		try {
 			val colLength1 = columns(0).values.length
