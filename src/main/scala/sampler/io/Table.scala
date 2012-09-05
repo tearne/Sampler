@@ -59,8 +59,12 @@ class CSVTableReader(path: Path) extends TableReader{
 			case i => i 
 		}
 		
-		val values = it.map(row => header.cType(row(columnIdx))).toIndexedSeq
-		new Column(values, header.name)(header.cType)
+		try {
+			val values = it.map(row => header.cType(row(columnIdx))).toIndexedSeq
+			new Column(values, header.name)(header.cType)
+		} catch {
+			case nfe: NumberFormatException => throw new TableReaderException("Could not parse data for column " + header.name)
+		}
 	}
 }
 

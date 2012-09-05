@@ -25,7 +25,10 @@ class CSVTableReaderSpec extends Specification{
 				instance.get(header) must throwA[UnsupportedOperationException]
 			}
 			
-			"data in table is unparsable / has the wrong type" in todo
+			"data in table is unparsable / has the wrong type" in new fileSetup {
+				val header = new Header[Boolean]("DuffDoubles")
+				instance.get(header) must throwA[TableReaderException]
+			}
 		}
 		
 		"retrieve data from file when" in {
