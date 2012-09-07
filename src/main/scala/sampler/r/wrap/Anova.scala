@@ -9,6 +9,7 @@ import scala.collection.mutable.HashMap
 import com.typesafe.config.ConfigFactory
 import sampler.data.Types._
 import sampler.r.ScriptRunner
+import sampler.r.util.ScriptBuilder
 
 class Anova(rExePath: Path, numLevels: Int = 4){
 	
@@ -142,58 +143,13 @@ class Anova(rExePath: Path, numLevels: Int = 4){
 		
 		val rScriptPath = mainPath.resolve("script.txt")
 
-		val scriptBuilder = new StringBuilder
+		val scriptBuilder = new ScriptBuilder
 		
-		scriptBuilder.append("library(\"rjson\")\n")
-
-		scriptBuilder.append("data=read.csv(\"" + "data.csv" + "\")\n")
-
-		for(i <- 0 until nParameters){
-			val paramName = factorisedColumns(i).name
-			
-			scriptBuilder.append(paramName.trim() + "=data$" + paramName.trim() + "\n")
-		}
-
-		val depVarName = dependent.name
+		val script = scriptBuilder.apply(factorisedColumns, dependent, "data.csv", "anova_JSON.txt")
 		
-		scriptBuilder.append(depVarName.trim() + "=data$" + depVarName.trim() + "\n")
-
-		scriptBuilder.append("lm1=lm(")
-		scriptBuilder.append(depVarName.trim())
-		scriptBuilder.append("~")
-		for(i <- 0 until nParameters){
-			val paramName = factorisedColumns(i).name
-			scriptBuilder.append(paramName.trim())
-			if(i<nParameters-1)
-				scriptBuilder.append("+")
-		}
-		scriptBuilder.append(")\n")
-
-		scriptBuilder.append("result <- anova(lm1)\n")
-		scriptBuilder.append("params <- row.names(result)\n")
-		scriptBuilder.append("colNames <- names(result)\n")
-
-		scriptBuilder.append("anovaJSON <- toJSON(c(format(as.data.frame(params)), format(as.data.frame(colNames)), result), method=\"C\")\n")
-
-		scriptBuilder.append("fileName <- file(\"anova_JSON.txt\")\n")
-		scriptBuilder.append("writeLines(anovaJSON, fileName)\n")
-		scriptBuilder.append("close(fileName)\n")
-
 		val scriptRunner = new ScriptRunner
 		
-		println(scriptBuilder.toString())
-		
-		scriptRunner.apply(scriptBuilder.toString(), rScriptPath)
-		
-		// Run script in R
-		
-		// Mac OS X
-		val process = Runtime.getRuntime().exec("Rscript script.txt")
-		
-		// Windows
-		// val process = Runtime.getRuntime().exec(rExePath.toString + " CMD BATCH --slave script.txt")
-		
-		process.waitFor
+		scriptRunner.apply(script, rScriptPath)
 		
 		// Read in JSON output
 		
