@@ -181,6 +181,8 @@ class Anova(rExePath: Path, numLevels: Int = 4){
 
 		val scriptRunner = new ScriptRunner
 		
+		println(scriptBuilder.toString())
+		
 		scriptRunner.apply(scriptBuilder.toString(), rScriptPath)
 		
 		// Run script in R
