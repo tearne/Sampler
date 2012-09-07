@@ -35,7 +35,7 @@ class ScriptBuilderSpec extends Specification{
 			(rLines(7) mustEqual "params <- row.names(result)") and
 			(rLines(8) mustEqual "colNames <- names(result)") and
 			(rLines(9) mustEqual "anovaJSON <- toJSON(c(format(as.data.frame(params)), format(as.data.frame(colNames)), result), method=\"C\")") and
-			(rLines(10) mustEqual "fileName <- file(\"anova_JSON.txt\")") and
+			(rLines(10) mustEqual "fileName <- file(\"jsonFile.txt\")") and
 			(rLines(11) mustEqual "writeLines(anovaJSON, fileName)") and
 			(rLines(12) mustEqual "close(fileName)")
 		}
@@ -53,7 +53,7 @@ class ScriptBuilderSpec extends Specification{
 
 			val scriptBuilder = new ScriptBuilder
 
-			val rScript = scriptBuilder.apply(IndexedSeq(c1,c2), d1, dataFile, jsonOutputFile)
+			val rScript = scriptBuilder.apply(IndexedSeq(c1,c2, c3, c4), d1, dataFile, jsonOutputFile)
 
 			val rLines = rScript split "\n"
 
@@ -62,8 +62,8 @@ class ScriptBuilderSpec extends Specification{
 			(rLines(3) mustEqual "P2=data$P2") and
 			(rLines(4) mustEqual "P3=data$P3") and
 			(rLines(5) mustEqual "P4=data$P4") and
-			(rLines(7) mustEqual "lm1=lm(result~P1+P2+P3+P4)") and
-			(rLines(10) mustEqual "fileName <- file(\"differentJSON.txt\")")
+			(rLines(7) mustEqual "lm1=lm(dependent_values~P1+P2+P3+P4)") and
+			(rLines(12) mustEqual "fileName <- file(\"differentJSON.txt\")")
 		}
 	}
 

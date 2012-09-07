@@ -10,7 +10,7 @@ class ScriptBuilder {
 		
 		script.append("library(\"rjson\")\n")
 		
-		script.append("data=read.csv(\"" + "data.csv" + "\")\n")
+		script.append("data=read.csv(\"" + fileName + "\")\n")
 		
 		independent map {
 			case a => script.append(a.name.trim + "=data$" + a.name.trim + "\n")
@@ -35,7 +35,7 @@ class ScriptBuilder {
 
 		script.append("anovaJSON <- toJSON(c(format(as.data.frame(params)), format(as.data.frame(colNames)), result), method=\"C\")\n")
 
-		script.append("fileName <- file(\"anova_JSON.txt\")\n")
+		script.append("fileName <- file(\"" + outputFile + "\")\n")
 		script.append("writeLines(anovaJSON, fileName)\n")
 		script.append("close(fileName)\n")
 		
