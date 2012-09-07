@@ -7,12 +7,14 @@ import sampler.r.ScriptRunner
 import java.nio.file.Paths
 import java.nio.file.Files
 import org.specs2.mutable.After
+import com.typesafe.config.ConfigFactory
 
 @RunWith(classOf[JUnitRunner])
 class ScriptRunnerSpec extends Specification {
 
 	val testPath = Paths.get("testScript.txt")
 	val testPathRout = Paths.get("testScript.txt.Rout")
+	val jsonPath = Paths.get("myJSON.txt")
 
 	"ScriptRunner" should {
 		
@@ -41,7 +43,7 @@ class ScriptRunnerSpec extends Specification {
 			val builder = new StringBuilder
 			
 			builder.append("library(\"rjson\")\n")
-			builder.append("a <- c(1,2,3)\n")
+			builder.append("a <- c(2,4,6)\n")
 			builder.append("df <- as.data.frame(a)\n")
 			builder.append("names(df) <- c(\"parameter\")\n")
 			builder.append("jsonOut <- toJSON(df)\n")
@@ -51,10 +53,16 @@ class ScriptRunnerSpec extends Specification {
 
 			scriptRunner.apply(builder.toString(), testPath)
 			
-//			TODO read in JSON and test contents
-//			TODO delete JSON file after test execution
+			val jsonPath = Paths.get("myJSON.txt");
+
+			val config = ConfigFactory.parseFile(jsonPath.toFile())
+
+			val params = config.getIntList("parameter")
 			
-			Nil
+			(params.size mustEqual 3) and
+			(params.get(0) mustEqual 2) and
+			(params.get(1) mustEqual 4) and
+			(params.get(2) mustEqual 6) 
 		}
 	}
 	
@@ -62,6 +70,7 @@ class ScriptRunnerSpec extends Specification {
 		def after = {
 				Files.deleteIfExists(testPath)
 				Files.deleteIfExists(testPathRout)
+				Files.deleteIfExists(jsonPath)
 		}
 	}
 }
