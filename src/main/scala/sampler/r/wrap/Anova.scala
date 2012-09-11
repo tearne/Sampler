@@ -12,6 +12,7 @@ import sampler.r.ScriptRunner
 import sampler.r.util.ScriptBuilder
 import sampler.io.CSVTableWriter
 import sampler.r.util.JsonReader
+import sampler.r.util.AnovaGrapher
 
 class Anova(rExePath: Path, numLevels: Int = 4){
 	
@@ -131,7 +132,6 @@ class Anova(rExePath: Path, numLevels: Int = 4){
 		val script = scriptBuilder.apply(factorisedColumns, dependent, dataFilePath.getFileName().toString, "anova_JSON.txt")
 		
 		val scriptRunner = new ScriptRunner
-		
 		scriptRunner.apply(script, rScriptPath)
 		
 		// Read in JSON output
@@ -140,23 +140,9 @@ class Anova(rExePath: Path, numLevels: Int = 4){
 		
 		val jsonReader = new JsonReader
 		val anovaResults = jsonReader.apply(jsonPath)
-
-		var min = 10.0
 		
-		anovaResults.paramEntries.map {
-			case a if(a.fValue < min) => min = a.fValue
-		}
-		
-		anovaResults.paramEntries.map {
-			case a => {
-				print(a.name + ": ")
-				val numStars = (a.fValue/min).asInstanceOf[Int]
-				for(i <- 0 until numStars)
-					print("*")
-				print("\t" + a.fValue)
-				print("\n")
-			}
-		}
+		val grapher = new AnovaGrapher
+		grapher.apply(anovaResults)
 		
 		anovaResults
 	}
