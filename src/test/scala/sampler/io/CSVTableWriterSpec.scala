@@ -102,6 +102,8 @@ class CSVTableWriterSpec extends Specification{
 				
 				writer.apply(col1, col2) must throwA[TableWriterException]
 			}
+			
+			"two columns are supplied with the same name" in todo
 		}
 		
 		"create a file" in new fileSetup with fileTearDown {

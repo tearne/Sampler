@@ -10,6 +10,7 @@ import com.typesafe.config.ConfigFactory
 import sampler.data.Types._
 import sampler.r.ScriptRunner
 import sampler.r.util.ScriptBuilder
+import sampler.io.CSVTableWriter
 
 class Anova(rExePath: Path, numLevels: Int = 4){
 	
@@ -115,30 +116,10 @@ class Anova(rExePath: Path, numLevels: Int = 4){
 		
 		// Writing data file
 
-		val dataFile = new FileOutputStream(dataFilePath.toString)
-		val dataStream = new PrintStream(dataFile)
-
-		val nIterations = dependent.values.length
-		val nParameters = independent.length
-
-		for(i <- 0 until factorisedColumns.length){
-			dataStream.print(factorisedColumns(i).name)
-			dataStream.print(",")
-		}
+		val colsToWrite = factorisedColumns :+ dependent
 		
-		dataStream.print(dependent.name)
-		dataStream.println
-		
-		for(i <- 0 until nIterations) {
-			for(j <- 0 until nParameters) {
-				dataStream.print(factorisedColumns(j).values(i).toString().trim())
-				dataStream.print(",")
-			}
-			dataStream.print(dependent.values(i))
-			dataStream.println
-		}
-
-		dataStream.close
+		val csvTableWriter = new CSVTableWriter(dataFilePath, false)
+		csvTableWriter.apply(colsToWrite:_*)
 		
 		// Using new ScriptRunner class
 		

@@ -20,7 +20,6 @@ class ScriptRunner {
 		builder.append("R CMD BATCH --slave ")
 		builder.append(scriptTarget.getFileName().toFile)
 		
-//		gets here too fast2
 		val proc = Runtime.getRuntime().exec(builder.toString, null, parentPath)
 		
 		val stdInput = new BufferedReader(new 
