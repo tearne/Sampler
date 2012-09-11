@@ -1,9 +1,8 @@
-package sampler.r.wrap
+package sampler.r
 
 import org.specs2.mutable.Specification
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-import sampler.r.ScriptRunner
 import java.nio.file.Paths
 import java.nio.file.Files
 import org.specs2.mutable.After
