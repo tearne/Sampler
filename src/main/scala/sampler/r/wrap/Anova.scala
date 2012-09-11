@@ -154,51 +154,50 @@ class Anova(rExePath: Path, numLevels: Int = 4){
 		
 		// Read in JSON output
 		
-//		val jsonPath = mainPath.resolve("anova_JSON.txt");
-//
-//		val config = ConfigFactory.parseFile(jsonPath.toFile())
-//
-//		val params = config.getStringList("params")
-//		val colNames = config.getStringList("colNames")
-//		val degrees = config.getIntList("Df")
-//		val sumSqs = config.getDoubleList("Sum Sq")
-//		val meanSqs = config.getDoubleList("Mean Sq")
-//		val fValues = config.getAnyRefList("F value")
-//		val pValues = config.getAnyRefList("Pr(>F)")
-//
-//		var resultsMap: IndexedSeq[AnovaEntry] = IndexedSeq()
-//
-//		var min = fValues.get(0).asInstanceOf[Double]
-//
-//		for(i <- 0 until params.size()) {
-//			if(fValues.get(i) == "NA") {
-//				//		  resultsMap += params.get(i) -> new ANOVA(degrees.get(i), sumSqs.get(i), meanSqs.get(i), 0, 0)
-//			} else {
-//				val fValue : Double = fValues.get(i).asInstanceOf[Double]
-//				val pValue : Double = pValues.get(i).asInstanceOf[Double]
-//
-//				if(fValue < min)
-//					min = fValue
-//
-//				val entry = new AnovaEntry(params.get(i), degrees.get(i), sumSqs.get(i), meanSqs.get(i), fValue, pValue)
-//				resultsMap = resultsMap :+ entry
-//			}
-//		}
-//
-//		resultsMap.foreach{case (entry) => {
-//			print(entry.name + ": ")
-//			val numStars = (entry.fValue/min).asInstanceOf[Int]
-//			for(i <- 0 until numStars)
-//				print("*")
-//			print("\t" + entry.fValue)
-//			print("\n")
-//			}
-//		}
-//		
-//		val anovaResults = new AnovaResults(resultsMap)
-//		
-//		anovaResults
-		null
+		val jsonPath = dataPath.resolve("anova_JSON.txt");
+
+		val config = ConfigFactory.parseFile(jsonPath.toFile())
+
+		val params = config.getStringList("params")
+		val colNames = config.getStringList("colNames")
+		val degrees = config.getIntList("Df")
+		val sumSqs = config.getDoubleList("Sum Sq")
+		val meanSqs = config.getDoubleList("Mean Sq")
+		val fValues = config.getAnyRefList("F value")
+		val pValues = config.getAnyRefList("Pr(>F)")
+
+		var resultsMap: IndexedSeq[AnovaEntry] = IndexedSeq()
+
+		var min = fValues.get(0).asInstanceOf[Double]
+
+		for(i <- 0 until params.size()) {
+			if(fValues.get(i) == "NA") {
+				//		  resultsMap += params.get(i) -> new ANOVA(degrees.get(i), sumSqs.get(i), meanSqs.get(i), 0, 0)
+			} else {
+				val fValue : Double = fValues.get(i).asInstanceOf[Double]
+				val pValue : Double = pValues.get(i).asInstanceOf[Double]
+
+				if(fValue < min)
+					min = fValue
+
+				val entry = new AnovaEntry(params.get(i), degrees.get(i), sumSqs.get(i), meanSqs.get(i), fValue, pValue)
+				resultsMap = resultsMap :+ entry
+			}
+		}
+
+		resultsMap.foreach{case (entry) => {
+			print(entry.name + ": ")
+			val numStars = (entry.fValue/min).asInstanceOf[Int]
+			for(i <- 0 until numStars)
+				print("*")
+			print("\t" + entry.fValue)
+			print("\n")
+			}
+		}
+		
+		val anovaResults = new AnovaResults(resultsMap)
+		
+		anovaResults
 	}
 }
 
