@@ -9,7 +9,11 @@ class AnovaSpec extends Specification {
 	
 	"Anova" should {
 		
-		"Execute the entire process of running an ANOVA by calling various scripts and classes" in todo
+		"Execute the entire process of running an ANOVA by calling various scripts and classes" in {
+			todo
+//			Create and supply mocks as in Java
+//			Create companion object for easy running
+		}
 	}
 
 }

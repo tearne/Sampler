@@ -29,6 +29,7 @@ import java.io.FileWriter
 import scala.util.matching.Regex
 import java.io.File
 import java.nio.file.Files
+import java.nio.file.FileAlreadyExistsException
 
 trait TableReader{
 	def get[T](params: Header[T]): Column[T]
@@ -67,7 +68,7 @@ class CSVTableWriter(path: Path, overwrite: Boolean = false) extends TableWriter
 		
 		if(overwrite == false) {
 			if(Files.exists(path)) {
-				throw new TableWriterException("")
+				throw new FileAlreadyExistsException(path.toString() + "exists and overwriting is not permitted")
 			}
 		}
 		
