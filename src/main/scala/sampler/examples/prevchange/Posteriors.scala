@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2012 Crown Copyright 
+ *                    Animal Health and Veterinary Laboratories Agency
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package sampler.examples.prevchange
 
 import sampler.io.CSVTableWriter
@@ -8,23 +25,45 @@ import sampler.math.Probability
 import sampler.data.FrequencyTable
 import scala.annotation.tailrec
 import scala.collection.immutable.TreeMap
+import sampler.run.agent.LocalActorRunner
+import sampler.fit.ABC
 
 /*
  * Draw posterior distributions and confidence limits for the number of infected 
  * units in a population of size 60, assuming a uniform prior and samples (without 
  * replacement) of size 20
  */
-object Posteriors extends App with WithoutReplacementABCModel with Environment{
+object Posteriors extends App with WithoutReplacementABC with Environment{
 	val populationSize = 60
 	val sampleSize = 20
 	val numPositiveObservations = 3
+	
+	val model = new Model(populationSize, sampleSize)
 	import model._
 	
-	val potentialObservations = List(0,1,2,3,5,10,15,17,18,19,20)
+	def getPosterior(numPosObserved: Int) = {
+		val runner = new LocalActorRunner()
+		
+		val posterior = ABC.apply(model, r)(
+				uniformPrior,
+				Observations(numPosObserved),
+				reps = 10,
+				particles = 10000,
+				startTolerance = 10,
+				refinementAttempts = 6,
+				runner,
+				None
+		)
+		
+		runner.shutdown
+		posterior
+	}
+	
+	val potentialObservations = List(0,1,3,10,17,19,20)
 	val posteriors = potentialObservations.map{i => getPosterior(i).discardWeights}
 	val dataColumns = posteriors
 			.zip(potentialObservations)
-			.map{case (p, i) => Column(p.samples.map{_.numInfected}, "_"+i.toString)}
+			.map{case (p, i) => Column(p.samples.map{_.numInfected}, "x"+i.toString)}
 	
 	@tailrec
 	def addZeroIfMissing(map: Map[Int, Int], keyRange: Seq[Int]): Map[Int, Int] = {

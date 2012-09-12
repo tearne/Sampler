@@ -19,7 +19,6 @@ package sampler.examples.prevchange
 
 import sampler.math.Random
 import scala.annotation.tailrec
-import sampler.fit.ABCModel
 import sampler.data.Distribution
 import sampler.fit.Prior
 import sampler.fit.ABC
@@ -35,98 +34,26 @@ import scala.annotation.tailrec
 import sampler.data.FrequencyTableBuilder
 import sampler.data.Distance
 import sampler.data.FrequencyTable
+import scala.collection.immutable.TreeMap
 
-trait WithoutReplacementABCModel{
-	/*
-	 * On first sample of an infected population work out the uncertainty around
-	 * the sample prevalence.  Then, supposing the prevalence subsequently increases
-	 * by alpha (absolute number of infected animals), work out the minimum number
-	 * of samples to have 95% confidence of detecting an increase, given all the
-	 * uncertainty thus far.
-	 */
+/*
+ * On first sample of an infected population work out the uncertainty around
+ * the sample prevalence.  Then, supposing the prevalence subsequently increases
+ * by alpha (absolute number of infected animals), work out the minimum number
+ * of samples to have 95% confidence of detecting an increase, given all the
+ * uncertainty thus far.
+ */
+object PrevChangeApp extends App with WithoutReplacementABC with Environment{
 	
-	//TODO: Introduce imperfect tests
-	//TODO: Mixture model for prevalence, to allow for zero?
-	
-	/*
-	 * 
-	 * 	Setup
-	 *  - Create model sampling distribution
-	 *  - Build ABC harness
-	 * 
-	 */
-	
-	val populationSize: Int
-	val sampleSize: Int
-	implicit val r: Random
-	
-	def modelDistribution(numInfected: Int, sampleSize: Int, populationSize: Int) = {
-		val population = (1 to populationSize).map(_ <= numInfected)
-		Distribution.withoutReplacement(population, sampleSize).map(sample =>
-			sample.count(identity)
-		)
-	}
-	
-	class Model(populationSize: Int, sampleSize: Int)  extends ABCModel{
-		case class Parameters(numInfected: Int) extends ParametersBase {
-			def perturb() = {
-				@tailrec
-				def pertInRange(n: Int): Int = {
-					val m = n + List(-2,-1,0,1,2)(r.nextInt(5))
-					if(m <= populationSize || m >= 0) m
-					else pertInRange(n)
-				}
-				Parameters(pertInRange(numInfected))
-			}
-			
-			def perturbDensity(that: Parameters)={
-				val diff = that.numInfected - numInfected
-				if(diff > 1 || diff < 0) 0.0
-				else 1.0 /3
-			}
-		}
-		
-		case class Observations(numPositive: Int) extends ObservationsBase
-		
-		//TODO smarter way to do this!
-		implicit object ParametersAreFractional extends Fractional[Parameters]{
-			implicit def intToParams(i: Int) = Parameters(i)
-			def div(x: Parameters, y: Parameters): Parameters = x.numInfected / y.numInfected
-			def plus(x: Parameters, y: Parameters): Parameters = x.numInfected + y.numInfected
-			def minus(x: Parameters, y: Parameters): Parameters = x.numInfected - y.numInfected
-			def times(x: Parameters, y: Parameters): Parameters = x.numInfected * y.numInfected
-			def negate(x: Parameters): Parameters = -x.numInfected
-			def fromInt(x: Int): Parameters = x.numInfected
-			def toInt(x: Parameters): Int = x.numInfected.toInt
-			def toLong(x: Parameters): Long = x.numInfected.toLong
-			def toFloat(x: Parameters): Float = x.numInfected.toFloat
-			def toDouble(x: Parameters): Double = x.numInfected.toDouble
-			def compare(x: Parameters, y: Parameters): Int = x.numInfected - y.numInfected
-		}
-		
-		case class Output(numPositive: Int) extends OutputBase{
-			def closeToObserved(obs: Observations, tolerance: Double) = {
-				math.abs(numPositive - obs.numPositive) < tolerance
-			}
-		}
-		
-		def init(p: Parameters, obs: Observations) = 
-			modelDistribution(p.numInfected, sampleSize, populationSize).map(pos => Output(pos))
-	}
-	
+	val populationSize = 60
+	val sampleSize = 20
+	val numPositiveObservations = 7
+
 	val model = new Model(populationSize, sampleSize)
 	import model._
 	
-	// Uniform prior for true number infected [0,populationSize]
-	val uniformPrior = new Prior[Parameters]{
-		def density(p: Parameters) = {
-			if(p.numInfected > populationSize || p.numInfected < 0) 0
-			else 1.0 / populationSize
-		}
-		def sample(implicit r: Random) = 
-			Parameters(r.nextInt(1 + populationSize))
-	}
 	
+	//Get a posterior for the true number of infected given sample so far
 	def getPosterior(numPosObserved: Int) = {
 		val runner = new LocalActorRunner()
 		
@@ -135,33 +62,49 @@ trait WithoutReplacementABCModel{
 				Observations(numPosObserved),
 				reps = 10,
 				particles = 10000,
-				startTolerance = 1,
-				refinementAttempts = 4,
+				startTolerance = 10,
+				refinementAttempts = 6,
 				runner,
 				None
 		)
 		
 		runner.shutdown
-		posterior
+		posterior.discardWeights
 	}
-}
-
-trait Environment{
-	val workingDir = Paths.get("examples").resolve("PrevalenceChange")
-	implicit val r = new Random()
-}
-	
-	
-	
-object PrevChangeApp extends App with WithoutReplacementABCModel with Environment{
-	
-	val populationSize = 60
-	val sampleSize = 30
-	val numPositiveObservations = 10
-	import model._
-
-	//Get a posterior for the true number of infected given sample so far
 	val posterior = getPosterior(numPositiveObservations)
+	
+	// Plot the posterior
+	val numSamples = posterior.size
+	val counts = posterior.samples.map{_.numInfected}.groupBy(identity).mapValues(v => Probability(v.size.toDouble / numSamples))
+	@tailrec
+	def addZeroIfMissing(map: Map[Int, Probability], keyRange: Seq[Int]): Map[Int, Probability] = {
+		if(keyRange.size == 0) map
+		else{
+			val newMap = if(!map.contains(keyRange.head)) map + (keyRange.head -> Probability.zero) else map
+			addZeroIfMissing(newMap, keyRange.tail)
+		}
+	}
+	val plotData = TreeMap(addZeroIfMissing(counts, 0 to populationSize).toSeq: _*).toSeq
+	
+	new CSVTableWriter(workingDir.resolve("posterior.csv"), true)(
+		Column(plotData.map(_._1), "TruePositives"),
+		Column(plotData.map(_._2), "RelFreq")
+	)
+	
+	val posteriorPlotScript = 
+"""
+require(ggplot2)
+require(reshape)
+			
+posteriors = read.csv("posterior.csv")
+			
+pdf("posterior.pdf", width=8.27, height=5.83)
+ggplot(melt(posteriors, id="TruePositives"), aes(x=TruePositives, y=value, colour=variable)) +
+	geom_line(adjust=1) +
+	scale_x_continuous(name="True Num Positives")
+dev.off()
+"""
+	ScriptRunner(posteriorPlotScript, workingDir.resolve("posterior.r"))
 	
 	//Work out what power a new sample would have to identify a 
 	//prevalence change with the desired  confidence
@@ -172,7 +115,6 @@ object PrevChangeApp extends App with WithoutReplacementABCModel with Environmen
 	def smallestDetectablePrevIncrease(newSampleSize: Int): Option[Double] = {
 		def confidenceInDetection(extraNumInf: Int): Probability = {
 			val restrictedPosterior = posterior
-					.discardWeights
 					.filter(_.numInfected < populationSize - extraNumInf)
 					.map(_.numInfected)
 					
@@ -202,7 +144,7 @@ object PrevChangeApp extends App with WithoutReplacementABCModel with Environmen
 	}
 	
 	// Choose a range of follow-up sample sizes
-	val secondSampleSize = (50 to 60) by 2
+	val secondSampleSize = (20 to 60)
 	val minDetectableOption = secondSampleSize.map(smallestDetectablePrevIncrease)
 	
 	val power = (secondSampleSize zip minDetectableOption)
