@@ -28,6 +28,10 @@ import java.nio.file.Path
 import sampler.io.CSVTableWriter
 import sampler.data.Types._
 import sampler.run.JobRunner
+import sampler.run.AbortableRunner
+import java.util.concurrent.atomic.AtomicBoolean
+import sampler.run.Abort
+import sampler.run.AbortableJob
 
 trait Prior[A] extends Distribution[A]{
 	def density(value: A): Double
@@ -35,17 +39,20 @@ trait Prior[A] extends Distribution[A]{
 
 trait ABCModel{
 	type Parameters <: ParametersBase
-	protected trait ParametersBase{
+	protected trait ParametersBase {
 		def perturb(): Parameters
 		def perturbDensity(that: Parameters): Double		
 	}
 	
+	type Observations <: ObservationsBase
+	protected trait ObservationsBase
+	
 	type Output <: OutputBase
 	protected trait OutputBase {
-		def closeToObserved(tolerance: Double): Boolean
+		def closeToObserved(observed: Observations, tolerance: Double): Boolean
 	}
 	
-	def withParameters(p: Parameters): Distribution[Output]
+	def init(p: Parameters, obs: Observations): Distribution[Output]
 	
 	trait PopulationWriter{
 		def apply(population: WeightsTable[Parameters], tolerance: Double): Unit
@@ -55,12 +62,13 @@ trait ABCModel{
 
 object ABC{
 	def apply(model: ABCModel, r: Random)( 
-			prior: Prior[model.Parameters], 
+			prior: Prior[model.Parameters],
+			obs: model.Observations, 
 			reps: Int, 
 			particles: Int, 
 			startTolerance: Double,
 			refinementAttempts: Int,
-			runner: JobRunner[Particle[model.Parameters]],
+			runner: AbortableRunner,
 			writer: Option[model.PopulationWriter] = None
 	): WeightsTable[model.Parameters] = {
 		type P = model.Parameters
@@ -72,14 +80,20 @@ object ABC{
 		def evolve(population: WeightsTable[P], tolerance: Double): Option[WeightsTable[P]] = {
 			println("Now working on tolerance = "+tolerance)
 			
-			def getNextParticle() = {
+			def getNextParticle(keepGoing: AtomicBoolean): Option[Particle[P]] = {
+				val start = System.currentTimeMillis()
+
 				@tailrec
 				def tryParticle(failures: Int): Option[Particle[P]] = {
-					if(failures > 0 && failures % 1000 == 0) None
+					if(!keepGoing.get) None
+					else if(failures == 1e2) {
+						println("returning None")
+						None
+					}
 					else{
+						//if(failures > 0 && failures % 10 == 0) println(failures)
 						val candidate = population.sample(r).perturb
-						val assessedModel = model.withParameters(candidate).map(_.closeToObserved(tolerance))(r)
-						//TODO parallel stuff here?
+						val assessedModel = model.init(candidate, obs).map(_.closeToObserved(obs, tolerance))(r)
 						val numSuccess = FrequencyTableBuilder
 							.serial(assessedModel)(_.size == reps)(r)
 							.samples.count(identity) //Pimp to use a counting statistic?
@@ -104,21 +118,31 @@ object ABC{
 					}
 				}
 				
-				tryParticle(0)
+				val res = tryParticle(0)
+				val end = System.currentTimeMillis()
+				//println(end - start)
+				res
 			}
 			
-			val results: Option[Seq[Option[Particle[P]]]] = runner{
-				population.mapValues(_ => getNextParticle _)
-			}
+//			println("Population size = "+population.size)
+//			println("Population particles "+population.particles)
+//			println("Population probMap "+population.probabilityMap)
 			
-			results match{
-				case None => None
-				case Some(particleOpts: Seq[Option[Particle[P]]]) => {
-					val particles = particleOpts.flatten
-					if(particles.size == results.get.size) Some(WeightsTable(particles))
-					else None
-				}
+			//TODO JobRunner Abortable Job syntax too noisy
+			val results: Seq[Option[Particle[P]]] = runner(
+					Abort[Particle[P]](_.contains(None))
+			){
+					val jobs = population.mapValues(particle => AbortableJob[Particle[P]](stillRunning => getNextParticle(stillRunning)))
+//					println(jobs)
+					jobs
 			}
+//			val results = population.mapValues(particle => getNextParticle(new AtomicBoolean(true)))
+//			println(results)
+			
+			val newPopulation = results.flatten
+//			println("New size = "+newPopulation.size)
+			if(newPopulation.size == results.size) Some(WeightsTable(newPopulation))
+			else None
 		}
 		
 		@tailrec

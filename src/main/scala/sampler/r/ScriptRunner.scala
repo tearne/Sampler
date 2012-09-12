@@ -38,3 +38,8 @@ class ScriptRunner {
         Source.fromInputStream(proc.getErrorStream()).getLines.foreach(println)
 	}
 }
+
+object ScriptRunner{
+	lazy val instance = new ScriptRunner
+	def apply(script: String, scriptTarget: Path) = instance(script, scriptTarget) 
+}

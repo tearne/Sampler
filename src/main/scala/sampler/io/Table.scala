@@ -66,10 +66,8 @@ class CSVTableReader(path: Path) extends TableReader{
 class CSVTableWriter(path: Path, overwrite: Boolean = false) extends TableWriter{
 	def apply(columns: Column[_]*){
 		
-		if(overwrite == false) {
-			if(Files.exists(path)) {
-				throw new FileAlreadyExistsException(path.toString() + "exists and overwriting is not permitted")
-			}
+		if(overwrite == false && Files.exists(path)) {
+			throw new FileAlreadyExistsException(path.toString() + "exists and overwriting is not permitted")
 		}
 		
 		try {
