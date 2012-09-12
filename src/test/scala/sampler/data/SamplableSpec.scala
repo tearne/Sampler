@@ -32,28 +32,28 @@ class SamplableSpec extends Specification {
 			println(resultsSeq)
 			
 			(resultsSeq.size mustEqual 5) and
-			(resultsSeq(0) mustEqual 4) and
-			(resultsSeq(1) mustEqual 3) and
+			(resultsSeq(0) mustEqual 0) and
+			(resultsSeq(1) mustEqual 1) and
 			(resultsSeq(2) mustEqual 2) and
-			(resultsSeq(3) mustEqual 1) and
-			(resultsSeq(4) mustEqual 0)
+			(resultsSeq(3) mustEqual 3) and
+			(resultsSeq(4) mustEqual 4)
 		}
 		
 		"return a series of 2 length lists when sampling until an even number is reached" in new createInstance {
 			
-			val seq1 = instance.sampleUntil(_.head % 2 == 0)
-			val seq2 = instance.sampleUntil(_.head % 2 == 0)
-			val seq3 = instance.sampleUntil(_.head % 2 == 0)
+			val seq1 = instance.sampleUntil(_.last % 2 == 0)
+			val seq2 = instance.sampleUntil(_.last % 2 == 0)
+			val seq3 = instance.sampleUntil(_.last % 2 == 0)
 			
+			(seq1.size mustEqual 1)
 			(seq1.size mustEqual 1) and
 			(seq2.size mustEqual 2) and
 			(seq3.size mustEqual 2) and
-			(seq3(0) mustEqual 4) and
-			(seq3(1) mustEqual 3)
-		}
-		
-		"throw an appropriate exception if condition of the sample until is not fulfilled" in new createInstance {
-			instance.sampleUntil(_.head == 10)
+			(seq1(0) mustEqual 0) and
+			(seq2(0) mustEqual 1) and
+			(seq2(1) mustEqual 2) and
+			(seq3(0) mustEqual 3) and
+			(seq3(1) mustEqual 4)
 		}
 	}
 	

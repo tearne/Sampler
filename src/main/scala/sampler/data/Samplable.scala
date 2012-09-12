@@ -25,14 +25,14 @@ trait Samplable[A]{ self =>
 	// want to have the random sent to other remote nodes during distributed
 	// computation.  This was we have options.
 	def sample(implicit r: Random): A
-	
-	def sampleUntil(condition: Seq[A] => Boolean)(implicit r: Random): Seq[A] = {
+	// return indexedSeq, append, dont reverse
+	def sampleUntil(condition: IndexedSeq[A] => Boolean)(implicit r: Random): IndexedSeq[A] = {
 		@tailrec
-		def prepend(previous: Seq[A]): Seq[A] = {
+		def prepend(previous: IndexedSeq[A]): IndexedSeq[A] = {
 			if(condition(previous)) previous
-			else prepend(previous.+:(sample(r)))
+			else prepend(previous :+ sample(r))
 		}
-		prepend(sample(r) :: Nil)
+		prepend((sample(r) :: Nil).toIndexedSeq)
 	}
 	
 	def filter(predicate: A => Boolean) = new Samplable[A]{
