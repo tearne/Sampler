@@ -3,73 +3,54 @@ package sampler.r
 import org.specs2.mutable.Specification
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-import java.nio.file.Paths
-import java.nio.file.Files
+import java.nio.file.{Paths, Files}
 import org.specs2.mutable.After
 import com.typesafe.config.ConfigFactory
+import collection.JavaConversions.asScalaBuffer
 
 @RunWith(classOf[JUnitRunner])
 class ScriptRunnerSpec extends Specification {
 
-	val testPath = Paths.get("testScript.txt")
-	val testPathRout = Paths.get("testScript.txt.Rout")
-	val jsonPath = Paths.get("myJSON.txt")
+	val workingDir = Paths.get("testData")
+	val scriptPath = workingDir.resolve("deleteMe.r")
+	val rOutPath = workingDir.resolve("deleteMe.r.Rout")
+	val jsonPath = workingDir.resolve("deleteMe.json")
 
 	"ScriptRunner" should {
-		
-		"take at least 2 seconds to run when the R sleep command is used" in new fileTearDown {
+		"block on script execution" in new FileTearDown {
 			val startTime = System.nanoTime
+			ScriptRunner("Sys.sleep(1)", scriptPath)
+			val runTime = (System.nanoTime() - startTime) / 1e9
 			
-			val scriptRunner = new ScriptRunner
-			
-			val builder = new StringBuilder
-			builder.append("a<-1+1\n")
-			builder.append("Sys.sleep(2)\n")
-			builder.append("b<-2+2\n")
-			
-			scriptRunner.apply(builder.toString(), testPath)
-			
-			val endTime = System.nanoTime()
-			
-			val runTime: Double = (endTime - startTime) / 1000000000.0
-			
-			runTime must beGreaterThan(2.0)
+			runTime must beGreaterThan(1.0)
 		}
 		
-		"produce a file containing JSON when the RJSON library is used" in new fileTearDown{
-			val scriptRunner = new ScriptRunner
-			
-			val builder = new StringBuilder
-			
-			builder.append("library(\"rjson\")\n")
-			builder.append("a <- c(2,4,6)\n")
-			builder.append("df <- as.data.frame(a)\n")
-			builder.append("names(df) <- c(\"parameter\")\n")
-			builder.append("jsonOut <- toJSON(df)\n")
-			builder.append("fileName <- file(\"" + "myJSON.txt" + "\")\n")
-			builder.append("writeLines(jsonOut, fileName)\n")
-			builder.append("close(fileName)\n")
+		"allow JSON results to be written from R" in new FileTearDown{
+			val script =
+"""
+require("rjson")
+a <- c(2,4,6)
+df <- data.frame(parameter=a)
+jsonOut <- toJSON(df)
+fileName <- file("deleteMe.json")
+writeLines(jsonOut, fileName)
+close(fileName)
+"""
 
-			scriptRunner.apply(builder.toString(), testPath)
+			ScriptRunner(script, scriptPath)
+			val config = ConfigFactory.parseFile(jsonPath.toFile())	//TODO OT: jerkson
+			val result = asScalaBuffer(config.getIntList("parameter"))
 			
-			val jsonPath = Paths.get("myJSON.txt");
-
-			val config = ConfigFactory.parseFile(jsonPath.toFile())
-
-			val params = config.getIntList("parameter")
-			
-			(params.size mustEqual 3) and
-			(params.get(0) mustEqual 2) and
-			(params.get(1) mustEqual 4) and
-			(params.get(2) mustEqual 6) 
+			result mustEqual List(2,4,6)
 		}
+		
+		"throw exception if R script fails" in todo
+		//TODO AG: inspect Rout for signs of errors
 	}
 	
-	trait fileTearDown extends After {
+	trait FileTearDown extends After {
 		def after = {
-				Files.deleteIfExists(testPath)
-				Files.deleteIfExists(testPathRout)
-				Files.deleteIfExists(jsonPath)
+			List(scriptPath, rOutPath, jsonPath).foreach(Files.deleteIfExists)
 		}
 	}
 }

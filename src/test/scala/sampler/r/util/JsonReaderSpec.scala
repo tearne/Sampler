@@ -9,6 +9,8 @@ import java.nio.file.Files
 import java.io.FileOutputStream
 import java.io.PrintStream
 
+//TODO If specific to Anova then put alongside Anova tests in dedicated package
+
 @RunWith(classOf[JUnitRunner])
 class JsonReaderSpec extends Specification{
 

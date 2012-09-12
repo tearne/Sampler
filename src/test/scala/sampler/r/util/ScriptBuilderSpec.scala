@@ -6,6 +6,8 @@ import org.specs2.runner.JUnitRunner
 import sampler.data.Types.Column
 import sampler.data.Types.Factor
 
+//TODO If specific to Anova then put alongside Anova tests in dedicated package
+
 @RunWith(classOf[JUnitRunner])
 class ScriptBuilderSpec extends Specification{
 
