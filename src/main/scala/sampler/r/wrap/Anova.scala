@@ -132,11 +132,18 @@ class Anova(csvTableWriter: CSVTableWriter, scriptBuilder: ScriptBuilder, script
 		
 		val anovaResults = jsonReader.apply(jsonPath)
 		
-//		val grapher = new AnovaGrapher
-//		grapher.apply(anovaResults)
+		val grapher = new AnovaGrapher
+		grapher.apply(anovaResults)
 		
 		anovaResults
 	}
+}
+
+object Anova{
+	
+	def apply(csvTableWriter: CSVTableWriter, scriptBuilder: ScriptBuilder, scriptRunner: ScriptRunner, jsonReader: JsonReader, rExePath: Path, numLevels: Int) 
+		= new Anova(csvTableWriter, scriptBuilder, scriptRunner, jsonReader, rExePath, numLevels)
+	
 }
 
 case class AnovaResults(val paramEntries: Seq[AnovaEntry])
