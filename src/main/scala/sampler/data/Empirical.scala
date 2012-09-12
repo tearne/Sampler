@@ -83,6 +83,23 @@ trait FrequencyTable[A] extends Empirical[A]{ self =>
 		Probability(value)
 	}
 	
+	//Todo, tried to do this with context bound but failed
+	def quantile(prob: Probability)(implicit f: Fractional[A]): A = {
+		import f._
+		val (lower, upper) = {
+			val raw = prob.value * size
+			val idx = raw.toInt
+			if(raw == math.floor(raw)) (idx, idx)
+			else if(idx == size-1) (idx, idx)
+			else (idx, idx + 1)
+		}
+		
+		val ordered = samples.sorted
+		val two = one + one
+		
+		(ordered(lower) + ordered(upper)) / two 
+	}
+	
 	def canEqual[A: Manifest](other: Any): Boolean = other.isInstanceOf[FrequencyTable[_]]
 	override def equals(other: Any) = other match {
 		case that: FrequencyTable[_] => 

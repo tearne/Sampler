@@ -17,42 +17,53 @@
 package sampler.run
 
 import scala.annotation.tailrec
+import java.util.concurrent.atomic.AtomicBoolean
 
-
-trait JobRunner[T]{
-	def apply(jobs: Seq[() => Option[T]]): Option[Seq[Option[T]]]
+case class Abort[T](af: Seq[Option[T]] => Boolean){
+	def apply(soFar: Seq[Option[T]]) = af(soFar)
 }
 
-class SerialRunner[T](abort: Seq[Option[T]] => Boolean = (_: Seq[Option[T]]) => false) extends JobRunner[T]{
-	def apply(jobs: Seq[() => Option[T]]): Option[Seq[Option[T]]] = {
-		@tailrec
-		def doJobsFrom(idx: Int, acc: Seq[Option[T]]): Option[Seq[Option[T]]] = {
-			if(idx == jobs.size) Some(acc.reverse)
-			else if(abort(acc)) None
-			else {
-				doJobsFrom(idx + 1, jobs(idx)() +: acc)
-			}
-		}
-		
-		doJobsFrom(0, Nil)
-	}
+case class Job[T](f: () => Option[T]){
+	def run(): Option[T] = f()
+}
+case class AbortableJob[T](f: AtomicBoolean => Option[T]){
+	def run(stillRunning: AtomicBoolean): Option[T] = f(stillRunning)
 }
 
-class ParallelCollectionRunner[T] extends JobRunner[T]{
-	def apply(jobs: Seq[() => Option[T]]): Option[Seq[Option[T]]] = {
-		Some(jobs.par.map(_()).seq)
-	}
+trait JobRunner{
+	def apply[T](jobs: Seq[Job[T]]): Seq[Option[T]]
 }
 
-class AkkaRunner[T](abort: Seq[Option[T]] => Boolean) extends JobRunner[T]{
-	def apply(jobs: Seq[() => Option[T]]): Option[Seq[Option[T]]] = null
-}
-
-object Runner{
-	def serial[T](abort: Seq[Option[T]] => Boolean = (_: Seq[Option[T]]) => false) = 
-		new SerialRunner(abort)
+trait AbortableRunner extends JobRunner{
+	def apply[T](abort: Abort[T])(jobs: Seq[AbortableJob[T]]): Seq[Option[T]]
 	
-	def parallelCollection[T]() = new ParallelCollectionRunner[T]()
-	
-	//TODO Akka runner
+	def apply[T](jobs: Seq[Job[T]]): Seq[Option[T]] = 
+		apply(
+				//Never abort
+				Abort((i:Seq[Option[T]]) => false)
+		)(
+				//Convert Job into pretend abortable job
+				jobs.map(j => AbortableJob((b:AtomicBoolean) => j.run()))
+		)
+}
+
+//class SerialRunner extends AbortableRunner{
+//	def apply[T](abort: Seq[Option[T]] => Boolean)(jobs: Seq[() => Option[T]]): Option[Seq[Option[T]]] = {
+//		@tailrec
+//		def doJobsFrom(idx: Int, acc: Seq[Option[T]]): Option[Seq[Option[T]]] = {
+//			if(idx == jobs.size) Some(acc.reverse)
+//			else if(abort(acc)) None
+//			else {
+//				doJobsFrom(idx + 1, jobs(idx)() +: acc)
+//			}
+//		}
+//		
+//		doJobsFrom(0, Nil)
+//	}
+//}
+
+class ParallelCollectionRunner extends JobRunner{
+	def apply[T](jobs: Seq[Job[T]]): Seq[Option[T]] = {
+		jobs.par.map(_.run).seq
+	}
 }
