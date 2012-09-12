@@ -61,9 +61,27 @@ class SamplableSpec extends Specification {
 		
 		"have a working filter method that should" in {
 			
-			"return a value of 2 when you filter for greater than 1" in todo
+			"return 3-9 when filtering for a value greater than 2" in new createInstance{
+				val newSamplable = instance.filter(_ > 2)
+				
+				(newSamplable.sample(rand) mustEqual 3) and
+				(newSamplable.sample(rand) mustEqual 4) and
+				(newSamplable.sample(rand) mustEqual 5) and
+				(newSamplable.sample(rand) mustEqual 6) and
+				(newSamplable.sample(rand) mustEqual 7) and
+				(newSamplable.sample(rand) mustEqual 8) and
+				(newSamplable.sample(rand) mustEqual 9)
+			}
 			
-			"return a value of 1 when you filter for an odd number" in todo
+			"return 0, 2, 4, 6, 8 when you filter for even numbers" in new createInstance {
+				val newSamplable = instance.filter(_ % 2 == 0)
+
+				(newSamplable.sample(rand) mustEqual 0) and
+				(newSamplable.sample(rand) mustEqual 2) and
+				(newSamplable.sample(rand) mustEqual 4) and
+				(newSamplable.sample(rand) mustEqual 6) and
+				(newSamplable.sample(rand) mustEqual 8)
+			}
 		}
 		
 	}
