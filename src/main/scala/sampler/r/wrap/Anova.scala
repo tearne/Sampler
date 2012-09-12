@@ -14,7 +14,7 @@ import sampler.io.CSVTableWriter
 import sampler.r.util.JsonReader
 import sampler.r.util.AnovaGrapher
 
-class Anova(rExePath: Path, numLevels: Int = 4){
+class Anova(csvTableWriter: CSVTableWriter, scriptBuilder: ScriptBuilder, scriptRunner: ScriptRunner, jsonReader: JsonReader, rExePath: Path, numLevels: Int = 4){
 	
 	case class Bin(lower: Double, upper: Double)
 	
@@ -104,45 +104,36 @@ class Anova(rExePath: Path, numLevels: Int = 4){
 		returnTC
 	}
 	
-	def apply(independent: IndexedSeq[Column[_]], dependent: Column[Double]): AnovaResults = {
+	def apply(independent: IndexedSeq[Column[_]], dependent: Column[Double], targetPath: Path): AnovaResults = {
 		val factorisedColumns: IndexedSeq[Column[Factor]] = independent.map{_ match{
 			case IntColumn(tc) => int2Factor(tc) 
 			case DoubleColumn(tc) =>  double2Factor(tc)
 		}}
 		
-		val mainPath = Paths.get("")
-		val fullPath = Paths.get(new File("").getAbsolutePath())
+//		Paths
 		
-		val dataPath = mainPath.resolve("testData")
-		val dataFilePath = dataPath.resolve("data.csv")
+		val dataFilePath = targetPath.resolve("data.csv")
+		val rScriptPath = targetPath.resolve("script.txt")
+		val jsonPath = targetPath.resolve("anova_JSON.txt");
 		
 		// Writing data file
 
 		val colsToWrite = factorisedColumns :+ dependent
 		
-		val csvTableWriter = new CSVTableWriter(dataFilePath, false)
 		csvTableWriter.apply(colsToWrite:_*)
 		
 		// Using new ScriptRunner class
 		
-		val rScriptPath = dataPath.resolve("script.txt")
-
-		val scriptBuilder = new ScriptBuilder
+		val script = scriptBuilder.apply(factorisedColumns, dependent, dataFilePath.getFileName().toString, jsonPath.getFileName().toString)
 		
-		val script = scriptBuilder.apply(factorisedColumns, dependent, dataFilePath.getFileName().toString, "anova_JSON.txt")
-		
-		val scriptRunner = new ScriptRunner
 		scriptRunner.apply(script, rScriptPath)
 		
 		// Read in JSON output
 		
-		val jsonPath = dataPath.resolve("anova_JSON.txt");
-		
-		val jsonReader = new JsonReader
 		val anovaResults = jsonReader.apply(jsonPath)
 		
-		val grapher = new AnovaGrapher
-		grapher.apply(anovaResults)
+//		val grapher = new AnovaGrapher
+//		grapher.apply(anovaResults)
 		
 		anovaResults
 	}
