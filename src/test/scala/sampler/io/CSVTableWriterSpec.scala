@@ -29,6 +29,7 @@ import org.specs2.mutable.Before
 import org.specs2.mutable.After
 import scala.io.Source
 import sampler.math.Probability
+import java.nio.file.FileAlreadyExistsException
 
 @RunWith(classOf[JUnitRunner])
 class CSVTableWriterSpec extends Specification{
@@ -70,21 +71,9 @@ class CSVTableWriterSpec extends Specification{
 				
 				val writer2 = new CSVTableWriter(filePath, false)
 				
-				writer2.apply(col2) must throwA[TableWriterException]
+				writer2.apply(col2) must throwA[FileAlreadyExistsException]
 			}
 			
-			"throw an exception when file is present and overwrite is set to false" in new fileSetup with fileTearDown {
-				val params1 = Seq(1,2,3)
-				val params2 = Seq("one", "two", "three")
-				val col1 = new Column(params1, "Header")
-				val col2 = new Column(params2, "Header")
-				
-				writer.apply(col1)
-				
-				val writer2 = new CSVTableWriter(filePath, false)
-				
-				writer2.apply(col2) must throwA[TableWriterException]
-			}
 		}
 
 		"throw an exception" in {
