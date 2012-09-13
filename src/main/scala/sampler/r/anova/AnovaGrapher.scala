@@ -1,5 +1,4 @@
-package sampler.r.util
-import sampler.r.wrap.AnovaResults
+package sampler.r.anova
 
 class AnovaGrapher {
 

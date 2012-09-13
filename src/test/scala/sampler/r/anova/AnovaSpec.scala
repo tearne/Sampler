@@ -1,13 +1,11 @@
-package sampler.r.wrap
+package sampler.r.anova
 
 import org.specs2.mutable.Specification
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-import sampler.r.util.ScriptBuilder
 import org.specs2.mock.Mockito
 import sampler.r.ScriptRunner
 import sampler.io.CSVTableWriter
-import sampler.r.util.JsonReader
 import java.nio.file.Paths
 import sampler.data.Types.Column
 import sampler.io.CSVTableReader

@@ -1,4 +1,5 @@
-package sampler.r.util
+package sampler.r.anova
+
 import sampler.data.Types.Column
 import sampler.data.Types.Factor
 

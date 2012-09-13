@@ -1,7 +1,6 @@
-package sampler.r.util
+package sampler.r.anova
+
 import java.nio.file.Path
-import sampler.r.wrap.AnovaResults
-import sampler.r.wrap.AnovaEntry
 import com.typesafe.config.ConfigFactory
 import java.nio.file.Files
 
