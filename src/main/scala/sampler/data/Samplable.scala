@@ -21,20 +21,18 @@ import sampler.math.Random
 import scala.annotation.tailrec
 
 trait Samplable[A]{ self =>
-	//NOTE: Passing the Random explicitly as arg since we don't necessarily 
-	// want to have the random sent to other remote nodes during distributed
-	// computation.  This was we have options.
 	def sample(implicit r: Random): A
-	// return indexedSeq, append, dont reverse
-	def sampleUntil(condition: IndexedSeq[A] => Boolean)(implicit r: Random): IndexedSeq[A] = {
-		@tailrec
-		def prepend(previous: IndexedSeq[A]): IndexedSeq[A] = {
-			if(condition(previous)) previous
-			else prepend(previous :+ sample(r))
+
+	def until(condition: IndexedSeq[A] => Boolean)(implicit r: Random) = new Samplable[IndexedSeq[A]]{
+		def sample(implicit r: Random): IndexedSeq[A] = {
+			@tailrec
+			def append(previous: IndexedSeq[A]): IndexedSeq[A] = {
+				if(condition(previous)) previous
+				else append(previous.:+(self.sample))
+			}
+			append(IndexedSeq[A](self.sample))
 		}
-		prepend((sample(r) :: Nil).toIndexedSeq)
 	}
-	
 	def filter(predicate: A => Boolean) = new Samplable[A]{
 		@tailrec
 		override def sample(implicit r: Random): A = {

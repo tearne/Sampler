@@ -28,10 +28,7 @@ class SamplableSpec extends Specification {
 		"have a working sampleUntil method that should" in {
 
 			"return the first half of the sequence until the value 5 is sampled" in new createInstance {
-				
-				val resultsSeq = instance.sampleUntil(_.size == 5)
-				
-				println(resultsSeq)
+				val resultsSeq = instance.until(_.size == 5).sample
 				
 				(resultsSeq.size mustEqual 5) and
 				(resultsSeq(0) mustEqual 0) and
@@ -42,10 +39,15 @@ class SamplableSpec extends Specification {
 			}
 			
 			"return a series of 2 length lists when sampling until an even number is reached" in new createInstance {
+				val untilInstance = instance.until(_.last % 2 == 0)
 				
-				val seq1 = instance.sampleUntil(_.last % 2 == 0)
-				val seq2 = instance.sampleUntil(_.last % 2 == 0)
-				val seq3 = instance.sampleUntil(_.last % 2 == 0)
+				val seq1 = untilInstance.sample
+				val seq2 = untilInstance.sample
+				val seq3 = untilInstance.sample
+				
+				println(seq1)
+				println(seq2)
+				println(seq3)
 				
 				(seq1.size mustEqual 1)
 				(seq1.size mustEqual 1) and
