@@ -13,16 +13,15 @@ class SamplableSpec extends Specification {
 		
 		"return the correct integer values in the specificied order" in new createInstance {
 			
-			(instance.sample(rand) mustEqual 0) and
-			(instance.sample(rand) mustEqual 1) and
-			(instance.sample(rand) mustEqual 2) and
-			(instance.sample(rand) mustEqual 3) and
-			(instance.sample(rand) mustEqual 4) and
-			(instance.sample(rand) mustEqual 5) and
-			(instance.sample(rand) mustEqual 6) and
-			(instance.sample(rand) mustEqual 7) and
-			(instance.sample(rand) mustEqual 8) and
-			(instance.sample(rand) mustEqual 9)
+			def append(previous: List[Int]): List[Int] = {
+				if(previous.length == 10) previous
+				else append(previous.:+(instance.sample(rand)))
+			}
+			val sampleList = append(List(instance.sample(rand)))
+			
+			val expectedList = List(0,1,2,3,4,5,6,7,8,9)
+			
+			sampleList mustEqual expectedList
 		}
 		
 		"have a working sampleUntil method that should" in {
@@ -30,12 +29,10 @@ class SamplableSpec extends Specification {
 			"return the first half of the sequence until the value 5 is sampled" in new createInstance {
 				val resultsSeq = instance.until(_.size == 5).sample
 				
+				val expectedSeq = IndexedSeq(0,1,2,3,4)
+				
 				(resultsSeq.size mustEqual 5) and
-				(resultsSeq(0) mustEqual 0) and
-				(resultsSeq(1) mustEqual 1) and
-				(resultsSeq(2) mustEqual 2) and
-				(resultsSeq(3) mustEqual 3) and
-				(resultsSeq(4) mustEqual 4)
+				(resultsSeq mustEqual expectedSeq)
 			}
 			
 			"return a series of 2 length lists when sampling until an even number is reached" in new createInstance {
@@ -45,19 +42,13 @@ class SamplableSpec extends Specification {
 				val seq2 = untilInstance.sample
 				val seq3 = untilInstance.sample
 				
-				println(seq1)
-				println(seq2)
-				println(seq3)
+				val expected1 = IndexedSeq(0)
+				val expected2 = IndexedSeq(1,2)
+				val expected3 = IndexedSeq(3,4)
 				
-				(seq1.size mustEqual 1)
-				(seq1.size mustEqual 1) and
-				(seq2.size mustEqual 2) and
-				(seq3.size mustEqual 2) and
-				(seq1(0) mustEqual 0) and
-				(seq2(0) mustEqual 1) and
-				(seq2(1) mustEqual 2) and
-				(seq3(0) mustEqual 3) and
-				(seq3(1) mustEqual 4)
+				(seq1 mustEqual expected1) and
+				(seq2 mustEqual expected2) and
+				(seq3 mustEqual expected3)
 			}
 		}
 		
@@ -66,23 +57,29 @@ class SamplableSpec extends Specification {
 			"return 3-9 when filtering for a value greater than 2" in new createInstance{
 				val newSamplable = instance.filter(_ > 2)
 				
-				(newSamplable.sample(rand) mustEqual 3) and
-				(newSamplable.sample(rand) mustEqual 4) and
-				(newSamplable.sample(rand) mustEqual 5) and
-				(newSamplable.sample(rand) mustEqual 6) and
-				(newSamplable.sample(rand) mustEqual 7) and
-				(newSamplable.sample(rand) mustEqual 8) and
-				(newSamplable.sample(rand) mustEqual 9)
+				def append(previous: List[Int]): List[Int] = {
+					if(previous.length == 7) previous
+					else append(previous.:+(newSamplable.sample(rand)))
+				}
+				val sampleList = append(List(newSamplable.sample(rand)))
+				
+				val expectedList = List(3,4,5,6,7,8,9)
+				
+				sampleList mustEqual expectedList
 			}
 			
 			"return 0, 2, 4, 6, 8 when you filter for even numbers" in new createInstance {
 				val newSamplable = instance.filter(_ % 2 == 0)
 
-				(newSamplable.sample(rand) mustEqual 0) and
-				(newSamplable.sample(rand) mustEqual 2) and
-				(newSamplable.sample(rand) mustEqual 4) and
-				(newSamplable.sample(rand) mustEqual 6) and
-				(newSamplable.sample(rand) mustEqual 8)
+				def append(previous: List[Int]): List[Int] = {
+					if(previous.length == 5) previous
+					else append(previous.:+(newSamplable.sample(rand)))
+				}
+				val sampleList = append(List(newSamplable.sample(rand)))
+				
+				val expectedList = List(0,2,4,6,8)
+				
+				sampleList mustEqual expectedList
 			}
 		}
 		

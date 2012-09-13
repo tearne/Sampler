@@ -31,12 +31,9 @@ class JsonReaderSpec extends Specification{
 			
 			val entry = result.paramEntries(0)
 			
-			(entry.name mustEqual "Param1") and
-			(entry.degreesFreedom mustEqual 1) and
-			(entry.sumSquares mustEqual 24.0) and
-			(entry.meanSquares mustEqual 24.0) and
-			(entry.fValue mustEqual 7.78) and
-			(entry.pValue mustEqual 0.068)
+			val expectedEntry = AnovaEntry("Param1", 1, 24.0, 24.0, 7.78, 0.068)
+			
+			entry mustEqual expectedEntry
 		}
 
 		"contain the correct ANOVA results for parameter 2" in new fileSetup with fileTearDown {
@@ -45,12 +42,9 @@ class JsonReaderSpec extends Specification{
 			
 			val entry = result.paramEntries(1)
 			
-			(entry.name mustEqual "Param2") and
-			(entry.degreesFreedom mustEqual 1) and
-			(entry.sumSquares mustEqual 0.75) and
-			(entry.meanSquares mustEqual 0.75) and
-			(entry.fValue mustEqual 0.24) and
-			(entry.pValue mustEqual 0.655)
+			val expectedEntry = AnovaEntry("Param2", 1, 0.75, 0.75, 0.24, 0.655)
+			
+			entry mustEqual expectedEntry
 		}
 	}
 
