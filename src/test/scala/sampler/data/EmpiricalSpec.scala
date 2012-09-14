@@ -26,6 +26,7 @@ class FrequencyTableSpec extends Specification{
 	val once = 1
 	val twice = 2
 	val thrice = 3
+	
 	//	--d1--		--d2--		---d3---
 	//					6		    3
 	//				  5,6		  2,3
@@ -34,7 +35,29 @@ class FrequencyTableSpec extends Specification{
 	val d2 = FrequencyTable[Int](IndexedSeq(4, 5,5, 6,6,6))
 	val d3 = FrequencyTable[Int](IndexedSeq(1, 2,2, 3,3,3, 4))
 	
-	"Discrete distributions" should {
+	"Frequency tables" should {
+		
+		"return the number of items in the sequence used to create the table when asked for the size" in todo
+		
+		"calculate the probability of observing each sample" in todo
+		
+		"select a random element from the table when a sample is requested" in todo
+		
+		"produce a map of counts of each observation" in todo
+		
+		"map / flatmap??" in todo
+		
+		"be able to have an extra sample added once initial table has been created" in {
+			val newTable = d1.+(1)
+			newTable.samples mustEqual List(4,5,6,1)
+		}
+		
+		"be able to combine into one big frequency table" in todo
+		
+		"have a working right tail" in todo
+		
+		"have a working quantile" in todo
+
 		"add together, summing counts" in { todo			
 //			val dSum: Empirical[Int] = d2 + d3
 //			

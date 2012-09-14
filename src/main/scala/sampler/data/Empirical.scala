@@ -66,7 +66,7 @@ trait FrequencyTable[A] extends Empirical[A]{ self =>
 	}
 	
 	def +(item: A) = new FrequencyTable[A]{
-		val samples = item +: self.samples
+		val samples = self.samples :+ item
 	}
 	def ++(items: TraversableOnce[A]) = new FrequencyTable[A]{
 		val samples = self.samples ++ items
