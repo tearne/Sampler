@@ -143,7 +143,7 @@ case class Particle[A](value: A, weight: Double)
 trait WeightsTable[A] extends Empirical[A]{ self =>
 	val particles: Seq[Particle[A]]
 	
-	lazy val size = particles.size	//Why must this be lazy to avoid a null pointer exception?
+	lazy val size = particles.size
 	lazy val probabilityMap = normalised.map(p => (p.value, Probability(p.weight))).toMap
 	def sample(implicit r: Random): A = {
 		//TODO Use the alias method
