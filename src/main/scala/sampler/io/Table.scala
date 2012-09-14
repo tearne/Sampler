@@ -70,6 +70,13 @@ class CSVTableWriter(path: Path, overwrite: Boolean = false) extends TableWriter
 			throw new FileAlreadyExistsException(path.toString() + "exists and overwriting is not permitted")
 		}
 		
+		columns.map {
+			case a => columns.map {
+				case b if (columns.indexOf(a) != columns.indexOf(b)) => if(a.name == b.name) throw new TableWriterException("Two columns have been supplied with the same name")
+				case _ =>
+			}
+		}
+		
 		try {
 			val colLength1 = columns(0).values.length
 			
