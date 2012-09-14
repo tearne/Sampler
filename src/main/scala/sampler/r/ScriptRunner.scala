@@ -21,6 +21,16 @@ class ScriptRunner {
 		builder.append(scriptTarget.getFileName().toFile)
 		
 		val proc = Runtime.getRuntime().exec(builder.toString, null, parentPath)
+		proc.waitFor()
+		
+		val rOutFile = scriptTarget.getFileName().toString() + ".Rout"
+		
+		var outPath = scriptTarget.getParent().resolve(rOutFile)
+
+		val source = Source.fromFile(outPath.toString).mkString
+		
+		if(source.startsWith("Error:"))
+			throw new ScriptRunnerException("An error has occured whilst running the R script")
 		
 		val stdInput = new BufferedReader(new 
 				InputStreamReader(proc.getInputStream())
@@ -43,3 +53,5 @@ object ScriptRunner{
 	lazy val instance = new ScriptRunner
 	def apply(script: String, scriptTarget: Path) = instance(script, scriptTarget) 
 }
+
+class ScriptRunnerException(msg: String) extends RuntimeException(msg)

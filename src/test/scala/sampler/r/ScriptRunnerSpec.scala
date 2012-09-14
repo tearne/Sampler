@@ -44,7 +44,9 @@ close(fileName)
 			result mustEqual List(2,4,6)
 		}
 		
-		"throw exception if R script fails" in todo
+		"throw exception if R script fails" in new FileTearDown {
+			ScriptRunner("results <- toJSON(object)", scriptPath) must throwA[ScriptRunnerException]
+		}
 		//TODO AG: inspect Rout for signs of errors
 	}
 	
