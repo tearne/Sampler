@@ -23,6 +23,7 @@ import org.junit.runner.RunWith
 import org.specs2.mock.Mockito
 import sampler.math.Random
 import sampler.math.Probability
+import scala.math.Fractional
 
 @RunWith(classOf[JUnitRunner])
 class FrequencyTableSpec extends Specification with Mockito{
@@ -119,7 +120,23 @@ class FrequencyTableSpec extends Specification with Mockito{
 			(d3.rightTail(5).value mustEqual 0)
 		}
 		
-		"have a working quantile" in todo
+		"have a working quantile" in {
+			import scala.math.Fractional._
+			
+			val d4 = FrequencyTable[Double](IndexedSeq(1, 2,2, 3,3,3, 4))
+			
+			println("0%\t25%\t50%\t75%\t100%")
+			println(
+					d4.quantile(Probability(0.0)) + "\t" 
+					+ d4.quantile(Probability(0.25)) + "\t" 
+					+ d4.quantile(Probability(0.5)) + "\t" 
+					+ d4.quantile(Probability(0.75)) + "\t" 
+					+ d4.quantile(Probability(1.0))
+					)
+			
+			val left = d4.quantile(Probability(0.1))
+			todo
+		}
 
 		"add together, summing counts" in { todo			
 //			val dSum: Empirical[Int] = d2 + d3
