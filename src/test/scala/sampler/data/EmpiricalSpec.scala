@@ -20,9 +20,12 @@ package sampler.data;
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.junit.runner.RunWith
+import org.specs2.mock.Mockito
+import sampler.math.Random
+import sampler.math.Probability
 
 @RunWith(classOf[JUnitRunner])
-class FrequencyTableSpec extends Specification{
+class FrequencyTableSpec extends Specification with Mockito{
 	val once = 1
 	val twice = 2
 	val thrice = 3
@@ -37,13 +40,51 @@ class FrequencyTableSpec extends Specification{
 	
 	"Frequency tables" should {
 		
-		"return the number of items in the sequence used to create the table when asked for the size" in todo
+		"return the number of items in the sequence used to create the table when asked for the size" in {
+			(d1.size mustEqual 3) and
+			(d2.size mustEqual 6) and
+			(d3.size mustEqual 7)
+		}
 		
-		"calculate the probability of observing each sample" in todo
+		"calculate the probability of observing each sample" in {
+			val map1 = d1.probabilityMap
+			
+			def closeTo(p: Probability, expected: Double) = {
+				val tolerance = 1e-4
+				
+				p.value must beCloseTo(expected, tolerance)
+			}
+
+			closeTo(map1(4), 0.3333)
+			closeTo(map1(5), 0.3333)
+			closeTo(map1(6), 0.3333)
+		}
 		
-		"select a random element from the table when a sample is requested" in todo
+		"select a random element from the table when a sample is requested" in {
+			
+			val rand = mock[Random]
+			
+			rand.nextInt(3) returns 1
+			rand.nextInt(7) returns 6
+			
+			(d1.sample(rand) mustEqual 5) and
+			(d3.sample(rand) mustEqual 4)
+		}
 		
-		"produce a map of counts of each observation" in todo
+		"produce a map of counts of each observation" in {
+			val m1 = d1.counts
+			
+			val m3 = d3.counts
+			
+			(m1(4) mustEqual 1) and
+			(m1(5) mustEqual 1) and
+			(m1(6) mustEqual 1) and
+			(m1.get(7) mustEqual None) and
+			(m3(1) mustEqual 1) and
+			(m3(2) mustEqual 2) and
+			(m3(3) mustEqual 3) and
+			(m3(4) mustEqual 1)
+		}
 		
 		"map / flatmap??" in todo
 		
@@ -52,9 +93,31 @@ class FrequencyTableSpec extends Specification{
 			newTable.samples mustEqual List(4,5,6,1)
 		}
 		
-		"be able to combine into one big frequency table" in todo
+		"be able to combine into one big frequency table" in {
+			val combined = d1.+(d2)
+			
+			(combined.size mustEqual 9) and
+			(combined.counts(4) mustEqual 2) and
+			(combined.counts(5) mustEqual 3) and
+			(combined.counts(6) mustEqual 4)
+		}
 		
-		"have a working right tail" in todo
+		"be able to add a list of samples?" in {
+			val combined = d1.++(List(5,6))
+			
+			val m1 = combined.counts
+			
+			(combined.size mustEqual(5)) and
+			(m1(4) mustEqual 1) and
+			(m1(5) mustEqual 2) and
+			(m1(6) mustEqual 2)
+		}
+		
+		"have a working right tail" in {
+			(d1.rightTail(5).value must beCloseTo(0.66666666, 1e-8)) and
+			(d2.rightTail(6).value mustEqual 0.5) and
+			(d3.rightTail(5).value mustEqual 0)
+		}
 		
 		"have a working quantile" in todo
 
