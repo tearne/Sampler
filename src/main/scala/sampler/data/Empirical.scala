@@ -31,7 +31,6 @@ import scala.math.Fractional
 trait Empirical[A] extends Samplable[A]{ self => 
 	val size: Int
 	val probabilityMap: Map[A, Probability]
-	def sample(implicit r: Random): A
 	
 	//TODO would like to define filter here, but not sure how
 }
@@ -66,7 +65,7 @@ trait FrequencyTable[A] extends Empirical[A]{ self =>
 	}
 	
 	def +(item: A) = new FrequencyTable[A]{
-		val samples = item +: self.samples
+		val samples = self.samples :+ item
 	}
 	def ++(items: TraversableOnce[A]) = new FrequencyTable[A]{
 		val samples = self.samples ++ items
@@ -87,9 +86,10 @@ trait FrequencyTable[A] extends Empirical[A]{ self =>
 	def quantile(prob: Probability)(implicit f: Fractional[A]): A = {
 		import f._
 		val (lower, upper) = {
-			val raw = prob.value * size
-			val idx = raw.toInt
-			if(raw == math.floor(raw)) (idx, idx)
+			val raw = prob.value * size - 1
+			val idx = scala.math.ceil(raw).toInt
+			if(idx <= 0) (0,0)
+			else if(raw != math.floor(raw)) (idx, idx)
 			else if(idx == size-1) (idx, idx)
 			else (idx, idx + 1)
 		}

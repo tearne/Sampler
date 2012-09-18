@@ -27,10 +27,12 @@ class ScriptRunner {
 		
 		var outPath = scriptTarget.getParent().resolve(rOutFile)
 
-		val source = Source.fromFile(outPath.toString).mkString
+		val source = Source.fromFile(outPath.toString).mkString.split("\n")
 		
-		if(source.startsWith("Error:"))
-			throw new ScriptRunnerException("An error has occured whilst running the R script")
+		source.map{
+			case a if(a.startsWith("Error")) => throw new ScriptRunnerException("An error has occured whilst running the R script")
+			case _ =>
+		}
 		
 		val stdInput = new BufferedReader(new 
 				InputStreamReader(proc.getInputStream())

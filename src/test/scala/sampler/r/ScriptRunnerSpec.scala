@@ -44,8 +44,15 @@ close(fileName)
 			result mustEqual List(2,4,6)
 		}
 		
-		"throw exception if R script fails" in new FileTearDown {
-			ScriptRunner("results <- toJSON(object)", scriptPath) must throwA[ScriptRunnerException]
+		"throw exception if R script fails" in {
+			
+			"when only one command is called and it produces an error" in new FileTearDown {
+				ScriptRunner("results <- toJSON(object)", scriptPath) must throwA[ScriptRunnerException]
+			}
+			
+			"when multiple lines of output are produced and an error is produced somewhere" in new FileTearDown {
+				ScriptRunner("library(\"rjson\")\nresults <- toJSON(object)", scriptPath) must throwA[ScriptRunnerException]
+			}
 		}
 		//TODO AG: inspect Rout for signs of errors
 	}
