@@ -92,7 +92,15 @@ class CSVTableWriterSpec extends Specification{
 				writer.apply(col1, col2) must throwA[TableWriterException]
 			}
 			
-			"two columns are supplied with the same name" in todo
+			"two columns are supplied with the same name" in new fileSetup with fileTearDown {
+				val p1= Seq(1,2,3)
+				val p2 = Seq(4,5,6)
+				
+				val col1 = new Column(p1, "Name")
+				val col2 = new Column(p2, "Name")
+	
+				writer.apply(col1, col2) must throwA[TableWriterException]
+			}
 		}
 		
 		"create a file" in new fileSetup with fileTearDown {
