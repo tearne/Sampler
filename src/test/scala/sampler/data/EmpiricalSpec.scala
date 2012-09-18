@@ -62,7 +62,6 @@ class FrequencyTableSpec extends Specification with Mockito{
 		}
 		
 		"select a random element from the table when a sample is requested" in {
-			
 			val rand = mock[Random]
 			
 			rand.nextInt(3) returns 1
@@ -87,7 +86,19 @@ class FrequencyTableSpec extends Specification with Mockito{
 			(m3(4) mustEqual 1)
 		}
 		
-		"map / flatmap??" in todo
+		"be able to correctly map over the values" in {
+		
+			val d4 = d1.map{
+				case a => a + 1
+			}
+			
+			val m4 = d4.counts
+			
+			(m4.get(4) mustEqual None) and
+			(m4(5) mustEqual 1) and
+			(m4(6) mustEqual 1) and
+			(m4(7) mustEqual 1)
+		}
 		
 		"be able to have an extra sample added once initial table has been created" in {
 			val newTable = d1.+(1)
@@ -120,56 +131,35 @@ class FrequencyTableSpec extends Specification with Mockito{
 			(d3.rightTail(5).value mustEqual 0)
 		}
 		
-		"have a working quantile" in {
-			import scala.math.Fractional._
+		"have a working quantile where value is selected from the index above the calculation that doesn't land directly on an index" in {
 			
 			val d4 = FrequencyTable[Double](IndexedSeq(1, 2,2, 3,3,3, 4))
 			
-			println("0%\t25%\t50%\t75%\t100%")
-			println(
-					d4.quantile(Probability(0.0)) + "\t" 
-					+ d4.quantile(Probability(0.25)) + "\t" 
-					+ d4.quantile(Probability(0.5)) + "\t" 
-					+ d4.quantile(Probability(0.75)) + "\t" 
-					+ d4.quantile(Probability(1.0))
-					)
+			(d4.quantile(Probability(0.0)) mustEqual 1) and
+			(d4.quantile(Probability(0.25)) mustEqual 2) and
+			(d4.quantile(Probability(0.50)) mustEqual 3) and
+			(d4.quantile(Probability(0.75)) mustEqual 3) and
+			(d4.quantile(Probability(1.00)) mustEqual 4)
+		}
+		
+		"have a quantile function where the result is a mean of two entries if calculation lands directly on an index" in {
+			val d4 = FrequencyTable[Double](IndexedSeq(1,2,3,4,5,6,7,8,9,10))
 			
-			val left = d4.quantile(Probability(0.1))
-			todo
+			(d4.quantile(Probability(0.0)) mustEqual 1) and
+			(d4.quantile(Probability(0.2)) mustEqual 2.5) and
+			(d4.quantile(Probability(1.0)) mustEqual 10)
 		}
 
-		"add together, summing counts" in { todo			
-//			val dSum: Empirical[Int] = d2 + d3
-//			
-//			val resultCounts = dSum.counts
-//			
-//			(resultCounts.size === 6) and
-//			(resultCounts(1) === 1) and
-//			(resultCounts(2) === 2) and
-//			(resultCounts(3) === 3) and
-//			(resultCounts(4) === 2) and
-//			(resultCounts(5) === 2) and
-//			(resultCounts(6) === 3)
+		"can identify if distributions are equal if contents are identical using canEqual" in {
+			val d4 = FrequencyTable[Int](IndexedSeq(4,5,6))
+			
+			d1.canEqual(d4) must beTrue
 		}
-//		"use infinity-norm for distance" in {
-//			def expectedDist(dA: Empirical[Int], dB: Empirical[Int], position: Int) =
-//				math.abs(dA(position)-dB(position))
-//		
-//			(d1.distanceTo(d2) ===  expectedDist(d1, d2, 6)) and
-//			(d1.distanceTo(d3) ===  expectedDist(d1, d3, 3)) and
-//			(d2.distanceTo(d3) ===  expectedDist(d2, d3, 6)) // index 6, not 3
-//		}
-		"Observation counts" in { todo
-//			d3(0) === None and
-//			d3(1).get === 1 and
-//			d3(2).get === 2 and
-//			d3(3).get === 3 and
-//			d3(4).get === 1 and
-//			d3(5) === None
+		
+		"be able to calculate the distance between distribtions" in { 
+			todo			
 		}
-		"Relative frequency" in {
-			todo
-		}
+		
 		"Override equals and hashcode" in {
 			val instance1a = FrequencyTable[Int](IndexedSeq(4, 5))
 			val instance1b = FrequencyTable[Int](IndexedSeq(4, 5))
