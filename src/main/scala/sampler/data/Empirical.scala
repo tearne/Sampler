@@ -28,11 +28,12 @@ import scala.collection.TraversableOnce
 import scala.math.Ordering
 import scala.math.Fractional
 
+/*
+ * Specialisation of Samplable to apply to sets of observed data
+ */
 trait Empirical[A] extends Samplable[A]{ self => 
 	val size: Int
 	val probabilityMap: Map[A, Probability]
-	
-	//TODO would like to define filter here, but not sure how
 }
 
 trait FrequencyTable[A] extends Empirical[A]{ self =>
@@ -44,7 +45,7 @@ trait FrequencyTable[A] extends Empirical[A]{ self =>
 	
 	lazy val counts: Map[A, Int] = samples.groupBy(identity).mapValues(_.size)
 	
-	//TODO Can push this up into Empirical?
+	//Miles: Seems a shame that to duplicate so much code here just to change return type
 	override def filter(pred: A => Boolean): FrequencyTable[A] = new FrequencyTable[A]{
 		val samples = self.samples
 		
@@ -56,6 +57,9 @@ trait FrequencyTable[A] extends Empirical[A]{ self =>
 		}
 	}
 	
+	//Miles: Would be nicer if the Monad bits (map and flatmap) could be defined
+	//       in Samplable, but without needing to generalise the return type.
+	//       Is this a place where the Monad in Scalaz could help?
 	def map[B](f: A => B) = new FrequencyTable[B]{
 		val samples = self.samples.map(f)
 	}
@@ -82,7 +86,8 @@ trait FrequencyTable[A] extends Empirical[A]{ self =>
 		Probability(value)
 	}
 	
-	//Todo, tried to do this with context bound but failed
+	//Miles: I tried to do this with a context bound instead of implicit arg 
+	//       but failed Is it possible/desirable to use a context bound?
 	def quantile(prob: Probability)(implicit f: Fractional[A]): A = {
 		import f._
 		val (lower, upper) = {
@@ -140,12 +145,37 @@ object FrequencyTableBuilder{
 }
 
 case class Particle[A](value: A, weight: Double)
-trait WeightsTable[A] extends Empirical[A]{ self =>
+
+/*
+ * A table of observations where each is attached to a weight.  Sampling is
+ * performed according to the weights
+ */
+trait WeightsTable[A] extends Empirical[Particle[A]]{ self =>
 	val particles: Seq[Particle[A]]
 	
 	lazy val size = particles.size
-	lazy val probabilityMap = normalised.map(p => (p.value, Probability(p.weight))).toMap
-	def sample(implicit r: Random): A = {
+	
+	//Miles: Something feels odd here.  Since there is no constructor, the incoming particles seq is
+	//       transformed by normalising the weights, but then instead of just keeping the normalised
+	//       particles, we are stuck with holding on to the original particles sequence too.
+	lazy val normalised: IndexedSeq[Particle[A]] = {
+		val total = particles.map(_.weight).sum
+		val normalised = particles.map(particle => Particle(particle.value, particle.weight / total))
+
+		val sum = normalised.map(_.weight).sum
+		//TODO clean up this check and exception
+		if(math.abs(sum - 1.0)>0.0000001)
+			throw new RuntimeException("Sum not 1: "+sum)
+		normalised.toIndexedSeq
+	}	
+	lazy val cumulativeWeights = normalised.scanLeft(0.0){case (acc, particle) => acc + particle.weight}.tail
+	lazy val probabilityMap = normalised.map(p => (p, Probability(p.weight))).toMap
+	lazy val values = probabilityMap.values
+	//Miles: Seems odd that I've had to make so many vals above lazy, some of them in order to avoid 
+	//       null pointers when instantiating with new WeightsTable[T]{ ... }, others in order to
+	//       avoid unnecessary processing at construction time.
+	
+	def sample(implicit r: Random): Particle[A] = {
 		//TODO Use the alias method
 		val rnd = r.nextDouble()
 		val index = cumulativeWeights.zipWithIndex.find(_._1 > rnd) match {
@@ -156,15 +186,16 @@ trait WeightsTable[A] extends Empirical[A]{ self =>
 			}
 			case Some(tuple) => tuple._2
 		}
-		normalised(index).value
+		normalised(index)
 	}
 	
 	def discardWeights(): FrequencyTable[A] = new FrequencyTable[A]{
 		val samples = particles.map(_.value).toIndexedSeq
 	}
 	
-	//TODO Can push this up into Empirical?
-	override def filter(pred: A => Boolean) = new WeightsTable[A]{
+	//Miles: Again, this is feeling like an unnecessary amount of duplication for a
+	//       return type change
+	override def filter(pred: Particle[A] => Boolean) = new WeightsTable[A]{
 		val particles = self.particles
 		
 		@tailrec
@@ -175,35 +206,22 @@ trait WeightsTable[A] extends Empirical[A]{ self =>
 		}
 	}
 	
-	lazy val normalised: IndexedSeq[Particle[A]] = {
-		val total = particles.map(_.weight).sum
-		val normalised = particles.map(particle => Particle(particle.value, particle.weight / total))
-		//Check weights
-		//TODO clean up
-		val sum = normalised.map(_.weight).sum
-		if(math.abs(sum - 1.0)>0.0000001)
-			throw new RuntimeException("Sum not 1: "+sum)
-		normalised.toIndexedSeq
-	}	
-	lazy val cumulativeWeights = normalised.scanLeft(0.0){case (acc, particle) => acc + particle.weight}.tail
-	
-	def mapValues[B](f: A => B): Seq[B] = {
-		particles.map(p => f(p.value))
+
+	//Miles: As with FrequencyTable, it seems odd that the monad stuff isn't in the Samplable trait
+	def map[B](f: Particle[A] => Particle[B]): WeightsTable[B] = new WeightsTable[B]{
+		val particles = self.particles.map{p => f(p)}
 	}
-	//TODO Map doesn't work at the moment, doesn't consolidate weights
-//	def map[B](f: Particle[A] => Particle[B]): WeightsTable[B] = new WeightsTable[B]{
-//		val particles = self.particles.map{p => f(p)}
-//	}
-	//TODO flatMap?
+	def flatMap[B](f: Particle[A] => WeightsTable[B])(implicit r: Random) = new WeightsTable[B]{
+		val particles = self.particles.flatMap(p => f(p).particles)
+	}
 	
-	lazy val weightsMap = normalised.map(p => (p.value, p.weight)).toMap
 	def canEqual[A: Manifest](other: Any): Boolean = other.isInstanceOf[WeightsTable[_]]
 	override def equals(other: Any) = other match {
 		case that: WeightsTable[_] => 
-			(that canEqual this) && (that.weightsMap == weightsMap)
+			(that canEqual this) && (that.probabilityMap == probabilityMap)
 		case _ => false
 	}
-	override def hashCode() = weightsMap.hashCode
+	override def hashCode() = probabilityMap.hashCode
 }
 object WeightsTable{
 	def apply[T](p: Seq[Particle[T]]): WeightsTable[T] = new WeightsTable[T]{
@@ -211,27 +229,11 @@ object WeightsTable{
 	}
 }
 
-class Distance(val stat: Statistic){
-	def mean[T](a: Empirical[T], b: Empirical[T])(implicit num: Fractional[T]) = {
-		math.abs(stat.mean(a)-stat.mean(b))
-	}
-}
-
-object Distance{
-	val instance = new Distance(new Statistic)
-	def mean[T](a: Empirical[T], b: Empirical[T])(implicit num: Fractional[T]) = 
-		instance.mean(a,b)(num)
-	
-	def max[T](a: Empirical[T], b: Empirical[T]): Double = {
-		val indexes = a.probabilityMap.keySet ++ b.probabilityMap.keySet
-		def distAtIndex(i: T) = math.abs(
-				a.probabilityMap.get(i).map(_.value).getOrElse(0.0) -
-				b.probabilityMap.get(i).map(_.value).getOrElse(0.0)
-		)
-		indexes.map(distAtIndex(_)).max
-	}
-}
-
+//Miles: Was tempting to just put the mean (and other future statistics) directly in 
+//       an object.  But we want to keep testing working in eclipse, and ScalaMock
+//       needs SBT to mock objects.  So we put statistics in a class, but then  wrapped 
+//       it in an object.  Problem is it involves a lots of duplication of the method 
+//       signatures and seems overly wordy.  
 class Statistic{
 	def mean[T](emp: Empirical[T])(implicit num: Fractional[T]) = {
 		import num._
@@ -243,4 +245,31 @@ class Statistic{
 object Statistic{
 	val instance = new Statistic
 	def mean[T](emp: Empirical[T])(implicit num: Fractional[T]) = instance.mean(emp)
+}
+
+
+//Miles: As above with 'Statistic', I've tried to make a class with the implementation
+//       for Distance, and then wrap it in an object.  But it seems very verbose.
+class Distance(val stat: Statistic){
+	def mean[T](a: Empirical[T], b: Empirical[T])(implicit num: Fractional[T]) = {
+		math.abs(stat.mean(a)-stat.mean(b))
+	}
+	
+	def max[T](a: Empirical[T], b: Empirical[T]): Double = {
+		val indexes = a.probabilityMap.keySet ++ b.probabilityMap.keySet
+		def distAtIndex(i: T) = math.abs(
+				a.probabilityMap.get(i).map(_.value).getOrElse(0.0) -
+				b.probabilityMap.get(i).map(_.value).getOrElse(0.0)
+		)
+		indexes.map(distAtIndex(_)).max
+	}
+}
+
+object Distance{
+	val instance = new Distance(new Statistic)
+	def mean[T](a: Empirical[T], b: Empirical[T])(implicit num: Fractional[T]) = 
+		instance.mean(a,b)(num)
+	
+	def max[T](a: Empirical[T], b: Empirical[T]): Double = 
+		instance.max(a,b)
 }

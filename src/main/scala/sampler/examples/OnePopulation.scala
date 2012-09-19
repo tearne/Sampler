@@ -20,7 +20,7 @@ package sampler.examples
 import sampler.math.Random
 import sampler.data.Distance
 import sampler.math.Probability
-import sampler.data.Distribution
+import sampler.data.Samplable
 import sampler.data.FrequencyTableBuilder
 import sampler.data.FrequencyTable
 import scala.collection.mutable.ListBuffer
@@ -53,7 +53,7 @@ object AnotherOnePopulation extends App{
 		
 	def empiricalObjective(numSampled: Int) = {
 		val model = 
-			Distribution.withoutReplacement(population, numSampled)	// Start with base model
+			Samplable.withoutReplacement(population, numSampled)	// Start with base model
 			.map(_.count(identity) / numSampled.toDouble)			// Transform to model of sample prevalance
 		
 		// Sample the model until convergence
@@ -61,7 +61,7 @@ object AnotherOnePopulation extends App{
 			val distance = Distance.max(FrequencyTable(samples.seq.take(samples.size - chunkSize)), FrequencyTable(samples.seq))
 			(distance < convergenceCriterion) || (samples.size > 1e8)
 		}
-		.map(samplePrev => math.abs(samplePrev - truePrevalence) < precision)		// Transform samples to in/out of tolerance
+		.map((samplePrev: Double) => math.abs(samplePrev - truePrevalence) < precision)		// Transform samples to in/out of tolerance
 	}
 	
 	val sampleSizeList = ListBuffer[Int]()

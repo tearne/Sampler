@@ -18,7 +18,7 @@
 package sampler.examples.prevchange
 
 import sampler.math.Random
-import sampler.data.Distribution
+import sampler.data.Samplable
 import sampler.fit.ABC
 import sampler.fit.ABCModel
 import scala.annotation.tailrec
@@ -38,7 +38,7 @@ trait WithoutReplacementABC {
 	
 	def modelDistribution(numInfected: Int, sampleSize: Int, populationSize: Int) = {
 		val population = (1 to populationSize).map(_ <= numInfected)
-		Distribution.withoutReplacement(population, sampleSize).map(sample =>
+		Samplable.withoutReplacement(population, sampleSize).map(sample =>
 			sample.count(identity)
 		)
 	}

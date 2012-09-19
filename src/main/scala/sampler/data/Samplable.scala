@@ -19,7 +19,12 @@ package sampler.data
 
 import sampler.math.Random
 import scala.annotation.tailrec
+import org.apache.commons.math3.distribution.NormalDistribution
 
+/*
+ * Anything from which we can draw samples.  E.g. an analytical distribution,
+ * or bootstrapping from a data set of observations
+ */
 trait Samplable[A]{ self =>
 	def sample(implicit r: Random): A
 
@@ -40,5 +45,54 @@ trait Samplable[A]{ self =>
 			if(predicate(s)) s
 			else sample(r)
 		}
+	}
+	
+	//TODO when sub-traits override this the return type gets messed up
+	def map[B](f: A => B)(implicit r: Random) = new Samplable[B]{
+		override def sample(implicit r: Random) = f(self.sample(r))
+	}
+	
+	def flatMap[B](f: A => Samplable[B])(implicit r: Random) = new Samplable[B]{
+		override def sample(implicit r: Random) = f(self.sample(r)).sample(r)
+	}
+}
+
+object Samplable{
+	def diracDelta[T](value: T) = new Samplable[T]{
+		def sample(implicit r: Random) = value
+	}
+	
+	def uniform(lower: Double, upper: Double)(implicit r: Random) = new Samplable[Double]{
+		def sample(implicit r: Random) = (upper - lower) * r.nextDouble()
+	}
+	
+	def uniform[T](items: IndexedSeq[T])(implicit r: Random) = new Samplable[T]{
+		val size = items.size
+		def sample(implicit r: Random) = items(r.nextInt(size))
+	}
+	
+	def withoutReplacement[T](items: IndexedSeq[T], sampleSize: Int) = new Samplable[List[T]]{
+		def sample(implicit r: Random) = {
+			@tailrec
+			def takeAnother(acc: List[T], bag: IndexedSeq[T]): List[T] = {
+				if(acc.size == sampleSize) acc
+				else{ 
+					val item = bag(r.nextInt(bag.size))
+					takeAnother(item +: acc, bag diff List(item))
+				}
+			}
+			
+			takeAnother(Nil, items)
+		}
+	}
+	
+	def binaryPopulation(numInfected: Int, size: Int)(implicit r: Random) = new Samplable[Boolean]{
+		def sample(implicit r: Random) = r.nextInt(size) < numInfected
+	}
+	
+	def normal(mean:Double, variance: Double) = new Samplable[Double]{
+		val d = new NormalDistribution(0,variance)
+		def sample(implicit r: Random) = d.sample
+		def density(value: Double) = d.density(value)
 	}
 }

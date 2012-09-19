@@ -17,7 +17,7 @@
 
 package sampler.fit
 
-import sampler.data.Distribution
+import sampler.data.Samplable
 import sampler.data.WeightsTable
 import sampler.data.Particle
 import sampler.math.Random
@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import sampler.run.Abort
 import sampler.run.AbortableJob
 
-trait Prior[A] extends Distribution[A]{
+trait Prior[A] extends Samplable[A]{
 	def density(value: A): Double
 }
 
@@ -52,7 +52,7 @@ trait ABCModel{
 		def closeToObserved(observed: Observations, tolerance: Double): Boolean
 	}
 	
-	def init(p: Parameters, obs: Observations): Distribution[Output]
+	def init(p: Parameters, obs: Observations): Samplable[Output]
 	
 	trait PopulationWriter{
 		def apply(population: WeightsTable[Parameters], tolerance: Double): Unit
@@ -91,12 +91,11 @@ object ABC{
 						None
 					}
 					else{
-						//if(failures > 0 && failures % 10 == 0) println(failures)
-						val candidate = population.sample(r).perturb
+						val candidate = population.sample(r).value.perturb
 						val assessedModel = model.init(candidate, obs).map(_.closeToObserved(obs, tolerance))(r)
 						val numSuccess = FrequencyTableBuilder
 							.serial(assessedModel)(_.size == reps)(r)
-							.samples.count(identity) //Pimp to use a counting statistic?
+							.samples.count(identity) //TODO use a counting statistic?
 						val fHat = numSuccess.toDouble / reps
 			
 						val res = if(numSuccess != 0){
@@ -120,27 +119,18 @@ object ABC{
 				
 				val res = tryParticle(0)
 				val end = System.currentTimeMillis()
-				//println(end - start)
 				res
 			}
-			
-//			println("Population size = "+population.size)
-//			println("Population particles "+population.particles)
-//			println("Population probMap "+population.probabilityMap)
 			
 			//TODO JobRunner Abortable Job syntax too noisy
 			val results: Seq[Option[Particle[P]]] = runner(
 					Abort[Particle[P]](_.contains(None))
 			){
-					val jobs = population.mapValues(particle => AbortableJob[Particle[P]](stillRunning => getNextParticle(stillRunning)))
-//					println(jobs)
-					jobs
+					val jobs = population.values.map(particle => AbortableJob[Particle[P]](stillRunning => getNextParticle(stillRunning)))
+					jobs.toSeq
 			}
-//			val results = population.mapValues(particle => getNextParticle(new AtomicBoolean(true)))
-//			println(results)
 			
 			val newPopulation = results.flatten
-//			println("New size = "+newPopulation.size)
 			if(newPopulation.size == results.size) Some(WeightsTable(newPopulation))
 			else None
 		}
@@ -163,7 +153,6 @@ object ABC{
 							case Some(w) => w(newPop, tolerance) 
 							case _ =>
 						}
-//						populationWriter.model.populationWriter(newPop, tolerance)
 						refine(newPop, numAttempts - 1, tolerance * decentFactor, tolerance, decentFactor)
 					}
 				}

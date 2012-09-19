@@ -88,9 +88,7 @@ class FrequencyTableSpec extends Specification with Mockito{
 		
 		"be able to correctly map over the values" in {
 		
-			val d4 = d1.map{
-				case a => a + 1
-			}
+			val d4 = d1.map((a: Int) => a + 1)
 			
 			val m4 = d4.counts
 			

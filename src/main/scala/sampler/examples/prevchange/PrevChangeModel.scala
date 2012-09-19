@@ -19,7 +19,7 @@ package sampler.examples.prevchange
 
 import sampler.math.Random
 import scala.annotation.tailrec
-import sampler.data.Distribution
+import sampler.data.Samplable
 import sampler.fit.Prior
 import sampler.fit.ABC
 import sampler.io.CSVTableWriter
@@ -116,9 +116,9 @@ dev.off()
 		def confidenceInDetection(extraNumInf: Int): Probability = {
 			val restrictedPosterior = posterior
 					.filter(_.numInfected < populationSize - extraNumInf)
-					.map(_.numInfected)
+					.map((p: Parameters) => p.numInfected)
 					
-			val differenceDist = new Distribution[Int]{
+			val differenceDist = new Samplable[Int]{
 				def sample(implicit r: Random) = {
 					val numInfectedPast = restrictedPosterior.sample
 					val numInfectedPresent = numInfectedPast + extraNumInf
