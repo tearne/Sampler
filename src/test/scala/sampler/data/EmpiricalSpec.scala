@@ -169,6 +169,16 @@ class FrequencyTableSpec extends Specification with Mockito{
 			(instance1a.hashCode mustEqual instance1b.hashCode) and
 			(instance1a.hashCode mustNotEqual instance2.hashCode)
 		}
+		
+		"have a working filter method" in {
+			val d4 = d2.filter(_ > 5)
+			
+			val map4 = d4.probabilityMap
+			
+			(d4.size mustEqual 5) and
+			(map4(5).value mustEqual 0.4) and
+			(map4(6).value mustEqual 0.6)
+		}
 	}
 	
 	val p1 = Particle(1, 1.25)
@@ -239,6 +249,7 @@ class FrequencyTableSpec extends Specification with Mockito{
 		 */
 			val rand = mock[Random]
 					
+			rand.nextDouble() returns(1.1, 2.2, 3.3)
 			rand.nextDouble() returns 1.1
 					
 			w1.sample(rand) must throwA[IndexOutOfBoundsException]
@@ -246,18 +257,42 @@ class FrequencyTableSpec extends Specification with Mockito{
 		
 		"update the sample method to use the ALIAS algorithm" in todo
 		
-		"produce a smaller table when a some weights are discarded" in todo
+		"be able to convert a weights table to a frequency table" in {
+			val freqTable = w1.discardWeights
+			
+			val counts = freqTable.counts
+			
+			(counts(1) mustEqual 1) and
+			(counts(2) mustEqual 1) and
+			(counts(3) mustEqual 1) and
+			(counts(4) mustEqual 1) 
+		}
 		
-		"be able to filter out a section of the table" in todo
+		"be able to filter out a section of the table" in {
+			
+		/*	NOTE TO OLIVER / SELF
+		 * 
+		 * 	doesn't look like filter is working
+		 */
+			val filtered = w1.filter(_.value > 2)
+			
+			val newNormalised = filtered.normalised
+			
+			(newNormalised.size mustEqual 2) and
+			(newNormalised(0) mustEqual Particle(3,0.5)) and
+			(newNormalised(1) mustEqual Particle(4,0.5))
+		}
 		
-		"be mappble" in todo
+		"be mappble" in {
+//			don't understand the A -> B conversion
+//			w1.map(a => println(a))
+			todo
+		}
 		
-		"be able to detect if two weights tables are equal" in todo
-		
-		
-		
-		
-		
-		
+		"be able to detect if two weights tables are equal" in {
+			val w2 = WeightsTable(particleSeq)
+			
+			w1.equals(w2) mustEqual true
+		}
 	}
 }
