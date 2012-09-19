@@ -155,6 +155,7 @@ class FrequencyTableSpec extends Specification with Mockito{
 		}
 		
 		"be able to calculate the distance between distribtions" in { 
+//			Left over from previous tests - still required??
 			todo			
 		}
 		
@@ -168,5 +169,95 @@ class FrequencyTableSpec extends Specification with Mockito{
 			(instance1a.hashCode mustEqual instance1b.hashCode) and
 			(instance1a.hashCode mustNotEqual instance2.hashCode)
 		}
+	}
+	
+	val p1 = Particle(1, 1.25)
+	val p2 = Particle(2, 1.25)
+	val p3 = Particle(3, 1.25)
+	val p4 = Particle(4, 1.25)
+	
+	val particleSeq = IndexedSeq(p1,p2,p3,p4)
+	
+	val w1 = WeightsTable(particleSeq)
+	
+	"Weights table" should {
+		
+		"return the size of the particle sequence" in {
+			w1.size mustEqual 4
+		}
+		
+		"return a normalised weights table with total probability of one" in {
+			val w1norm = w1.normalised
+			
+			(w1norm(0).weight mustEqual 0.25) and
+			(w1norm(1).weight mustEqual 0.25) and
+			(w1norm(2).weight mustEqual 0.25) and
+			(w1norm(3).weight mustEqual 0.25)
+		}
+		
+		"tidy exception in normalisation function" in todo
+		
+		"return the cumulative weight of each particle in a sequence" in {
+			
+			val expectedWeights = IndexedSeq(0.25, 0.5, 0.75, 1.0)
+			
+			w1.cumulativeWeights mustEqual expectedWeights
+		}
+		
+		"map each entry to a probability object" in {
+			
+		/* 	NOTE FOR OLIVER
+		 * 
+		 * 	At this point the Particle object for each entry contains the probability
+		 *  as it's weight parameter, so why the need to map against probability??
+		 */
+			
+			val w1norm = w1.normalised
+			
+			val probMap = w1.probabilityMap
+			
+		/* Is this an appropriate way to check all entries in the map?*/
+			w1norm.map(a => probMap(a) mustEqual Probability(0.25))
+		}
+		
+		"returns the values of the probability map ??? " in todo
+		
+		"sample a random element from the table" in {
+			val rand = mock[Random]
+			
+			rand.nextDouble() returns 0.3
+			
+			w1.sample(rand) mustEqual Particle(2,0.25)
+		}
+		
+		"print out the data and throws exception if random sampling goes wrong" in {
+			
+		/*	NOTE FOR OLIVER
+		 * 
+		 * 	Do we ever expect to reach this exception in regular situations?
+		 * 	r.nextDouble should not produce an unusable value?
+		 */
+			val rand = mock[Random]
+					
+			rand.nextDouble() returns 1.1
+					
+			w1.sample(rand) must throwA[IndexOutOfBoundsException]
+		}
+		
+		"update the sample method to use the ALIAS algorithm" in todo
+		
+		"produce a smaller table when a some weights are discarded" in todo
+		
+		"be able to filter out a section of the table" in todo
+		
+		"be mappble" in todo
+		
+		"be able to detect if two weights tables are equal" in todo
+		
+		
+		
+		
+		
+		
 	}
 }
