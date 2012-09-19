@@ -47,14 +47,7 @@ trait FrequencyTable[A] extends Empirical[A]{ self =>
 	
 	//Miles: Seems a shame that to duplicate so much code here just to change return type
 	override def filter(pred: A => Boolean): FrequencyTable[A] = new FrequencyTable[A]{
-		val samples = self.samples
-		
-		@tailrec
-		override def sample(implicit r: Random) = {
-			val value = self.sample
-			if (pred(value)) value 
-			else this.sample
-		}
+		val samples = self.samples.filter(pred)//.map(a => if(pred(a)) Some(a) else None).flatten
 	}
 	
 	//Miles: Would be nicer if the Monad bits (map and flatmap) could be defined
@@ -196,14 +189,14 @@ trait WeightsTable[A] extends Empirical[Particle[A]]{ self =>
 	//Miles: Again, this is feeling like an unnecessary amount of duplication for a
 	//       return type change
 	override def filter(pred: Particle[A] => Boolean) = new WeightsTable[A]{
-		val particles = self.particles
+		val particles = self.particles.filter(pred)
 		
-		@tailrec
-		override def sample(implicit r: Random) = {
-			val value = self.sample
-			if (pred(value)) value 
-			else this.sample
-		}
+//		@tailrec
+//		override def sample(implicit r: Random) = {
+//			val value = self.sample
+//			if (pred(value)) value 
+//			else this.sample
+//		}
 	}
 	
 

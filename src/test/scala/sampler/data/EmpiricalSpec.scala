@@ -171,7 +171,7 @@ class FrequencyTableSpec extends Specification with Mockito{
 		}
 		
 		"have a working filter method" in {
-			val d4 = d2.filter(_ > 5)
+			val d4 = d2.filter(_ >= 5)
 			
 			val map4 = d4.probabilityMap
 			
@@ -270,10 +270,6 @@ class FrequencyTableSpec extends Specification with Mockito{
 		
 		"be able to filter out a section of the table" in {
 			
-		/*	NOTE TO OLIVER / SELF
-		 * 
-		 * 	doesn't look like filter is working
-		 */
 			val filtered = w1.filter(_.value > 2)
 			
 			val newNormalised = filtered.normalised
