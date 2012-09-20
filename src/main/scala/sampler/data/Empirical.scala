@@ -36,6 +36,9 @@ trait Empirical[A] extends Samplable[A]{ self =>
 	val probabilityMap: Map[A, Probability]
 }
 
+/*
+ * Simple table of observations with uniform sampling
+ */
 trait FrequencyTable[A] extends Empirical[A]{ self =>
 	val samples: IndexedSeq[A]
 	
@@ -45,13 +48,13 @@ trait FrequencyTable[A] extends Empirical[A]{ self =>
 	
 	lazy val counts: Map[A, Int] = samples.groupBy(identity).mapValues(_.size)
 	
-	//Miles: Seems a shame that to duplicate so much code here just to change return type
+	//Miles: Seems a shame to duplicate so much code here just to change return type
 	override def filter(pred: A => Boolean): FrequencyTable[A] = new FrequencyTable[A]{
-		val samples = self.samples.filter(pred)//.map(a => if(pred(a)) Some(a) else None).flatten
+		val samples = self.samples.filter(pred)
 	}
 	
-	//Miles: Would be nicer if the Monad bits (map and flatmap) could be defined
-	//       in Samplable, but without needing to generalise the return type.
+	//Miles: Would be nicer if the Monad bits (map and flatmap) could be in
+	//       Samplable, but without needing to generalise the return type.
 	//       Is this a place where the Monad in Scalaz could help?
 	def map[B](f: A => B) = new FrequencyTable[B]{
 		val samples = self.samples.map(f)
@@ -113,6 +116,13 @@ object FrequencyTable{
 	}
 }
 object FrequencyTableBuilder{
+	//Miles: Lots of nasty duplication in here, and the triple arg methods seems odd.  They are
+	//       there to allow them to be called like this
+	//FrequencyTableBuilder.serial(byDistribution){
+	//    //Convergence condition
+	//    _.size == 1e3
+	//}
+	//       Is there a better way of achieving a similar result?
 	def serial[T](samplable: Samplable[T])(condition: Seq[T] => Boolean)(implicit r: Random): FrequencyTable[T] ={
 		@tailrec
 		def takeMore(previous: Seq[T]): Seq[T] = {
@@ -140,8 +150,8 @@ object FrequencyTableBuilder{
 case class Particle[A](value: A, weight: Double)
 
 /*
- * A table of observations where each is attached to a weight.  Sampling is
- * performed according to the weights
+ * A table of observations/values where each is attached to a weight.  
+ * Sampling is performed according to the weights
  */
 trait WeightsTable[A] extends Empirical[Particle[A]]{ self =>
 	val particles: Seq[Particle[A]]
@@ -190,13 +200,6 @@ trait WeightsTable[A] extends Empirical[Particle[A]]{ self =>
 	//       return type change
 	override def filter(pred: Particle[A] => Boolean) = new WeightsTable[A]{
 		val particles = self.particles.filter(pred)
-		
-//		@tailrec
-//		override def sample(implicit r: Random) = {
-//			val value = self.sample
-//			if (pred(value)) value 
-//			else this.sample
-//		}
 	}
 	
 
