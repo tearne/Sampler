@@ -20,4 +20,6 @@ package sampler.math
 class Random extends scala.util.Random{
 	def nextDouble(min: Double, max: Double): Double = 
 		(max - min) * nextDouble() + min
+	
+	def nextBoolean(p: Probability): Boolean = math.random < p.value
 }
