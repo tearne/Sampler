@@ -63,10 +63,7 @@ trait FrequencyTable[A] extends Empirical[A]{ self =>
 	def flatMap[B](f: A => FrequencyTable[B])(implicit r: Random) = new FrequencyTable[B]{
 		val samples = self.samples.flatMap(s =>f(s).samples)
 	}
-	
-	def +(item: A) = new FrequencyTable[A]{
-		val samples = self.samples :+ item
-	}
+
 	def ++(items: TraversableOnce[A]) = new FrequencyTable[A]{
 		val samples = self.samples ++ items
 	}

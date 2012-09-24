@@ -98,11 +98,6 @@ class FrequencyTableSpec extends Specification with Mockito{
 			(m4(7) mustEqual 1)
 		}
 		
-		"be able to have an extra sample added once initial table has been created" in {
-			val newTable = d1.+(1)
-			newTable.samples mustEqual List(4,5,6,1)
-		}
-		
 		"be able to combine into one big frequency table" in {
 			val combined = d1.+(d2)
 			
