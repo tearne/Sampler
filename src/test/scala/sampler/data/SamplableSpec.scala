@@ -8,12 +8,11 @@ import org.specs2.specification.Scope
 
 @RunWith(classOf[JUnitRunner])
 class SamplableSpec extends Specification {
-	
 	"Samplable" should {
 		"have convolution (+)" in todo
 		"have cross correlation (-)" in todo
 		
-		"return the correct integer values in the specificied order" in new createInstance {
+		"sample mocked values in order" in new createInstance {
 			
 			def append(previous: List[Int]): List[Int] = {
 				if(previous.length == 10) previous
@@ -26,37 +25,30 @@ class SamplableSpec extends Specification {
 			sampleList mustEqual expectedList
 		}
 		
-		"have a working sampleUntil method that should" in {
-
-			"return the first half of the sequence until the value 5 is sampled" in new createInstance {
+		"have sampleUntil method" in {
+			"sample until the value 5 is sampled" in new createInstance {
 				val resultsSeq = instance.until(_.size == 5).sample
 				
 				val expectedSeq = IndexedSeq(0,1,2,3,4)
 				
-				(resultsSeq.size mustEqual 5) and
-				(resultsSeq mustEqual expectedSeq)
+				resultsSeq mustEqual expectedSeq
 			}
 			
-			"return a series of 2 length lists when sampling until an even number is reached" in new createInstance {
+			"sample until last number is even" in new createInstance {
 				val untilInstance = instance.until(_.last % 2 == 0)
 				
 				val seq1 = untilInstance.sample
 				val seq2 = untilInstance.sample
 				val seq3 = untilInstance.sample
 				
-				val expected1 = IndexedSeq(0)
-				val expected2 = IndexedSeq(1,2)
-				val expected3 = IndexedSeq(3,4)
-				
-				(seq1 mustEqual expected1) and
-				(seq2 mustEqual expected2) and
-				(seq3 mustEqual expected3)
+				(seq1 mustEqual IndexedSeq(0)) and
+				(seq2 mustEqual IndexedSeq(1,2)) and
+				(seq3 mustEqual IndexedSeq(3,4))
 			}
 		}
 		
-		"have a working filter method that should" in {
-			
-			"return 3-9 when filtering for a value greater than 2" in new createInstance{
+		"have filter method" in {
+			"always sample greater than 2" in new createInstance{
 				val newSamplable = instance.filter(_ > 2)
 				
 				def append(previous: List[Int]): List[Int] = {
@@ -65,12 +57,10 @@ class SamplableSpec extends Specification {
 				}
 				val sampleList = append(List(newSamplable.sample(rand)))
 				
-				val expectedList = List(3,4,5,6,7,8,9)
-				
-				sampleList mustEqual expectedList
+				sampleList mustEqual List(3,4,5,6,7,8,9)
 			}
 			
-			"return 0, 2, 4, 6, 8 when you filter for even numbers" in new createInstance {
+			"always samepl even numbers" in new createInstance {
 				val newSamplable = instance.filter(_ % 2 == 0)
 
 				def append(previous: List[Int]): List[Int] = {
@@ -79,9 +69,7 @@ class SamplableSpec extends Specification {
 				}
 				val sampleList = append(List(newSamplable.sample(rand)))
 				
-				val expectedList = List(0,2,4,6,8)
-				
-				sampleList mustEqual expectedList
+				sampleList mustEqual List(0,2,4,6,8)
 			}
 		}
 		

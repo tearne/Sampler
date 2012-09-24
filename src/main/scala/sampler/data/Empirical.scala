@@ -31,15 +31,15 @@ import scala.math.Fractional
 /*
  * Specialisation of Samplable to apply to sets of observed data
  */
-trait Empirical[A] extends Samplable[A]{ self => 
+trait Empirical[Samp, Dom] extends Samplable[Samp]{ self => 
 	val size: Int
-	val probabilityMap: Map[A, Probability]
+	val probabilityMap: Map[Dom, Probability]
 }
 
 /*
  * Simple table of observations with uniform sampling
  */
-trait FrequencyTable[A] extends Empirical[A]{ self =>
+trait FrequencyTable[A] extends Empirical[A, A]{ self =>
 	val samples: IndexedSeq[A]
 	
 	lazy val size = counts.values.sum
@@ -150,7 +150,7 @@ case class Particle[A](value: A, weight: Double)
  * A table of observations/values where each is attached to a weight.  
  * Sampling is performed according to the weights
  */
-trait WeightsTable[A] extends Empirical[Particle[A]]{ self =>
+trait WeightsTable[A] extends Empirical[Particle[A], A]{ self =>
 	val particles: Seq[Particle[A]]
 	
 	lazy val size = particles.size
@@ -169,10 +169,10 @@ trait WeightsTable[A] extends Empirical[Particle[A]]{ self =>
 		normalised.toIndexedSeq
 	}	
 	lazy val cumulativeWeights = normalised.scanLeft(0.0){case (acc, particle) => acc + particle.weight}.tail
-	lazy val probabilityMap = normalised.map(p => (p, Probability(p.weight))).toMap
+	lazy val probabilityMap = normalised.map(p => (p.value, Probability(p.weight))).toMap
 	lazy val values = probabilityMap.values
-	//Miles: Seems odd that I've had to make so many vals above lazy, some of them in order to avoid 
-	//       null pointers when instantiating with new WeightsTable[T]{ ... }, others in order to
+	//Miles: Seems odd that I've had to make so many vals above lazy. Some of them are to avoid 
+	//       null pointers when instantiating with new WeightsTable[T]{ ... }, others are to
 	//       avoid unnecessary processing at construction time.
 	
 	def sample(implicit r: Random): Particle[A] = {
@@ -228,7 +228,7 @@ object WeightsTable{
 //       it in an object.  Problem is it involves a lots of duplication of the method 
 //       signatures and seems overly wordy.  
 class Statistic{
-	def mean[T](emp: Empirical[T])(implicit num: Fractional[T]) = {
+	def mean[T](emp: Empirical[_,T])(implicit num: Fractional[T]) = {
 		import num._
 		emp.probabilityMap.foldLeft(0.0){case (acc, (v,p)) => {
 			acc + v.toDouble * p.value
@@ -237,18 +237,18 @@ class Statistic{
 }
 object Statistic{
 	val instance = new Statistic
-	def mean[T](emp: Empirical[T])(implicit num: Fractional[T]) = instance.mean(emp)
+	def mean[T](emp: Empirical[_,T])(implicit num: Fractional[T]) = instance.mean(emp)
 }
 
 
 //Miles: As above with 'Statistic', I've tried to make a class with the implementation
 //       for Distance, and then wrap it in an object.  But it seems very verbose.
 class Distance(val stat: Statistic){
-	def mean[T](a: Empirical[T], b: Empirical[T])(implicit num: Fractional[T]) = {
+	def mean[T](a: Empirical[_,T], b: Empirical[_,T])(implicit num: Fractional[T]) = {
 		math.abs(stat.mean(a)-stat.mean(b))
 	}
 	
-	def max[T](a: Empirical[T], b: Empirical[T]): Double = {
+	def max[T](a: Empirical[_,T], b: Empirical[_,T]): Double = {
 		val indexes = a.probabilityMap.keySet ++ b.probabilityMap.keySet
 		def distAtIndex(i: T) = math.abs(
 				a.probabilityMap.get(i).map(_.value).getOrElse(0.0) -
@@ -260,9 +260,9 @@ class Distance(val stat: Statistic){
 
 object Distance{
 	val instance = new Distance(new Statistic)
-	def mean[T](a: Empirical[T], b: Empirical[T])(implicit num: Fractional[T]) = 
+	def mean[T](a: Empirical[_,T], b: Empirical[_,T])(implicit num: Fractional[T]) = 
 		instance.mean(a,b)(num)
 	
-	def max[T](a: Empirical[T], b: Empirical[T]): Double = 
+	def max[T](a: Empirical[_,T], b: Empirical[_,T]): Double = 
 		instance.max(a,b)
 }

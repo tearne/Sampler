@@ -29,7 +29,7 @@ import sampler.math.Probability
 import sampler.data.Empirical
 
 
-trait Distribution[T] extends Empirical[T]{
+trait Distribution[T] extends Empirical[T, T]{
 	def cdf(elem: T): Double 
 	def quantile(p: Probability): T
 }
