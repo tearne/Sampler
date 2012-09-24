@@ -49,12 +49,21 @@ trait Samplable[A]{ self =>
 	
 	//TODO when sub-traits override this the return type gets messed up
 	def map[B](f: A => B)(implicit r: Random) = new Samplable[B]{
-		override def sample(implicit r: Random) = f(self.sample(r))
+		def sample(implicit r: Random) = f(self.sample(r))
 	}
 	
 	def flatMap[B](f: A => Samplable[B])(implicit r: Random) = new Samplable[B]{
-		override def sample(implicit r: Random) = f(self.sample(r)).sample(r)
+		def sample(implicit r: Random) = f(self.sample(r)).sample(r)
 	}
+	
+	def combine[B](that: Samplable[A], op: Function2[A,A,B]) = new Samplable[B]{
+		def sample(implicit r: Random) = op(self.sample(r), that.sample(r))
+	}
+	
+	def +(that: Samplable[A])(implicit n: Numeric[A]) = combine(that, n.plus _)
+	def -(that: Samplable[A])(implicit n: Numeric[A]) = combine(that, n.minus _)
+	
+	
 }
 
 object Samplable{

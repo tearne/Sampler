@@ -10,6 +10,8 @@ import org.specs2.specification.Scope
 class SamplableSpec extends Specification {
 	
 	"Samplable" should {
+		"have convolution (+)" in todo
+		"have cross correlation (-)" in todo
 		
 		"return the correct integer values in the specificied order" in new createInstance {
 			
