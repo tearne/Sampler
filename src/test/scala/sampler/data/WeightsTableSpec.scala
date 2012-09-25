@@ -54,14 +54,6 @@ class WeightsTableSpec extends Specification with Mockito{
 		}
 		
 		"map each entry to a probability object" in {
-			/* 	NOTE FOR OLIVER
-			 * 
-			 * 	At this point the Particle object for each entry contains the probability
-			 *  as it's weight parameter, so why the need to map against probability??
-			 */
-			
-			// I'm not aware that we have any other method for mapping from value to particle, have we?
-			
 			val probMap = w1.probabilityMap
 			
 			val quarter = Probability(0.25)
@@ -103,18 +95,21 @@ class WeightsTableSpec extends Specification with Mockito{
 			(normalised(1) mustEqual Particle(4, 0.5))
 		}
 		
-		"be mappble" in {
-//			don't understand the A -> B conversion
-//			w1.map(a => println(a))
-			todo
-		}
-		
-		"be able to detect if two weights tables are equal" in {
-			val w2 = WeightsTable(particleSeq)
+		"be mappable to a new weights table, ratio of weights remain the same after transformation" in {
+			val newMap = w1.map((a: Particle[Int]) => Particle(a.value.toString, a.weight*2))
 			
-			w1.equals(w2) mustEqual true
+			newMap.cumulativeWeights mustEqual IndexedSeq(0.25, 0.5, 0.75, 1.0)
 		}
 		
-		"override equals and hashcode" in todo
+		"override equals and hashcode" in {
+			val instance1a = WeightsTable(particleSeq)
+			val instance1b = WeightsTable(particleSeq)
+			val instance2 = WeightsTable(Seq(p1,p2,p3,p3, Particle(5,1.25)))
+			
+			(instance1a mustEqual instance1b) and
+			(instance1a mustNotEqual instance2) and
+			(instance1a.hashCode mustEqual instance1b.hashCode) and
+			(instance1a.hashCode mustNotEqual instance2.hashCode)
+		}
 	}
 }
