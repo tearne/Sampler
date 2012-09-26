@@ -24,6 +24,7 @@ import sampler.math.Probability
 import org.specs2.mock.Mockito
 import sampler.math.Random
 import org.specs2.matcher.MatchResult
+import sampler.math.Random
 
 @RunWith(classOf[JUnitRunner])
 class WeightsTableSpec extends Specification with Mockito{
@@ -67,11 +68,50 @@ class WeightsTableSpec extends Specification with Mockito{
 		
 		"returns the values of the probability map ??? " in todo
 		
-		"sample by cumulative weight" in {
+		"sample distribution (using the alias method as default)" in {
+		  
+		  val rand = new Random
+		  
+		  var listOfSamples: List[Int] = List()
+		  
+		  for(i <- 0 until 1000)
+		    listOfSamples = listOfSamples.+:(w1.sample(rand).value)
+		  
+		  (listOfSamples.count(_ ==1) must beBetween(200, 300)) and
+		  (listOfSamples.count(_ ==2) must beBetween(200, 300)) and
+		  (listOfSamples.count(_ ==3) must beBetween(200, 300)) and
+		  (listOfSamples.count(_ ==4) must beBetween(200, 300))
+		}
+		
+		"sample by cumulative weight (using original method)" in {
 			val rand = mock[Random]
 			rand.nextDouble() returns 0.3
 			
-			w1.sample(rand) mustEqual Particle(2,0.25)
+			w1.originalSample(rand) mustEqual Particle(2,0.25)
+		}
+		
+		"Alias sampling should be faster" in {
+		  val rand = new Random
+		  
+		  val startTime = System.nanoTime()
+		  
+		  for(i <- 0 until 1000000)
+		    w1.sample(rand)
+		    
+		  val intermediateTime = System.nanoTime()
+		    
+		  for(i <- 0 until 1000000)
+		    w1.originalSample(rand)
+
+		  val endTime = System.nanoTime()
+		  
+		  val aliasTime = intermediateTime - startTime
+		  val originalTime = endTime - intermediateTime
+//		  
+//		  printf("The alias method took %.3f s\n", aliasTime/1000000000.0)
+//		  printf("The original method took %.3f s\n", originalTime/1000000000.0)
+		  
+		  aliasTime must beLessThan(originalTime)
 		}
 		
 		"be convertable to frequency table" in {
