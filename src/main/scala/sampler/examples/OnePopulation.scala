@@ -27,6 +27,7 @@ import scala.collection.mutable.ListBuffer
 import sampler.io.CSVTableWriter
 import java.nio.file.Paths
 import sampler.data.Types.Column
+import scala.collection.parallel.ParSeq
 
 object AnotherOnePopulation extends App{
 	/*
@@ -56,12 +57,20 @@ object AnotherOnePopulation extends App{
 			Samplable.withoutReplacement(population, numSampled)	// Start with base model
 			.map(_.count(identity) / numSampled.toDouble)			// Transform to model of sample prevalance
 		
-		// Sample the model until convergence
-		FrequencyTableBuilder.parallel(model, chunkSize){samples =>			
-			val distance = Distance.max(FrequencyTable(samples.seq.take(samples.size - chunkSize)), FrequencyTable(samples.seq))
-			(distance < convergenceCriterion) || (samples.size > 1e8)
+		def isWithinTolerance(samplePrev: Double) = math.abs(samplePrev - truePrevalence) < precision	
+		
+		def terminationCondition(soFar: ParSeq[Double]) = {
+			val distance = Distance.max(
+			    FrequencyTable(soFar.seq.take(soFar.size - chunkSize)), 
+			    FrequencyTable(soFar.seq)
+			)
+			
+			(distance < convergenceCriterion) || (soFar.size > 1e8)
 		}
-		.map((samplePrev: Double) => math.abs(samplePrev - truePrevalence) < precision)		// Transform samples to in/out of tolerance
+		
+		// Sample the model until convergence
+		FrequencyTableBuilder.parallel(model, chunkSize)(s => terminationCondition(s))
+		.map(isWithinTolerance _)		// Transform samples to in/out of tolerance
 	}
 	
 	val sampleSizeList = ListBuffer[Int]()
