@@ -28,6 +28,7 @@ import sampler.io.CSVTableWriter
 import sampler.data.Types.Column
 import sampler.math.Probability
 import sampler.r.ScriptRunner
+import scala.annotation.tailrec
 
 object SampleDistribution extends App {
 	/*
@@ -51,19 +52,32 @@ object SampleDistribution extends App {
   
   val listOfTestPrevs = List(5, 10, 20, 30, 50, 70, 90)
   
+  var listOfPosiblePositive: List[Int] = List()
   var listOfSamplePrevs: List[Double] = List()
   
-  for(i <- 0 to sampleSize)
-	  listOfSamplePrevs = listOfSamplePrevs.:+(i/sampleSize.toDouble * 100)
+  for(i <- 0 to sampleSize) {
+	  listOfPosiblePositive = listOfPosiblePositive.:+(i)
+	  listOfSamplePrevs = listOfSamplePrevs.:+(i.toDouble/sampleSize * 100)
+  }
   
-  var columns = List(Column(listOfSamplePrevs, "ObsPrev"))
+  var columns = List(
+      Column(
+    	listOfPosiblePositive.map(a => a.toDouble/sampleSize * 100), 
+    	"ObsPrev"
+  ))
 	  
   for(prev <- listOfTestPrevs) {
     val sampleDist = 
       sampleDistribution(prev.toDouble / 100.0)
       .probabilityMap
     
-    val sampleProbs = listOfSamplePrevs.map(a => sampleDist.getOrElse(a.toDouble / 100, Probability(0)).value)
+    val numPosDist = sampleDist map {
+      case a => (a._1 * sampleSize).toInt -> a._2.value
+    }
+    
+    val completeDist = addZeroIfMissing(numPosDist, (0 to sampleSize))
+    
+    val sampleProbs = listOfPosiblePositive.map(a => completeDist.getOrElse(a, 0.0)).toList
 
     columns = columns.:+(Column(sampleProbs, prev.toString))
   }
@@ -114,4 +128,13 @@ dev.off()
 	  // Sample the model until convergence
 	  FrequencyTableBuilder.parallel(model, chunkSize)(s => terminationCondition(s))
   }
+  
+  @tailrec
+	def addZeroIfMissing(map: Map[Int, Double], keyRange: Seq[Int]): Map[Int, Double] = {
+		if(keyRange.size == 0) map
+		else{
+			val newMap = if(!map.contains(keyRange.head)) map + (keyRange.head -> 0.0) else map
+			addZeroIfMissing(newMap, keyRange.tail)
+		}
+	}
 }
