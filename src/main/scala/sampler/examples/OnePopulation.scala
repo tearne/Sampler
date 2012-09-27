@@ -17,13 +17,17 @@
 
 package sampler.examples
 
-import sampler.math._
+import sampler.math.Random
+import sampler.data.Distance
+import sampler.math.Probability
+import sampler.data.Samplable
+import sampler.data.FrequencyTableBuilder
+import sampler.data.FrequencyTable
 import scala.collection.mutable.ListBuffer
 import sampler.io.CSVTableWriter
 import java.nio.file.Paths
 import sampler.data.Types.Column
-import sampler.fit.ABCComponent
-import sampler.data._
+import scala.collection.parallel.ParSeq
 
 object AnotherOnePopulation extends App{
 	/*
@@ -48,26 +52,25 @@ object AnotherOnePopulation extends App{
 	val numInfected = (populationSize*truePrevalence).round.toInt
 	val population = (1 to populationSize).map(_ < numInfected)
 		
-	object ABC extends ABCComponent 
-				  with FrequencyTableBuilderComponent
-				  with StatisticsComponent{
-		val builder = SerialFrequencyTableBuilder
-		val statistics = new Statistics
-	}
-	
 	def empiricalObjective(numSampled: Int) = {
 		val model = 
 			Samplable.withoutReplacement(population, numSampled)	// Start with base model
 			.map(_.count(identity) / numSampled.toDouble)			// Transform to model of sample prevalance
 		
-		// Sample the model until convergence
-		val builder = new ParallelFrequencyTableBuilder(chunkSize)
-		builder(model){samples =>			
-			//Horribly inefficicnet
-			val distance = EmpiricalMetric.max(FrequencyTable(samples.seq.take(samples.size - chunkSize)),FrequencyTable(samples.seq))
-			(distance < convergenceCriterion) || (samples.size > 1e8)
+		def isWithinTolerance(samplePrev: Double) = math.abs(samplePrev - truePrevalence) < precision	
+		
+		def terminationCondition(soFar: ParSeq[Double]) = {
+			val distance = Distance.max(
+			    FrequencyTable(soFar.seq.take(soFar.size - chunkSize)), 
+			    FrequencyTable(soFar.seq)
+			)
+			
+			(distance < convergenceCriterion) || (soFar.size > 1e8)
 		}
-		.map((samplePrev: Double) => math.abs(samplePrev - truePrevalence) < precision)		// Transform samples to in/out of tolerance
+		
+		// Sample the model until convergence
+		FrequencyTableBuilder.parallel(model, chunkSize)(s => terminationCondition(s))
+		.map(isWithinTolerance _)		// Transform samples to in/out of tolerance
 	}
 	
 	val sampleSizeList = ListBuffer[Int]()

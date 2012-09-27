@@ -24,6 +24,7 @@ import sampler.math.Probability
 import org.specs2.mock.Mockito
 import sampler.math.Random
 import org.specs2.matcher.MatchResult
+import sampler.math.Random
 
 @RunWith(classOf[JUnitRunner])
 class WeightsTableSpec extends Specification with Mockito{
@@ -54,14 +55,6 @@ class WeightsTableSpec extends Specification with Mockito{
 		}
 		
 		"map each entry to a probability object" in {
-			/* 	NOTE FOR OLIVER
-			 * 
-			 * 	At this point the Particle object for each entry contains the probability
-			 *  as it's weight parameter, so why the need to map against probability??
-			 */
-			
-			// I'm not aware that we have any other method for mapping from value to particle, have we?
-			
 			val probMap = w1.probabilityMap
 			
 			val quarter = Probability(0.25)
@@ -75,11 +68,50 @@ class WeightsTableSpec extends Specification with Mockito{
 		
 		"returns the values of the probability map ??? " in todo
 		
-		"sample by cumulative weight" in {
+		"sample distribution (using the alias method as default)" in {
+		  
+		  val rand = new Random
+		  
+		  var listOfSamples: List[Int] = List()
+		  
+		  for(i <- 0 until 1000)
+		    listOfSamples = listOfSamples.+:(w1.sample(rand).value)
+		  
+		  (listOfSamples.count(_ ==1) must beBetween(200, 300)) and
+		  (listOfSamples.count(_ ==2) must beBetween(200, 300)) and
+		  (listOfSamples.count(_ ==3) must beBetween(200, 300)) and
+		  (listOfSamples.count(_ ==4) must beBetween(200, 300))
+		}
+		
+		"sample by cumulative weight (using original method)" in {
 			val rand = mock[Random]
 			rand.nextDouble() returns 0.3
 			
-			w1.sample(rand) mustEqual Particle(2,0.25)
+			w1.originalSample(rand) mustEqual Particle(2,0.25)
+		}
+		
+		"Alias sampling should be faster" in {
+		  val rand = new Random
+		  
+		  val startTime = System.nanoTime()
+		  
+		  for(i <- 0 until 1000000)
+		    w1.sample(rand)
+		    
+		  val intermediateTime = System.nanoTime()
+		    
+		  for(i <- 0 until 1000000)
+		    w1.originalSample(rand)
+
+		  val endTime = System.nanoTime()
+		  
+		  val aliasTime = intermediateTime - startTime
+		  val originalTime = endTime - intermediateTime
+//		  
+//		  printf("The alias method took %.3f s\n", aliasTime/1000000000.0)
+//		  printf("The original method took %.3f s\n", originalTime/1000000000.0)
+		  
+		  aliasTime must beLessThan(originalTime)
 		}
 		
 		"be convertable to frequency table" in {
@@ -103,18 +135,21 @@ class WeightsTableSpec extends Specification with Mockito{
 			(normalised(1) mustEqual Particle(4, 0.5))
 		}
 		
-		"be mappble" in {
-//			don't understand the A -> B conversion
-//			w1.map(a => println(a))
-			todo
-		}
-		
-		"be able to detect if two weights tables are equal" in {
-			val w2 = WeightsTable(particleSeq)
+		"be mappable to a new weights table, ratio of weights remain the same after transformation" in {
+			val newMap = w1.map((a: Particle[Int]) => Particle(a.value.toString, a.weight*2))
 			
-			w1.equals(w2) mustEqual true
+			newMap.cumulativeWeights mustEqual IndexedSeq(0.25, 0.5, 0.75, 1.0)
 		}
 		
-		"override equals and hashcode" in todo
+		"override equals and hashcode" in {
+			val instance1a = WeightsTable(particleSeq)
+			val instance1b = WeightsTable(particleSeq)
+			val instance2 = WeightsTable(Seq(p1,p2,p3,p3, Particle(5,1.25)))
+			
+			(instance1a mustEqual instance1b) and
+			(instance1a mustNotEqual instance2) and
+			(instance1a.hashCode mustEqual instance1b.hashCode) and
+			(instance1a.hashCode mustNotEqual instance2.hashCode)
+		}
 	}
 }
