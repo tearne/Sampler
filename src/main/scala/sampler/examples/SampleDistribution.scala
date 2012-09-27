@@ -23,6 +23,10 @@ import scala.collection.parallel.ParSeq
 import sampler.data.Distance
 import sampler.data.FrequencyTableBuilder
 import sampler.data.FrequencyTable
+import java.nio.file.Paths
+import sampler.io.CSVTableWriter
+import sampler.data.Types.Column
+import sampler.math.Probability
 
 object SampleDistribution extends App {
 	/*
@@ -42,32 +46,56 @@ object SampleDistribution extends App {
   
   implicit val random = new Random
   
-  //Things that will need looping
+  val outputPath = Paths.get("examples", "sampleDists")
+  
+  val listOfTestPrevs = List(5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95)
+  
+  for(prev <- listOfTestPrevs) {
+    val sampleDist = 
+      sampleDistribution(prev.toDouble / 100.0)
+      .probabilityMap
+    
+    val (samplePrev, sampleProb) = makeSortedResults(sampleDist)
+    
+    val file = outputPath.resolve(
+        "n" + populationSize + "s" + sampleSize + "p" + prev + ".csv"
+    )
+    
+    new CSVTableWriter(file, true)(
+        Column(samplePrev, "Prevalence"),
+        Column(sampleProb, "Probability")
+    )
+  }
   
   def sampleDistribution(truePrevalence: Double): FrequencyTable[Double] = {
+		  
+	  val numInfected = (populationSize*truePrevalence).round.toInt
+	  val population = (1 to populationSize).map(_ <= numInfected)
 	  
-	val numInfected = (populationSize*truePrevalence).round.toInt
-	val population = (1 to populationSize).map(_ <= numInfected)
-			  
-	val model = 
-		Samplable.withoutReplacement(population, sampleSize)	// Start with base model
-		.map(_.count(identity) / sampleSize.toDouble)			// Transform to model of sample prevalance
-			  
-	 def terminationCondition(soFar: ParSeq[Double]) = {
+	  val model = 
+	  	Samplable.withoutReplacement(population, sampleSize)	// Start with base model
+	  	.map(_.count(identity) / sampleSize.toDouble)			// Transform to model of sample prevalance
+	  
+	  def terminationCondition(soFar: ParSeq[Double]) = {
 		val distance = Distance.max(
 			FrequencyTable(soFar.seq.take(soFar.size - chunkSize)), 
 			FrequencyTable(soFar.seq)
 		)
-				  
+		  
 		(distance < convergenceCriterion) || (soFar.size > 1e8)
-	 }
-	  
-	// Sample the model until convergence
-	FrequencyTableBuilder.parallel(model, chunkSize)(s => terminationCondition(s))
+	  }
+		  
+	  // Sample the model until convergence
+	  FrequencyTableBuilder.parallel(model, chunkSize)(s => terminationCondition(s))
   }
   
-  for(prev <- 0 to 100) {
-    val truePrev = prev.toDouble / 100.0
-    println("Prevalence: " + prev + "% => " + sampleDistribution(truePrev).probabilityMap)
+  def makeSortedResults(rawResults: Map[Double, Probability]): (List[Int], List[Double]) = {
+   val sortedKeys = (rawResults.map(a => a._1).toList).sorted
+   
+   val prevs = sortedKeys.map(a => (a*100).toInt)
+   val probs = sortedKeys.map(a => rawResults.getOrElse(a, Probability(0)).value)
+   
+   (prevs, probs)
   }
+  
 }
