@@ -32,4 +32,9 @@ src/main/scala/sampler/prototype/Scratch.scala
 /examples/**/*.r
 /examples/**/*.Rout
 /examples/**/*.pdf
-/examples/**/*.pptx
+/examples/**/*.ppt*
+*.csv
+*.r
+*.Rout
+*.pdf
+*.ppt*
