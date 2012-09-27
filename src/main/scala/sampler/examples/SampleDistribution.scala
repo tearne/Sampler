@@ -27,6 +27,7 @@ import java.nio.file.Paths
 import sampler.io.CSVTableWriter
 import sampler.data.Types.Column
 import sampler.math.Probability
+import sampler.r.ScriptRunner
 
 object SampleDistribution extends App {
 	/*
@@ -48,7 +49,7 @@ object SampleDistribution extends App {
   
   val outputPath = Paths.get("examples", "sampleDists")
   
-  val listOfTestPrevs = List(5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95)
+  val listOfTestPrevs = List(5, 10, 20, 30, 50, 70, 90)
   
   var listOfSamplePrevs: List[Double] = List()
   
@@ -64,11 +65,34 @@ object SampleDistribution extends App {
     
     val sampleProbs = listOfSamplePrevs.map(a => sampleDist.getOrElse(a.toDouble / 100, Probability(0)).value)
 
-    columns = columns.:+(Column(sampleProbs, prev + "%"))
+    columns = columns.:+(Column(sampleProbs, prev.toString))
   }
   
-  new CSVTableWriter(outputPath.resolve("Pop" + populationSize + "Sample" + sampleSize + ".csv"), true)(columns: _*)
+  val scenario = "Pop" + populationSize + "Sample" + sampleSize
+  val longScenario = "Population Size = " + populationSize + ", Sample Size = " + sampleSize
+  val csvFileName = scenario + ".csv"
+  val pdfFileName = scenario + ".pdf"
   
+  new CSVTableWriter(outputPath.resolve(csvFileName), true)(columns: _*)
+  
+  val plotScript = """
+require("ggplot2")
+require("reshape")
+
+data = read.csv("""" + csvFileName + """")
+
+pdf("""" + pdfFileName + """", width=8.27, height=5.83)
+ggplot(melt(data,id="ObsPrev"), aes(x=ObsPrev, y=value, colour=variable)) +  
+    geom_line() + 
+    scale_x_continuous(name="Observed Prevalence") +
+    scale_y_continuous(name="Density") + 
+    scale_colour_discrete(name="True Prev (%)") + 
+	opts(title = """" + longScenario + """")
+dev.off()
+"""
+
+  ScriptRunner(plotScript, outputPath.resolve("plorScript.r"))
+    
   def sampleDistribution(truePrevalence: Double): FrequencyTable[Double] = {
 		  
 	  val numInfected = (populationSize*truePrevalence).round.toInt
