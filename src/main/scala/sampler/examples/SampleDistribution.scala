@@ -39,8 +39,7 @@ object SampleDistribution extends App {
   
   //Domain parameters
   val populationSize = 100
-  val sampleSize = 40
-  val precision = 0.1
+  val sampleSize = 1
   
   //Meta-parameters
   val chunkSize = 2000
@@ -67,8 +66,9 @@ object SampleDistribution extends App {
   ))
 	  
   for(prev <- listOfTestPrevs) {
+    // Potential for refactoring into a 'getDistributionColumn' prevalence
     val sampleDist = 
-      sampleDistribution(prev.toDouble / 100.0)
+      sampleDistribution(prev.toDouble / 100.0, populationSize, sampleSize)
       .probabilityMap
     
     val numPosDist = sampleDist map {
@@ -108,8 +108,30 @@ dev.off()
 """
 
   ScriptRunner(plotScript, outputPath.resolve("plorScript.r"))
-    
-  def sampleDistribution(truePrevalence: Double): FrequencyTable[Double] = {
+  
+  val confidence = Probability(0.95)
+  val precision = 0.09
+  
+  var sampleSizes: List[Int] = List()
+  var prevalences: List[Int] = List()
+  
+  for(i <- 1 until 100) {
+	  prevalences = prevalences.:+(i)
+	  
+	  println("Calculating sample size for prevalence " + i + "% ...")
+	  
+	  val n = minimumSampleSize(populationSize, i.toDouble/100.0, confidence, precision)
+	  sampleSizes = sampleSizes.:+(n)
+	  
+	  println("\t" + n + " samples")
+  }
+  
+  val prevCol = Column(prevalences, "Prevalence")
+  val ssCol = Column(sampleSizes, "SampleSize")
+  
+  new CSVTableWriter(outputPath.resolve("SSfor100with95.csv"), true)(prevCol, ssCol)
+  
+  def sampleDistribution(truePrevalence: Double, populationSize: Int, sampleSize: Int): FrequencyTable[Double] = {
 		  
 	  val numInfected = (populationSize*truePrevalence).round.toInt
 	  val population = (1 to populationSize).map(_ <= numInfected)
@@ -139,4 +161,28 @@ dev.off()
 			addZeroIfMissing(newMap, keyRange.tail)
 		}
 	}
+  
+  def sampleSizeConfidence(sampleDist: FrequencyTable[Double], precision: Double, truePrev: Double) = {
+    sampleDist.map((samplePrev: Double) => math.abs(samplePrev - truePrev) < precision)
+  }
+  
+  def minimumSampleSize(popSize: Int, truePrev: Double, requiredConfidence: Probability, precision: Double) = {
+	  val result = {
+	    (1 to popSize)
+	    	.view
+	    	.map { n =>
+	    	  val eo = sampleSizeConfidence(
+	    	      sampleDistribution(truePrev, popSize, n), 
+	    	      precision,
+	    	      truePrev
+	    	  )
+	    	  val confidence = eo.probabilityMap.get(true).getOrElse(Probability.zero)
+//	          println("Sample size = %d, empirical size = %d, confidence = %s".format(n, eo.size, confidence.toString))
+	          (n, confidence)
+			}
+			.find(_._2 > requiredConfidence)
+			.get._1
+	  }
+	  result
+  }
 }
