@@ -50,22 +50,24 @@ object SampleDistribution extends App {
   
   val listOfTestPrevs = List(5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95)
   
+  var listOfSamplePrevs: List[Double] = List()
+  
+  for(i <- 0 to sampleSize)
+	  listOfSamplePrevs = listOfSamplePrevs.:+(i/sampleSize.toDouble * 100)
+  
+  var columns = List(Column(listOfSamplePrevs, "ObsPrev"))
+	  
   for(prev <- listOfTestPrevs) {
     val sampleDist = 
       sampleDistribution(prev.toDouble / 100.0)
       .probabilityMap
     
-    val (samplePrev, sampleProb) = makeSortedResults(sampleDist)
-    
-    val file = outputPath.resolve(
-        "n" + populationSize + "s" + sampleSize + "p" + prev + ".csv"
-    )
-    
-    new CSVTableWriter(file, true)(
-        Column(samplePrev, "Prevalence"),
-        Column(sampleProb, "Probability")
-    )
+    val sampleProbs = listOfSamplePrevs.map(a => sampleDist.getOrElse(a.toDouble / 100, Probability(0)).value)
+
+    columns = columns.:+(Column(sampleProbs, prev + "%"))
   }
+  
+  new CSVTableWriter(outputPath.resolve("Pop" + populationSize + "Sample" + sampleSize + ".csv"), true)(columns: _*)
   
   def sampleDistribution(truePrevalence: Double): FrequencyTable[Double] = {
 		  
@@ -88,14 +90,4 @@ object SampleDistribution extends App {
 	  // Sample the model until convergence
 	  FrequencyTableBuilder.parallel(model, chunkSize)(s => terminationCondition(s))
   }
-  
-  def makeSortedResults(rawResults: Map[Double, Probability]): (List[Int], List[Double]) = {
-   val sortedKeys = (rawResults.map(a => a._1).toList).sorted
-   
-   val prevs = sortedKeys.map(a => (a*100).toInt)
-   val probs = sortedKeys.map(a => rawResults.getOrElse(a, Probability(0)).value)
-   
-   (prevs, probs)
-  }
-  
 }
