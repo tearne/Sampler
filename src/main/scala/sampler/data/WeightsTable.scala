@@ -50,7 +50,17 @@ trait WeightsTable[A] extends Empirical[Particle[A], A]{ self =>
 	//       null pointers when instantiating with new WeightsTable[T]{ ... }, others are to
 	//       avoid unnecessary processing at construction time.
 	
+	import sampler.math.AliasWrapper
+	
+	lazy val probabilities = normalised.map(a => a.weight).toList
+	
+	lazy val aliasWrapper = new AliasWrapper(probabilities)
+	
 	def sample(implicit r: Random): Particle[A] = {
+	    normalised(aliasWrapper.sample())
+	}
+	
+	def originalSample(implicit r: Random): Particle[A] = {
 		//TODO Use the alias method
 		val rnd = r.nextDouble()
 		val index = cumulativeWeights.zipWithIndex.find(_._1 > rnd) match {

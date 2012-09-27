@@ -83,6 +83,8 @@ class WeightsTableSpec extends Specification with Mockito{
 		  (listOfSamples.count(_ ==4) must beBetween(200, 300))
 		}
 		
+		
+		//TODO remove
 		"sample by cumulative weight (using original method)" in {
 			val rand = mock[Random]
 			rand.nextDouble() returns 0.3
@@ -90,6 +92,7 @@ class WeightsTableSpec extends Specification with Mockito{
 			w1.originalSample(rand) mustEqual Particle(2,0.25)
 		}
 		
+		//TODO remove when done
 		"Alias sampling should be faster" in {
 		  val rand = new Random
 		  

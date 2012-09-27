@@ -18,7 +18,6 @@
 package sampler.examples
 
 import sampler.math.Random
-import sampler.data.Distance
 import sampler.math.Probability
 import sampler.data.Samplable
 import sampler.data.FrequencyTableBuilder
@@ -28,6 +27,8 @@ import sampler.io.CSVTableWriter
 import java.nio.file.Paths
 import sampler.data.Types.Column
 import scala.collection.parallel.ParSeq
+import sampler.data.EmpiricalMetric
+import sampler.data.ParallelFrequencyTableBuilder
 
 object AnotherOnePopulation extends App{
 	/*
@@ -59,8 +60,8 @@ object AnotherOnePopulation extends App{
 		
 		def isWithinTolerance(samplePrev: Double) = math.abs(samplePrev - truePrevalence) < precision	
 		
-		def terminationCondition(soFar: ParSeq[Double]) = {
-			val distance = Distance.max(
+		def terminationCondition(soFar: Seq[Double]) = {
+			val distance = EmpiricalMetric.max(
 			    FrequencyTable(soFar.seq.take(soFar.size - chunkSize)), 
 			    FrequencyTable(soFar.seq)
 			)
@@ -69,8 +70,9 @@ object AnotherOnePopulation extends App{
 		}
 		
 		// Sample the model until convergence
-		FrequencyTableBuilder.parallel(model, chunkSize)(s => terminationCondition(s))
-		.map(isWithinTolerance _)		// Transform samples to in/out of tolerance
+		val builder = new ParallelFrequencyTableBuilder(chunkSize)
+		builder(model)(terminationCondition _)
+			.map(isWithinTolerance _)		// Transform samples to in/out of tolerance
 	}
 	
 	val sampleSizeList = ListBuffer[Int]()
