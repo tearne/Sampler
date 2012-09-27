@@ -20,13 +20,12 @@ package sampler.examples.prevchange
 import sampler.io.CSVTableWriter
 import sampler.r.ScriptRunner
 import sampler.data.Types._
-import sampler.data.WeightsTable
-import sampler.math.Probability
-import sampler.data.FrequencyTable
+import sampler.math._
+import sampler.data._
 import scala.annotation.tailrec
 import scala.collection.immutable.TreeMap
 import sampler.run.agent.LocalActorRunner
-import sampler.fit.ABC
+import sampler.fit.ABCComponent
 
 /*
  * Draw posterior distributions and confidence limits for the number of infected 
@@ -41,10 +40,17 @@ object Posteriors extends App with WithoutReplacementABC with Environment{
 	val model = new Model(populationSize, sampleSize)
 	import model._
 	
+	object ABC extends ABCComponent 
+				  with FrequencyTableBuilderComponent 
+				  with StatisticsComponent{
+		val builder = SerialFrequencyTableBuilder
+		val statistics = new Statistics
+	}
+	
 	def getPosterior(numPosObserved: Int) = {
 		val runner = new LocalActorRunner()
 		
-		val posterior = ABC.apply(model, r)(
+		val posterior = ABC(model, r)(
 				uniformPrior,
 				Observations(numPosObserved),
 				reps = 10,

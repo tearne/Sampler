@@ -17,21 +17,19 @@
 
 package sampler.fit
 
-import sampler.data.Samplable
-import sampler.data.WeightsTable
-import sampler.data.Particle
-import sampler.math.Random
-import sampler.data.FrequencyTableBuilder
+import sampler.data._
+import sampler.data.Types._
+import sampler.math._
 import scala.annotation.tailrec
 import sampler.data.WeightsTable
 import java.nio.file.Path
 import sampler.io.CSVTableWriter
-import sampler.data.Types._
 import sampler.run.JobRunner
 import sampler.run.AbortableRunner
 import java.util.concurrent.atomic.AtomicBoolean
 import sampler.run.Abort
 import sampler.run.AbortableJob
+import sampler.data.FrequencyTableBuilderComponent
 
 trait Prior[A] extends Samplable[A]{
 	def density(value: A): Double
@@ -59,8 +57,10 @@ trait ABCModel{
 	}
 }
 
-
-object ABC{
+trait ABCComponent{
+	this: FrequencyTableBuilderComponent with
+		  StatisticsComponent =>
+	
 	def apply(model: ABCModel, r: Random)( 
 			prior: Prior[model.Parameters],
 			obs: model.Observations, 
@@ -93,12 +93,15 @@ object ABC{
 					else{
 						val candidate = population.sample(r).value.perturb
 						val assessedModel = model.init(candidate, obs).map(_.closeToObserved(obs, tolerance))(r)
-						val numSuccess = FrequencyTableBuilder
-							.serial(assessedModel)(_.size == reps)(r)
-							.samples.count(identity) //TODO use a counting statistic?
-						val fHat = numSuccess.toDouble / reps
+						
+						//val numSuccess = statistics.occursCount(builder(assessedModel)(_.size == reps)(r), true)
+						
+//						val numSuccess = FrequencyTableBuilder
+//							.serial(assessedModel)(_.size == reps)(r)
+//							.samples.count(identity) //TODO use a counting statistic?
+						val fHat = builder(assessedModel)(_.size == reps)(r).probabilityMap(true).value//numSuccess.toDouble / reps
 			
-						val res = if(numSuccess != 0){
+						val res = if(fHat > 0){
 							val numerator = fHat * prior.density(candidate)
 							val denominator = population.particles.map{p => 
 								p.weight * p.value.perturbDensity(candidate)
