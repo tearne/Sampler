@@ -39,7 +39,7 @@ object SampleDistribution extends App {
   
   //Domain parameters
   val populationSize = 100
-  val sampleSize = 1
+  val sampleSize = 10
   
   //Meta-parameters
   val chunkSize = 2000
@@ -107,29 +107,81 @@ ggplot(melt(data,id="ObsPrev"), aes(x=ObsPrev, y=value, colour=variable)) +
 dev.off()
 """
 
-  ScriptRunner(plotScript, outputPath.resolve("plorScript.r"))
+  ScriptRunner(plotScript, outputPath.resolve("plotScript.r"))
+
+  /** Takes a long time to run so commented out for later runs **/
+//  val confidence = Probability(0.95)
+//  val precision = 0.09
+//  
+//  var sampleSizes: List[Int] = List()
+//  var prevalences: List[Int] = List()
+//  
+//  for(i <- 1 until 100) {
+//	  prevalences = prevalences.:+(i)
+//	  
+//	  println("Calculating sample size for prevalence " + i + "% ...")
+//	  
+//	  val n = minimumSampleSize(populationSize, i.toDouble/100.0, confidence, precision)
+//	  sampleSizes = sampleSizes.:+(n)
+//	  
+//	  println("\t" + n + " samples")
+//  }
+//  
+//  val prevCol = Column(prevalences, "Prevalence")
+//  val ssCol = Column(sampleSizes, "SampleSize")
+//  
+//  new CSVTableWriter(outputPath.resolve("SSfor100with95.csv"), true)(prevCol, ssCol)
   
-  val confidence = Probability(0.95)
-  val precision = 0.09
+  val ssScript = """
+require("ggplot2")
+require("reshape")
+    
+data <- read.csv("SSfor100with95.csv")
+
+formulaN = c()
+
+for(i in 1:99){
+prev = i/100
+formulaN = c(formulaN, (1.96^2 * prev * (1-prev))/0.09^2)
+}
+    
+newData <- c(data, as.data.frame(formulaN))
+newData <- as.data.frame(newData)
+
+names(newData) <- c("Prevalence", "Sampling", "Classical Stats")
+
+pdf("ssPlot.pdf", width=8.27, height=5.83)
+    
+ggplot(melt(newData,id="Prevalence"), aes(x=Prevalence, y=value, colour=variable)) + 
+    geom_line() + 
+    scale_x_continuous(name="Prevalence") +
+    scale_y_continuous(name="Sample size") +
+    scale_colour_discrete(name="Method")
+
+reduced2 <- read.csv("SSfor100with95_reduced2.csv")
+
+reducedN = c()
+    
+for(i in seq(2, 98, 2)){
+prev = i/100
+reducedN = c(reducedN, (1.96^2 * prev * (1-prev))/0.09^2)
+}
+
+reducedData <- c(reduced2, as.data.frame(reducedN))
+reducedData <- as.data.frame(reducedData)
+
+names(reducedData) <- c("Prevalence", "Sampling", "Classical Stats")
+    
+ggplot(melt(reducedData,id="Prevalence"), aes(x=Prevalence, y=value, colour=variable)) + 
+    geom_line() + 
+    scale_x_continuous(name="Prevalence") +
+    scale_y_continuous(name="Sample size") +
+    scale_colour_discrete(name="Method")
   
-  var sampleSizes: List[Int] = List()
-  var prevalences: List[Int] = List()
-  
-  for(i <- 1 until 100) {
-	  prevalences = prevalences.:+(i)
-	  
-	  println("Calculating sample size for prevalence " + i + "% ...")
-	  
-	  val n = minimumSampleSize(populationSize, i.toDouble/100.0, confidence, precision)
-	  sampleSizes = sampleSizes.:+(n)
-	  
-	  println("\t" + n + " samples")
-  }
-  
-  val prevCol = Column(prevalences, "Prevalence")
-  val ssCol = Column(sampleSizes, "SampleSize")
-  
-  new CSVTableWriter(outputPath.resolve("SSfor100with95.csv"), true)(prevCol, ssCol)
+dev.off()
+"""
+
+  ScriptRunner(ssScript, outputPath.resolve("ssScript.r"))
   
   def sampleDistribution(truePrevalence: Double, populationSize: Int, sampleSize: Int): FrequencyTable[Double] = {
 		  
