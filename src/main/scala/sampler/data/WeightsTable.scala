@@ -26,7 +26,7 @@ case class Particle[A](value: A, weight: Double)
  * Sampling is performed according to the weights
  */
 trait WeightsTable[A] extends Empirical[Particle[A], A]{ self =>
-	val particles: Seq[Particle[A]]
+	val particles: Seq[Particle[A]]	// HAS POTENTIAL DUPLICATION
 	
 	lazy val size = particles.size
 	
@@ -34,18 +34,35 @@ trait WeightsTable[A] extends Empirical[Particle[A], A]{ self =>
 	//       transformed by normalising the weights, but then instead of just keeping the normalised
 	//       particles, we are stuck with holding on to the original particles sequence too.
 	lazy val normalised: IndexedSeq[Particle[A]] = {
-		val total = particles.map(_.weight).sum
-		val normalised = particles.map(particle => Particle(particle.value, particle.weight / total))
+		val namesWithoutDuplicate = (particles map {a => a.value}).toSet
+		
+		val newMap: scala.collection.mutable.Map[A, Double] = scala.collection.mutable.Map()
+
+		particles map{
+		  a => {
+		    if (newMap.contains(a.value)) {
+		      val oldWeight = newMap.get(a.value)
+		      val newWeight = a.weight + oldWeight.get
+		      newMap.+=((a.value, newWeight))
+		    }
+		    else newMap.+=((a.value, a.weight))
+		  }
+		}
+		
+		val particlesWithoutDuplicate = newMap.map(a => Particle(a._1, a._2))
+		
+		val total = particlesWithoutDuplicate.map(_.weight).sum
+		val normalised = particlesWithoutDuplicate.map(particle => Particle(particle.value, particle.weight / total))
 
 		val sum = normalised.map(_.weight).sum
-		//TODO clean up this check and exception
+		
 		if(math.abs(sum - 1.0)>0.0000001)
-			throw new RuntimeException("Sum not 1: "+sum)
+			throw new WeightsTableException("Sum not 1: "+sum)
 		normalised.toIndexedSeq
 	}	
-	lazy val cumulativeWeights = normalised.scanLeft(0.0){case (acc, particle) => acc + particle.weight}.tail
+	
 	lazy val probabilityMap = normalised.map(p => (p.value, Probability(p.weight))).toMap
-	lazy val values = probabilityMap.values
+
 	//Miles: Seems odd that I've had to make so many vals above lazy. Some of them are to avoid 
 	//       null pointers when instantiating with new WeightsTable[T]{ ... }, others are to
 	//       avoid unnecessary processing at construction time.
@@ -58,20 +75,6 @@ trait WeightsTable[A] extends Empirical[Particle[A], A]{ self =>
 	
 	def sample(implicit r: Random): Particle[A] = {
 	    normalised(aliasWrapper.sample())
-	}
-	
-	def originalSample(implicit r: Random): Particle[A] = {
-		//TODO Use the alias method
-		val rnd = r.nextDouble()
-		val index = cumulativeWeights.zipWithIndex.find(_._1 > rnd) match {
-			case None => {
-				println(cumulativeWeights)
-				println(normalised)
-				cumulativeWeights.size
-			}
-			case Some(tuple) => tuple._2
-		}
-		normalised(index)
 	}
 	
 	def discardWeights(): FrequencyTable[A] = new FrequencyTable[A]{
@@ -100,6 +103,8 @@ trait WeightsTable[A] extends Empirical[Particle[A], A]{ self =>
 	}
 	override def hashCode() = probabilityMap.hashCode
 }
+
+class WeightsTableException(msg: String) extends RuntimeException
 
 object WeightsTable{
 	def apply[T](p: Seq[Particle[T]]): WeightsTable[T] = new WeightsTable[T]{
