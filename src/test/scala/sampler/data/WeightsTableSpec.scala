@@ -48,12 +48,6 @@ class WeightsTableSpec extends Specification with Mockito{
 			w1.normalised.map(_.weight).sum mustEqual 1
 		}
 		
-		"tidy exception in normalisation function" in todo
-		
-		"have cumulative weights" in {
-			w1.cumulativeWeights mustEqual IndexedSeq(0.25, 0.5, 0.75, 1.0)
-		}
-		
 		"map each entry to a probability object" in {
 			val probMap = w1.probabilityMap
 			
@@ -65,8 +59,6 @@ class WeightsTableSpec extends Specification with Mockito{
 					4 -> quarter
 			)
 		}
-		
-		"returns the values of the probability map ??? " in todo
 		
 		"sample distribution (using the alias method as default)" in {
 		  
@@ -105,20 +97,38 @@ class WeightsTableSpec extends Specification with Mockito{
 		}
 		
 		"be mappable to a new weights table, ratio of weights remain the same after transformation" in {
-			val newMap = w1.map((a: Particle[Int]) => Particle(a.value.toString, a.weight*2))
+			val newMap = w1.map((a: Particle[Int]) => Particle(a.value, a.weight*2))
 			
-			newMap.cumulativeWeights mustEqual IndexedSeq(0.25, 0.5, 0.75, 1.0)
+			val probMap = newMap.probabilityMap
+			
+			(probMap.get(1).get.value mustEqual 0.25) and
+			(probMap.get(2).get.value mustEqual 0.25) and
+			(probMap.get(3).get.value mustEqual 0.25) and
+			(probMap.get(4).get.value mustEqual 0.25)
 		}
 		
 		"override equals and hashcode" in {
 			val instance1a = WeightsTable(particleSeq)
 			val instance1b = WeightsTable(particleSeq)
-			val instance2 = WeightsTable(Seq(p1,p2,p3,p3, Particle(5,1.25)))
+			val instance2 = WeightsTable(Seq(p1,p2,p3,p4, Particle(5,1.25)))
 			
 			(instance1a mustEqual instance1b) and
 			(instance1a mustNotEqual instance2) and
 			(instance1a.hashCode mustEqual instance1b.hashCode) and
 			(instance1a.hashCode mustNotEqual instance2.hashCode)
+		}
+		
+		"possible repetition" in {
+		  val a1 = Particle(1, 1.25)
+		  val a2 = Particle(2, 1.25)
+		  val a3 = Particle(1, 2.50)
+		  
+		  val repMap = WeightsTable(IndexedSeq(a1, a2, a3))
+		  
+		  val probMap = repMap.probabilityMap
+		  
+		  (probMap.get(1).get.value mustEqual 0.75) and
+		  (probMap.get(2).get.value mustEqual 0.25)
 		}
 	}
 }

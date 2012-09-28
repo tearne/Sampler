@@ -129,7 +129,8 @@ trait ABCComponent{
 			val results: Seq[Option[Particle[P]]] = runner(
 					Abort[Particle[P]](_.contains(None))
 			){
-					val jobs = population.values.map(particle => AbortableJob[Particle[P]](stillRunning => getNextParticle(stillRunning)))
+					// population.particles replaced population.values when deleted
+					val jobs = population.particles.map(particle => AbortableJob[Particle[P]](stillRunning => getNextParticle(stillRunning)))
 					jobs.toSeq
 			}
 			
