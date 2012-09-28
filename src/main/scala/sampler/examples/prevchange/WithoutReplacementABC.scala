@@ -17,13 +17,13 @@
 
 package sampler.examples.prevchange
 
+import sampler.data._
 import sampler.math.Random
-import sampler.data.Samplable
-import sampler.fit.ABC
 import sampler.fit.ABCModel
 import scala.annotation.tailrec
 import sampler.fit.Prior
 import sampler.run.agent.LocalActorRunner
+import sampler.fit.ABCComponent
 
 /*
  * This ABC model will fit the underlying number of infected units in a population

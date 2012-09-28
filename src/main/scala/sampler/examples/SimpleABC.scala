@@ -18,12 +18,11 @@
 //package sampler.examples
 //
 //import scala.annotation.tailrec
-//import sampler.data.Distribution
-//import sampler.math.Random
+//import sampler.data._
+//import sampler.fit._
+//import sampler.math._
 //import org.apache.commons.math3.distribution.NormalDistribution
 //import sampler.fit.Prior
-//import sampler.fit.ABCModel
-//import sampler.fit.ABC
 //import sampler.io.CSVTableWriter
 //import java.nio.file.Paths
 //import sampler.data.Types._

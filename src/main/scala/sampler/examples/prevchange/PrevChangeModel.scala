@@ -21,20 +21,19 @@ import sampler.math.Random
 import scala.annotation.tailrec
 import sampler.data.Samplable
 import sampler.fit.Prior
-import sampler.fit.ABC
 import sampler.io.CSVTableWriter
 import java.nio.file.Paths
 import sampler.data.Types.Column
-import sampler.math.Probability
+import sampler.math._
 import sampler.r.ScriptRunner
 import sampler.data.WeightsTable
 import sampler.run.agent.LocalActorRunner
 import sampler.data.Types._
 import scala.annotation.tailrec
-import sampler.data.FrequencyTableBuilder
-import sampler.data.Distance
 import sampler.data.FrequencyTable
 import scala.collection.immutable.TreeMap
+import sampler.fit.ABCComponent
+import sampler.data._
 
 /*
  * On first sample of an infected population work out the uncertainty around
@@ -43,7 +42,9 @@ import scala.collection.immutable.TreeMap
  * of samples to have 95% confidence of detecting an increase, given all the
  * uncertainty thus far.
  */
-object PrevChangeApp extends App with WithoutReplacementABC with Environment{
+object PrevChangeApp extends App 
+		with WithoutReplacementABC 
+		with Environment{
 	
 	val populationSize = 60
 	val sampleSize = 20
@@ -52,6 +53,13 @@ object PrevChangeApp extends App with WithoutReplacementABC with Environment{
 	val model = new Model(populationSize, sampleSize)
 	import model._
 	
+		
+	object ABC extends ABCComponent 
+				  with FrequencyTableBuilderComponent
+				  with StatisticsComponent{
+		val builder = SerialFrequencyTableBuilder
+		val statistics = new Statistics
+	}
 	
 	//Get a posterior for the true number of infected given sample so far
 	def getPosterior(numPosObserved: Int) = {
@@ -126,8 +134,12 @@ dev.off()
 				}
 			} 
 					
-			val result = FrequencyTableBuilder.parallel(differenceDist, mcChunkSize){samples =>
-				val distance = Distance.max(FrequencyTable(samples.seq.take(samples.size - mcChunkSize)), FrequencyTable(samples.seq))
+			val builder = new ParallelFrequencyTableBuilder(mcChunkSize)
+			val result = builder(differenceDist){samples => 
+				val distance = EmpiricalMetric.max(
+						FrequencyTable(samples.seq.take(samples.size - mcChunkSize)), 
+						FrequencyTable(samples.seq)
+				)
 				(distance < mcConvergence) || (samples.size > 1e8)
 			}.rightTail(0)
 			println("Conf for increase of "+extraNumInf+" is "+result)
