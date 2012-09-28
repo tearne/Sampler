@@ -42,6 +42,10 @@ trait Empirical[Sample, Domain] extends Samplable[Sample]{
 trait EmpiricalMetricComponent{
 	this: StatisticsComponent =>
 		
+		
+	//Miles:  Is this ok?  I've not wrapped mean & max in a trait/class.  I couldn't see
+	//        any reason why that might be necessary, in particular mocking seems fine. 
+	//        Why does the 'DI Cake pattern' always involve an inner trait/class?
 	def mean[T: Fractional](a: Empirical[_,T], b: Empirical[_,T]) = {
 		math.abs(statistics.mean(a)-statistics.mean(b))
 	}
@@ -56,6 +60,9 @@ trait EmpiricalMetricComponent{
 	}
 }
 
+/*
+ * To enable quick and easy access to the metrics when scripting small tasks
+ */
 object EmpiricalMetric extends EmpiricalMetricComponent with StatisticsComponent{
 	val statistics = new Statistics()
 }

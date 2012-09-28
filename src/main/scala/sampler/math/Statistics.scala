@@ -20,20 +20,24 @@ package sampler.math
 import sampler.data.Empirical
 import sampler.data.FrequencyTable
 
+/*
+ * Mix in the StatisticsComponent to enable easy calculation of stats on Empirical
+ */
 trait StatisticsComponent{
 	val statistics: Statistics
 	
-	class RichEmpirical[S,D](emp: Empirical[S,D]){
-		def mean(implicit f: Fractional[D]) = statistics.mean(emp)
+	class RichEmpirical[S,D](e: Empirical[S,D]){
+		def mean(implicit f: Fractional[D]) = statistics.mean(e)
 	}
 	
-	class Statistics{
-		def mean[Domain](emp: Empirical[_,Domain])(implicit num: Fractional[Domain]) = {
-			import num._
-			emp.probabilityMap.foldLeft(0.0){case (acc, (v,p)) => {
-				acc + v.toDouble * p.value
-			}} / emp.size	
-		}
-	}
+	implicit def richEmpirical[S,D](e: Empirical[S,D]) = new RichEmpirical(e)
 }
 
+class Statistics{
+	def mean[Domain](e: Empirical[_,Domain])(implicit num: Fractional[Domain]) = {
+		import num._
+		e.probabilityMap.foldLeft(0.0){case (acc, (v,p)) => {
+			acc + v.toDouble * p.value
+		}} / e.size	
+	}
+}

@@ -41,10 +41,8 @@ object Posteriors extends App with WithoutReplacementABC with Environment{
 	import model._
 	
 	object ABC extends ABCComponent 
-				  with FrequencyTableBuilderComponent 
-				  with StatisticsComponent{
+				  with FrequencyTableBuilderComponent{
 		val builder = SerialFrequencyTableBuilder
-		val statistics = new Statistics
 	}
 	
 	def getPosterior(numPosObserved: Int) = {

@@ -58,8 +58,7 @@ trait ABCModel{
 }
 
 trait ABCComponent{
-	this: FrequencyTableBuilderComponent with
-		  StatisticsComponent =>
+	this: FrequencyTableBuilderComponent =>
 	
 	def apply(model: ABCModel, r: Random)( 
 			prior: Prior[model.Parameters],
