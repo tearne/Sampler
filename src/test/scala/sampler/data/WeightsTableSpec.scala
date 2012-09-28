@@ -83,40 +83,6 @@ class WeightsTableSpec extends Specification with Mockito{
 		  (listOfSamples.count(_ ==4) must beBetween(200, 300))
 		}
 		
-		
-		//TODO remove
-		"sample by cumulative weight (using original method)" in {
-			val rand = mock[Random]
-			rand.nextDouble() returns 0.3
-			
-			w1.originalSample(rand) mustEqual Particle(2,0.25)
-		}
-		
-		//TODO remove when done
-		"Alias sampling should be faster" in {
-		  val rand = new Random
-		  
-		  val startTime = System.nanoTime()
-		  
-		  for(i <- 0 until 1000000)
-		    w1.sample(rand)
-		    
-		  val intermediateTime = System.nanoTime()
-		    
-		  for(i <- 0 until 1000000)
-		    w1.originalSample(rand)
-
-		  val endTime = System.nanoTime()
-		  
-		  val aliasTime = intermediateTime - startTime
-		  val originalTime = endTime - intermediateTime
-//		  
-//		  printf("The alias method took %.3f s\n", aliasTime/1000000000.0)
-//		  printf("The original method took %.3f s\n", originalTime/1000000000.0)
-		  
-		  aliasTime must beLessThan(originalTime)
-		}
-		
 		"be convertable to frequency table" in {
 			val freqTable: FrequencyTable[Int] = w1.discardWeights
 			

@@ -60,20 +60,6 @@ trait WeightsTable[A] extends Empirical[Particle[A], A]{ self =>
 	    normalised(aliasWrapper.sample())
 	}
 	
-	def originalSample(implicit r: Random): Particle[A] = {
-		//TODO Use the alias method
-		val rnd = r.nextDouble()
-		val index = cumulativeWeights.zipWithIndex.find(_._1 > rnd) match {
-			case None => {
-				println(cumulativeWeights)
-				println(normalised)
-				cumulativeWeights.size
-			}
-			case Some(tuple) => tuple._2
-		}
-		normalised(index)
-	}
-	
 	def discardWeights(): FrequencyTable[A] = new FrequencyTable[A]{
 		val samples = particles.map(_.value).toIndexedSeq
 	}
