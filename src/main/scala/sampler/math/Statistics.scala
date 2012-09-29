@@ -24,7 +24,7 @@ import sampler.data.FrequencyTable
  * Mix in the StatisticsComponent to enable easy calculation of stats on Empirical
  */
 trait StatisticsComponent{
-	val statistics: Statistics
+	val statistics: Statistics = new Statistics
 	
 	class RichEmpirical[S,D](e: Empirical[S,D]){
 		def mean(implicit f: Fractional[D]) = statistics.mean(e)

@@ -27,10 +27,10 @@ import sampler.io.CSVTableWriter
 import java.nio.file.Paths
 import sampler.data.Types.Column
 import scala.collection.parallel.ParSeq
-import sampler.data.EmpiricalMetric
+import sampler.data.EmpiricalMetricComponent
 import sampler.data.ParallelFrequencyTableBuilder
 
-object AnotherOnePopulation extends App{
+object AnotherOnePopulation extends App with EmpiricalMetricComponent{
 	/*
 	 * In a population of a given size, and sampling with replacement,
 	 * how many samples should be taken to be % confident of observing
@@ -61,7 +61,7 @@ object AnotherOnePopulation extends App{
 		def isWithinTolerance(samplePrev: Double) = math.abs(samplePrev - truePrevalence) < precision	
 		
 		def terminationCondition(soFar: Seq[Double]) = {
-			val distance = EmpiricalMetric.max(
+			val distance = metric.max(
 			    FrequencyTable(soFar.seq.take(soFar.size - chunkSize)), 
 			    FrequencyTable(soFar.seq)
 			)

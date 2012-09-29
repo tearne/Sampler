@@ -28,10 +28,10 @@ import sampler.data.Types.Column
 import sampler.math.Probability
 import sampler.r.ScriptRunner
 import scala.annotation.tailrec
-import sampler.data.EmpiricalMetric
+import sampler.data.EmpiricalMetricComponent
 import sampler.data.ParallelFrequencyTableBuilder
 
-object SampleDistribution extends App {
+object SampleDistribution extends App with EmpiricalMetricComponent{
 	/*
 	 * In a population of a given size, sampling a given number 
 	 * without replacement, what is the distribution of results 
@@ -194,7 +194,7 @@ dev.off()
 	  	.map(_.count(identity) / sampleSize.toDouble)			// Transform to model of sample prevalance
 	  
 	  def terminationCondition(soFar: Seq[Double]) = {
-		val distance = EmpiricalMetric.max(
+		val distance = metric.max(
 			FrequencyTable(soFar.seq.take(soFar.size - chunkSize)), 
 			FrequencyTable(soFar.seq)
 		)

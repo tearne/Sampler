@@ -34,6 +34,7 @@ import sampler.data.FrequencyTable
 import scala.collection.immutable.TreeMap
 import sampler.fit.ABCComponent
 import sampler.data._
+import sampler.data.EmpiricalMetricComponent
 
 /*
  * On first sample of an infected population work out the uncertainty around
@@ -44,6 +45,8 @@ import sampler.data._
  */
 object PrevChangeApp extends App 
 		with WithoutReplacementABC 
+		with EmpiricalMetricComponent
+	//	with StatisticsComponent
 		with Environment{
 	
 	val populationSize = 60
@@ -55,10 +58,8 @@ object PrevChangeApp extends App
 	
 		
 	object ABC extends ABCComponent 
-				  with FrequencyTableBuilderComponent
-				  with StatisticsComponent{
+				  with FrequencyTableBuilderComponent{
 		val builder = SerialFrequencyTableBuilder
-		val statistics = new Statistics
 	}
 	
 	//Get a posterior for the true number of infected given sample so far
@@ -136,7 +137,7 @@ dev.off()
 					
 			val builder = new ParallelFrequencyTableBuilder(mcChunkSize)
 			val result = builder(differenceDist){samples => 
-				val distance = EmpiricalMetric.max(
+				val distance = metric.max(
 						FrequencyTable(samples.seq.take(samples.size - mcChunkSize)), 
 						FrequencyTable(samples.seq)
 				)
