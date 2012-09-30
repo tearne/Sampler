@@ -48,11 +48,11 @@ trait Samplable[A]{ self =>
 	}
 	
 	//TODO when sub-traits override this the return type gets messed up
-	def map[B](f: A => B)(implicit r: Random) = new Samplable[B]{
+	def map[B](f: A => B) = new Samplable[B]{
 		def sample(implicit r: Random) = f(self.sample(r))
 	}
 	
-	def flatMap[B](f: A => Samplable[B])(implicit r: Random) = new Samplable[B]{
+	def flatMap[B](f: A => Samplable[B]) = new Samplable[B]{
 		def sample(implicit r: Random) = f(self.sample(r)).sample(r)
 	}
 	

@@ -41,7 +41,7 @@ trait FrequencyTable[A] extends Empirical[A, A]{ self =>
 	//Miles: Would be nicer if the Monad bits (map and flatmap) could be in
 	//       Samplable, but without needing to generalise the return type.
 	//       Is this a place where the Monad in Scalaz could help?
-	def map[B](f: A => B) = new FrequencyTable[B]{
+	override def map[B](f: A => B) = new FrequencyTable[B]{
 		val samples = self.samples.map(f)
 	}
 	

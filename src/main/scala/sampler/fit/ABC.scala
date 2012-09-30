@@ -91,7 +91,7 @@ trait ABCComponent{
 					}
 					else{
 						val candidate = population.sample(r).value.perturb
-						val assessedModel = model.init(candidate, obs).map(_.closeToObserved(obs, tolerance))(r)
+						val assessedModel = model.init(candidate, obs).map(_.closeToObserved(obs, tolerance))
 						
 						//val numSuccess = statistics.occursCount(builder(assessedModel)(_.size == reps)(r), true)
 						
