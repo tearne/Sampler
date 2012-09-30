@@ -38,6 +38,6 @@ class Statistics{
 		import num._
 		e.probabilityMap.foldLeft(0.0){case (acc, (v,p)) => {
 			acc + v.toDouble * p.value
-		}} / e.size	
+		}}
 	}
 }
