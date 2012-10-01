@@ -36,6 +36,7 @@ trait FrequencyTable[A] extends Empirical[A, A]{ self =>
 	//Miles: Seems a shame to duplicate so much code here just to change return type
 	override def filter(pred: A => Boolean): FrequencyTable[A] = new FrequencyTable[A]{
 		val samples = self.samples.filter(pred)
+		//TODO samples, size and probabilityMap are all wrong! 
 	}
 	
 	//Miles: Would be nicer if the Monad bits (map and flatmap) could be in
