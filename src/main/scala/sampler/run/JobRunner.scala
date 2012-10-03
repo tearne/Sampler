@@ -47,20 +47,23 @@ trait AbortableRunner extends JobRunner{
 		)
 }
 
-//class SerialRunner extends AbortableRunner{
-//	def apply[T](abort: Seq[Option[T]] => Boolean)(jobs: Seq[() => Option[T]]): Option[Seq[Option[T]]] = {
-//		@tailrec
-//		def doJobsFrom(idx: Int, acc: Seq[Option[T]]): Option[Seq[Option[T]]] = {
-//			if(idx == jobs.size) Some(acc.reverse)
-//			else if(abort(acc)) None
-//			else {
-//				doJobsFrom(idx + 1, jobs(idx)() +: acc)
-//			}
-//		}
-//		
-//		doJobsFrom(0, Nil)
-//	}
-//}
+class SerialRunner extends AbortableRunner{
+	def apply[T](abort: Abort[T])(jobs: Seq[AbortableJob[T]]): Seq[Option[T]] = {
+		val indexedJobs = jobs.toIndexedSeq
+		val stillRunning = new AtomicBoolean(true)
+		
+		@tailrec
+		def doJobsFrom(idx: Int, acc: Seq[Option[T]]): Seq[Option[T]] = {
+			if(idx == jobs.size) acc.reverse
+			else if(abort(acc)) Nil
+			else {
+				doJobsFrom(idx + 1, indexedJobs(idx).run(stillRunning) +: acc)
+			}
+		}
+		
+		doJobsFrom(0, Nil)
+	}
+}
 
 class ParallelCollectionRunner extends JobRunner{
 	def apply[T](jobs: Seq[Job[T]]): Seq[Option[T]] = {
