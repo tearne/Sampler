@@ -13,7 +13,7 @@ class AliasWrapperSpec extends Specification with Mockito{
       
 	    "if the probabilities don't add to one" in {
 	      val random = mock[Random]
-	      val probabilities = List(0.1, 0.2, 0.3, 0.3)
+	      val probabilities = Vector(0.1, 0.2, 0.3, 0.3)
 	      
 	      new AliasWrapper(probabilities) must throwA[ProbabilityException]
 	    }
@@ -26,15 +26,14 @@ class AliasWrapperSpec extends Specification with Mockito{
 	      val seventh = 1.0/7.0
 	      val forteenth = 1.0/14.0
 	      
-	      val probabilities = List(seventh, seventh, seventh, seventh, seventh, seventh, forteenth, forteenth)
+	      val probabilities = Vector(seventh, seventh, seventh, seventh, seventh, seventh, forteenth, forteenth)
 	      // Sum = 0.9999999999999998
 	    	  
-	      new AliasWrapper(probabilities) must not(throwA[ProbabilityException])
 	    }
     }
   
     "return random values if supplied with a real random" in {
-      val probabilities = List(0.1, 0.2, 0.3, 0.4)
+      val probabilities = Vector(0.1, 0.2, 0.3, 0.4)
       
       val aliasWrapper = new AliasWrapper(probabilities)
       

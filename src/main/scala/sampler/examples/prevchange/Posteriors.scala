@@ -41,8 +41,8 @@ object Posteriors extends App with WithoutReplacementABC with Environment{
 	import model._
 	
 	object ABC extends ABCComponent 
-				  with FrequencyTableBuilderComponent{
-		val builder = SerialFrequencyTableBuilder
+				  with SampleBuilderComponent{
+		val builder = SerialSampleBuilder
 	}
 	
 	def getPosterior(numPosObserved: Int) = {
@@ -64,10 +64,9 @@ object Posteriors extends App with WithoutReplacementABC with Environment{
 	}
 	
 	val potentialObservations = List(0,1,3,10,17,19,20)
-	val posteriors = potentialObservations.map{i => getPosterior(i).discardWeights}
-	val dataColumns = posteriors
-			.zip(potentialObservations)
-			.map{case (p, i) => Column(p.samples.map{_.numInfected}, "x"+i.toString)}
+	val posteriors = potentialObservations.map{i => getPosterior(i).toEmpiricalSeq}
+	val dataColumns = posteriors.zip(potentialObservations)
+			.map{case (p, i) => Column(p.seq.map{_.numInfected}, "x"+i.toString)}
 	
 	@tailrec
 	def addZeroIfMissing(map: Map[Int, Int], keyRange: Seq[Int]): Map[Int, Int] = {
@@ -80,7 +79,7 @@ object Posteriors extends App with WithoutReplacementABC with Environment{
 	
 	val posteriorCounts = posteriors
 			.map{posterior =>
-				posterior.samples
+				posterior.seq
 					.map{_.numInfected}
 					.groupBy(identity)
 					.mapValues(_.size)
@@ -116,13 +115,13 @@ dev.off()
 	
 	// Plot some confidence limits versus potential observations
 	case class Confidence(lower: Double, upper: Double)
-	def getConfidence(posterior: FrequencyTable[Parameters]) = {
+	def getConfidence(posterior: EmpiricalSeq[Parameters]) = {
 		val left = posterior.quantile(Probability(0.025))
 		val right = posterior.quantile(Probability(0.975))
 		Confidence(left.numInfected, right.numInfected)
 	}
 	
-	val results = posteriors.map{getConfidence}
+	val results = posteriors.map(getConfidence)
 	
 	new CSVTableWriter(workingDir.resolve("confidence.csv"), true)(
 		Column(potentialObservations, "numPositiveObserved"),

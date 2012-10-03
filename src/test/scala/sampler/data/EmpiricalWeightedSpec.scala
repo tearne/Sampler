@@ -17,6 +17,7 @@
 
 package sampler.data
 
+import sampler.data.Empirical._
 import org.specs2.mutable.Specification
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
@@ -29,27 +30,28 @@ import sampler.math.Random
 @RunWith(classOf[JUnitRunner])
 class WeightsTableSpec extends Specification with Mockito{
 	
-	val p1 = Particle(1, 1.25)
-	val p2 = Particle(2, 1.25)
-	val p3 = Particle(3, 1.25)
-	val p4 = Particle(4, 1.25)
+	val p1 = (1, 1.25)
+	val p2 = (2, 1.25)
+	val p3 = (3, 1.25)
+	val p4 = (4, 1.25)
 	
-	val particleSeq = IndexedSeq(p1,p2,p3,p4)
+	val weightedValues = Map(
+			1 -> 1.25,
+			2 -> 1.25,
+			3 -> 1.25,
+			4 -> 1.25
+	)
 	
-	val w1 = WeightsTable(particleSeq)
+	val w1 = weightedValues.toEmpiricalWeighted
 	def allPass[T](results: IndexedSeq[MatchResult[T]]) = results.reduceLeft{(a,b) => a and b}
 	
-	"Weights table" should {
+	"EmpiricalWeighted" should {
 		"have table size" in {
-			w1.size mustEqual 4
-		}
-		
-		"normalised weights" in {
-			w1.normalised.map(_.weight).sum mustEqual 1
+			w1.supportSize mustEqual 4
 		}
 		
 		"map each entry to a probability object" in {
-			val probMap = w1.probabilityMap
+			val probMap = w1.probabilities
 			
 			val quarter = Probability(0.25)
 			probMap mustEqual Map(
@@ -62,12 +64,12 @@ class WeightsTableSpec extends Specification with Mockito{
 		
 		"sample distribution (using the alias method as default)" in {
 		  
-		  val rand = new Random
+		  implicit val rand = new Random
 		  
 		  var listOfSamples: List[Int] = List()
 		  
 		  for(i <- 0 until 1000)
-		    listOfSamples = listOfSamples.+:(w1.sample(rand).value)
+		    listOfSamples = listOfSamples.+:(w1.sample)
 		  
 		  (listOfSamples.count(_ ==1) must beBetween(200, 300)) and
 		  (listOfSamples.count(_ ==2) must beBetween(200, 300)) and
@@ -75,8 +77,8 @@ class WeightsTableSpec extends Specification with Mockito{
 		  (listOfSamples.count(_ ==4) must beBetween(200, 300))
 		}
 		
-		"be convertable to frequency table" in {
-			val freqTable: FrequencyTable[Int] = w1.discardWeights
+		"be convertable to empirical table" in {
+			val freqTable: EmpiricalTable[Int] = w1.toEmpiricalTable
 			
 			freqTable.counts mustEqual Map(
 					1 -> 1, 
@@ -86,6 +88,11 @@ class WeightsTableSpec extends Specification with Mockito{
 			)
 		}
 		
+		//TODO
+		"be convertalbe to empirical sequency" in todo
+		
+		//TODO consider whether to move this lot into Samplable
+		/*
 		"filter particles in the table" in {
 			val filtered = w1.filter(_.value > 2)
 			
@@ -106,29 +113,18 @@ class WeightsTableSpec extends Specification with Mockito{
 			(probMap.get(3).get.value mustEqual 0.25) and
 			(probMap.get(4).get.value mustEqual 0.25)
 		}
+		*/
 		
 		"override equals and hashcode" in {
-			val instance1a = WeightsTable(particleSeq)
-			val instance1b = WeightsTable(particleSeq)
-			val instance2 = WeightsTable(Seq(p1,p2,p3,p4, Particle(5,1.25)))
+			//TODO add a check comparing an EmpiricalWeighted to an EmpiricalTable (to check not eql)
+			val instance1a = weightedValues.toEmpiricalWeighted
+			val instance1b = weightedValues.toEmpiricalWeighted
+			val instance2 = weightedValues + (5 -> 1.25) toEmpiricalWeighted
 			
 			(instance1a mustEqual instance1b) and
 			(instance1a mustNotEqual instance2) and
 			(instance1a.hashCode mustEqual instance1b.hashCode) and
 			(instance1a.hashCode mustNotEqual instance2.hashCode)
-		}
-		
-		"possible repetition" in {
-		  val a1 = Particle(1, 1.25)
-		  val a2 = Particle(2, 1.25)
-		  val a3 = Particle(1, 2.50)
-		  
-		  val repMap = WeightsTable(IndexedSeq(a1, a2, a3))
-		  
-		  val probMap = repMap.probabilityMap
-		  
-		  (probMap.get(1).get.value mustEqual 0.75) and
-		  (probMap.get(2).get.value mustEqual 0.25)
 		}
 	}
 }

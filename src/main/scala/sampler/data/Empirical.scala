@@ -27,13 +27,92 @@ import scala.collection.TraversableOnce
 import scala.math.Ordering
 import scala.math.Fractional
 import sampler.math.StatisticsComponent
+import scala.collection.immutable.Map
+import scala.collection.GenMap
 
 /*
- * Specialisation of Samplable to apply to sets of observed data
+ * Samplable which are backed by collections of observations
  */
-trait Empirical[Sample, Domain] extends Samplable[Sample]{ 
-	val size: Int
-	val probabilityMap: Map[Domain, Probability]
+trait Empirical[A] extends Samplable[A]{
+	/*
+	 * The number of unique observation values (not num observations fed in)
+	 */
+	val supportSize: Int
+	
+	/*
+	 * The probability or relative frequency associated with each observation value 
+	 */
+	val probabilities: Map[A, Probability]
+	
+	def rightTail(itemInclusive: A)(implicit o: Ordering[A]): Probability = {
+		//TODO would be nice if this didn't need to be recalculated on each
+		// call, but we only have the ordering (frational) inside the method
+		val ordered = probabilities.keys.toList.sorted(o)	
+		val value = ordered.dropWhile(i => o.lt(i,itemInclusive)).foldLeft(0.0){
+			case (acc, i) => acc + probabilities(i).value
+		}
+		Probability(value)
+	}
+	
+	//TODO Tried to do this with a context bound instead of implicit arg 
+	//     but failed Is it possible/desirable to use a context bound?
+	def quantile(prob: Probability)(implicit f: Fractional[A]): A = {
+		import f._
+		val (lower, upper) = {
+			val raw = prob.value * supportSize - 1
+			val idx = scala.math.ceil(raw).toInt
+			if(idx <= 0) (0,0)
+			else if(raw != math.floor(raw)) (idx, idx)
+			else if(idx == supportSize - 1) (idx, idx)
+			else (idx, idx + 1)
+		}
+		
+		//TODO would be nice if this didn't need to be recalculated on each
+		// call, but we only have the ordering (fractional) inside the method
+		val ordered = probabilities.keys.toIndexedSeq.sorted
+		val two = one + one
+		
+		(ordered(lower) + ordered(upper)) / two 
+	}
+	
+	def canEqual[A: Manifest](other: Any): Boolean = other.isInstanceOf[Empirical[_]]
+	override def equals(other: Any) = other match {
+		case that: Empirical[_] => 
+			(that canEqual this) && (that.probabilities == probabilities)
+		case _ => false
+	}
+	override def hashCode() = probabilities.hashCode
+}
+object Empirical{
+	class RichIndexedSeq[A](indSeq: IndexedSeq[A]) {
+		def toEmpiricalSeq = new EmpiricalSeq[A](indSeq)
+		def toEmpiricalTable = new EmpiricalTable[A](
+			indSeq.groupBy(identity).map{case (k,v) => k -> v.size}
+		)
+	}
+	
+	class RichMapInt[A](table: Map[A,Int]) {
+		def toEmpiricalTable = {
+			if(table.values.find(_ <= 0).isDefined) throw new UnsupportedOperationException("Cannot convert to EmpiricalTable, non-positive counts found")
+			else new EmpiricalTable[A](table)
+		}
+	}
+	
+	class RichMapDouble[A](table: Map[A,Double]) {
+		def toEmpiricalWeighted = {
+			if(table.values.find(_ <= 0).isDefined) throw new UnsupportedOperationException("Cannot convert to EmpiricalWeighted, non-positive weights found")
+			else new EmpiricalWeighted[A](table)
+		}
+	}
+	
+	class RichMapProbability[A](table: Map[A, Probability]){
+		def toEmpiricalWeighted = new EmpiricalWeighted[A](table.map{case (k,v) => (k,v.value)})
+	}
+	
+	implicit def indexedSeq2Rich[A](sequence: GenSeq[A]) = new RichIndexedSeq[A](sequence.toIndexedSeq)
+	implicit def mapInt2Rich[A](table: GenMap[A,Int]) =  new RichMapInt(table.seq.toMap)
+	implicit def mapDouble2Rich[A](table: GenMap[A, Double]) = new RichMapDouble(table.seq.toMap)
+	implicit def mapProb2Rich[A](table: GenMap[A, Probability]) = new RichMapProbability(table.seq.toMap)
 }
 
 /*
@@ -46,15 +125,15 @@ trait EmpiricalMetricSubComponent{
 	val metric: EmpiricalMetric = new EmpiricalMetric
 	
 	class EmpiricalMetric{
-		def mean[T: Fractional](a: Empirical[_,T], b: Empirical[_,T]) = {
+		def mean[A: Fractional](a: Empirical[A], b: Empirical[A]) = {
 			math.abs(statistics.mean(a)-statistics.mean(b))
 		}
 		
-		def max[T](a: Empirical[_,T], b: Empirical[_,T]): Double = {
-			val indexes = a.probabilityMap.keySet ++ b.probabilityMap.keySet
-			def distAtIndex(i: T) = math.abs(
-					a.probabilityMap.get(i).map(_.value).getOrElse(0.0) -
-					b.probabilityMap.get(i).map(_.value).getOrElse(0.0)
+		def max[A](a: Empirical[A], b: Empirical[A]): Double = {
+			val indexes = a.probabilities.keySet ++ b.probabilities.keySet
+			def distAtIndex(i: A) = math.abs(
+					a.probabilities.get(i).map(_.value).getOrElse(0.0) -
+					b.probabilities.get(i).map(_.value).getOrElse(0.0)
 			)
 			indexes.map(distAtIndex(_)).max
 		}

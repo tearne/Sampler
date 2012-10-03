@@ -17,11 +17,10 @@
 
 package sampler.examples
 
+import sampler.data.Empirical._
 import sampler.math.Random
 import sampler.data.Samplable
 import scala.collection.parallel.ParSeq
-import sampler.data.FrequencyTableBuilder
-import sampler.data.FrequencyTable
 import java.nio.file.Paths
 import sampler.io.CSVTableWriter
 import sampler.data.Types.Column
@@ -29,7 +28,9 @@ import sampler.math.Probability
 import sampler.r.ScriptRunner
 import scala.annotation.tailrec
 import sampler.data.EmpiricalMetricComponent
-import sampler.data.ParallelFrequencyTableBuilder
+import sampler.data.EmpiricalTable
+import sampler.data.ParallelSampleBuilder
+import scala.collection.GenSeq
 
 object SampleDistribution extends App with EmpiricalMetricComponent{
 	/*
@@ -70,7 +71,7 @@ object SampleDistribution extends App with EmpiricalMetricComponent{
     // Potential for refactoring into a 'getDistributionColumn' prevalence
     val sampleDist = 
       sampleDistribution(prev.toDouble / 100.0, populationSize, sampleSize)
-      .probabilityMap
+      .probabilities
     
     val numPosDist = sampleDist map {
       case a => (a._1 * sampleSize).toInt -> a._2.value
@@ -184,7 +185,7 @@ dev.off()
 
   ScriptRunner(ssScript, outputPath.resolve("ssScript.r"))
   
-  def sampleDistribution(truePrevalence: Double, populationSize: Int, sampleSize: Int): FrequencyTable[Double] = {
+  def sampleDistribution(truePrevalence: Double, populationSize: Int, sampleSize: Int): EmpiricalTable[Double] = {
 		  
 	  val numInfected = (populationSize*truePrevalence).round.toInt
 	  val population = (1 to populationSize).map(_ <= numInfected)
@@ -193,18 +194,18 @@ dev.off()
 	  	Samplable.withoutReplacement(population, sampleSize)	// Start with base model
 	  	.map(_.count(identity) / sampleSize.toDouble)			// Transform to model of sample prevalance
 	  
-	  def terminationCondition(soFar: Seq[Double]) = {
+	  def terminationCondition(soFar: GenSeq[Double]) = {
 		val distance = metric.max(
-			FrequencyTable(soFar.seq.take(soFar.size - chunkSize)), 
-			FrequencyTable(soFar.seq)
+			soFar.take(soFar.size - chunkSize).toEmpiricalTable, 
+			soFar.toEmpiricalTable
 		)
 		  
 		(distance < convergenceCriterion) || (soFar.size > 1e8)
 	  }
 		  
 	  // Sample the model until convergence
-	  val builder = new ParallelFrequencyTableBuilder(chunkSize)
-	  builder(model)(terminationCondition _)
+	  val builder = new ParallelSampleBuilder(chunkSize)
+	  builder(model)(terminationCondition _).toEmpiricalTable
   }
   
   @tailrec
@@ -216,8 +217,10 @@ dev.off()
 		}
 	}
   
-  def sampleSizeConfidence(sampleDist: FrequencyTable[Double], precision: Double, truePrev: Double) = {
-    sampleDist.map((samplePrev: Double) => math.abs(samplePrev - truePrev) < precision)
+  def sampleSizeConfidence(sampleDist: EmpiricalTable[Double], precision: Double, truePrev: Double) = {
+	  sampleDist.counts
+    	.map{case (k,v) => (math.abs(k - truePrev) < precision) -> v}
+    	.toEmpiricalTable
   }
   
   def minimumSampleSize(popSize: Int, truePrev: Double, requiredConfidence: Probability, precision: Double) = {
@@ -230,7 +233,7 @@ dev.off()
 	    	      precision,
 	    	      truePrev
 	    	  )
-	    	  val confidence = eo.probabilityMap.get(true).getOrElse(Probability.zero)
+	    	  val confidence = eo.probabilities.getOrElse(true, Probability.zero)
 //	          println("Sample size = %d, empirical size = %d, confidence = %s".format(n, eo.size, confidence.toString))
 	          (n, confidence)
 			}

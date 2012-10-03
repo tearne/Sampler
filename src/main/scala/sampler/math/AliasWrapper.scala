@@ -2,7 +2,7 @@ package sampler.math
 
 import java.util.ArrayList
 
-class AliasWrapper(probabilities: List[Double]) {
+class AliasWrapper(probabilities: IndexedSeq[Double]) {
 		  
   if(!isEqualOne(probabilities.sum)) throw new ProbabilityException("Cannot use the alias method if probabilities don't sum to one")
   

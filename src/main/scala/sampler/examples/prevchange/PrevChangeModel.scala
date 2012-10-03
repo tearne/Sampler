@@ -18,6 +18,7 @@
 package sampler.examples.prevchange
 
 import sampler.math.Random
+import sampler.data.Empirical._
 import scala.annotation.tailrec
 import sampler.data.Samplable
 import sampler.fit.Prior
@@ -26,11 +27,9 @@ import java.nio.file.Paths
 import sampler.data.Types.Column
 import sampler.math._
 import sampler.r.ScriptRunner
-import sampler.data.WeightsTable
 import sampler.run.agent.LocalActorRunner
 import sampler.data.Types._
 import scala.annotation.tailrec
-import sampler.data.FrequencyTable
 import scala.collection.immutable.TreeMap
 import sampler.fit.ABCComponent
 import sampler.data._
@@ -52,14 +51,16 @@ object PrevChangeApp extends App
 	val populationSize = 60
 	val sampleSize = 20
 	val numPositiveObservations = 7
+	
+	val numParticles = 10000
 
 	val model = new Model(populationSize, sampleSize)
 	import model._
 	
 		
 	object ABC extends ABCComponent 
-				  with FrequencyTableBuilderComponent{
-		val builder = SerialFrequencyTableBuilder
+				  with SampleBuilderComponent{
+		val builder = SerialSampleBuilder
 	}
 	
 	//Get a posterior for the true number of infected given sample so far
@@ -70,7 +71,7 @@ object PrevChangeApp extends App
 				uniformPrior,
 				Observations(numPosObserved),
 				reps = 10,
-				particles = 10000,
+				particles = numParticles,
 				startTolerance = 10,
 				refinementAttempts = 6,
 				runner,
@@ -78,13 +79,12 @@ object PrevChangeApp extends App
 		)
 		
 		runner.shutdown
-		posterior.discardWeights
+		posterior
 	}
 	val posterior = getPosterior(numPositiveObservations)
 	
 	// Plot the posterior
-	val numSamples = posterior.size
-	val counts = posterior.samples.map{_.numInfected}.groupBy(identity).mapValues(v => Probability(v.size.toDouble / numSamples))
+	val counts = posterior.probabilities.map{case (k,v) => k.numInfected -> v}
 	@tailrec
 	def addZeroIfMissing(map: Map[Int, Probability], keyRange: Seq[Int]): Map[Int, Probability] = {
 		if(keyRange.size == 0) map
@@ -135,14 +135,14 @@ dev.off()
 				}
 			} 
 					
-			val builder = new ParallelFrequencyTableBuilder(mcChunkSize)
+			val builder = new ParallelSampleBuilder(mcChunkSize)
 			val result = builder(differenceDist){samples => 
 				val distance = metric.max(
-						FrequencyTable(samples.seq.take(samples.size - mcChunkSize)), 
-						FrequencyTable(samples.seq)
+						samples.take(samples.size - mcChunkSize).toEmpiricalTable, 
+						samples.toEmpiricalTable
 				)
 				(distance < mcConvergence) || (samples.size > 1e8)
-			}.rightTail(0)
+			}.toEmpiricalTable.rightTail(0)
 			println("Conf for increase of "+extraNumInf+" is "+result)
 			result
 		}

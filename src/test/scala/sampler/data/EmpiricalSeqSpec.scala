@@ -15,28 +15,13 @@
  * limitations under the License.
  */
 
-package sampler.math
+package sampler.data
 
-import sampler.data.Empirical
+import org.junit.runner.RunWith
+import org.specs2.runner.JUnitRunner
+import org.specs2.mutable.Specification
 
-/*
- * Mix in the StatisticsComponent to enable easy calculation of stats on Empirical
- */
-trait StatisticsComponent{
-	val statistics: Statistics = new Statistics
-	
-	class RichEmpirical[A](e: Empirical[A]){
-		def mean(implicit f: Fractional[A]) = statistics.mean(e)
-	}
-	
-	implicit def richEmpirical[A](e: Empirical[A]) = new RichEmpirical(e)
-}
-
-class Statistics{
-	def mean[A](e: Empirical[A])(implicit num: Fractional[A]) = {
-		import num._
-		e.probabilities.foldLeft(0.0){case (acc, (v,p)) => {
-			acc + v.toDouble * p.value
-		}}
-	}
+@RunWith(classOf[JUnitRunner])
+class EmpiricalSeqSpec extends Specification{
+	"EmpiricaSeq" should todo
 }

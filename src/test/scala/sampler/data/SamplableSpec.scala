@@ -73,6 +73,7 @@ class SamplableSpec extends Specification {
 			}
 		}
 		
+		//TODO map, flatmap, combine, convolve, crossCorrelate
 	}
 	
 	trait createInstance extends Scope {

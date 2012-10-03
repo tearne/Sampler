@@ -17,18 +17,18 @@
 
 package sampler.examples
 
+import sampler.data.Empirical._
 import sampler.math.Random
 import sampler.math.Probability
 import sampler.data.Samplable
-import sampler.data.FrequencyTableBuilder
-import sampler.data.FrequencyTable
 import scala.collection.mutable.ListBuffer
 import sampler.io.CSVTableWriter
 import java.nio.file.Paths
 import sampler.data.Types.Column
 import scala.collection.parallel.ParSeq
 import sampler.data.EmpiricalMetricComponent
-import sampler.data.ParallelFrequencyTableBuilder
+import sampler.data.ParallelSampleBuilder
+import scala.collection.GenSeq
 
 object AnotherOnePopulation extends App with EmpiricalMetricComponent{
 	/*
@@ -60,19 +60,20 @@ object AnotherOnePopulation extends App with EmpiricalMetricComponent{
 		
 		def isWithinTolerance(samplePrev: Double) = math.abs(samplePrev - truePrevalence) < precision	
 		
-		def terminationCondition(soFar: Seq[Double]) = {
+		def terminationCondition(soFar: GenSeq[Double]) = {
 			val distance = metric.max(
-			    FrequencyTable(soFar.seq.take(soFar.size - chunkSize)), 
-			    FrequencyTable(soFar.seq)
+			    soFar.take(soFar.size - chunkSize).toEmpiricalTable,
+			    soFar.toEmpiricalTable
 			)
 			
 			(distance < convergenceCriterion) || (soFar.size > 1e8)
 		}
 		
 		// Sample the model until convergence
-		val builder = new ParallelFrequencyTableBuilder(chunkSize)
+		val builder = new ParallelSampleBuilder(chunkSize)
 		builder(model)(terminationCondition _)
 			.map(isWithinTolerance _)		// Transform samples to in/out of tolerance
+			.toEmpiricalTable
 	}
 	
 	val sampleSizeList = ListBuffer[Int]()
@@ -83,8 +84,8 @@ object AnotherOnePopulation extends App with EmpiricalMetricComponent{
 			.view
 			.map{n => 
 				val eo = empiricalObjective(n)
-				val confidence = eo.probabilityMap.get(true).getOrElse(Probability.zero)
-				println("Sample size = %d, empirical size = %d, confidence = %s".format(n, eo.size, confidence.toString))
+				val confidence = eo.probabilities.get(true).getOrElse(Probability.zero)
+				println("Sample size = %d, empirical size = %d, confidence = %s".format(n, eo.counts.size, confidence.toString))
 				sampleSizeList.+=(n)
 				confidenceList.+=(confidence)
 				(n, confidence)

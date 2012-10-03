@@ -20,34 +20,42 @@ package sampler.data
 import sampler.math.Random
 import scala.annotation.tailrec
 import org.apache.commons.math3.distribution.NormalDistribution
+import scala.collection.GenSeq
+import scala.collection.parallel.ParSeq
 
 /*
  * Anything from which we can draw samples.  E.g. an analytical distribution,
  * or bootstrapping from a data set of observations
  */
-trait Samplable[A]{ self =>
+trait Samplable[A]{ 
+	self =>
+		
 	def sample(implicit r: Random): A
-
-	def until(condition: IndexedSeq[A] => Boolean)(implicit r: Random) = new Samplable[IndexedSeq[A]]{
-		def sample(implicit r: Random): IndexedSeq[A] = {
+	
+	def until(condition: IndexedSeq[A] => Boolean) = new Samplable[IndexedSeq[A]]{
+		def sample(implicit r: Random) = {
 			@tailrec
 			def append(previous: IndexedSeq[A]): IndexedSeq[A] = {
 				if(condition(previous)) previous
-				else append(previous.:+(self.sample))
+				else append(previous.:+(self.sample(r)))
 			}
-			append(IndexedSeq[A](self.sample))
-		}
-	}
-	def filter(predicate: A => Boolean) = new Samplable[A]{
-		@tailrec
-		override def sample(implicit r: Random): A = {
-			val s = self.sample(r)
-			if(predicate(s)) s
-			else sample(r)
+			append(IndexedSeq[A](self.sample(r)))
 		}
 	}
 	
-	//TODO when sub-traits override this the return type gets messed up
+	def filter(predicate: A => Boolean) = new Samplable[A]{
+		def sample(implicit r: Random) = {
+			@tailrec
+			def tryAgain(r: Random): A = {
+				val s = self.sample(r)
+				if(predicate(s)) s
+				else tryAgain(r)
+			}
+			
+			tryAgain(r)
+		}
+	}
+	
 	def map[B](f: A => B) = new Samplable[B]{
 		def sample(implicit r: Random) = f(self.sample(r))
 	}
@@ -60,10 +68,8 @@ trait Samplable[A]{ self =>
 		def sample(implicit r: Random) = op(self.sample(r), that.sample(r))
 	}
 	
-	def +(that: Samplable[A])(implicit n: Numeric[A]) = combine(that, n.plus _)
-	def -(that: Samplable[A])(implicit n: Numeric[A]) = combine(that, n.minus _)
-	
-	
+	def convolve(that: Samplable[A])(implicit n: Numeric[A]) = combine(that, n.plus _)
+	def crossCorrelate(that: Samplable[A])(implicit n: Numeric[A]) = combine(that, n.minus _)
 }
 
 object Samplable{
@@ -104,4 +110,28 @@ object Samplable{
 		def sample(implicit r: Random) = d.sample
 		def density(value: Double) = d.density(value)
 	}
+}
+
+trait SampleBuilder{
+	def apply[T](samplable: Samplable[T])(condition: GenSeq[T] => Boolean)(implicit r: Random): GenSeq[T]
+}
+
+object SerialSampleBuilder extends SampleBuilder{
+	def apply[T](samplable: Samplable[T])(condition: GenSeq[T] => Boolean)(implicit r: Random) = {
+		samplable.until(condition).sample
+	}
+}
+
+class ParallelSampleBuilder(chunkSize: Int) extends SampleBuilder{
+	def apply[T](samplable: Samplable[T])(condition: GenSeq[T] => Boolean)(implicit r: Random) = {
+		def takeMore(previous: ParSeq[T]): ParSeq[T] = {
+			if(condition(previous)) previous
+			else previous ++ (1 to chunkSize).par.map(i => samplable.sample)
+		}
+		takeMore(Nil.par)
+	}
+}
+
+trait SampleBuilderComponent{
+	val builder: SampleBuilder
 }

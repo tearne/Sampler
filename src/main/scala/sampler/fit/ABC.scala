@@ -18,10 +18,10 @@
 package sampler.fit
 
 import sampler.data._
+import sampler.data.Empirical._
 import sampler.data.Types._
 import sampler.math._
 import scala.annotation.tailrec
-import sampler.data.WeightsTable
 import java.nio.file.Path
 import sampler.io.CSVTableWriter
 import sampler.run.JobRunner
@@ -29,7 +29,6 @@ import sampler.run.AbortableRunner
 import java.util.concurrent.atomic.AtomicBoolean
 import sampler.run.Abort
 import sampler.run.AbortableJob
-import sampler.data.FrequencyTableBuilderComponent
 
 trait Prior[A] extends Samplable[A]{
 	def density(value: A): Double
@@ -53,12 +52,14 @@ trait ABCModel{
 	def init(p: Parameters, obs: Observations): Samplable[Output]
 	
 	trait PopulationWriter{
-		def apply(population: WeightsTable[Parameters], tolerance: Double): Unit
+		def apply(population: EmpiricalWeighted[Parameters], tolerance: Double): Unit
 	}
 }
 
 trait ABCComponent{
-	this: FrequencyTableBuilderComponent =>
+	this: SampleBuilderComponent =>
+		
+	case class Particle[A](value: A, weight: Double)
 	
 	def apply(model: ABCModel, r: Random)( 
 			prior: Prior[model.Parameters],
@@ -69,14 +70,13 @@ trait ABCComponent{
 			refinementAttempts: Int,
 			runner: AbortableRunner,
 			writer: Option[model.PopulationWriter] = None
-	): WeightsTable[model.Parameters] = {
+	): EmpiricalWeighted[model.Parameters] = {
 		type P = model.Parameters
 		
-		val popZero: WeightsTable[P] = WeightsTable(
-			(1 to particles).par.map(i => Particle(prior.sample(r), 1.0)).seq
-		)
+		val popZero: EmpiricalWeighted[P] = 
+			(1 to particles).par.map(i => prior.sample(r) -> 1.0).seq.toMap.toEmpiricalWeighted
 		
-		def evolve(population: WeightsTable[P], tolerance: Double): Option[WeightsTable[P]] = {
+		def evolve(population: EmpiricalWeighted[P], tolerance: Double): Option[EmpiricalWeighted[P]] = {
 			println("Now working on tolerance = "+tolerance)
 			
 			def getNextParticle(keepGoing: AtomicBoolean): Option[Particle[P]] = {
@@ -90,7 +90,7 @@ trait ABCComponent{
 						None
 					}
 					else{
-						val candidate = population.sample(r).value.perturb
+						val candidate = population.sample(r).perturb
 						val assessedModel = model.init(candidate, obs).map(_.closeToObserved(obs, tolerance))
 						
 						//val numSuccess = statistics.occursCount(builder(assessedModel)(_.size == reps)(r), true)
@@ -98,12 +98,13 @@ trait ABCComponent{
 //						val numSuccess = FrequencyTableBuilder
 //							.serial(assessedModel)(_.size == reps)(r)
 //							.samples.count(identity) //TODO use a counting statistic?
-						val fHat = builder(assessedModel)(_.size == reps)(r).probabilityMap(true).value//numSuccess.toDouble / reps
+						val fHat = builder(assessedModel)(_.size == reps)(r).toEmpiricalSeq.probabilities(true).value//numSuccess.toDouble / reps
 			
 						val res = if(fHat > 0){
+							//Calculate a weight for this new particle
 							val numerator = fHat * prior.density(candidate)
-							val denominator = population.particles.map{p => 
-								p.weight * p.value.perturbDensity(candidate)
+							val denominator = population.probabilities.map{case (k,Probability(v)) => 
+								v * k.perturbDensity(candidate)
 							}.sum
 							if(numerator > 0 && denominator > 0)
 								Some(Particle(candidate, numerator / denominator))
@@ -128,18 +129,21 @@ trait ABCComponent{
 			val results: Seq[Option[Particle[P]]] = runner(
 					Abort[Particle[P]](_.contains(None))
 			){
-					// population.particles replaced population.values when deleted
-					val jobs = population.particles.map(particle => AbortableJob[Particle[P]](stillRunning => getNextParticle(stillRunning)))
+					val jobs = (1 to particles).map(particle => AbortableJob[Particle[P]](stillRunning => getNextParticle(stillRunning)))
 					jobs.toSeq
 			}
 			
 			val newPopulation = results.flatten
-			if(newPopulation.size == results.size) Some(WeightsTable(newPopulation))
+			
+			if(newPopulation.size == results.size) Some{
+				//Map the sequence of weighted params (particles) to a map from param to (summed) weight 
+				newPopulation.groupBy(_.value).map{case (k,v) => (k,v.map(_.weight).sum)}.toEmpiricalWeighted
+			}
 			else None
 		}
 		
 		@tailrec
-		def refine(population: WeightsTable[P], numAttempts: Int, tolerance: Double, lastGoodTolerance: Double, decentFactor: Double): WeightsTable[P] = {
+		def refine(population: EmpiricalWeighted[P], numAttempts: Int, tolerance: Double, lastGoodTolerance: Double, decentFactor: Double): EmpiricalWeighted[P] = {
 			if(numAttempts == 0) population
 			else{
 				//TODO on failure, change decent rate so that it persists, rather than just one time

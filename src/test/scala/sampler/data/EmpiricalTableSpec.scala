@@ -25,9 +25,10 @@ import sampler.math.Random
 import sampler.math.Probability
 import scala.math.Fractional
 import org.specs2.matcher.DataTables
+import sampler.data.Empirical._
 
 @RunWith(classOf[JUnitRunner])
-class FrequencyTableSpec extends Specification with Mockito with DataTables{
+class EmpiricalTableSpec extends Specification with Mockito with DataTables{
 	val once = 1
 	val twice = 2
 	val thrice = 3
@@ -36,19 +37,19 @@ class FrequencyTableSpec extends Specification with Mockito with DataTables{
 	//					6		    3
 	//				  5,6		  2,3
 	//	4,5,6		4,5,6		1,2,3,4
-	val d1 = FrequencyTable[Int](IndexedSeq(4, 5, 6))
-	val d2 = FrequencyTable[Int](IndexedSeq(4, 5,5, 6,6,6))
-	val d3 = FrequencyTable[Int](IndexedSeq(1, 2,2, 3,3,3, 4))
+	val d1 = IndexedSeq(4, 5, 6).toEmpiricalTable
+	val d2 = IndexedSeq(4, 5,5, 6,6,6).toEmpiricalTable
+	val d3 = IndexedSeq(1, 2,2, 3,3,3, 4).toEmpiricalTable
 	
-	"FrequencyTable" should {
-		"know number of observations" in {
-			(d1.size mustEqual 3) and
-			(d2.size mustEqual 6) and
-			(d3.size mustEqual 7)
+	"EmpiricalTable" should {
+		"know the size of its support" in {
+			(d1.supportSize mustEqual 3) and
+			(d2.supportSize mustEqual 3) and
+			(d3.supportSize mustEqual 4)
 		}
 		
 		"calculate probability as relative frequency" in {
-			val map1 = d1.probabilityMap
+			val map1 = d1.probabilities
 			
 			val tolerance = 1e-4
 			def equal(p: Probability, expected: Double) = p.value must beCloseTo(expected, tolerance)
@@ -59,6 +60,7 @@ class FrequencyTableSpec extends Specification with Mockito with DataTables{
 		}
 		
 		"sample uniformly by observation index" in {
+			//TODO, this is failing since the alias sampler uses it's own random
 			val rand = mock[Random]
 			
 			rand.nextInt(3) returns 1
@@ -73,6 +75,11 @@ class FrequencyTableSpec extends Specification with Mockito with DataTables{
 			(d3.counts mustEqual Map(1 -> 1, 2 -> 2, 3 -> 3, 4 -> 1))
 		}
 		
+		"until, filter, map, flatmap, combine, convolve, crossCorrelate should all return samplable" in todo
+		
+		
+		//TODO review whether this lot should be in Samplable
+		/*
 		"map over observations" in {
 			d1.map((a: Int) => a + 1).counts mustEqual Map(
 					5 -> 1, 
@@ -86,16 +93,6 @@ class FrequencyTableSpec extends Specification with Mockito with DataTables{
 					 4 -> 2, 
 					 5 -> 3, 
 					 6 -> 4
-			)
-		}
-		
-		"be augmentable with TraversableOnce of samples" in {
-			val toAdd: TraversableOnce[Int] = List(5,6)
-			
-			d1.++(toAdd).counts mustEqual Map(
-					4 -> 1, 
-					5 -> 2, 
-					6 -> 2
 			)
 		}
 		
@@ -131,23 +128,6 @@ class FrequencyTableSpec extends Specification with Mockito with DataTables{
 				(p,q) => instance.quantile(p) mustEqual q
 			}
 		}
-
-		"can identify if distributions are equal if contents are identical using canEqual" in {
-			val d4 = FrequencyTable[Int](IndexedSeq(4,5,6))
-			
-			d1.canEqual(d4) must beTrue
-		}
-		
-		"Override equals and hashcode" in {
-			val instance1a = FrequencyTable[Int](IndexedSeq(4, 5))
-			val instance1b = FrequencyTable[Int](IndexedSeq(4, 5))
-			val instance2 = FrequencyTable[Int](IndexedSeq(4, 5,5))
-			
-			(instance1a mustEqual instance1b) and
-			(instance1a mustNotEqual instance2) and
-			(instance1a.hashCode mustEqual instance1b.hashCode) and
-			(instance1a.hashCode mustNotEqual instance2.hashCode)
-		}
 		
 		"filter to at least 5" in {
 			val instance = d2.filter(_ >= 5)
@@ -157,5 +137,30 @@ class FrequencyTableSpec extends Specification with Mockito with DataTables{
 					6 -> Probability(0.6)
 			)
 		}
+		*/
+		
+		"be augmentable with TraversableOnce of samples" in {
+			val toAdd: TraversableOnce[Int] = List(5,6)
+			
+			d1.++(toAdd).counts mustEqual Map(
+					4 -> 1, 
+					5 -> 2, 
+					6 -> 2
+			)
+		}
+		
+		"Override equals and hashcode" in {
+			//TODO add a check comparing an EmpiricalWeighted to an EmpiricalTable (to check not eql)
+			val instance1a = IndexedSeq(4, 5).toEmpiricalTable
+			val instance1b = IndexedSeq(4, 5).toEmpiricalTable
+			val instance2 = IndexedSeq(4, 5,5).toEmpiricalTable
+			
+			(instance1a mustEqual instance1b) and
+			(instance1a mustNotEqual instance2) and
+			(instance1a.hashCode mustEqual instance1b.hashCode) and
+			(instance1a.hashCode mustNotEqual instance2.hashCode)
+		}
+		
+
 	}
 }
