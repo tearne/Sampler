@@ -35,49 +35,42 @@ import java.nio.file.FileAlreadyExistsException
 class CSVTableWriterSpec extends Specification{
 
 	val path = Paths.get(new File("").getAbsolutePath())
-	val filePath = path.resolve("testFile.csv")
+	val filePath = path.resolve("testData/testFile.csv")
 	
+	sequential // Since they all share the same file on disk
 	
 	"CSVTableWriter" should{
-		
 		"have an option to overwrite an existing file" in {
-			
+			val params1 = Seq(1,2,3)
+			val col1 = new Column(params1, "Header")
+
 			"overwrite a file when option set to overwrite" in new fileSetup with fileTearDown {
-				val params1 = Seq(1,2,3)
-				val params2 = Seq("one", "two", "three")
-				val col1 = new Column(params1, "Header")
-				val col2 = new Column(params2, "Header")
-				
 				writer.apply(col1)
-				
+
+				val params2 = Seq("one", "two", "three")
+				val col2 = new Column(params2, "Header")
 				val writer2 = new CSVTableWriter(filePath, true)
-				
 				writer2.apply(col2)
 				
 				val lines = Source.fromFile(filePath.toString()).mkString.split("\n")
-				
-				val expectedLines = Array("Header", "one", "two", "three") 
-				
-				lines mustEqual expectedLines
+				lines mustEqual Array("Header", "one", "two", "three") 
 			}
 			
-			"throw an exception when file is present and overwrite is set to false" in new fileSetup with fileTearDown {
-				val params1 = Seq(1,2,3)
-				val params2 = Seq("one", "two", "three")
-				val col1 = new Column(params1, "Header")
-				val col2 = new Column(params2, "Header")
-				
+			"throw exception if file is present and overwrite == false" in new fileSetup with fileTearDown {
 				writer.apply(col1)
 				
 				val writer2 = new CSVTableWriter(filePath, false)
 				
-				writer2.apply(col2) must throwA[FileAlreadyExistsException]
+				writer2.apply(col1) must throwA[FileAlreadyExistsException]
 			}
 			
+			"default to exception if file is present and overwrite not specified" in new fileSetup with fileTearDown {
+				writer.apply(col1)
+				writer.apply(col1) must throwA[FileAlreadyExistsException]
+			}
 		}
 
 		"throw an exception" in {
-
 			"when no data is supplied to the apply method" in new fileSetup with fileTearDown {
 				writer.apply() must throwA[TableWriterException]
 			}
@@ -112,7 +105,6 @@ class CSVTableWriterSpec extends Specification{
 		}
 		
 		"write data to a file" in {
-			
 			"when the data type is ints" in new fileSetup with fileTearDown {
 				val ints = Seq(1,2)
 				val intCol = new Column(ints, "MyInts")
@@ -193,6 +185,7 @@ class CSVTableWriterSpec extends Specification{
 	
 	trait fileTearDown extends After {
 		def after = {
+			println("TearDown")
 				Files.deleteIfExists(filePath)
 		}
 	}
