@@ -17,6 +17,7 @@
 
 package sampler.examples.prevchange
 
+import sampler.data.Empirical._
 import sampler.io.CSVTableWriter
 import sampler.r.ScriptRunner
 import sampler.data.Types._
@@ -26,6 +27,7 @@ import scala.annotation.tailrec
 import scala.collection.immutable.TreeMap
 import sampler.run.agent.LocalActorRunner
 import sampler.fit.ABCComponent
+import sampler.run.SerialRunner
 
 /*
  * Draw posterior distributions and confidence limits for the number of infected 
@@ -45,7 +47,7 @@ object Posteriors extends App with WithoutReplacementABC with Environment{
 		val builder = SerialSampleBuilder
 	}
 	
-	def getPosterior(numPosObserved: Int) = {
+	def getPosteriorNumInfected(numPosObserved: Int): EmpiricalTable[Int] = {
 		val runner = new LocalActorRunner()
 		
 		val posterior = ABC(model, r)(
@@ -60,13 +62,11 @@ object Posteriors extends App with WithoutReplacementABC with Environment{
 		)
 		
 		runner.shutdown
-		posterior
+		posterior.counts.map{case (params, count) => params.numInfected -> count}.toEmpiricalTable
 	}
 	
 	val potentialObservations = List(0,1,3,10,17,19,20)
-	val posteriors = potentialObservations.map{i => getPosterior(i).toEmpiricalSeq}
-	val dataColumns = posteriors.zip(potentialObservations)
-			.map{case (p, i) => Column(p.seq.map{_.numInfected}, "x"+i.toString)}
+	val posteriors = potentialObservations.map{i => getPosteriorNumInfected(i)}
 	
 	@tailrec
 	def addZeroIfMissing(map: Map[Int, Int], keyRange: Seq[Int]): Map[Int, Int] = {
@@ -78,15 +78,12 @@ object Posteriors extends App with WithoutReplacementABC with Environment{
 	}
 	
 	val posteriorCounts = posteriors
-			.map{posterior =>
-				posterior.seq
-					.map{_.numInfected}
-					.groupBy(identity)
-					.mapValues(_.size)
-			}
+			.map{_.counts}
 			.map(counts => addZeroIfMissing(counts, 0 to populationSize))
 			.map(counts => TreeMap(counts.toSeq: _*))
-			.map(_.iterator.map(_._2))
+			.map(_.iterator.map(_._2).toList)
+			
+			
 	val columns = Column(0 to populationSize, "TruePositives") +: 
 		posteriorCounts.zip(potentialObservations).map{case (counts, observedPos) =>
 			Column(counts.toSeq, observedPos.toString)
@@ -115,10 +112,11 @@ dev.off()
 	
 	// Plot some confidence limits versus potential observations
 	case class Confidence(lower: Double, upper: Double)
-	def getConfidence(posterior: EmpiricalSeq[Parameters]) = {
-		val left = posterior.quantile(Probability(0.025))
-		val right = posterior.quantile(Probability(0.975))
-		Confidence(left.numInfected, right.numInfected)
+	def getConfidence(posterior: EmpiricalTable[Int]) = {
+		val p = posterior.counts.map{case (k,v) => k.toDouble -> v}.toEmpiricalTable
+		val left = p.quantile(Probability(0.025))
+		val right = p.quantile(Probability(0.975))
+		Confidence(left, right)
 	}
 	
 	val results = posteriors.map(getConfidence)

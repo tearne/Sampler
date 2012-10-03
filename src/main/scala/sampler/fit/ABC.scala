@@ -70,7 +70,7 @@ trait ABCComponent{
 			refinementAttempts: Int,
 			runner: AbortableRunner,
 			writer: Option[model.PopulationWriter] = None
-	): EmpiricalWeighted[model.Parameters] = {
+	): EmpiricalTable[model.Parameters] = {
 		type P = model.Parameters
 		
 		val popZero: EmpiricalWeighted[P] = 
@@ -98,7 +98,10 @@ trait ABCComponent{
 //						val numSuccess = FrequencyTableBuilder
 //							.serial(assessedModel)(_.size == reps)(r)
 //							.samples.count(identity) //TODO use a counting statistic?
-						val fHat = builder(assessedModel)(_.size == reps)(r).toEmpiricalSeq.probabilities(true).value//numSuccess.toDouble / reps
+						val fHat = builder(assessedModel)(_.size == reps)(r)
+										.toEmpiricalSeq
+										.probabilities.getOrElse(true, Probability.zero)
+										.value//numSuccess.toDouble / reps
 			
 						val res = if(fHat > 0){
 							//Calculate a weight for this new particle
@@ -166,6 +169,7 @@ trait ABCComponent{
 			}
 		}
 		
-		refine(popZero, refinementAttempts, startTolerance, startTolerance, 0.5)
+		val empricalWeighted = refine(popZero, refinementAttempts, startTolerance, startTolerance, 0.5)
+		empricalWeighted.until(_.size == particles).sample(r).toEmpiricalTable
 	}
 }
