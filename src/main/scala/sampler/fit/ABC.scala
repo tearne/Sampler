@@ -52,7 +52,7 @@ trait ABCModel{
 	def init(p: Parameters, obs: Observations): Samplable[Output]
 	
 	trait PopulationWriter{
-		def apply(population: EmpiricalWeighted[Parameters], tolerance: Double): Unit
+		def apply(population: Seq[Parameters], tolerance: Double): Unit
 	}
 }
 
@@ -70,18 +70,18 @@ trait ABCComponent{
 			refinementAttempts: Int,
 			runner: AbortableRunner,
 			writer: Option[model.PopulationWriter] = None
-	): EmpiricalTable[model.Parameters] = {
+	): Seq[model.Parameters] = {
 		type P = model.Parameters
 		
-		val popZero: EmpiricalWeighted[P] = 
-			(1 to particles).par.map(i => prior.sample(r) -> 1.0).seq.toMap.toEmpiricalWeighted
+		val uniformlyWeightedParticles = (1 to particles).par.map(i => Particle(prior.sample(r), 1.0)).seq
 		
-		def evolve(population: EmpiricalWeighted[P], tolerance: Double): Option[EmpiricalWeighted[P]] = {
+		def evolve(population: Seq[Particle[P]], tolerance: Double): Option[Seq[Particle[P]]] = {
 			println("Now working on tolerance = "+tolerance)
 			
+			//Map the sequence of weighted params (particles) to a map from param to (summed) weight 
+			val samplable = population.groupBy(_.value).map{case (k,v) => (k,v.map(_.weight).sum)}.toEmpiricalWeighted
+			
 			def getNextParticle(keepGoing: AtomicBoolean): Option[Particle[P]] = {
-				val start = System.currentTimeMillis()
-
 				@tailrec
 				def tryParticle(failures: Int): Option[Particle[P]] = {
 					if(!keepGoing.get) None
@@ -90,24 +90,18 @@ trait ABCComponent{
 						None
 					}
 					else{
-						val candidate = population.sample(r).perturb
+						val candidate = samplable.sample(r).perturb
 						val assessedModel = model.init(candidate, obs).map(_.closeToObserved(obs, tolerance))
 						
-						//val numSuccess = statistics.occursCount(builder(assessedModel)(_.size == reps)(r), true)
+						val numSuccess = builder(assessedModel)(_.size == reps)(r)
+							.count(identity) //TODO use a counting statistic?
+						val fHat = numSuccess.toDouble / reps
 						
-//						val numSuccess = FrequencyTableBuilder
-//							.serial(assessedModel)(_.size == reps)(r)
-//							.samples.count(identity) //TODO use a counting statistic?
-						val fHat = builder(assessedModel)(_.size == reps)(r)
-										.toEmpiricalSeq
-										.probabilities.getOrElse(true, Probability.zero)
-										.value//numSuccess.toDouble / reps
-			
 						val res = if(fHat > 0){
 							//Calculate a weight for this new particle
 							val numerator = fHat * prior.density(candidate)
-							val denominator = population.probabilities.map{case (k,Probability(v)) => 
-								v * k.perturbDensity(candidate)
+							val denominator = population.map{case Particle(value, weight) => 
+								weight * value.perturbDensity(candidate)
 							}.sum
 							if(numerator > 0 && denominator > 0)
 								Some(Particle(candidate, numerator / denominator))
@@ -124,7 +118,6 @@ trait ABCComponent{
 				}
 				
 				val res = tryParticle(0)
-				val end = System.currentTimeMillis()
 				res
 			}
 			
@@ -138,15 +131,12 @@ trait ABCComponent{
 			
 			val newPopulation = results.flatten
 			
-			if(newPopulation.size == results.size) Some{
-				//Map the sequence of weighted params (particles) to a map from param to (summed) weight 
-				newPopulation.groupBy(_.value).map{case (k,v) => (k,v.map(_.weight).sum)}.toEmpiricalWeighted
-			}
+			if(newPopulation.size == results.size) Some(newPopulation)
 			else None
 		}
 		
 		@tailrec
-		def refine(population: EmpiricalWeighted[P], numAttempts: Int, tolerance: Double, lastGoodTolerance: Double, decentFactor: Double): EmpiricalWeighted[P] = {
+		def refine(population: Seq[Particle[P]], numAttempts: Int, tolerance: Double, lastGoodTolerance: Double, decentFactor: Double): Seq[Particle[P]] = {
 			if(numAttempts == 0) population
 			else{
 				//TODO on failure, change decent rate so that it persists, rather than just one time
@@ -160,7 +150,7 @@ trait ABCComponent{
 					}
 					case Some(newPop) => {
 						writer match { 
-							case Some(w) => w(newPop, tolerance) 
+							case Some(w) => w(newPop.map{_.value}, tolerance) 
 							case _ =>
 						}
 						refine(newPop, numAttempts - 1, tolerance * decentFactor, tolerance, decentFactor)
@@ -169,7 +159,7 @@ trait ABCComponent{
 			}
 		}
 		
-		val empricalWeighted = refine(popZero, refinementAttempts, startTolerance, startTolerance, 0.5)
-		empricalWeighted.until(_.size == particles).sample(r).toEmpiricalTable
+		val result = refine(uniformlyWeightedParticles, refinementAttempts, startTolerance, startTolerance, 0.5)
+		result.map(_.value)
 	}
 }
