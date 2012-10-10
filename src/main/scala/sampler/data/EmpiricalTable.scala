@@ -23,17 +23,19 @@ import sampler.math.Probability
 import sampler.math.AliasWrapper
 
 /*
- * Empirical implementation backed by a map which counts occurrances.  
- * Ideal for sampling from discrete distributions where many repeated 
- * observations are expected. 
+ * Empirical implementation backed by a map which counts occurrences of
+ * observation values. Ideal for sampling from discrete distributions 
+ * where many repeated observations are expected. 
  */
 class EmpiricalTable[A](val counts: Map[A, Int]) extends Empirical[A]{
-	//TODO remove duplication here with EmpiricalWeighted
-	//TODO tidy up the Alias stuff, pushing this away
+	//TODO There is lots of duplication between this and EmpiricalTable.
+	//     Need to find some way to remove it.
+	
+	//TODO Tidy up the Alias stuff, pushing this stuff away
 	private lazy val (indexedValues, indexedProbabilities) = probabilities.toIndexedSeq.unzip
 	private lazy val alias = new AliasWrapper(indexedProbabilities.map(_.value))
 	
-	//TODO make alias use random, rather than it's own
+	//TODO make Alias use the supplied random, rather than its own instance
 	def sample(implicit r: Random) = indexedValues(alias.sample())
 	
 	lazy val supportSize = counts.size
@@ -48,5 +50,9 @@ class EmpiricalTable[A](val counts: Map[A, Int]) extends Empirical[A]{
 		}
 	)
 	
-	
+		/*
+	 * Throw away weights, producing a seq with one observation of every 
+	 * potential value, ie uniform sampling.
+	 */
+	def toEmpiricalSeq() = new EmpiricalSeq(counts.keys.toIndexedSeq)
 }

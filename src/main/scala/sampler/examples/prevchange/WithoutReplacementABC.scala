@@ -22,7 +22,6 @@ import sampler.math.Random
 import sampler.fit.ABCModel
 import scala.annotation.tailrec
 import sampler.fit.Prior
-import sampler.run.agent.LocalActorRunner
 import sampler.fit.ABCComponent
 
 /*

@@ -26,36 +26,46 @@ import sampler.math.AliasWrapper
  * Empirical implementation which uses a weight attached to each
  * observation value for sampling.
  */
-class EmpiricalWeighted[A](val table: Map[A, Double]) extends Empirical[A]{
-	//TODO remove duplication here with EmpiricalWeighted
-	//TODO tidy up the Alias stuff, pushing this away
+class EmpiricalWeighted[A](val weights: Map[A, Double]) extends Empirical[A]{
+	//TODO There is lots of duplication between this and EmpiricalTable.
+	//     Need to find some way to remove it.
+	
+	//TODO Tidy up the Alias stuff, pushing this stuff away
 	private lazy val (indexedValues, indexedProbabilities) = probabilities.toIndexedSeq.unzip
 	private lazy val alias = new AliasWrapper(indexedProbabilities.map(_.value))
 	
-	//TODO make alias use random, rather than it's own
+	//TODO make Alias use the supplied random, rather than its own instance
 	def sample(implicit r: Random) = indexedValues(alias.sample())
 	
-	lazy val supportSize = table.size
+	lazy val supportSize = weights.size
 	lazy val probabilities = {
-		if(table.find(_._2 <= 0).isDefined) 
+		if(weights.find(_._2 <= 0).isDefined) 
 			throw new IllegalArgumentException{
-				val badValue = table.find(_._2 <= 0).get
+				val badValue = weights.find(_._2 <= 0).get
 				"Weight must be strictly positive, found (%s,%f)".format(badValue._1.toString, badValue._2)
 			}
-		val totalWeight = table.values.sum
-		table.map{case (k,v) => (k,Probability(v / totalWeight))}
+		val totalWeight = weights.values.sum
+		weights.map{case (k,v) => (k, Probability(v / totalWeight))}
 	}
 	
-	// Have not implemented a ++ method since we might attempt to add values
-	//which have differnetly scaled weights (normalised, un-normalised, ...)
-	//If we really want to do this when we have access to the original
-	//un-normalised table which was supplied to the constructor.
+	// Have not implemented a ++ method since it might be used to add values
+	//which have differently scaled weights (normalised, un-normalised, ...)
+	//If we really want to do this we have access to the original
+	//un-normalised weights table as supplied to the constructor.
 	
+	/*
+	 * Throw away weights, producing a table with one observation of every 
+	 * potential value, ie uniform sampling.
+	 */
 	def toEmpiricalTable() = new EmpiricalTable(
-		table.map{case (k,v) => (k,1)}
+		weights.map{case (k,v) => (k,1)}
 	)
 	
-	def toEmpiricalSeq() = new EmpiricalSeq(table.keys.toIndexedSeq)
+	/*
+	 * Throw away weights, producing a seq with one observation of every 
+	 * potential value, ie uniform sampling.
+	 */
+	def toEmpiricalSeq() = new EmpiricalSeq(weights.keys.toIndexedSeq)
 	
 	override def canEqual[A: Manifest](other: Any): Boolean = other.isInstanceOf[EmpiricalWeighted[_]]
 }

@@ -26,10 +26,8 @@
 //import sampler.io.CSVTableWriter
 //import java.nio.file.Paths
 //import sampler.data.Types._
-//import sampler.data.WeightsTable
 //import sampler.examples.SimpleABC.Model
 //import sampler.run.ParallelCollectionRunner
-//import sampler.data.Particle
 //import sampler.run.SerialRunner
 //
 //object SimpleABC extends App{
@@ -41,7 +39,7 @@
 //	
 //	class Model extends ABCModel{
 //		case class Parameters(m: Double, v: Double) extends ParametersBase{
-//			val perturbationDist = Distribution.normal(0,1)
+//			val perturbationDist = Samplable.normal(0,1)
 //			@tailrec
 //			final def perturb(value: Double): Double = {
 //				val candidate = value + perturbationDist.sample
@@ -65,8 +63,8 @@
 //			}
 //		}
 //		
-//		def init(p: Parameters, obs: Observations) = new Distribution[Output]{
-//			val modelNoiseDist = Distribution.normal(0,p.v).map(s => s*s)
+//		def init(p: Parameters, obs: Observations) = new Samplable[Output]{
+//			val modelNoiseDist = Samplable.normal(0,p.v).map(s => s*s)
 //			override def sample(implicit r: Random) = {
 //				def f(x: Double) = p.m * x + math.sqrt(x) * modelNoiseDist.sample
 //				Output(obs.x.map(f))
@@ -96,7 +94,7 @@
 //	)	
 //	
 //	object Writer extends PopulationWriter{
-//		def apply(p: WeightsTable[Parameters], tolerance: Double){
+//		def apply(p: Seq[Parameters], tolerance: Double){
 //			new CSVTableWriter(wd.resolve(tolerance+".csv")).apply(
 //				Column(p.mapValues(_.m), "m"),
 //				Column(p.mapValues(_.v), "v")

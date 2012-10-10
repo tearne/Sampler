@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package sampler.run.agent
+package sampler.run.actor
 
 import akka.dispatch.{Await, Future, Promise}
 import akka.actor.{ActorSystem, Actor, ActorRef, Props}
@@ -28,8 +28,8 @@ import scala.collection.mutable.ArrayBuffer
 import sampler.run.AbortableJob
 import sampler.run.AbortableRunner
 import sampler.run.Abort
-import sampler.run.agent.LocalActorRunner.BatchDone
-import sampler.run.agent.LocalActorRunner.Batch
+import sampler.run.actor.LocalActorRunner.Batch
+import sampler.run.actor.LocalActorRunner.BatchDone
 
 object Test extends App{
 	val runner = new LocalActorRunner()
