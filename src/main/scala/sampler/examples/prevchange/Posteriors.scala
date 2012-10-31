@@ -25,7 +25,7 @@ import sampler.math._
 import sampler.data._
 import scala.annotation.tailrec
 import scala.collection.immutable.TreeMap
-import sampler.run.agent.LocalActorRunner
+import sampler.run.actor.LocalActorRunner
 import sampler.fit.ABCComponent
 import sampler.run.SerialRunner
 
@@ -56,16 +56,17 @@ object Posteriors extends App with WithoutReplacementABC with Environment{
 				reps = 10,
 				particles = 10000,
 				startTolerance = 10,
-				refinementAttempts = 6,
+				refinementAttempts = 8,
 				runner,
 				None
 		)
 		
 		runner.shutdown
-		posterior.counts.map{case (params, count) => params.numInfected -> count}.toEmpiricalTable
+		posterior.map{_.numInfected}.toEmpiricalTable
 	}
 	
-	val potentialObservations = List(0,1,3,10,17,19,20)
+//	val potentialObservations = List(0,1,3,10,17,19,20)
+	val potentialObservations = List(0,20)
 	val posteriors = potentialObservations.map{i => getPosteriorNumInfected(i)}
 	
 	@tailrec

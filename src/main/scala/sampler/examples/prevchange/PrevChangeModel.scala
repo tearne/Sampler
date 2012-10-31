@@ -27,7 +27,7 @@ import java.nio.file.Paths
 import sampler.data.Types.Column
 import sampler.math._
 import sampler.r.ScriptRunner
-import sampler.run.agent.LocalActorRunner
+import sampler.run.actor.LocalActorRunner
 import sampler.data.Types._
 import scala.annotation.tailrec
 import scala.collection.immutable.TreeMap
@@ -84,7 +84,7 @@ object PrevChangeApp extends App
 	val posterior = getPosterior(numPositiveObservations)
 	
 	// Plot the posterior
-	val counts = posterior.probabilities.map{case (k,v) => k.numInfected -> v}
+	val probabilities = posterior.toEmpiricalTable.probabilities.map{case (k,v) => k.numInfected -> v}
 	@tailrec
 	def addZeroIfMissing(map: Map[Int, Probability], keyRange: Seq[Int]): Map[Int, Probability] = {
 		if(keyRange.size == 0) map
@@ -93,7 +93,7 @@ object PrevChangeApp extends App
 			addZeroIfMissing(newMap, keyRange.tail)
 		}
 	}
-	val plotData = TreeMap(addZeroIfMissing(counts, 0 to populationSize).toSeq: _*).toSeq
+	val plotData = TreeMap(addZeroIfMissing(probabilities, 0 to populationSize).toSeq: _*).toSeq
 	
 	new CSVTableWriter(workingDir.resolve("posterior.csv"), true)(
 		Column(plotData.map(_._1), "TruePositives"),
@@ -118,7 +118,7 @@ dev.off()
 	//Work out what power a new sample would have to identify a 
 	//prevalence change with the desired  confidence
 	val requiredConfidence = Probability(0.80)
-	val mcChunkSize = 100
+	val mcChunkSize = 1000
 	val mcConvergence = 0.001
 	
 	def smallestDetectablePrevIncrease(newSampleSize: Int): Option[Double] = {
@@ -129,7 +129,7 @@ dev.off()
 					
 			val differenceDist = new Samplable[Int]{
 				def sample(implicit r: Random) = {
-					val numInfectedPast = restrictedPosterior.sample
+					val numInfectedPast = restrictedPosterior.toEmpiricalSeq.sample
 					val numInfectedPresent = numInfectedPast + extraNumInf
 					modelDistribution(numInfectedPresent, newSampleSize, populationSize).sample - numInfectedPast
 				}

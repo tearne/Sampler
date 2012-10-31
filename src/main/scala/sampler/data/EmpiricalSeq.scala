@@ -23,18 +23,19 @@ import sampler.math.Probability
 
 /*
  * Empirical implementation which is backed by an IndexedSeq.  Ideal for
- * collecting observations from a continuous observation.
+ * collecting observations from continuous distributions with or 
+ * distributions with relatively few repeated values.
  */
-class EmpiricalSeq[A](val seq: IndexedSeq[A]) extends Empirical[A]{ self =>
-	def sample(implicit r: Random) = seq(r.nextInt(size))
+class EmpiricalSeq[A](val values: IndexedSeq[A]) extends Empirical[A]{ self =>
+	def sample(implicit r: Random) = values(r.nextInt(size))
 	
-	private lazy val size = seq.size
+	private lazy val size = values.size
 	
-	lazy val supportSize = seq.groupBy(identity).keys.size
+	lazy val supportSize = values.groupBy(identity).keys.size
 	
 	lazy val probabilities = {
 		val sizeAsDouble = size.asInstanceOf[Double]
-		seq.groupBy(identity).map{case (k,v) => (k, Probability(v.size / sizeAsDouble))}
+		values.groupBy(identity).map{case (k,v) => (k, Probability(v.size / sizeAsDouble))}
 	}
-	def ++(more: GenTraversableOnce[A]) = new EmpiricalSeq(seq ++ more)
+	def ++(more: GenTraversableOnce[A]) = new EmpiricalSeq(values ++ more)
 }	

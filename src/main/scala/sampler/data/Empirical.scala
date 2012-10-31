@@ -31,22 +31,18 @@ import scala.collection.immutable.Map
 import scala.collection.GenMap
 
 /*
- * Samplable which are backed by collections of observations
+ * Samplable refinement which is backed by collections of observations
  */
 trait Empirical[A] extends Samplable[A]{
-	/*
-	 * The number of unique observation values (not num observations fed in)
-	 */
+	 // The number of _unique_ observations (not overall number of observations)
 	val supportSize: Int
 	
-	/*
-	 * The probability or relative frequency associated with each observation value 
-	 */
+	 // The probability or relative frequency associated with each observation value 
 	val probabilities: Map[A, Probability]
 	
 	def rightTail(itemInclusive: A)(implicit o: Ordering[A]): Probability = {
-		//TODO would be nice if this didn't need to be recalculated on each
-		// call, but we only have the ordering (frational) inside the method
+		//TODO would be nice if 'ordered' didn't need to be recalculated on each
+		//     call, but the 'o' is only available inside this method
 		val ordered = probabilities.keys.toList.sorted(o)	
 		val value = ordered.dropWhile(i => o.lt(i,itemInclusive)).foldLeft(0.0){
 			case (acc, i) => acc + probabilities(i).value
@@ -75,6 +71,7 @@ trait Empirical[A] extends Samplable[A]{
 		(ordered(lower) + ordered(upper)) / two 
 	}
 	
+	//Implement equality in terms of the probabilities of drawing values
 	def canEqual[A: Manifest](other: Any): Boolean = other.isInstanceOf[Empirical[_]]
 	override def equals(other: Any) = other match {
 		case that: Empirical[_] => 
@@ -83,6 +80,12 @@ trait Empirical[A] extends Samplable[A]{
 	}
 	override def hashCode() = probabilities.hashCode
 }
+
+/*
+ * The contents of this object need to be imported in order to benefit from the
+ * pimps.  Is there a neater way to do it other than 
+ * import sampler.data.Empirical._ ? 
+ */
 object Empirical{
 	class RichIndexedSeq[A](indSeq: IndexedSeq[A]) {
 		def toEmpiricalSeq = new EmpiricalSeq[A](indSeq)

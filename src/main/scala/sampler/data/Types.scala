@@ -8,9 +8,11 @@ object Types {
 		def toStringColumn(): Column[String] = Column(values.map(v => cType.toString(v)), name)
 	}
 	
+	//TODO need to have a think about what should constitute a factor.
+	//     This impl seems a bit bare, but has been fine so far.  Perhaps 
+	//	   classes of factors should be aware of the legal set if values?
 	case class Factor(name: String){
 		override def toString() = name
-//		TODO factor could be used to check inputs in ANOVA table and error if unexpected factor read in
 	}
 	
 	abstract class ColumnType[T: Manifest]{ 
