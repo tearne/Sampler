@@ -21,6 +21,8 @@ libraryDependencies ++= Seq(
 	"org.apache.commons" % "commons-math3" % "3.0"
 )
 
+retrieveManaged := true
+
 scalaVersion := "2.9.2"
 
 scalacOptions += "-Ydependent-method-types"
