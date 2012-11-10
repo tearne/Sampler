@@ -47,6 +47,7 @@ trait AbortableRunner extends JobRunner{
 		)
 }
 
+//TODO test this
 class SerialRunner extends AbortableRunner{
 	def apply[T](abort: Abort[T])(jobs: Seq[AbortableJob[T]]): Seq[Option[T]] = {
 		val indexedJobs = jobs.toIndexedSeq
@@ -55,7 +56,7 @@ class SerialRunner extends AbortableRunner{
 		@tailrec
 		def doJobsFrom(idx: Int, acc: Seq[Option[T]]): Seq[Option[T]] = {
 			if(idx == jobs.size) acc.reverse
-			else if(abort(acc)) Nil
+			else if(abort(acc)) acc
 			else {
 				doJobsFrom(idx + 1, indexedJobs(idx).run(stillRunning) +: acc)
 			}
@@ -65,6 +66,7 @@ class SerialRunner extends AbortableRunner{
 	}
 }
 
+//TODO some way to make this abortable?
 class ParallelCollectionRunner extends JobRunner{
 	def apply[T](jobs: Seq[Job[T]]): Seq[Option[T]] = {
 		jobs.par.map(_.run).seq

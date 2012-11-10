@@ -47,4 +47,4 @@ particles = read.csv("example/simpleABC/data/30.517578125.csv")
 ggplot(melt(particles), aes(x=value, colour=variable)) + geom_density()
 
 particles = read.csv("example/simplePrevABC/data/30.517578125.csv")
-ggplot(particles, aes(x=m, y=c)) + geom_hex()
+ggplot(particles, aes(x=m, y=v)) + geom_hex()
