@@ -42,7 +42,7 @@ trait WithoutReplacementABC {
 		)
 	}
 	
-	class Model(val populationSize: Int, val sampleSize: Int)  extends ABCModel{
+	class Model(val populationSize: Int, val sampleSize: Int)  extends ABCModel[Random]{
 		case class Parameters(numInfected: Int) extends ParametersBase {
 			def perturb() = {
 				@tailrec
@@ -89,7 +89,7 @@ trait WithoutReplacementABC {
 			modelDistribution(p.numInfected, sampleSize, populationSize).map(pos => Output(pos))
 			
 		// Uniform prior for true number infected [0,populationSize]
-		val uniformPrior = new Prior[Parameters]{
+		val uniformPrior = new Prior[Parameters, Random]{
 			def density(p: Parameters) = {
 				if(p.numInfected > populationSize || p.numInfected < 0) 0
 				else 1.0 / populationSize

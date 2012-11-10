@@ -33,7 +33,7 @@ import scala.collection.GenMap
 /*
  * Samplable refinement which is backed by collections of observations
  */
-trait Empirical[A] extends Samplable[A]{
+trait Empirical[A] extends Samplable[A,Random]{
 	 // The number of _unique_ observations (not overall number of observations)
 	val supportSize: Int
 	

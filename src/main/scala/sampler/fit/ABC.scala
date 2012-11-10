@@ -30,11 +30,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 import sampler.run.Abort
 import sampler.run.AbortableJob
 
-trait Prior[A] extends Samplable[A]{
+trait Prior[A,R] extends Samplable[A,R]{
 	def density(value: A): Double
 }
 
-trait ABCModel{
+trait ABCModel[R]{
 	type Parameters <: ParametersBase
 	protected trait ParametersBase {
 		def perturb(): Parameters
@@ -49,7 +49,7 @@ trait ABCModel{
 		def closeToObserved(observed: Observations, tolerance: Double): Boolean
 	}
 	
-	def init(p: Parameters, obs: Observations): Samplable[Output]
+	def init(p: Parameters, obs: Observations): Samplable[Output,R]
 	
 	trait PopulationWriter{
 		def apply(population: Seq[Parameters], tolerance: Double): Unit
@@ -61,8 +61,8 @@ trait ABCComponent{
 		
 	case class Particle[A](value: A, weight: Double)
 	
-	def apply(model: ABCModel, r: Random)( 
-			prior: Prior[model.Parameters],
+	def apply[R <: Random](model: ABCModel[R], r: R)( 
+			prior: Prior[model.Parameters,R],
 			obs: model.Observations, 
 			reps: Int, 
 			particles: Int, 

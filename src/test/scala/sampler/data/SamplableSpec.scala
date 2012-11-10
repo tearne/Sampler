@@ -9,6 +9,9 @@ import org.specs2.specification.Scope
 @RunWith(classOf[JUnitRunner])
 class SamplableSpec extends Specification {
 	"Samplable" should {
+		"have map" in todo
+		"have flatMap" in todo
+		"have combine" in todo
 		"have convolution (+)" in todo
 		"have cross correlation (-)" in todo
 		
@@ -74,12 +77,40 @@ class SamplableSpec extends Specification {
 		}
 		
 		//TODO map, flatmap, combine, convolve, crossCorrelate
+		
+		//TODO covariance and contravariance stuff
+		object PlayingWithVariance{ /* There are no tests in here */
+			class Random2 extends Random {
+				def nextThingey() = 12
+			}
+			
+			class T
+			class S extends T
+			val isT: T = new S
+			
+			val t = new Samplable[T, Random2]{
+				def sample(implicit r: Random2) = new T
+			}
+			val s = new Samplable[S, Random]{
+				def sample(implicit r: Random) = new S
+			}
+			
+			val res1 = t.sample(new Random2)
+			val res2 = s.sample(new Random)
+			val res3 = s.sample(new Random2)
+			
+			val u: Samplable[T,Random] = s
+			val w: Samplable[S,Random2] = s
+			
+			class U
+			val p: Samplable[U,Random2] = t.combine(s, (a:T, b:S) => new U)
+		}
 	}
 	
 	trait createInstance extends Scope {
 		implicit val rand = new Random()
 		
-		val instance = new Samplable[Int] {
+		val instance = new Samplable[Int, Random] {
 			val it = List(0,1,2,3,4,5,6,7,8,9).iterator
 			
 			def sample(implicit r: Random): Int = it.next()

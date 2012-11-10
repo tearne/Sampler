@@ -127,7 +127,7 @@ dev.off()
 					.filter(_.numInfected < populationSize - extraNumInf)
 					.map((p: Parameters) => p.numInfected)
 					
-			val differenceDist = new Samplable[Int]{
+			val differenceDist = new Samplable[Int, Random]{
 				def sample(implicit r: Random) = {
 					val numInfectedPast = restrictedPosterior.toEmpiricalSeq.sample
 					val numInfectedPresent = numInfectedPast + extraNumInf
