@@ -169,7 +169,9 @@ class ParallelSampleBuilder(chunkSize: Int) extends SampleBuilder{
 	def apply[T,Rnd](samplable: Samplable[T, Rnd])(condition: GenSeq[T] => Boolean)(implicit r: Rnd) = {
 		def takeMore(previous: ParSeq[T]): ParSeq[T] = {
 			if(condition(previous)) previous
-			else previous ++ (1 to chunkSize).par.map(i => samplable.sample)
+			else takeMore(
+					previous ++ (1 to chunkSize).par.map(i => samplable.sample)
+			)
 		}
 		val kickstart = (1 to chunkSize).par.map(i => samplable.sample)
 		takeMore(kickstart)
