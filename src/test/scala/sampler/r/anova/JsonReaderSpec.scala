@@ -18,7 +18,6 @@ class JsonReaderSpec extends Specification{
 	val filePath = Paths.get("testJSON.txt")
 	
 	"JsonReader" should {
-		
 		"throw exception if file not present" in {
 			val nonExistentPath = Paths.get("thisFileDoesntExist.txt")
 			val jsonReader = new JsonReader()

@@ -27,8 +27,7 @@ import sampler.io.CSVTableWriter
 import sampler.run.JobRunner
 import sampler.run.AbortableRunner
 import java.util.concurrent.atomic.AtomicBoolean
-import sampler.run.Abort
-import sampler.run.AbortableJob
+import sampler.run.{AbortFunction, AbortableJob}
 
 trait Prior[A,Rnd] extends Samplable[A,Rnd]{
 	def density(value: A): Double
@@ -86,7 +85,7 @@ trait ABCComponent{
 				def tryParticle(failures: Int): Option[Particle[P]] = {
 					if(!keepGoing.get) None
 					else if(failures == 1e2) {
-						println("returning None")
+//						println("returning None")
 						None
 					}
 					else{
@@ -123,7 +122,7 @@ trait ABCComponent{
 			
 			//TODO JobRunner Abortable Job syntax too noisy
 			val results: Seq[Option[Particle[P]]] = runner(
-					Abort[Particle[P]](_.contains(None))
+					AbortFunction[Particle[P]](_.contains(None))
 			){
 					val jobs = (1 to particles).map(particle => AbortableJob[Particle[P]](stillRunning => getNextParticle(stillRunning)))
 					jobs.toSeq

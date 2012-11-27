@@ -28,15 +28,12 @@ import sampler.math.AliasWrapper
  * where many repeated observations are expected. 
  */
 class EmpiricalTable[A](val counts: Map[A, Int]) extends Empirical[A]{
-	//TODO There is lots of duplication between this and EmpiricalTable.
-	//     Need to find some way to remove it.
-	
 	//TODO Tidy up the Alias stuff, pushing this stuff away
 	private lazy val (indexedValues, indexedProbabilities) = probabilities.toIndexedSeq.unzip
-	private lazy val alias = new AliasWrapper(indexedProbabilities.map(_.value))
+//	private lazy val alias = new AliasWrapper(indexedProbabilities.map(_.value))
 	
 	//TODO make Alias use the supplied random, rather than its own instance
-	def sample(implicit r: Random) = indexedValues(alias.sample())
+	def sample(implicit r: Random) = indexedValues(r.nextFromWeights(indexedProbabilities))
 	
 	lazy val supportSize = counts.size
 	lazy val probabilities = {
@@ -50,9 +47,15 @@ class EmpiricalTable[A](val counts: Map[A, Int]) extends Empirical[A]{
 		}
 	)
 	
-		/*
+	/*
 	 * Throw away weights, producing a seq with one observation of every 
 	 * potential value, ie uniform sampling.
+	 * 
+	 * TODO Q: Are we sure we want to just take keys? 
+	 *         What about duplicating observations as per the counts?
+	 *      A: Currently done this way for consistency with EmpiricalWeighted
 	 */
 	def toEmpiricalSeq() = new EmpiricalSeq(counts.keys.toIndexedSeq)
+	
+	override def canEqual(other: Any): Boolean = other.isInstanceOf[EmpiricalWeighted[_]]
 }

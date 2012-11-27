@@ -39,9 +39,9 @@ trait Samplable[+A,-R]{
 	 * Calling the methods below will always return a Samplable, not necessarily 
 	 * the same type as the original implementation.  This is because it's 
 	 * unclear how, for example, how a backing collection within an Emprical 
-	 * should be transformed after an 'until' operation which requires say two 
-	 * specific values in a row; every possible observation would form an
-	 * infinite set.  
+	 * should be transformed after an 'until' operation which requires a sequence 
+	 * of specific values in a row; every possible observation would form too
+	 * large a set.  
 	 * 
 	 * Furthermore, it's difficult to see how to set up a uniform builder 
 	 * signature for all implementation classes.  E.g. some implementors may use
@@ -77,7 +77,6 @@ trait Samplable[+A,-R]{
 		def sample(implicit r: R) = f(self.sample(r))
 	}
 	
-	//???? S <: R
 	def flatMap[B, S <: R](f: A => Samplable[B,S]) = new Samplable[B,S]{
 		def sample(implicit r: S) = f(self.sample(r)).sample(r)
 	}
@@ -86,34 +85,14 @@ trait Samplable[+A,-R]{
 		def sample(implicit r: S) = op(self.sample(r), that.sample(r))
 	}
 	
+	//TODO can't seem to make a version where B <: A
 	def convolve[B >: A, S <: R](that: Samplable[B,S])(implicit n: Numeric[B]) = combine(that, n.plus _)
 	def crossCorrelate[B >: A, S <: R](that: Samplable[B,S])(implicit n: Numeric[B]) = combine(that, n.minus _)
 }
 
-object Test extends App{
-	class Random2 extends Random{
-		def nextThingey() = 12
-	}
-	
-	class T
-	class S extends T
-	val isT: T = new S
-	
-	val t = new Samplable[T, Random2]{
-		def sample(implicit r: Random2) = new T
-	}
-	val s = new Samplable[S, Random]{
-		def sample(implicit r: Random) = new S
-	}
-	
-	val u: Samplable[T,Random] = s
-	val w: Samplable[S,Random2] = s
-	
-	class U
-	val p: Samplable[U,Random2] = t.combine(s, (a:T, b:S) => new U)
-}
-
 object Samplable{
+	//util.Random is used here, so covariance of the Random type parameter will allow 
+	//any subclass to be supplied. 
 	import util.{Random => ScalaRandom}
 	
 	def diracDelta[T](value: T) = new Samplable[T,ScalaRandom]{
@@ -160,9 +139,8 @@ trait SampleBuilder{
 }
 
 object SerialSampleBuilder extends SampleBuilder{
-	def apply[T,Rnd](samplable: Samplable[T, Rnd])(condition: GenSeq[T] => Boolean)(implicit r: Rnd) = {
+	def apply[T,Rnd](samplable: Samplable[T, Rnd])(condition: GenSeq[T] => Boolean)(implicit r: Rnd) = 
 		samplable.until(condition).sample(r)
-	}
 }
 
 class ParallelSampleBuilder(chunkSize: Int) extends SampleBuilder{

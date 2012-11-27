@@ -13,9 +13,7 @@ class AliasMethodSpec extends Specification with Mockito{
 
   "Alias method" should {
     "return some random column indexes based on a probability list" in {
-      
       val myList: java.util.List[java.lang.Double]  = java.util.Arrays.asList(0.1, 0.1, 0.4, 0.4)
-
       val aliasMethod = new AliasMethod(myList)
       
       var resultsList: List[Int] = List()

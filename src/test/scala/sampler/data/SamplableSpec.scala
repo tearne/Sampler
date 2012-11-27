@@ -78,8 +78,8 @@ class SamplableSpec extends Specification {
 		
 		//TODO map, flatmap, combine, convolve, crossCorrelate
 		
-		//TODO covariance and contravariance stuff
-		object PlayingWithVariance{ /* There are no tests in here */
+		//Covariance and contravariance tests (for compilation only)
+		object PlayingWithVariance{
 			class Random2 extends Random {
 				def nextThingey() = 12
 			}

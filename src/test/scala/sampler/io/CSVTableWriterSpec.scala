@@ -184,9 +184,7 @@ class CSVTableWriterSpec extends Specification{
 	}
 	
 	trait fileTearDown extends After {
-		def after = {
-			println("TearDown")
-				Files.deleteIfExists(filePath)
-		}
+		def after = 
+			Files.deleteIfExists(filePath)
 	}
 }

@@ -27,15 +27,10 @@ import sampler.math.AliasWrapper
  * observation value for sampling.
  */
 class EmpiricalWeighted[A](val weights: Map[A, Double]) extends Empirical[A]{
-	//TODO There is lots of duplication between this and EmpiricalTable.
-	//     Need to find some way to remove it.
-	
 	//TODO Tidy up the Alias stuff, pushing this stuff away
 	private lazy val (indexedValues, indexedProbabilities) = probabilities.toIndexedSeq.unzip
-	private lazy val alias = new AliasWrapper(indexedProbabilities.map(_.value))
 	
-	//TODO make Alias use the supplied random, rather than its own instance
-	def sample(implicit r: Random) = indexedValues(alias.sample())
+	def sample(implicit r: Random) = indexedValues(r.nextFromWeights(indexedProbabilities))
 	
 	lazy val supportSize = weights.size
 	lazy val probabilities = {
@@ -51,7 +46,8 @@ class EmpiricalWeighted[A](val weights: Map[A, Double]) extends Empirical[A]{
 	// Have not implemented a ++ method since it might be used to add values
 	//which have differently scaled weights (normalised, un-normalised, ...)
 	//If we really want to do this we have access to the original
-	//un-normalised weights table as supplied to the constructor.
+	//un-normalised weights table as supplied to the constructor, but the 
+	//user still needs to be careful that the weights are on equal footing.
 	
 	/*
 	 * Throw away weights, producing a table with one observation of every 
@@ -67,5 +63,5 @@ class EmpiricalWeighted[A](val weights: Map[A, Double]) extends Empirical[A]{
 	 */
 	def toEmpiricalSeq() = new EmpiricalSeq(weights.keys.toIndexedSeq)
 	
-	override def canEqual[A: Manifest](other: Any): Boolean = other.isInstanceOf[EmpiricalWeighted[_]]
+	override def canEqual(other: Any): Boolean = other.isInstanceOf[EmpiricalWeighted[_]]
 }

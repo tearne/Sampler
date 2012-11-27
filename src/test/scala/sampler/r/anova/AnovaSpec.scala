@@ -23,9 +23,7 @@ class AnovaSpec extends Specification with Mockito {
 	val anova = new Anova(csvTableWriter, scriptBuilder, scriptRunner, jsonReader, fakeRpath, numLevels)
 	
 	"Anova" should {
-		
 		"Execute the entire process of running an ANOVA by calling various scripts and classes" in {
-
 			val c1 = Column(Seq(1,2,3,4,5,6), "C1")
 			val c2 = Column(Seq(1,2,1,3,2,1), "C2")
 			val d1 = Column(Seq(2.0,4,6,7,8,9), "result")

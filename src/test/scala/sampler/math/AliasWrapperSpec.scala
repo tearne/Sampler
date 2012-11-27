@@ -7,20 +7,18 @@ import org.specs2.mock.Mockito
 @RunWith(classOf[JUnitRunner])
 class AliasWrapperSpec extends Specification with Mockito{
 
+val probabilities = Vector(0.1, 0.2, 0.3, 0.3).map(v => Probability(v))
+
   "AliasWrapper" should {
-    
     "throw an exception" in {
-      
 	    "if the probabilities don't add to one" in {
 	      val random = mock[Random]
-	      val probabilities = Vector(0.1, 0.2, 0.3, 0.3)
 	      
 	      new AliasWrapper(probabilities) must throwA[ProbabilityException]
 	    }
 	}
     
     "not throw an exception" in {
-      
 	    "if the probability sum is not equal to one because of a rounding error" in {
 	      val random = mock[Random]
 	      val seventh = 1.0/7.0
@@ -28,13 +26,11 @@ class AliasWrapperSpec extends Specification with Mockito{
 	      
 	      val probabilities = Vector(seventh, seventh, seventh, seventh, seventh, seventh, forteenth, forteenth)
 	      // Sum = 0.9999999999999998
-	    	  
 	    }
     }
   
     "return random values if supplied with a real random" in {
-      val probabilities = Vector(0.1, 0.2, 0.3, 0.4)
-      
+      val probabilities = Vector(0.1, 0.2, 0.3, 0.4).map(v => Probability(v))
       val aliasWrapper = new AliasWrapper(probabilities)
       
       var listOfSamples: List[Int] = List()
