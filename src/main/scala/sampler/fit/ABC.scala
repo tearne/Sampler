@@ -89,7 +89,7 @@ trait ABCComponent{
 						None
 					}
 					else{
-						val candidate = samplable.sample(r).perturb
+						val candidate = samplable.sample(r).perturb		// Potential Bug! (out of range candidate)
 						val assessedModel = model.init(candidate, obs).map(_.closeToObserved(obs, tolerance))
 						
 						val numSuccess = builder(assessedModel)(_.size == reps)(r)

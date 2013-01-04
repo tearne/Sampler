@@ -17,11 +17,42 @@
 
 package sampler.data
 
+import sampler.data.Empirical._
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import org.specs2.mutable.Specification
+import sampler.math.Probability
 
 @RunWith(classOf[JUnitRunner])
 class EmpiricalSeqSpec extends Specification{
-	"EmpiricaSeq" should todo
+  
+	val seq1 = IndexedSeq(1,2,3,4)
+  
+	val es1 = seq1.toEmpiricalSeq
+	
+	"EmpiricaSeq" should {
+	  "have the correct size" in {
+	    es1.supportSize mustEqual 4
+	  }
+	  
+	  "give the correct probabilities" in {
+	    val probMap = es1.probabilities
+	    
+	    val tolerance = 1e-4
+	    def equal(p: Probability, expected: Double) = p.value must beCloseTo(expected, tolerance)
+	    
+	    (equal(probMap(1), 0.25)) and
+	    (equal(probMap(2), 0.25)) and
+	    (equal(probMap(3), 0.25)) and
+	    (equal(probMap(4), 0.25))
+	  }
+	  
+	  "be able to be added to" in {
+	    val seq2 = IndexedSeq(5,6,7,8)
+	    
+	    val es2 = es1.++(seq2)
+	    
+	    es2.supportSize mustEqual 8
+	  }
+	}
 }

@@ -33,6 +33,7 @@ src/main/scala/sampler/prototype/Scratch.scala
 /examples/**/*.Rout
 /examples/**/*.pdf
 /examples/**/*.ppt*
+/examples/sampleDists
 *.csv
 *.r
 *.Rout
