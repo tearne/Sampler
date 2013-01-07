@@ -16,17 +16,18 @@
 
 package sampler.run.actor
 
-import akka.dispatch.{Await, Future, Promise}
 import akka.actor.{ActorSystem, Actor, ActorRef, Props}
 import akka.routing.RoundRobinRouter
 import akka.util.Timeout
-import akka.util.duration._
+import scala.concurrent.duration._
 import akka.pattern.ask
-import akka.dispatch.Promise
+import scala.concurrent.Promise
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable.ArrayBuffer
 import sampler.run.{AbortableJob, AbortableRunner, AbortFunction}
 import sampler.run.actor.LocalActorRunner.{Batch, BatchDone}
+import scala.concurrent.Await
+import scala.concurrent.Future
 
 object Test extends App{
 	val runner = new LocalActorRunner()

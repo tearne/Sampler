@@ -66,7 +66,7 @@ object SimpleABC extends App{
 		def init(p: Parameters, obs: Observations) = new Samplable[Output,Random]{
 			val modelNoiseDist = Samplable.normal(0,p.v).map(s => s*s)
 			override def sample(implicit r: Random) = {
-				def f(x: Double) = p.m * x + math.sqrt(x) * modelNoiseDist.sample
+				def f(x: Double) = p.m * x + math.sqrt(x) * modelNoiseDist.sample(r)
 				Output(obs.x.map(f))
 			}
 		}
