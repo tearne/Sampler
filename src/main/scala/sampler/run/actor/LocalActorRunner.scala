@@ -59,10 +59,10 @@ class LocalActorRunner extends AbortableRunner{
 	val system = ActorSystem("MasterSystem")
 	implicit val timeout = Timeout(5 minutes)
 	
-	// Potential improvement - make work for generic number of cores
+	// Gets number of available processors, makes Runner generic
+	val cores = Runtime.getRuntime().availableProcessors()
 	
-	//Create router for 4 workers
-	val router = system.actorOf(Props[LocalActorRunner.Worker].withRouter(RoundRobinRouter(4)))
+	val router = system.actorOf(Props[LocalActorRunner.Worker].withRouter(RoundRobinRouter(cores)))
 	val master = system.actorOf(Props(new LocalActorRunner.Master(router)))
 	
 	def apply[T](abort: AbortFunction[T])(jobs: Seq[AbortableJob[T]]): Seq[Option[T]] = {

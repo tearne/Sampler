@@ -27,6 +27,7 @@ script.txt
 script.txt.Rout
 src/.DS_Store
 src/main/scala/sampler/prototype/Scratch.scala
+src/main/scala/sampler/Scratch.scala
 /testData
 /examples/**/*.csv
 /examples/**/*.r
