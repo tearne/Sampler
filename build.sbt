@@ -25,4 +25,4 @@ retrieveManaged := true
 
 scalaVersion := "2.10.0"
 
-scalacOptions += "-Ydependent-method-types"
+//scalacOptions += "-Ydependent-method-types"
