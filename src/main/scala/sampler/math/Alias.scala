@@ -11,16 +11,9 @@ class Alias(origProbs: IndexedSeq[Double], rand: Random) {
 	
 	val average = 1.0 / arraySize
 	
-	var small: List[Int] = List()
-	var large: List[Int] = List()
-	
-	for(i <- 0 until arraySize) {
-		if(probabilities(i) > average)
-			large = large.:+(i)
-		else
-			small = small.:+(i)
-	}
-	
+    var small = probabilities.zipWithIndex filter (_._1 <= average) map (_._2) toArray
+    var large = probabilities.zipWithIndex filter (_._1 > average) map (_._2) toArray
+    
 	while(!small.isEmpty && !large.isEmpty) {
 	  val less = small.last
 	  small = small.dropRight(1)
