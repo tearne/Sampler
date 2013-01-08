@@ -1,48 +1,56 @@
 package sampler.math
 
-class Alias(origProbs: IndexedSeq[Double], rand: Random) {
+class Alias(probabilities: IndexedSeq[Double], rand: Random) {
 
-    var probabilities = origProbs
-  
-    val arraySize = probabilities.size
+    lazy val arraySize = probabilities.size
     
-	var probability = Array.fill[Double](arraySize)(1.0)
-	var alias = Array.fill[Int](arraySize)(0)
+	lazy val initialProbability = Array.fill[Double](arraySize)(1.0)
+	lazy val initialAlias = Array.fill[Int](arraySize)(0)
 	
-	val average = 1.0 / arraySize
+	lazy val average = 1.0 / arraySize
 	
-    var small = probabilities.zipWithIndex filter (_._1 <= average) map (_._2) toArray
-    var large = probabilities.zipWithIndex filter (_._1 > average) map (_._2) toArray
+    lazy val small = probabilities.zipWithIndex filter (_._1 <= average) map (_._2) toArray
+    lazy val large = probabilities.zipWithIndex filter (_._1 > average) map (_._2) toArray
     
-	while(!small.isEmpty && !large.isEmpty) {
-	  val less = small.last
-	  small = small.dropRight(1)
-	  
-	  val more = large.last
-	  large = large.dropRight(1)
-	  
-	  val newProb1 = probabilities(less) * arraySize
-	  probability(less) = newProb1
-	  
-	  alias(less) = more
-	  
-	  val newProb2 = probabilities(more) + probabilities(less) - average
-	  
-	  probabilities = probabilities.updated(more, newProb2)
-	  
-	  if(newProb2 >= average)
-	    large = large.:+(more)
-	  else
-	    small = small.:+(more)
-	}
+    lazy val (probability, alias) = construct(small, large, initialProbability, initialAlias, probabilities)
 	
-/*	System.out.println("Probability: " + probability(0) + 
-        		", " + probability(1) + ", " + probability(2) + 
-        		", " + probability(3));
-        
-    System.out.println("Alias: " + alias(0) + 
-        		", " + alias(1) + ", " + alias(2) + 
-        		", " + alias(3));*/
+    def construct(small: Array[Int], large: Array[Int], aliasProbs: Array[Double], alias: Array[Int], probs: IndexedSeq[Double]): 
+    		(Array[Double], Array[Int]) = {
+      if(small.isEmpty || large.isEmpty) {
+        (aliasProbs, alias)
+      } else {
+    	val less = small.last
+        val more = large.last
+      
+        val aliasProbability = probs(less) * arraySize
+        val rawProbability = probs(more) + probs(less) - average
+      
+        if(rawProbability >= average)
+	      construct(
+	          small.dropRight(1), 
+	          large.dropRight(1).:+(more), 
+	          aliasProbs.updated(less, aliasProbability), 
+	          alias.updated(less, more), 
+	          probs.updated(more, rawProbability)
+	      )
+	    else
+		  construct(
+		      small.dropRight(1).:+(more), 
+		      large.dropRight(1), 
+		      aliasProbs.updated(less, aliasProbability), 
+		      alias.updated(less, more), 
+		      probs.updated(more, rawProbability)
+		  )
+      }
+    }
+    
+//	System.out.println("Probability: " + probability(0) + 
+//        		", " + probability(1) + ", " + probability(2) + 
+//        		", " + probability(3));
+//        
+//    System.out.println("Alias: " + alias(0) + 
+//        		", " + alias(1) + ", " + alias(2) + 
+//        		", " + alias(3));
         
     def next: Int = {
       val column = rand.nextInt(probability.size)
