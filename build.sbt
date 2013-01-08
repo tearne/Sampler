@@ -1,6 +1,6 @@
 name := "Sampler"
 
-version := "0.0.7"
+version := "0.0.8"
 
 organization := "ahvla"
 
@@ -25,4 +25,4 @@ retrieveManaged := true
 
 scalaVersion := "2.10.0"
 
-scalacOptions += "-Ydependent-method-types"
+//scalacOptions += "-Ydependent-method-types"
