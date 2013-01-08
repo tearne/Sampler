@@ -9,10 +9,10 @@ class AliasSpec extends Specification {
 
   "Alias method" should {
     
-    val myArray = Array(0.1,0.2,0.3,0.4)
+    val rawProbSeq = IndexedSeq(0.1,0.2,0.3,0.4)
     val rand = new Random
   
-    val myAlias = new Alias(myArray, rand)
+    val myAlias = new Alias(rawProbSeq, rand)
     
     "return the correct probability table" in {
     	val probs = myAlias.probability
@@ -28,7 +28,14 @@ class AliasSpec extends Specification {
     }
     
     "return the correct Alias table" in {
+      val alias = myAlias.alias
       
+      val expectedAlias = Array(3,3,0,2)
+      
+      (alias(0) mustEqual expectedAlias(0)) and
+      (alias(1) mustEqual expectedAlias(1)) and
+      (alias(2) mustEqual expectedAlias(2)) and
+      (alias(3) mustEqual expectedAlias(3))
     }
     
     "returns the correct index when sampling" in todo

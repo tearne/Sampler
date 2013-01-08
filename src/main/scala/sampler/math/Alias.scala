@@ -1,10 +1,12 @@
 package sampler.math
 
-class Alias(probabilities: Array[Double], rand: Random) {
+class Alias(origProbs: IndexedSeq[Double], rand: Random) {
 
   // Take indexed seq of probabilites as like AliasWrapper
   
   // prevent repeated calls to probabilities.size
+  
+    var probabilities = origProbs
   
 	var probability = Array.fill[Double](probabilities.size)(0)
 	var alias = Array.fill[Int](probabilities.size)(0)
@@ -35,7 +37,7 @@ class Alias(probabilities: Array[Double], rand: Random) {
 	  
 	  val newProb2 = probabilities(more) + probabilities(less) - average
 	  
-	  probabilities(more) = newProb2
+	  probabilities = probabilities.updated(more, newProb2)
 	  
 	  if(newProb2 >= average)
 	    large = large.:+(more)
