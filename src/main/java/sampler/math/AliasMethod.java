@@ -129,6 +129,16 @@ public final class AliasMethod {
             probability[small.removeLast()] = 1.0;
         while (!large.isEmpty())
             probability[large.removeLast()] = 1.0;
+        
+    	System.out.println("Probability: " + probability[0] + 
+		", " + probability[1] + ", " + probability[2] + 
+		", " + probability[3] + ", " + probability[4] + 
+		", " + probability[5] + ", " + probability[6]);
+
+    	System.out.println("Alias: " + alias[0] + 
+		", " + alias[1] + ", " + alias[2] + 
+		", " + alias[3] + ", " + alias[4] + 
+		", " + alias[5] + ", " + alias[6]);
     }
 
     /**

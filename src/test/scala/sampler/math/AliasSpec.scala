@@ -22,10 +22,10 @@ class AliasSpec extends Specification with Mockito {
     	
     	val tolerance = 1e-6
     	
-    	probs(0) must beCloseTo(expectedProbs(0), tolerance)
-    	probs(1) must beCloseTo(expectedProbs(1), tolerance)
-    	probs(2) must beCloseTo(expectedProbs(2), tolerance)
-    	probs(3) must beCloseTo(expectedProbs(3), tolerance)
+    	(probs(0) must beCloseTo(expectedProbs(0), tolerance)) and
+    	(probs(1) must beCloseTo(expectedProbs(1), tolerance)) and 
+    	(probs(2) must beCloseTo(expectedProbs(2), tolerance)) and
+    	(probs(3) must beCloseTo(expectedProbs(3), tolerance))
     }
     
     "return the correct Alias table" in {
@@ -44,11 +44,6 @@ class AliasSpec extends Specification with Mockito {
       
       rand.nextDouble() returns (0.2, 0.9, 0.5, 0.1)
       
-//      val s1 = myAlias.next
-//      val s2 = myAlias.next
-//      val s3 = myAlias.next
-//      val s4 = myAlias.next
-      
       val sampledResults = Array(myAlias.next, myAlias.next, myAlias.next, myAlias.next)
       
       val expectedResults = Array(0,3,2,3)
@@ -57,6 +52,39 @@ class AliasSpec extends Specification with Mockito {
       (sampledResults(1) mustEqual expectedResults(1)) and
       (sampledResults(2) mustEqual expectedResults(2)) and
       (sampledResults(3) mustEqual expectedResults(3))
+    }
+    
+    "return the correct tables in a more complicated example" in {
+      /*This was done by looking at the results of a more complicated example
+       * from the original Java implementation
+       */
+      
+      val moreProbs = IndexedSeq(
+          0.11, 0.05, 0.31, 0.17, 0.08, 0.19, 0.09)
+      
+      val biggerAlias = new Alias(moreProbs, rand)
+      
+      "probability table is correct" in {
+        val probs = biggerAlias.probability
+        
+        val tolerance = 1e-6
+        
+        (probs(0) must beCloseTo(0.77, tolerance)) and
+        (probs(1) must beCloseTo(0.35, tolerance)) and
+        (probs(2) must beCloseTo(1.0, tolerance)) and
+        (probs(3) must beCloseTo(0.71, tolerance)) and
+        (probs(4) must beCloseTo(0.56, tolerance)) and
+        (probs(5) must beCloseTo(0.96, tolerance)) and
+        (probs(6) must beCloseTo(0.63, tolerance))        
+      }
+      
+      "alias table is correct" in {
+    	  val expectedAlias = Array(2,2,0,2,3,3,5)
+        
+    	  val generatedAlias = biggerAlias.alias
+    	  
+    	  generatedAlias mustEqual expectedAlias
+      }
     }
   }
 }
