@@ -22,9 +22,4 @@ class Random extends scala.util.Random{
 		(max - min) * nextDouble() + min
 	
 	def nextBoolean(p: Probability): Boolean = math.random < p.value
-	
-	def nextFromWeights(probabilities: IndexedSeq[Probability]): Int = {
-		//TODO need to find some way to cache the Alias class, since setup time is non-trivial
-		new AliasWrapper(probabilities).sample
-	}
 }

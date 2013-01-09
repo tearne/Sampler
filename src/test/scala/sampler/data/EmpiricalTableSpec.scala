@@ -60,14 +60,16 @@ class EmpiricalTableSpec extends Specification with Mockito with DataTables{
 		}
 		
 		"sample uniformly by observation index" in {
-			//TODO, this is failing since the alias sampler uses it's own random
-			val rand = mock[Random]
-			
-			rand.nextInt(3) returns 1
-			rand.nextInt(7) returns 6
-			
-			(d1.sample(rand) mustEqual 5) and
-			(d3.sample(rand) mustEqual 4)
+			implicit val rand = new Random
+		  
+		    var listOfSamples: List[Int] = List()
+		  
+		    for(i <- 0 until 1000)
+		      listOfSamples = listOfSamples.+:(d1.sample)
+		  
+		    (listOfSamples.count(_ ==4) must beBetween(250, 400)) and
+		    (listOfSamples.count(_ ==5) must beBetween(250, 400)) and
+		    (listOfSamples.count(_ ==6) must beBetween(250, 400))
 		}
 		
 		"have map of counts for each observation" in {

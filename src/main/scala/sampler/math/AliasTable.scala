@@ -1,18 +1,23 @@
 package sampler.math
 
-class Alias(probabilities: IndexedSeq[Double], rand: Random) {
-
-    lazy val arraySize = probabilities.size
+class AliasTable(origProbs: IndexedSeq[Probability]) {
+    val probabilities = origProbs.map(v => v.value)
+  
+    if(!isEqualOne(probabilities.sum)) throw new ProbabilityException("Cannot use the alias method if probabilities don't sum to one")
+  
+    private def isEqualOne(value: Double) = if(value > 1 - 1E-8 && value < 1 + 1E-8) true else false
     
-	lazy val initialProbability = Array.fill[Double](arraySize)(1.0)
-	lazy val initialAlias = Array.fill[Int](arraySize)(0)
-	
-	lazy val average = 1.0 / arraySize
-	
-    lazy val small = probabilities.zipWithIndex filter (_._1 <= average) map (_._2) toArray
-    lazy val large = probabilities.zipWithIndex filter (_._1 > average) map (_._2) toArray
+    val arraySize = probabilities.size
     
-    lazy val (probability, alias) = construct(small, large, initialProbability, initialAlias, probabilities)
+	val initialProbability = Array.fill[Double](arraySize)(1.0)
+	val initialAlias = Array.fill[Int](arraySize)(0)
+	
+	val average = 1.0 / arraySize
+	
+    val small = probabilities.zipWithIndex filter (_._1 <= average) map (_._2) toArray
+    val large = probabilities.zipWithIndex filter (_._1 > average) map (_._2) toArray
+    
+    val (probability, alias) = construct(small, large, initialProbability, initialAlias, probabilities)
 	
     def construct(small: Array[Int], large: Array[Int], aliasProbs: Array[Double], alias: Array[Int], probs: IndexedSeq[Double]): 
     		(Array[Double], Array[Int]) = {
@@ -52,7 +57,7 @@ class Alias(probabilities: IndexedSeq[Double], rand: Random) {
 //        		", " + alias(1) + ", " + alias(2) + 
 //        		", " + alias(3));
         
-    def next: Int = {
+    def next(rand: Random): Int = {
       val column = rand.nextInt(probability.size)
       
       val coinToss = rand.nextDouble() < probability(column)

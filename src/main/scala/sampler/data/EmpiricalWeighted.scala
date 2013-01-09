@@ -20,7 +20,7 @@ package sampler.data
 import sampler.math.Random
 import sampler.math.Probability
 import scala.collection.GenTraversableOnce
-import sampler.math.AliasWrapper
+import sampler.math.AliasTable
 
 /*
  * Empirical implementation which uses a weight attached to each
@@ -30,7 +30,9 @@ class EmpiricalWeighted[A](val weights: Map[A, Double]) extends Empirical[A]{
 	//TODO Tidy up the Alias stuff, pushing this stuff away
 	private lazy val (indexedValues, indexedProbabilities) = probabilities.toIndexedSeq.unzip
 	
-	def sample(implicit r: Random) = indexedValues(r.nextFromWeights(indexedProbabilities))
+	private lazy val aliasTable = new AliasTable(indexedProbabilities)
+	
+	def sample(implicit r: Random) = indexedValues(aliasTable.next(r))
 	
 	lazy val supportSize = weights.size
 	lazy val probabilities = {
