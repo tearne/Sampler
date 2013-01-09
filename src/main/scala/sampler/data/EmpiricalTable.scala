@@ -56,5 +56,5 @@ class EmpiricalTable[A](val counts: Map[A, Int]) extends Empirical[A]{
 	 */
 	def toEmpiricalSeq() = new EmpiricalSeq(counts.keys.toIndexedSeq)
 	
-	override def canEqual(other: Any): Boolean = other.isInstanceOf[EmpiricalWeighted[_]]
+	override def canEqual(other: Any): Boolean = other.isInstanceOf[EmpiricalTable[_]]
 }
