@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Crown Copyright 
+ 	* Copyright (c) 2012 Crown Copyright 
  *                    Animal Health and Veterinary Laboratories Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -161,3 +161,5 @@ trait ABCComponent{
 		result.map(_.value)
 	}
 }
+
+case class ABCParameters(reps: Int, particles: Int, tolerance: Double, refinements: Int, timeout: Int)
