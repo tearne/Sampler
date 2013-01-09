@@ -63,16 +63,13 @@ trait ABCComponent{
 	def apply[R <: Random](model: ABCModel[R], r: R)( 
 			prior: Prior[model.Parameters,R],
 			obs: model.Observations, 
-			reps: Int, 
-			particles: Int, 
-			startTolerance: Double,
-			refinementAttempts: Int,
+			parameters: ABCParameters,
 			runner: AbortableRunner,
 			writer: Option[model.PopulationWriter] = None
 	): Seq[model.Parameters] = {
 		type P = model.Parameters
 		
-		val uniformlyWeightedParticles = (1 to particles).par.map(i => Particle(prior.sample(r), 1.0)).seq
+		val uniformlyWeightedParticles = (1 to parameters.particles).par.map(i => Particle(prior.sample(r), 1.0)).seq
 		
 		def evolve(population: Seq[Particle[P]], tolerance: Double): Option[Seq[Particle[P]]] = {
 			println("Now working on tolerance = "+tolerance)
@@ -92,9 +89,9 @@ trait ABCComponent{
 						val candidate = samplable.sample(r).perturb		// Potential Bug! (out of range candidate)
 						val assessedModel = model.init(candidate, obs).map(_.closeToObserved(obs, tolerance))
 						
-						val numSuccess = builder(assessedModel)(_.size == reps)(r)
+						val numSuccess = builder(assessedModel)(_.size == parameters.reps)(r)
 							.count(identity) //TODO use a counting statistic?
-						val fHat = numSuccess.toDouble / reps
+						val fHat = numSuccess.toDouble / parameters.reps
 						
 						val res = if(fHat > 0){
 							//Calculate a weight for this new particle
@@ -124,12 +121,12 @@ trait ABCComponent{
 			val results: Seq[Option[Particle[P]]] = runner(
 					AbortFunction[Particle[P]](_.contains(None))
 			){
-					val jobs = (1 to particles).map(particle => AbortableJob[Particle[P]](stillRunning => getNextParticle(stillRunning)))
+					val jobs = (1 to parameters.particles).map(particle => AbortableJob[Particle[P]](stillRunning => getNextParticle(stillRunning)))
 					jobs.toSeq
 			}
 			
 			val newPopulation = results.flatten
-			if(newPopulation.size == particles) Some(newPopulation)
+			if(newPopulation.size == parameters.particles) Some(newPopulation)
 			else None
 		}
 		
@@ -157,7 +154,7 @@ trait ABCComponent{
 			}
 		}
 		
-		val result = refine(uniformlyWeightedParticles, refinementAttempts, startTolerance, startTolerance, 0.5)
+		val result = refine(uniformlyWeightedParticles, parameters.refinements, parameters.tolerance, parameters.tolerance, 0.5)
 		result.map(_.value)
 	}
 }

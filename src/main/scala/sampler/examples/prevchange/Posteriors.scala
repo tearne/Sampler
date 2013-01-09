@@ -28,6 +28,7 @@ import scala.collection.immutable.TreeMap
 import sampler.run.actor.LocalActorRunner
 import sampler.fit.ABCComponent
 import sampler.run.SerialRunner
+import sampler.fit.ABCParameters
 
 /*
  * Draw posterior distributions and confidence limits for the number of infected 
@@ -53,10 +54,7 @@ object Posteriors extends App with WithoutReplacementABC with Environment{
 		val posterior = ABC(model, r)(
 				uniformPrior,
 				Observations(numPosObserved),
-				reps = 10,
-				particles = 10000,
-				startTolerance = 10,
-				refinementAttempts = 8,
+				new ABCParameters(10, 10000, 10, 8, 500),
 				runner,
 				None
 		)

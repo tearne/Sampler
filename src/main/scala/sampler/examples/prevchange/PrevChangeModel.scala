@@ -34,6 +34,7 @@ import scala.collection.immutable.TreeMap
 import sampler.fit.ABCComponent
 import sampler.data._
 import sampler.data.EmpiricalMetricComponent
+import sampler.fit.ABCParameters
 
 /*
  * On first sample of an infected population work out the uncertainty around
@@ -70,10 +71,7 @@ object PrevChangeApp extends App
 		val posterior = ABC.apply(model, r)(
 				uniformPrior,
 				Observations(numPosObserved),
-				reps = 10,
-				particles = numParticles,
-				startTolerance = 10,
-				refinementAttempts = 6,
+				new ABCParameters(10, numParticles, 10, 6, 500),
 				runner,
 				None
 		)

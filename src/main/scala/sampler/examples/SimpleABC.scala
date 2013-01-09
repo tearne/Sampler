@@ -112,10 +112,7 @@ object SimpleABC extends App{
 	val resultParams = ABCRunner(model, random)(
 			prior, 
 			obs,
-			reps = 20, 
-			particles = 10000, 
-			startTolerance = 1000000,
-			refinementAttempts = 20,
+			new ABCParameters(20, 1000, 1000000, 20, 500),
 			/*runner,*/new SerialRunner,
 			Some(Writer)
 	)
