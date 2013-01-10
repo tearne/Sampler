@@ -23,11 +23,47 @@ import org.junit.runner.RunWith
 import org.specs2.mock.Mockito
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
+import sampler.data.Empirical._
+import sampler.math.Statistics
+import scala.math.Fractional
 
 @RunWith(classOf[JUnitRunner])
 class StatisticSpec extends Specification with Mockito{
 	"Statistic" should {
-		"calculate the mean" in { todo
+		"calculate the mean" in {
+		  
+		  "for an EmpiricalSeq" in {
+		    val empSeq = IndexedSeq(1,2,3,4).toEmpiricalSeq
+		    
+		    val stats = new Statistics
+		    
+//		    TODO not locating implicit Fractional
+//		    stats.mean(empSeq)
+		  }
+		  
+		  "for an EmpiricalTable" in {
+		    val empTable = IndexedSeq(1,2,3,4).toEmpiricalTable
+		    
+		    val stats = new Statistics
+		    
+//		    TODO not locating implicit Fractional
+//		    stats.mean(empTable)
+		  }
+		  
+		  "for an EmpiricalWeighted" in {
+		    val empWeight = Map(
+		        1 -> 0.25,
+		        2 -> 0.25,
+		        3 -> 0.25,
+		        4 -> 0.25
+		      ).toEmpiricalWeighted
+		    
+		    val stats = new Statistics
+		    
+//		    TODO not locating implicit Fractional
+//		    stats.mean(empWeight)
+		  }
+		  
 //			val empirical = mock[Empirical[Double]]
 //			val counts = List((1.1,10), (2.2,20), (3.3, 30)).toMap
 //			empirical.counts returns counts

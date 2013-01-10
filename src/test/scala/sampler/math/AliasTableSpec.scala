@@ -58,6 +58,7 @@ class AliasTableSpec extends Specification with Mockito {
     "return the correct tables in a more complicated example" in {
       /*This was done by looking at the results of a more complicated example
        * from the original Java implementation
+       * LINK
        */
       
       val moreProbs = IndexedSeq(
