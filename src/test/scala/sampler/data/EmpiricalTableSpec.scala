@@ -152,7 +152,6 @@ class EmpiricalTableSpec extends Specification with Mockito with DataTables{
 		}
 		
 		"Override equals and hashcode" in {
-			//TODO add a check comparing an EmpiricalWeighted to an EmpiricalTable (to check not eql)
 			val instance1a = IndexedSeq(4, 5).toEmpiricalTable
 			val instance1b = IndexedSeq(4, 5).toEmpiricalTable
 			val instance2 = IndexedSeq(4, 5,5).toEmpiricalTable
@@ -161,6 +160,13 @@ class EmpiricalTableSpec extends Specification with Mockito with DataTables{
 			(instance1a mustNotEqual instance2) and
 			(instance1a.hashCode mustEqual instance1b.hashCode) and
 			(instance1a.hashCode mustNotEqual instance2.hashCode)
+		}
+		
+		"must not be equal to an Empirical weighted" in {
+			val instance1a = IndexedSeq(4, 5).toEmpiricalTable
+			val instance1b = Map(4->0.5,5->0.5).toEmpiricalWeighted
+			
+			instance1a mustNotEqual instance1b
 		}
 		
 

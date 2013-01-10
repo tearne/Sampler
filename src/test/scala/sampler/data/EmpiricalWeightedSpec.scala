@@ -116,7 +116,6 @@ class WeightsTableSpec extends Specification with Mockito{
 		*/
 		
 		"override equals and hashcode" in {
-			//TODO add a check comparing an EmpiricalWeighted to an EmpiricalTable (to check not eql)
 			val instance1a = weightedValues.toEmpiricalWeighted
 			val instance1b = weightedValues.toEmpiricalWeighted
 			val instance2 = weightedValues + (5 -> 1.25) toEmpiricalWeighted
@@ -125,6 +124,13 @@ class WeightsTableSpec extends Specification with Mockito{
 			(instance1a mustNotEqual instance2) and
 			(instance1a.hashCode mustEqual instance1b.hashCode) and
 			(instance1a.hashCode mustNotEqual instance2.hashCode)
+		}
+		
+		"must not be equal to EmpiricalTable" in {
+		  val instance1a = weightedValues.toEmpiricalWeighted
+		  val instance1b = IndexedSeq(1,2,3,4).toEmpiricalTable
+		  
+		  instance1a mustNotEqual instance1b
 		}
 	}
 }
