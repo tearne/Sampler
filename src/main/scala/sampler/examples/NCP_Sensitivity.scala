@@ -23,6 +23,8 @@ object NCP_Sensitivity extends App with EmpiricalMetricComponent{
 //  println(home.toAbsolutePath())
   
   val chains = ChainReader(home.toString())
+
+//  NCP cage
   
   val requiredParameters = List(
 	"PPosNCPFaecesCage[1]",
@@ -32,6 +34,17 @@ object NCP_Sensitivity extends App with EmpiricalMetricComponent{
 	"PPosNCPFaecesCage[5]",
 	"PPosNCPFaecesCage[6]"
   )
+
+//  NCP non cage
+  
+//  val requiredParameters = List(
+//	"PPosNCPFaecesNonCage[1]",
+//	"PPosNCPFaecesNonCage[2]",
+//	"PPosNCPFaecesNonCage[3]",
+//	"PPosNCPFaecesNonCage[4]",
+//	"PPosNCPFaecesNonCage[5]",
+//	"PPosNCPFaecesNonCage[6]"
+//  )
   
   val distMap = requiredParameters map (
       name => name -> (chains.get(name).get).toIndexedSeq) toMap
@@ -44,6 +57,10 @@ object NCP_Sensitivity extends App with EmpiricalMetricComponent{
   
   val stats = new Statistics
   val requiredConf = 0.95
+  
+//  val means = distMap map{case(k,v) => (k, stats.mean(v.toEmpiricalSeq))}
+//  
+//  println(means)
   
   val resultsMap = distMap map {case(k,v) => (k, sampleSizeCalc(v))}
   
@@ -61,6 +78,7 @@ object NCP_Sensitivity extends App with EmpiricalMetricComponent{
       val results = builder(samplable)(terminationCondition _)
       
       if(conf(results) > requiredConf) {
+        println(results.size)
         size
       } else {
         calcConf(size+1)  
@@ -85,6 +103,8 @@ object NCP_Sensitivity extends App with EmpiricalMetricComponent{
 
 	  val distance = math.abs(ratio(soFar) - ratio(soFar.take(soFar.size - 2000)))
 
-	  (distance < 0.0001) || (soFar.size > 1e8)
+	  println(distance)
+	  
+	  (distance < 0.000001) || (soFar.size > 1e8)
   }
 }
