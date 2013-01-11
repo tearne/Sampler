@@ -23,6 +23,7 @@ import org.apache.commons.math3.distribution.NormalDistribution
 import scala.collection.GenSeq
 import scala.collection.parallel.ParSeq
 import scala.math.Numeric.DoubleIsFractional
+import sampler.math.Probability
 
 /*
  * Anything from which we can draw samples.  E.g. an analytical distribution,
@@ -118,7 +119,7 @@ object Samplable{
 					takeAnother(item +: acc, bag diff List(item))
 				}
 			}
-			
+				
 			takeAnother(Nil, items)
 		}
 	}
@@ -131,6 +132,10 @@ object Samplable{
 		val d = new NormalDistribution(0,variance)
 		def sample(implicit r: ScalaRandom) = d.sample
 		def density(value: Double) = d.density(value)
+	}
+	
+	def bernouliTrial(probSuccess: Samplable[Probability, Random]) = new Samplable[Boolean, Random]{
+	  def sample(implicit r: Random) = r.nextBoolean(probSuccess.sample)
 	}
 }
 

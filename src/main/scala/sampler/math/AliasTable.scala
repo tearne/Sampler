@@ -30,6 +30,7 @@ class AliasTable(origProbs: IndexedSeq[Probability]) {
         val aliasProbability = probs(less) * arraySize
         val rawProbability = probs(more) + probs(less) - average
       
+        //TODO tail recursion?
         if(rawProbability >= average)
 	      construct(
 	          small.dropRight(1), 
