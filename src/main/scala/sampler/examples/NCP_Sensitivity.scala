@@ -16,8 +16,6 @@ import sampler.data.Samplable
 
 object NCP_Sensitivity extends App with EmpiricalMetricComponent{
   
-//  DATA READ IN
-  
   val home = Paths.get("", "examples", "ncpSampleSize", "data", "coda")
   
 //  println(home.toAbsolutePath())
@@ -49,18 +47,10 @@ object NCP_Sensitivity extends App with EmpiricalMetricComponent{
   val distMap = requiredParameters map (
       name => name -> (chains.get(name).get).toIndexedSeq) toMap
 
-//  END DATA READ IN
-      
-//  ANALYSIS
-      
   implicit val r = new Random()
   
   val stats = new Statistics
   val requiredConf = 0.95
-  
-//  val means = distMap map{case(k,v) => (k, stats.mean(v.toEmpiricalSeq))}
-//  
-//  println(means)
   
   val resultsMap = distMap map {case(k,v) => (k, sampleSizeCalc(v))}
   
@@ -78,7 +68,6 @@ object NCP_Sensitivity extends App with EmpiricalMetricComponent{
       val results = builder(samplable)(terminationCondition _)
       
       if(conf(results) > requiredConf) {
-        println(results.size)
         size
       } else {
         calcConf(size+1)  
@@ -86,7 +75,7 @@ object NCP_Sensitivity extends App with EmpiricalMetricComponent{
     }
     
     def conf(seq: ParSeq[Boolean]) = {
-      seq.count(_ == true).toDouble/seq.size.toDouble
+      seq.toEmpiricalTable.probabilities(true).value
     }
     
     calcConf(1)
@@ -97,14 +86,8 @@ object NCP_Sensitivity extends App with EmpiricalMetricComponent{
   }
 
   def terminationCondition(soFar: GenSeq[Boolean]) = {
-	  def ratio(seq: GenSeq[Boolean]) = {
-		  soFar.count(_ == true).toDouble/soFar.count(_ == false).toDouble
-	  }
+	  val distance = metric.max(soFar.toEmpiricalTable, soFar.take(soFar.size - 2000).toEmpiricalTable)
 
-	  val distance = math.abs(ratio(soFar) - ratio(soFar.take(soFar.size - 2000)))
-
-	  println(distance)
-	  
-	  (distance < 0.000001) || (soFar.size > 1e8)
+	  (distance < 0.0001) || (soFar.size > 1e8)
   }
 }
