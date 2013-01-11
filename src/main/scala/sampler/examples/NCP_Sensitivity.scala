@@ -7,6 +7,9 @@ import sampler.math.Random
 import sampler.data.ParallelSampleBuilder
 import scala.collection.GenSeq
 import sampler.data.EmpiricalMetricComponent
+import sampler.data.EmpiricalTable
+import scala.collection.parallel.ParSeq
+import sampler.math.Statistics
 
 object NCP_Sensitivity extends App with EmpiricalMetricComponent{
   
@@ -19,12 +22,12 @@ object NCP_Sensitivity extends App with EmpiricalMetricComponent{
   val chains = ChainReader(home.toString())
   
   val requiredParameters = List(
-	"PPosEUFaecesCage[1]",
-	"PPosEUFaecesCage[2]",
-	"PPosEUFaecesCage[3]",
-	"PPosEUFaecesCage[4]",
-	"PPosEUFaecesCage[5]",
-	"PPosEUFaecesCage[6]"
+	"PPosNCPFaecesCage[1]"
+//	"PPosNCPFaecesCage[2]",
+//	"PPosNCPFaecesCage[3]",
+//	"PPosNCPFaecesCage[4]",
+//	"PPosNCPFaecesCage[5]",
+//	"PPosNCPFaecesCage[6]"
   )
   
   val distMap = requiredParameters map (
@@ -34,28 +37,63 @@ object NCP_Sensitivity extends App with EmpiricalMetricComponent{
       
 //  ANALYSIS
       
-  val firstPrev = distMap(distMap.keySet.toList(0))
+//  val firstPrev = distMap(distMap.keySet.toList(0))
+//  val secondPrev = distMap(distMap.keySet.toList(1))
+//  val thirdPrev = distMap(distMap.keySet.toList(2))
+//  val fourthPrev = distMap(distMap.keySet.toList(3))
+//  val fifthPrev = distMap(distMap.keySet.toList(4))
+//  val sizthPrev = distMap(distMap.keySet.toList(5))
+      
+      val firstPrev = IndexedSeq(1,2,3,4,5).toEmpiricalTable
+//      val secondPrev = IndexedSeq(6,7,8,9,10).toEmpiricalTable
   
   implicit val r = new Random()
   
-  def terminationCondition(soFar: GenSeq[Double]) = {
-			val distance = metric.max(
-			    soFar.take(soFar.size - 2000).toEmpiricalTable,
-			    soFar.toEmpiricalTable
-			)
-			
-			(distance < 0.001) || (soFar.size > 1e8)
-		}
+  println(firstPrev.sample)
+//  println(secondPrev.sample)
   
-  val sampleSize = 10;
+  val stats = new Statistics
+  val requiredConf = 0.95
   
-  val selectedSe = firstPrev.sample
-
-  val detected = probDetection(selectedSe, sampleSize)
+//  val resultMap = distMap map {case(k, v) => (k, sampleSizeCalc(v, List()))}
+//  distMap foreach{case(k,v) => println(k + " " + sampleSizeCalc(v, List())._1)}
   
-  println("With sensitivity " + selectedSe + " and sample size " + sampleSize + " the probability of detection of disease is " + detected)
+//  val sampleSizeMap = resultMap map {case(k, v) => (k, v._1)}
+//  
+//  println(sampleSizeMap)
   
-  def probDetection(p: Double, n: Int) = {
-    1-math.pow((1-p), n.toDouble)
+  def sampleSizeCalc(model: EmpiricalTable[Double], accum: List[Double]) : (Double, List[Double]) = {
+    if(accum.size > 0 && accum.last >= requiredConf) (accum.size, accum)
+    else {
+      val size = accum.size + 1
+      
+      sampleSizeCalc(model, accum.:+(stats.mean(sampleBuilder(model, 2000, size).toEmpiricalTable)))
+    }
   }
+  
+  def sampleBuilder(model: EmpiricalTable[Double], chunkSize: Int, sampleSize: Int) = {
+    def takeMore(previous: ParSeq[Double]): ParSeq[Double] = {
+      if(terminationCondition(previous)) previous
+      else takeMore(
+        previous ++ (1 to chunkSize).par.map(i => probDetection(model.sample, sampleSize))
+      )
+    }
+    
+    def terminationCondition(soFar: GenSeq[Double]) = {
+      val distance = metric.max(
+   		soFar.take(soFar.size - 2000).toEmpiricalTable,
+    	soFar.toEmpiricalTable
+      )
+    			
+      (distance < 0.001) || (soFar.size > 1e8)
+    }
+    
+    def probDetection(p: Double, n: Int) = {
+    	1-math.pow((1-p), n.toDouble)
+    }
+    
+    val kickstart = (1 to chunkSize).par.map(i => probDetection(model.sample, sampleSize))
+    takeMore(kickstart)
+  }
+  
 }
