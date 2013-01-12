@@ -84,20 +84,26 @@ object NCP_Sensitivity extends App with EmpiricalMetricComponent{
       def probDetection(p: Double) = 1 - math.pow((1 - p), numTrials)
      
       // Termination condition for drawing samples
-      def terminateWhen(soFar: GenSeq[Boolean]) = {
-    	val distance = metric.max(soFar.toEmpiricalTable, soFar.take(soFar.size - chunkSize).toEmpiricalTable)
+      def terminateCondition(soFar: GenSeq[Boolean]) = {
+    	val distance = metric.max(
+    	    soFar.toEmpiricalTable, 
+    	    soFar.take(soFar.size - chunkSize).toEmpiricalTable
+    	)
     	(distance < 0.0001) || (soFar.size > 1e8)
       }
       
       // The proportion of samples so far that are positive
-      def proportionPositive(samples: GenSeq[Boolean]) = samples.toEmpiricalTable.probabilities(true).value
+      def proportionPositive(samples: GenSeq[Boolean]) = 
+        samples.toEmpiricalTable.probabilities(true).value
       
-      // Build model for 'numTrials', incorporating uncertainty in test performance
+      // Build model for result of 'numTrials',
+      //incorporating uncertainty in test performance
       val detectionProbs = senstivityDist map (se => Probability(probDetection(se)))
       val model = Samplable.bernouliTrial(detectionProbs.toEmpiricalSeq)
       
-      // Build sampling distribution and finish if confidence in +ve result suff high 
-      val samples = new ParallelSampleBuilder(chunkSize)(model)(terminateWhen)
+      // Build sampling distribution and finish
+      //if confidence in +ve result suff high 
+      val samples = new ParallelSampleBuilder(chunkSize)(model)(terminateCondition)
       if(proportionPositive(samples) > requiredConf) numTrials
       else calcConf(numTrials + 1)  
     }
