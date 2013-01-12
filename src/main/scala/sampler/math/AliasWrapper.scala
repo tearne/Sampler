@@ -3,7 +3,7 @@ package sampler.math
 import java.util.ArrayList
 
 //
-//TODO this needs to rewritten directly in scala, rather than as a wrapper
+//TODO Delete this class now that we have the AliasTable?
 //
 class AliasWrapper(probabilities: IndexedSeq[Probability]) {
 	val probsAsDouble = probabilities.map(_.value)

@@ -1,9 +1,27 @@
+/*
+ * Copyright (c) 2013 Crown Copyright 
+ *                    Animal Health and Veterinary Laboratories Agency
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package sampler.math
 
 class AliasTable(origProbs: IndexedSeq[Probability]) {
     val probabilities = origProbs.map(v => v.value)
   
-    if(!isEqualOne(probabilities.sum)) throw new ProbabilityException("Cannot use the alias method if probabilities don't sum to one")
+    if(!isEqualOne(probabilities.sum)) 
+      throw new ProbabilityException("Cannot use the alias method if probabilities don't sum to one")
   
     private def isEqualOne(value: Double) = if(value > 1 - 1E-8 && value < 1 + 1E-8) true else false
     
@@ -19,8 +37,13 @@ class AliasTable(origProbs: IndexedSeq[Probability]) {
     
     val (probability, alias) = construct(small, large, initialProbability, initialAlias, probabilities)
 	
-    def construct(small: Array[Int], large: Array[Int], aliasProbs: Array[Double], alias: Array[Int], probs: IndexedSeq[Double]): 
-    		(Array[Double], Array[Int]) = {
+    def construct(
+	        small: Array[Int], 
+	        large: Array[Int], 
+	        aliasProbs: Array[Double], 
+	        alias: Array[Int], 
+	        probs: IndexedSeq[Double]
+    ): (Array[Double], Array[Int]) = {
       if(small.isEmpty || large.isEmpty) {
         (aliasProbs, alias)
       } else {
@@ -30,7 +53,7 @@ class AliasTable(origProbs: IndexedSeq[Probability]) {
         val aliasProbability = probs(less) * arraySize
         val rawProbability = probs(more) + probs(less) - average
       
-        //TODO tail recursion?
+        //TODO tail recursion
         if(rawProbability >= average)
 	      construct(
 	          small.dropRight(1), 
@@ -49,14 +72,6 @@ class AliasTable(origProbs: IndexedSeq[Probability]) {
 		  )
       }
     }
-    
-//	System.out.println("Probability: " + probability(0) + 
-//        		", " + probability(1) + ", " + probability(2) + 
-//        		", " + probability(3));
-//        
-//    System.out.println("Alias: " + alias(0) + 
-//        		", " + alias(1) + ", " + alias(2) + 
-//        		", " + alias(3));
         
     def next(rand: Random): Int = {
       val column = rand.nextInt(probability.size)

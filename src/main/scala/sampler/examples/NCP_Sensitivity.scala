@@ -1,7 +1,24 @@
+/*
+ * Copyright (c) 2013 Crown Copyright 
+ *                    Animal Health and Veterinary Laboratories Agency
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package sampler.examples
 
 import java.nio.file.Paths
-import eu9302.winbugs.ChainReader
+import sampler.io.ChainReader
 import sampler.data.Empirical._
 import sampler.math.Random
 import sampler.data.ParallelSampleBuilder
@@ -13,18 +30,17 @@ import sampler.math.Statistics
 import sampler.data.Empirical
 import sampler.math.Probability
 import sampler.data.Samplable
+import scala.annotation.tailrec
 
 object NCP_Sensitivity extends App with EmpiricalMetricComponent{
   
-  val home = Paths.get("", "examples", "ncpSampleSize", "data", "coda")
+  val pathspec = Paths.get("", "examples", "ncpSampleSize", "data", "coda")
   
-//  println(home.toAbsolutePath())
-  
-  val chains = ChainReader(home.toString())
+  val chains = ChainReader(pathspec.toString())
 
 //  NCP cage
   
-  val requiredParameters = List(
+  val populationNames = List(
 	"PPosNCPFaecesCage[1]",
 	"PPosNCPFaecesCage[2]",
 	"PPosNCPFaecesCage[3]",
@@ -35,7 +51,7 @@ object NCP_Sensitivity extends App with EmpiricalMetricComponent{
 
 //  NCP non cage
   
-//  val requiredParameters = List(
+//  val populationNames = List(
 //	"PPosNCPFaecesNonCage[1]",
 //	"PPosNCPFaecesNonCage[2]",
 //	"PPosNCPFaecesNonCage[3]",
@@ -43,51 +59,49 @@ object NCP_Sensitivity extends App with EmpiricalMetricComponent{
 //	"PPosNCPFaecesNonCage[5]",
 //	"PPosNCPFaecesNonCage[6]"
 //  )
-  
-  val distMap = requiredParameters map (
-      name => name -> (chains.get(name).get).toIndexedSeq) toMap
 
+  // Preamble
   implicit val r = new Random()
-  
   val stats = new Statistics
+  
+  // Metaparameters
   val requiredConf = 0.95
+  val chunkSize = 2000
+
+  // Run analysis
+  val minimumSampleSizes = populationNames 
+		  .map (name => chains(name))
+  		  .map (chain => smallestSampleSize(chain))
   
-  val resultsMap = distMap map {case(k,v) => (k, sampleSizeCalc(v))}
-  
-  resultsMap.foreach(println(_))
-  
-  def sampleSizeCalc(model: IndexedSeq[Double]) = {
-    
-    def calcConf(size: Int) : Int = {
-      val detectionSeq = model map (a => Probability(probDetection(a, size)))
-      
-      val samplable = Samplable.bernouliTrial(detectionSeq.toEmpiricalSeq)
-    
-      val builder = new ParallelSampleBuilder(2000)
-	
-      val results = builder(samplable)(terminationCondition _)
-      
-      if(conf(results) > requiredConf) {
-        size
-      } else {
-        calcConf(size+1)  
+  // Report
+  populationNames zip minimumSampleSizes foreach(println)
+  		  
+  // Analysis code
+  def smallestSampleSize(senstivityDist: Seq[Double]) = {
+    @tailrec
+    def calcConf(numTrials: Int) : Int = {
+      // Single trial Se => Multiple trials Se
+      def probDetection(p: Double) = 1 - math.pow((1 - p), numTrials)
+     
+      // Termination condition for drawing samples
+      def terminateWhen(soFar: GenSeq[Boolean]) = {
+    	val distance = metric.max(soFar.toEmpiricalTable, soFar.take(soFar.size - chunkSize).toEmpiricalTable)
+    	(distance < 0.0001) || (soFar.size > 1e8)
       }
-    }
-    
-    def conf(seq: ParSeq[Boolean]) = {
-      seq.toEmpiricalTable.probabilities(true).value
+      
+      // The proportion of samples so far that are positive
+      def proportionPositive(samples: GenSeq[Boolean]) = samples.toEmpiricalTable.probabilities(true).value
+      
+      // Build model for 'numTrials', incorporating uncertainty in test performance
+      val detectionProbs = senstivityDist map (se => Probability(probDetection(se)))
+      val model = Samplable.bernouliTrial(detectionProbs.toEmpiricalSeq)
+      
+      // Build sampling distribution and finish if confidence in +ve result suff high 
+      val samples = new ParallelSampleBuilder(chunkSize)(model)(terminateWhen)
+      if(proportionPositive(samples) > requiredConf) numTrials
+      else calcConf(numTrials + 1)  
     }
     
     calcConf(1)
-  }
-
-  def probDetection(p: Double, n: Int) = {
-	  1-math.pow((1-p), n.toDouble)
-  }
-
-  def terminationCondition(soFar: GenSeq[Boolean]) = {
-	  val distance = metric.max(soFar.toEmpiricalTable, soFar.take(soFar.size - 2000).toEmpiricalTable)
-
-	  (distance < 0.0001) || (soFar.size > 1e8)
   }
 }
