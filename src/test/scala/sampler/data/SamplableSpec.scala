@@ -76,6 +76,44 @@ class SamplableSpec extends Specification {
 			}
 		}
 		
+		"have a Bernoilli trial object" in {
+		  
+		  import sampler.data.Empirical._
+		  import sampler.math.Probability
+
+		  implicit val r = new Random()
+		  
+		  "that returns only true when all probabilities equal one" in {
+		    val probs = Seq(1, 1, 1).map(value => Probability(value))
+		    
+		    val model = Samplable.bernouliTrial(probs.toEmpiricalSeq)
+		    
+		    val result = (1 to 10).map(_ => model.sample)
+		    
+		    result.count(_ == true) mustEqual 10
+		  }
+		  
+		  "that returns only false when all probabilities equal zero" in {
+		    val probs = Seq(0, 0, 0).map(value => Probability(value))
+		    
+		    val model = Samplable.bernouliTrial(probs.toEmpiricalSeq)
+		    
+		    val result = (1 to 10).map(_ => model.sample)
+		    
+		    result.count(_ == true) mustEqual 0
+		  }
+		  
+		  "that returns results in the correct proportion given supplied probabilities" in {
+		    val probs = Seq(0.8, 0.8, 0.8).map(value => Probability(value))
+		    
+		    val model = Samplable.bernouliTrial(probs.toEmpiricalSeq)
+		    
+		    val result = (1 to 1000).map(_ => model.sample)
+		    
+		    result.count(_ == true) must beBetween(750, 850)
+		  }
+		}
+		
 		//TODO map, flatmap, combine, convolve, crossCorrelate
 		
 		//Covariance and contravariance tests (for compilation only)
