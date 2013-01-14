@@ -27,6 +27,8 @@ import sampler.data.Empirical._
 import sampler.math.Statistics
 import scala.math.Fractional
 
+// TODO this test is in the wrong package
+
 @RunWith(classOf[JUnitRunner])
 class StatisticSpec extends Specification with Mockito{
 	"Statistic" should {

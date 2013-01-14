@@ -19,11 +19,26 @@ package sampler.data
 
 import org.specs2.mutable.Specification
 import org.specs2.mock.Mockito
+import sampler.data.Empirical._
+import org.junit.runner.RunWith
+import org.specs2.runner.JUnitRunner
 
-class DistanceSpec extends Specification with Mockito{
-	"Distance" should {
-		"distance by mean" in {
-			todo
+@RunWith(classOf[JUnitRunner])
+class DistanceSpec extends Specification with Mockito with EmpiricalMetricComponent{
+	"Empirical Metric Component" should {
+		"implement an absolute difference metric" in {
+			val instance1 = IndexedSeq(1,2,3).toEmpiricalSeq // mean 2
+			val instance2 = IndexedSeq(4,5,6).toEmpiricalSeq // mean 5
+			
+//			TODO needs fixing when implicit Fractional problems resolved
+//			metric.absoluteMean(instance1, instance2) mustEqual 3
+		}
+		
+		"implement a maximum difference metric" in {
+			val instance1 = IndexedSeq(1,2,3,4).toEmpiricalSeq 
+			val instance2 = IndexedSeq(1,2,2,2).toEmpiricalSeq // biggest distance 4
+			
+			metric.max(instance1, instance2) mustEqual 0.5
 		}
 	}
 }
