@@ -21,7 +21,6 @@ import sampler.math.Random
 import scala.collection.GenTraversableOnce
 import sampler.math.Probability
 import sampler.math.AliasTable
-import sampler.math.AliasWrapper
 
 /*
  * Empirical implementation backed by a map which counts occurrences of
@@ -31,9 +30,9 @@ import sampler.math.AliasWrapper
 class EmpiricalTable[A](val counts: Map[A, Int]) extends Empirical[A]{
 	private lazy val (indexedValues, indexedProbabilities) = probabilities.toIndexedSeq.unzip
 
-	private lazy val aliasTable = new AliasWrapper(indexedProbabilities)
+	private lazy val aliasTable = new AliasTable(indexedProbabilities)
 	
-	def sample(implicit r: Random) = indexedValues(aliasTable.sample)
+	def sample(implicit r: Random) = indexedValues(aliasTable.next(r))
 	
 	lazy val supportSize = counts.size
 	lazy val probabilities = {
