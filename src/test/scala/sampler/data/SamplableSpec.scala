@@ -9,11 +9,7 @@ import org.specs2.specification.Scope
 @RunWith(classOf[JUnitRunner])
 class SamplableSpec extends Specification {
 	"Samplable" should {
-		"have map" in todo
-		"have flatMap" in todo
-		"have combine" in todo
-		"have convolution (+)" in todo
-		"have cross correlation (-)" in todo
+		"have flatMap" in todo	// todo not sure how flatmap should work
 		
 		"sample mocked values in order" in new createInstance {
 			
@@ -50,6 +46,23 @@ class SamplableSpec extends Specification {
 			}
 		}
 		
+		"have a map method" in {
+		  "where all values in Samplable can be doubled" in new createInstance {
+		    val mappedInstance = instance.map(value => value * 2)
+		    
+		    def append(previous: List[Int]): List[Int] = {
+				if(previous.length == 10) previous
+				else append(previous.:+(mappedInstance.sample(rand)))
+			}
+		    
+			val sampleList = append(List(mappedInstance.sample(rand)))
+			
+			val expectedList = List(0,2,4,6,8,10,12,14,16,18)
+			
+			sampleList mustEqual expectedList
+		  }
+		}
+		
 		"have filter method" in {
 			"always sample greater than 2" in new createInstance{
 				val newSamplable = instance.filter(_ > 2)
@@ -63,7 +76,7 @@ class SamplableSpec extends Specification {
 				sampleList mustEqual List(3,4,5,6,7,8,9)
 			}
 			
-			"always samepl even numbers" in new createInstance {
+			"always sample even numbers" in new createInstance {
 				val newSamplable = instance.filter(_ % 2 == 0)
 
 				def append(previous: List[Int]): List[Int] = {
@@ -74,6 +87,52 @@ class SamplableSpec extends Specification {
 				
 				sampleList mustEqual List(0,2,4,6,8)
 			}
+		}
+		
+		"have a combine method" in {
+		  "which can combine two samplables with a mutliplier" in new createInstance{
+		    def product(a: Int, b: Int) = a*b
+		    
+		    val doubler = new Samplable[Int, Random] {
+		    	val it = List(0,1,2,3,4).iterator
+			
+				def sample(implicit r: Random): Int = it.next()
+		    }
+		    
+		    val result = doubler.combine(instance, product)
+		    
+		    def append(previous: List[Int]): List[Int] = {
+					if(previous.length == 5) previous
+					else append(previous.:+(result.sample(rand)))
+				}
+		    val sampleList = append(List(result.sample(rand)))
+				
+			sampleList mustEqual List(0,1,4,9,16)
+		  }
+		  
+		  "is used to add two Samplables together in convolve" in new createTwoInstance {    
+		    val result = instance1.convolve(instance2)
+		    
+		    def append(previous: List[Int]): List[Int] = {
+					if(previous.length == 5) previous
+					else append(previous.:+(result.sample(rand)))
+				}
+		    val sampleList = append(List(result.sample(rand)))
+				
+			sampleList mustEqual List(6,7,8,9,10)
+		  }
+		  
+		  "is used to substract on Samplable from another in cross-correlate" in new createTwoInstance{
+		    val result = instance2.crossCorrelate(instance1)
+		    
+		    def append(previous: List[Int]): List[Int] = {
+					if(previous.length == 5) previous
+					else append(previous.:+(result.sample(rand)))
+				}
+		    val sampleList = append(List(result.sample(rand)))
+				
+			sampleList mustEqual List(4,5,6,7,8)
+		  }
 		}
 		
 		"have a Bernoilli trial object" in {
@@ -153,5 +212,19 @@ class SamplableSpec extends Specification {
 			
 			def sample(implicit r: Random): Int = it.next()
 		}
+	}
+	
+	trait createTwoInstance extends Scope {
+	  implicit val rand = new Random()
+	  
+	  val instance1 = new Samplable[Int, Random] {
+		val it = List(1,1,1,1,1).iterator
+		def sample(implicit r: Random): Int = it.next()
+	  }
+		    
+	  val instance2 = new Samplable[Int, Random] {
+		val it = List(5,6,7,8,9).iterator
+		def sample(implicit r: Random): Int = it.next()
+	  }
 	}
 }
