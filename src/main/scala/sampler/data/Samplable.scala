@@ -137,6 +137,10 @@ object Samplable{
 	def bernouliTrial(probSuccess: Samplable[Probability, Random]) = new Samplable[Boolean, Random]{
 	  def sample(implicit r: Random) = r.nextBoolean(probSuccess.sample)
 	}
+	
+	def coinToss(implicit r: Random) = new Samplable[Boolean, Random] {
+	  def sample(implicit r: Random) = r.nextBoolean(Probability(0.5))
+	}
 }
 
 trait SampleBuilder{
