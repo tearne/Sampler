@@ -173,7 +173,15 @@ class SamplableSpec extends Specification {
 		  }
 		}
 		
-		//TODO map, flatmap, combine, convolve, crossCorrelate
+		"have a (fair) coin object which can be tossed / sampled" in {
+		  implicit val r = new Random()
+		  
+		  val model = Samplable.coinToss
+		  
+		  val result = (1 to 100).map(_ => model.sample)
+		  
+		  result.count(_ == true) must beBetween(40, 60)
+		}
 		
 		//Covariance and contravariance tests (for compilation only)
 		object PlayingWithVariance{
