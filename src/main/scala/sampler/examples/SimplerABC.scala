@@ -26,6 +26,7 @@ import sampler.io.CSVTableWriter
 import java.nio.file.Paths
 import sampler.data.Types.Column
 import sampler.run.SerialRunner
+import sampler.data.Empirical._
 
 object SimplerABC extends App {
 
@@ -37,14 +38,22 @@ object SimplerABC extends App {
     case class Parameters(c: Boolean) extends ParametersBase {
       def perturb = Parameters(Samplable.coinToss.sample)
       
-      def perturbDensity(that: Parameters) = 1.0
+//      TODO may be wrong
+      
+      def perturbDensity(that: Parameters) = {
+        if(this.c == that.c) 1.0 else 0.0
+      }
     }
 
     case class Observations(x: List[Boolean]) extends ObservationsBase
     
     case class Output(outputValues: List[Boolean]) extends OutputBase {
+      
+//      TODO may be wrong	
       def closeToObserved(obs: Observations, tolerance: Double): Boolean = {
-        true
+        def propTrue(y: List[Boolean]) = y.toIndexedSeq.toEmpiricalTable.probabilities(true).value
+
+        math.abs(propTrue(outputValues) - propTrue(obs.x)) < 0.001
       }
     }
     
@@ -52,8 +61,8 @@ object SimplerABC extends App {
     	
     	override def sample(implicit r: Random) = {
     	    def f(x: Boolean) = x
-//    		Output(obs.x.map(f))
-    		Output(List(true, false))
+    		Output(obs.x.map(f))
+//    		Output(List(true, false))
     	}
     }
     
