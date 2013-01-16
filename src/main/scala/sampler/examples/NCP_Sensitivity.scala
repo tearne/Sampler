@@ -40,25 +40,25 @@ object NCP_Sensitivity extends App with EmpiricalMetricComponent{
 
 //  NCP cage
   
-  val populationNames = List(
-	"PPosNCPFaecesCage[1]",
-	"PPosNCPFaecesCage[2]",
-	"PPosNCPFaecesCage[3]",
-	"PPosNCPFaecesCage[4]",
-	"PPosNCPFaecesCage[5]",
-	"PPosNCPFaecesCage[6]"
-  )
+//  val populationNames = List(
+//	"PPosNCPFaecesCage[1]",
+//	"PPosNCPFaecesCage[2]",
+//	"PPosNCPFaecesCage[3]",
+//	"PPosNCPFaecesCage[4]",
+//	"PPosNCPFaecesCage[5]",
+//	"PPosNCPFaecesCage[6]"
+//  )
 
 //  NCP non cage
   
-//  val populationNames = List(
-//	"PPosNCPFaecesNonCage[1]",
-//	"PPosNCPFaecesNonCage[2]",
-//	"PPosNCPFaecesNonCage[3]",
-//	"PPosNCPFaecesNonCage[4]",
-//	"PPosNCPFaecesNonCage[5]",
-//	"PPosNCPFaecesNonCage[6]"
-//  )
+  val populationNames = List(
+	"PPosNCPFaecesNonCage[1]",
+	"PPosNCPFaecesNonCage[2]",
+	"PPosNCPFaecesNonCage[3]",
+	"PPosNCPFaecesNonCage[4]",
+	"PPosNCPFaecesNonCage[5]",
+	"PPosNCPFaecesNonCage[6]"
+  )
 
   // Preamble
   implicit val r = new Random()
@@ -69,17 +69,28 @@ object NCP_Sensitivity extends App with EmpiricalMetricComponent{
   val chunkSize = 2000
 
   // Run analysis
-  val minimumSampleSizes = populationNames 
+  val sampleSizes = populationNames 
 		  .map (name => chains(name))
   		  .map (chain => smallestSampleSize(chain))
   
+  val minimumSampleSizes = sampleSizes.map(a => a.last._1)
+  
   // Report
   populationNames zip minimumSampleSizes foreach(println)
+  
+  val fullData = populationNames zip sampleSizes
+  
+  fullData foreach(x => customPrint(x))
+  
+  def customPrint(x: (String, List[(Int, Double)])) = {
+    println(x._1)
+    x._2 foreach (y => println(y._1 + ", " + y._2))
+  }
   		  
   // Analysis code
   def smallestSampleSize(senstivityDist: Seq[Double]) = {
     @tailrec
-    def calcConf(numTrials: Int) : Int = {
+    def calcConf(numTrials: Int, accum: List[(Int, Double)]) : List[(Int, Double)] = {
       // Single trial Se => Multiple trials Se
       def probDetection(p: Double) = 1 - math.pow((1 - p), numTrials)
      
@@ -104,10 +115,13 @@ object NCP_Sensitivity extends App with EmpiricalMetricComponent{
       // Build sampling distribution and finish
       //if confidence in +ve result suff high 
       val samples = new ParallelSampleBuilder(chunkSize)(model)(terminateCondition)
-      if(proportionPositive(samples) > requiredConf) numTrials
-      else calcConf(numTrials + 1)  
+      
+      val conf = proportionPositive(samples)
+      
+      if(conf > requiredConf) accum.:+((numTrials, conf))
+      else calcConf(numTrials + 1, accum.:+((numTrials, conf)))  
     }
     
-    calcConf(1)
+    calcConf(1, List())
   }
 }

@@ -12,6 +12,8 @@ class DensityWrapper {
       (1 to repeats).map(a => key).toList
     }
     
+//    TODO something is wrong here - output graphs look wrong!
+    
     val probs = e.probabilities
     
     val min = probs.map(pair => pair._2.value).toList.min
