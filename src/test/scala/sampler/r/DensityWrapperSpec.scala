@@ -9,8 +9,23 @@ import sampler.data.Empirical._
 class DensityWrapperSpec extends Specification {
 
   "Density Wrapper should produce a script" in {
-    "which can be run in R" in {
-      val emp = IndexedSeq(1,2,2,3).toEmpiricalTable
+//    "which can be run in R" in {
+//      val emp = IndexedSeq(1,2,2,3).toEmpiricalTable
+//      
+//      val wrapper = new DensityWrapper
+//      
+//      wrapper.apply(emp)
+//    }
+    
+    "test with more complicated empirical table" in {
+      import java.nio.file.Paths
+      import sampler.io.ChainReader
+
+      val pathspec = Paths.get("", "examples", "ncpSampleSize", "data", "coda")
+  
+      val chains = ChainReader(pathspec.toString())
+      
+      val emp = chains("PPosNCPFaecesCage[1]").toEmpiricalTable
       
       val wrapper = new DensityWrapper
       

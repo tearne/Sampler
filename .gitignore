@@ -36,6 +36,7 @@ src/main/scala/sampler/Scratch.scala
 /examples/**/*.ppt*
 /examples/sampleDists
 /examples/ncpSampleSize/*
+/examples/r/*
 *.csv
 *.r
 *.Rout
