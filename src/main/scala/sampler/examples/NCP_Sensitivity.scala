@@ -38,20 +38,13 @@ object NCP_Sensitivity extends App with EmpiricalMetricComponent{
   
   val chains = ChainReader(pathspec.toString())
 
-//  NCP cage
-  
-  val populationNames = List(
+  val faecesNames = List(
 	"PPosNCPFaecesCage[1]",
 	"PPosNCPFaecesCage[2]",
 	"PPosNCPFaecesCage[3]",
 	"PPosNCPFaecesCage[4]",
 	"PPosNCPFaecesCage[5]",
 	"PPosNCPFaecesCage[6]",
-//  )
-//
-//  NCP non cage
-//  
-//  val populationNames = List(
 	"PPosNCPFaecesNonCage[1]",
 	"PPosNCPFaecesNonCage[2]",
 	"PPosNCPFaecesNonCage[3]",
@@ -69,23 +62,23 @@ object NCP_Sensitivity extends App with EmpiricalMetricComponent{
   val chunkSize = 2000
 
   // Run analysis
-  val sampleSizes = populationNames 
+  val sampleSizes = faecesNames 
 		  .map (name => chains(name))
   		  .map (chain => smallestSampleSize(chain))
   
   val minimumSampleSizes = sampleSizes.map(a => a.last._1)
   
   // Report
-  populationNames zip minimumSampleSizes foreach(println)
+  faecesNames zip minimumSampleSizes foreach(println)
   
-  val fullData = populationNames zip sampleSizes
+  val fullData = faecesNames zip sampleSizes
   
-//  fullData foreach(x => customPrint(x))
-//  
-//  def customPrint(x: (String, List[(Int, Double)])) = {
-//    println(x._1)
-//    x._2 foreach (y => println(y._1 + ", " + y._2))
-//  }
+  fullData foreach(x => customPrint(x))
+  
+  def customPrint(x: (String, List[(Int, Double)])) = {
+    println(x._1)
+    x._2 foreach (y => println(y._1 + ", " + y._2))
+  }
   		  
   // Analysis code
   def smallestSampleSize(senstivityDist: Seq[Double]) = {

@@ -30,40 +30,42 @@ import sampler.data.Empirical._
 import sampler.data.ParallelSampleBuilder
 import sampler.data.Empirical
 
-object NCP_Sensitivity_withDust extends App with EmpiricalMetricComponent {
-
-  val pathspec = Paths.get("", "examples", "ncpSampleSize", "data", "coda")
+object EU_Sensitivity_withDust extends App with EmpiricalMetricComponent{
+  
+    val pathspec = Paths.get("", "examples", "ncpSampleSize", "data", "coda")
   
   val chains = ChainReader(pathspec.toString())
 
-  val faecesNames = List(
-	"PPosNCPFaecesCage[1]",
-	"PPosNCPFaecesCage[2]",
-	"PPosNCPFaecesCage[3]",
-	"PPosNCPFaecesCage[4]",
-	"PPosNCPFaecesCage[5]",
-	"PPosNCPFaecesCage[6]",
-	"PPosNCPFaecesNonCage[1]",
-	"PPosNCPFaecesNonCage[2]",
-	"PPosNCPFaecesNonCage[3]",
-	"PPosNCPFaecesNonCage[4]",
-	"PPosNCPFaecesNonCage[5]",
-	"PPosNCPFaecesNonCage[6]"
+//  NCP cage
+  
+  val populationNames = List(
+	"PPosEUFaecesCage[1]",
+	"PPosEUFaecesCage[2]",
+	"PPosEUFaecesCage[3]",
+	"PPosEUFaecesCage[4]",
+	"PPosEUFaecesCage[5]",
+	"PPosEUFaecesCage[6]",
+	"PPosEUFaecesNonCage[1]",
+	"PPosEUFaecesNonCage[2]",
+	"PPosEUFaecesNonCage[3]",
+	"PPosEUFaecesNonCage[4]",
+	"PPosEUFaecesNonCage[5]",
+	"PPosEUFaecesNonCage[6]"
   )
   
   val dustNames = List(
-	"PPosNCPDustCage[1]",
-	"PPosNCPDustCage[2]",
-	"PPosNCPDustCage[3]",
-	"PPosNCPDustCage[4]",
-	"PPosNCPDustCage[5]",
-	"PPosNCPDustCage[6]",
-	"PPosNCPDustNonCage[1]",
-	"PPosNCPDustNonCage[2]",
-	"PPosNCPDustNonCage[3]",
-	"PPosNCPDustNonCage[4]",
-	"PPosNCPDustNonCage[5]",
-	"PPosNCPDustNonCage[6]"
+	"PPosEUDustCage[1]",
+	"PPosEUDustCage[2]",
+	"PPosEUDustCage[3]",
+	"PPosEUDustCage[4]",
+	"PPosEUDustCage[5]",
+	"PPosEUDustCage[6]",
+	"PPosEUDustNonCage[1]",
+	"PPosEUDustNonCage[2]",
+	"PPosEUDustNonCage[3]",
+	"PPosEUDustNonCage[4]",
+	"PPosEUDustNonCage[5]",
+	"PPosEUDustNonCage[6]"
   )
 
   // Preamble
@@ -75,7 +77,7 @@ object NCP_Sensitivity_withDust extends App with EmpiricalMetricComponent {
   val chunkSize = 2000
 
   // Run analysis
-  val faecesChains = faecesNames 
+  val faecesChains = populationNames 
 		  .map (name => chains(name))
 		  .map (list => list.toEmpiricalSeq)
 		  
@@ -93,30 +95,20 @@ object NCP_Sensitivity_withDust extends App with EmpiricalMetricComponent {
     }
   }
   
+  val faecesSS = 5
+  val dustSS = 2
+    
   val samplableChains = sampleChains.map(faeces => combinedDist(faeces._1, faeces._2))
   
-  val sampleSizes = samplableChains.map (chains => smallestSampleSize(chains))
-  
-  val minimumSampleSizes = sampleSizes.map(a => a.last._1)
+  val sampleSizes = samplableChains.map (chains => calculateConfidence(chains, faecesSS, dustSS))
   
   // Report
-  faecesNames zip minimumSampleSizes foreach(println)
-  
-  val fullData = faecesNames zip sampleSizes
-  
-  fullData foreach(x => customPrint(x))
-  
-  def customPrint(x: (String, List[(Int, Double)])) = {
-    println(x._1)
-    x._2 foreach (y => println(y._1 + ", " + y._2))
-  }
+  populationNames zip sampleSizes foreach(println)
   
   // Analysis code
-  def smallestSampleSize(sensitivityDist: Samplable[Sensitivity, Random]) = {
-    @tailrec
-    def calcConf(numTrials: Int, accum: List[(Int, Double)]) : List[(Int, Double)] = {
+  def calculateConfidence(sensitivityDist: Samplable[Sensitivity, Random], numFaecal: Int, numDust: Int) = {
       // Single trial Se => Multiple trials Se
-      def probDetection(se: Sensitivity) = 1 - math.pow((1 - se.faeces), numTrials) * math.pow((1 - se.dust), 2)
+      def probDetection(se: Sensitivity) = 1 - math.pow((1 - se.faeces), numFaecal) * math.pow((1 - se.dust), numDust)
      
       // Termination condition for drawing samples
       def terminateCondition(soFar: GenSeq[Boolean]) = {
@@ -124,7 +116,7 @@ object NCP_Sensitivity_withDust extends App with EmpiricalMetricComponent {
     	    soFar.toEmpiricalTable, 
     	    soFar.take(soFar.size - chunkSize).toEmpiricalTable
     	)
-//    	println(distance)
+    	
     	(distance < 0.0001) || (soFar.size > 1e8)
       }
       
@@ -135,20 +127,14 @@ object NCP_Sensitivity_withDust extends App with EmpiricalMetricComponent {
       // Build model for result of 'numTrials',
       //incorporating uncertainty in test performance
       val detectionProbs = sensitivityDist map (se => Probability(probDetection(se)))
-//      (1 to 100).map(x => print(detectionProbs.sample.value + ", "))
-//      println()
       val model = Samplable.bernouliTrial(detectionProbs)
       
       // Build sampling distribution and finish
       //if confidence in +ve result suff high 
       val samples = new ParallelSampleBuilder(chunkSize)(model)(terminateCondition)
       
-      val conf = proportionPositive(samples)
-      
-      if(conf > requiredConf) accum.:+((numTrials, conf))
-      else calcConf(numTrials + 1, accum.:+((numTrials, conf)))  
-    }
-    
-    calcConf(1, List())
+      // return proportion positive (i.e. confidence)
+      proportionPositive(samples)
   }
+
 }
