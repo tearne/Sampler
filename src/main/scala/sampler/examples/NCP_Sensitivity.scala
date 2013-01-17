@@ -40,18 +40,18 @@ object NCP_Sensitivity extends App with EmpiricalMetricComponent{
 
 //  NCP cage
   
-//  val populationNames = List(
-//	"PPosNCPFaecesCage[1]",
-//	"PPosNCPFaecesCage[2]",
-//	"PPosNCPFaecesCage[3]",
-//	"PPosNCPFaecesCage[4]",
-//	"PPosNCPFaecesCage[5]",
-//	"PPosNCPFaecesCage[6]"
-//  )
-
-//  NCP non cage
-  
   val populationNames = List(
+	"PPosNCPFaecesCage[1]",
+	"PPosNCPFaecesCage[2]",
+	"PPosNCPFaecesCage[3]",
+	"PPosNCPFaecesCage[4]",
+	"PPosNCPFaecesCage[5]",
+	"PPosNCPFaecesCage[6]",
+//  )
+//
+//  NCP non cage
+//  
+//  val populationNames = List(
 	"PPosNCPFaecesNonCage[1]",
 	"PPosNCPFaecesNonCage[2]",
 	"PPosNCPFaecesNonCage[3]",
@@ -80,12 +80,12 @@ object NCP_Sensitivity extends App with EmpiricalMetricComponent{
   
   val fullData = populationNames zip sampleSizes
   
-  fullData foreach(x => customPrint(x))
-  
-  def customPrint(x: (String, List[(Int, Double)])) = {
-    println(x._1)
-    x._2 foreach (y => println(y._1 + ", " + y._2))
-  }
+//  fullData foreach(x => customPrint(x))
+//  
+//  def customPrint(x: (String, List[(Int, Double)])) = {
+//    println(x._1)
+//    x._2 foreach (y => println(y._1 + ", " + y._2))
+//  }
   		  
   // Analysis code
   def smallestSampleSize(senstivityDist: Seq[Double]) = {

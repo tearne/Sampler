@@ -89,10 +89,13 @@ object NCP_Sensitivity_withDust extends App with EmpiricalMetricComponent {
 		  .map (name => chains(name))
 		  .map (list => list.toEmpiricalSeq)
 		  
-  val dustChains = populationNames 
+  val dustChains = dustNames 
 		  .map (name => chains(name))
 		  .map (list => list.toEmpiricalSeq)
   
+  val fOfI = populationNames.head
+  val dOfI = dustNames.head
+		  
   val sampleChains = faecesChains zip dustChains
 
   case class Sensitivity(faeces: Double, dust: Double)
@@ -114,12 +117,12 @@ object NCP_Sensitivity_withDust extends App with EmpiricalMetricComponent {
   
   val fullData = populationNames zip sampleSizes
   
-  fullData foreach(x => customPrint(x))
-  
-  def customPrint(x: (String, List[(Int, Double)])) = {
-    println(x._1)
-    x._2 foreach (y => println(y._1 + ", " + y._2))
-  }
+//  fullData foreach(x => customPrint(x))
+//  
+//  def customPrint(x: (String, List[(Int, Double)])) = {
+//    println(x._1)
+//    x._2 foreach (y => println(y._1 + ", " + y._2))
+//  }
   
   // Analysis code
   def smallestSampleSize(sensitivityDist: Samplable[Sensitivity, Random]) = {
@@ -135,7 +138,7 @@ object NCP_Sensitivity_withDust extends App with EmpiricalMetricComponent {
     	    soFar.take(soFar.size - chunkSize).toEmpiricalTable
     	)
 //    	println(distance)
-    	(distance < 1) || (soFar.size > 1e8)
+    	(distance < 0.0001) || (soFar.size > 1e8)
       }
       
       // The proportion of samples so far that are positive
@@ -145,6 +148,8 @@ object NCP_Sensitivity_withDust extends App with EmpiricalMetricComponent {
       // Build model for result of 'numTrials',
       //incorporating uncertainty in test performance
       val detectionProbs = sensitivityDist map (se => Probability(probDetection(se)))
+//      (1 to 100).map(x => print(detectionProbs.sample.value + ", "))
+//      println()
       val model = Samplable.bernouliTrial(detectionProbs)
       
       // Build sampling distribution and finish
