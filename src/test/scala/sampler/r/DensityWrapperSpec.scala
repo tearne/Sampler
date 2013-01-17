@@ -25,7 +25,16 @@ class DensityWrapperSpec extends Specification {
   
       val chains = ChainReader(pathspec.toString())
       
-      val emp = chains("PPosNCPFaecesCage[1]").toEmpiricalTable
+      val name = "PPosNCPFaecesNonCage[6]"
+      
+      val chain = chains(name)
+      
+      println(name)
+      println("Min: " + chain.min)
+      println("Average: " + chain.sum/chain.length)
+      println("Max: " + chain.max)
+      
+      val emp = chain.toEmpiricalTable
       
       val wrapper = new DensityWrapper
       
