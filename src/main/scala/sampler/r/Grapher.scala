@@ -7,6 +7,7 @@ import sampler.data.Types.Column
 import java.nio.file.Path
 import sampler.data.EmpiricalSeq
 import sampler.math.Probability
+import sampler.data.EmpiricalTable
 
 class Grapher(path: Path) {
   
@@ -102,5 +103,36 @@ class Grapher(path: Path) {
     val rScript = rScriptBuilder(names)
     
     ScriptRunner(rScript, path.resolve("scriptDouble"))
+  }
+  
+  def writeBooleanHistogram(name: String, emp: EmpiricalTable[Boolean]) = {
+    def expand(key: Boolean, repeats: Int) = {
+      (1 to repeats).map(a => key).toList
+    }
+    
+    val probs = emp.probabilities
+    
+    val min = (probs.map(p => p._2.value)).min
+    
+    val normalised = probs.map(pair => pair._1 -> (pair._2.value / min).round.toInt)
+    
+    val transformed = normalised.flatMap(k => expand(k._1, k._2)).toSeq
+    
+    val column = new Column(transformed, "value")
+    
+    println(transformed)
+    
+    val writer  = new CSVTableWriter(path.resolve(name + ".csv"), true)
+    
+    writer.apply(column)
+        
+    val builder = new StringBuilder
+    builder.append("require(ggplot2)\n")
+    builder.append("data <- read.csv(\"" + name + ".csv\")\n")
+    builder.append("ggplot(data, aes(x=value)) + geom_histogram()\n")
+    
+    val rScript = builder.toString
+    
+    ScriptRunner(rScript, path.resolve("scriptBoolean"))
   }
 }
