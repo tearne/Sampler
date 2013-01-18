@@ -6,50 +6,56 @@ import sampler.io.CSVTableWriter
 import sampler.data.Types.Column
 import java.nio.file.Path
 import sampler.data.EmpiricalSeq
+import sampler.math.Probability
 
 class Grapher(path: Path) {
-
-  
   
   def writeDensity(data: Map[String, EmpiricalSeq[Int]]) = {
-    def expand(key: Int, repeats: Int) = {
+       def expand(key: Int, repeats: Int) = {
       (1 to repeats).map(a => key).toList
     }
     
-    val key = data.keys.head
-    val value = data(key)
+    def transformToDist(map: Map[Int, Probability]) = {
+      val min = map.map(pair => pair._2.value).toList.min
+      val normalised = map.map(pair => pair._1 -> (pair._2.value / min).round.toInt)
+      normalised.flatMap(k => expand(k._1, k._2)).toSeq
+    }
     
-    val probs = value.probabilities
+    def writeDensity(name: String, values: Seq[Int]) = {
+      val column = new Column(values, "value")
+      val writer  = new CSVTableWriter(path.resolve(name + ".csv"), true)
     
-    val min = probs.map(pair => pair._2.value).toList.min
+      writer.apply(column)
+    }
     
-    val transformed = probs.map(pair => pair._1 -> (pair._2.value / min).round.toInt)
+    def rScriptBuilder(plotNames: Seq[String]) = {
+      val builder = new StringBuilder
+      builder.append("require(ggplot2)\n")
+      
+      plotNames.foreach{a =>
+      builder.append("data <- read.csv(\"" + a + ".csv\")\n")
+      builder.append("ggplot(data, aes(x=value)) + geom_density()\n")
+      }
+      builder.toString
+    }
     
-    val remapped = transformed.flatMap(k => expand(k._1, k._2))
+    val names = data.keys.toSeq
     
-    val c1 = new Column(remapped.toSeq, "value")
+    val probs = (names map(key => data(key).probabilities))
     
-    val writer  = new CSVTableWriter(path.resolve(key + ".csv"), true)
+    val transformed = probs map (a => transformToDist(a))
     
-    writer.apply(c1)
+    val nameMap = names zip transformed
     
+    nameMap foreach(a => writeDensity(a._1, a._2))
+        
     val builder = new StringBuilder
     builder.append("require(ggplot2)\n")
     
-    builder.append("data <- read.csv(\"" + key + ".csv\")\n")
-    builder.append("ggplot(data, aes(x=value)) + geom_density()\n")
+    val rScript = rScriptBuilder(names)
     
-    val rScript = builder.toString
+    println(rScript)
     
     ScriptRunner(rScript, path.resolve("script"))
   }
 }
-
-/*
- * Simple R script
-require(ggplot2)
-data <- read.csv("density.csv")
-ggplot(data, aes(x=value)) + geom_density()
-* 
- * 
- */

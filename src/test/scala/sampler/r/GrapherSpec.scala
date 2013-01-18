@@ -37,11 +37,33 @@ ggplot(data, aes(x=value)) + geom_density()"""
         
         def equal(i: Int) = expectedLines(i) mustEqual writtenLines(i)
         
-      (0 until writtenLines.length).foreach(equal(_))
+      (0 until expectedLines.length).foreach(equal(_))
     }
     
     "multiple densities from a map of EmpiricalSeq[Int]s" in {
-      todo
+      val emp1 = IndexedSeq(1,2,2,3).toEmpiricalSeq
+      val emp2 = IndexedSeq(4,5,5,6,6,6,7,7,8).toEmpiricalSeq
+      
+      val empMap = Map("small" -> emp1, "bigger" -> emp2)
+      
+      grapher.writeDensity(empMap)
+      
+      val writtenScript = Source.fromFile(new File(homePath.resolve("script").toString)).mkString
+      
+      val expectedScript =
+"""setwd("/home/user/workspace/Sampler/examples/r")
+require(ggplot2)
+data <- read.csv("small.csv")
+ggplot(data, aes(x=value)) + geom_density()
+data <- read.csv("bigger.csv")
+ggplot(data, aes(x=value)) + geom_density()"""
+      
+        val writtenLines = writtenScript.split("\n")
+        val expectedLines = expectedScript.split("\n")
+        
+        def equal(i: Int) = expectedLines(i) mustEqual writtenLines(i)
+        
+      (0 until expectedLines.length).foreach(equal(_))
     }
     
     "multiple densities from a map of EmpiricalSeq[Double]s" in {
