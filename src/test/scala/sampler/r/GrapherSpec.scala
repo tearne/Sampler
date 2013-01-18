@@ -22,9 +22,9 @@ class GrapherSpec extends Specification {
       
       val empMap = Map("small" -> emp)
       
-      grapher.writeDensity(empMap)
+      grapher.writeIntDensity(empMap)
       
-      val writtenScript = Source.fromFile(new File(homePath.resolve("script").toString)).mkString
+      val writtenScript = Source.fromFile(new File(homePath.resolve("scriptInt").toString)).mkString
       
       val expectedScript =
 """setwd("/home/user/workspace/Sampler/examples/r")
@@ -46,9 +46,9 @@ ggplot(data, aes(x=value)) + geom_density()"""
       
       val empMap = Map("small" -> emp1, "bigger" -> emp2)
       
-      grapher.writeDensity(empMap)
+      grapher.writeIntDensity(empMap)
       
-      val writtenScript = Source.fromFile(new File(homePath.resolve("script").toString)).mkString
+      val writtenScript = Source.fromFile(new File(homePath.resolve("scriptInt").toString)).mkString
       
       val expectedScript =
 """setwd("/home/user/workspace/Sampler/examples/r")
@@ -67,7 +67,26 @@ ggplot(data, aes(x=value)) + geom_density()"""
     }
     
     "multiple densities from a map of EmpiricalSeq[Double]s" in {
-    	todo
+    	val emp = IndexedSeq(0.1,0.2,0.2,0.2,0.2,0.3,0.3,0.3,0.3,0.4).toEmpiricalSeq
+    	
+    	val map = Map("doubles" -> emp)
+    	
+    	grapher.writeDoubleDensity(map)
+    	
+      val writtenScript = Source.fromFile(new File(homePath.resolve("scriptDouble").toString)).mkString
+      
+      val expectedScript =
+"""setwd("/home/user/workspace/Sampler/examples/r")
+require(ggplot2)
+data <- read.csv("doubles.csv")
+ggplot(data, aes(x=value)) + geom_density()"""
+      
+        val writtenLines = writtenScript.split("\n")
+        val expectedLines = expectedScript.split("\n")
+        
+        def equal(i: Int) = expectedLines(i) mustEqual writtenLines(i)
+        
+      (0 until expectedLines.length).foreach(equal(_))
     }
     
     "distribution density from a map of EmpiricalTable[Int]s" in {
@@ -76,30 +95,6 @@ ggplot(data, aes(x=value)) + geom_density()"""
     
     "distribution density from a map of EmpiricalTable[Double]s" in {
     	todo
-    }
-    
-//    "test with more complicated empirical table" in {
-//      import java.nio.file.Paths
-//      import sampler.io.ChainReader
-//
-//      val pathspec = Paths.get("", "examples", "ncpSampleSize", "data", "coda")
-//  
-//      val chains = ChainReader(pathspec.toString())
-//      
-//      val name = "PPosNCPFaecesNonCage[6]"
-//      
-//      val chain = chains(name)
-//      
-//      println(name)
-//      println("Min: " + chain.min)
-//      println("Average: " + chain.sum/chain.length)
-//      println("Max: " + chain.max)
-//      
-//      val emp = chain.toEmpiricalTable
-//      
-//      val wrapper = new Grapher
-//      
-//      wrapper.apply(emp)
-//    }
+    }    
   }
 }
