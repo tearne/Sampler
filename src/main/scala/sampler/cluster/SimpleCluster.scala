@@ -24,6 +24,7 @@ import akka.cluster.ClusterEvent._
 import scala.concurrent.Future
 import scala.util.{Success, Failure}
 import scala.concurrent.duration._
+import sampler.cluster.two.Work
 
 object Worker extends App{
   if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))
