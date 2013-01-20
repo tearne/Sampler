@@ -74,8 +74,8 @@ class AliasTable(origProbs: IndexedSeq[Probability]) {
       val initialProbability = Array.fill[Double](arraySize)(1.0)
 	  val initialAlias = Array.fill[Int](arraySize)(0)
 	  	
-      val small = probabilities.zipWithIndex filter (_._1 <= average) map (_._2) toArray
-      val large = probabilities.zipWithIndex filter (_._1 > average) map (_._2) toArray
+      val small = probabilities.zipWithIndex.filter(_._1 <= average).map(_._2).toArray
+      val large = probabilities.zipWithIndex.filter(_._1 > average).map(_._2).toArray
     		
       loop(small, large, initialProbability, initialAlias, probabilities)
     }

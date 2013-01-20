@@ -58,7 +58,7 @@ object Test extends App{
 
 class LocalActorRunner extends AbortableRunner{
 	val system = ActorSystem("MasterSystem")
-	implicit val timeout = Timeout(5 minutes)
+	implicit val timeout = Timeout(5.minutes)
 	
 	// Gets number of available processors, makes Runner generic
 	val cores = Runtime.getRuntime().availableProcessors()
@@ -78,8 +78,8 @@ class LocalActorRunner extends AbortableRunner{
 }
 
 object LocalActorRunner{
-	case class Work(f: () => Option[Any], parentBatch: Batch[_])
-	case class JobDone(result: Option[Any], parentBatch: Batch[_]) 
+	case class Work[A](f: () => Option[Any], parentBatch: Batch[A])
+	case class JobDone[A](result: Option[Any], parentBatch: Batch[A]) 
 	case class Batch[T](jobs: Seq[AbortableJob[T]], abort: AbortFunction[T], var isOperational: AtomicBoolean = new AtomicBoolean(true)){
 		val size = jobs.size
 		def shouldAbort(soFar: Seq[Any]) = abort(soFar.asInstanceOf[Seq[Option[T]]])	
@@ -88,7 +88,7 @@ object LocalActorRunner{
 	
 	class Worker extends Actor{
 		def receive = {
-			case w: Work => sender ! JobDone(w.f(), w.parentBatch)
+			case w: Work[_] => sender ! JobDone(w.f(), w.parentBatch)
 			case _ => throw new UnsupportedOperationException("Unexpected message")
 		}
 	}
@@ -116,7 +116,7 @@ object LocalActorRunner{
 				} else {
 					println("Working on another job, ignoring request.")
 				}
-			case jd: JobDone =>
+			case jd: JobDone[_] =>
 				if(currentBatch.isDefined && currentBatch.get == jd.parentBatch){
 					acc += jd.result
 					pending = pending - 1

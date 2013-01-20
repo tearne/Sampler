@@ -25,11 +25,9 @@ import sampler.data.Empirical
 trait StatisticsComponent{
 	val statistics: Statistics = new Statistics
 	
-	class RichEmpirical[A](e: Empirical[A]){
+	implicit class RichEmpirical[A](e: Empirical[A]){
 		def mean(implicit f: Fractional[A]) = statistics.mean(e)
 	}
-	
-	implicit def richEmpirical[A](e: Empirical[A]) = new RichEmpirical(e)
 }
 
 class Statistics{

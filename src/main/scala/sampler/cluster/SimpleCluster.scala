@@ -24,14 +24,13 @@ import akka.cluster.ClusterEvent._
 import scala.concurrent.Future
 import scala.util.{Success, Failure}
 import scala.concurrent.duration._
-import sampler.cluster.two.Work
 
 object Worker extends App{
   if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))
 	val system = ActorSystem("ClusterSystem")
 	val workerRef = system.actorOf(Props[WorkerActor], name = "worker")
   
-	case class SeekNewWork
+	case class SeekNewWork()
 	
 	class WorkerActor extends Actor with ActorLogging{
     	case class WorkComplete(result: Any)
@@ -78,7 +77,7 @@ object TestClient extends App{
 	val system = ActorSystem("ClusterSystem")
 	import scala.concurrent.Await
 	import akka.pattern.ask
-	implicit val askTimeout = akka.util.Timeout(5 minutes)
+	implicit val askTimeout = akka.util.Timeout(5.minutes)
 	implicit val ec = system.dispatcher
 	
 	val master = system.actorOf(Props[Master.MasterActor])
