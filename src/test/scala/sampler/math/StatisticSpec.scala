@@ -15,19 +15,14 @@
  * limitations under the License.
  */
 
-package sampler.data
+package sampler.math
 
 import org.specs2.mutable.Specification
-import org.specs2.runner.JUnitRunner
 import org.junit.runner.RunWith
 import org.specs2.mock.Mockito
 import org.junit.runner.RunWith
-import org.specs2.runner.JUnitRunner
 import sampler.data.Empirical._
-import sampler.math.Statistics
-import scala.math.Fractional
-
-// TODO this test is in the wrong package
+import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class StatisticSpec extends Specification with Mockito{
