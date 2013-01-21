@@ -9,11 +9,9 @@ import sampler.data.EmpiricalSeq
 import sampler.math.Probability
 import sampler.data.EmpiricalTable
 
-class Grapher(path: Path) {
+object QuickPlot {
   
-  //TODO rename and make object
-  
-  def writeDoubleDensity(data: Map[String, EmpiricalSeq[Double]]) = {
+  def writeDensity(path: Path, fileName: String, data: Map[String, EmpiricalSeq[Double]]) = {
     def expand(key: Double, repeats: Int) = {
       (1 to repeats).map(a => key).toList
     }
@@ -24,21 +22,19 @@ class Grapher(path: Path) {
       normalised.flatMap(k => expand(k._1, k._2)).toSeq
     }
     
-    def writeDensity(name: String, values: Seq[Double]) = {
-      val column = new Column(values, "value")
-      val writer  = new CSVTableWriter(path.resolve(name + ".csv"), true)
-    
-      writer.apply(column)
-    }
-    
-    def rScriptBuilder(plotNames: Seq[String]) = {
+    def rScriptBuilder(name: String) = {
       val builder = new StringBuilder
       builder.append("require(ggplot2)\n")
+      builder.append("require(reshape)\n")
       
-      plotNames.foreach{a =>
-      builder.append("data <- read.csv(\"" + a + ".csv\")\n")
-      builder.append("ggplot(data, aes(x=value)) + geom_density()\n")
-      }
+      builder.append("pdf(\"" + name + ".pdf\", width=8.27, height=5.83)\n")
+      
+      builder.append("data <- read.csv(\"" + name + ".csv\")\n")
+      builder.append("melted = melt(data)\n")
+      builder.append("ggplot(melted, aes(x=value, colour=variable)) + geom_density()\n")
+
+      builder.append("dev.off()\n")
+      
       builder.toString
     }
     
@@ -50,13 +46,13 @@ class Grapher(path: Path) {
     
     val nameMap = names zip transformed
     
-    nameMap foreach(a => writeDensity(a._1, a._2))
-        
-    val builder = new StringBuilder
-    builder.append("require(ggplot2)\n")
+    val columns = nameMap map(a => new Column(a._2, a._1))
     
-    val rScript = rScriptBuilder(names)
+    val writer  = new CSVTableWriter(path.resolve(fileName + ".csv"), true)
+    writer.apply(columns:_*)
     
-    ScriptRunner(rScript, path.resolve("scriptDouble"))
+    val rScript = rScriptBuilder(fileName.toString)
+    
+    ScriptRunner(rScript, path.resolve(fileName))
   }
 }
