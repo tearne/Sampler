@@ -27,6 +27,7 @@ import java.nio.file.Paths
 import sampler.data.Types.Column
 import sampler.run.SerialRunner
 import sampler.data.Empirical._
+import scala.annotation.tailrec
 
 // TODO draw a posterior graph
 
@@ -35,39 +36,46 @@ object SimplerABC extends App {
   implicit val random = new Random()
   
   val wd = Paths.get("examples").resolve("simplerABC")
+  val max = 1.0
+  val min = 0.0
   
   class Model extends ABCModel[Random]{
     
-    // TODO make parameters hold probability of heads
-    case class Parameters(c: Boolean) extends ParametersBase {
-      def perturb = Parameters(Samplable.coinToss.sample)
+    case class Parameters(p: Double) extends ParametersBase {
+      val perturbationDist = Samplable.normal(0,1)
       
-//      TODO perturb probability of head p with a normal distribution to expose ABC bug
+      @tailrec
+      final def perturb(d: Double): Double = {
+        val candidate = d + perturbationDist.sample
+        if(candidate <= max && candidate >= min) candidate
+        else perturb(d)
+      }
+      
+      def perturb() = Parameters(perturb(p))
       
       def perturbDensity(that: Parameters) = {
-        if(this.c == that.c) 1.0 else 0.0
+        perturbationDist.density(p - that.p)
       }
     }
 
-    case class Observations(x: List[Boolean]) extends ObservationsBase
+    case class Observations(x: List[Double]) extends ObservationsBase
     
-    case class Output(outputValues: List[Boolean]) extends OutputBase {
+    case class Output(outputValues: List[Double]) extends OutputBase {
       
-//      TODO may be wrong	
       def closeToObserved(obs: Observations, tolerance: Double): Boolean = {
-        def propTrue(y: List[Boolean]) = y.toIndexedSeq.toEmpiricalTable.probabilities(true).value
-
-        math.abs(propTrue(outputValues) - propTrue(obs.x)) < 0.001
+        val distance = outputValues.zip(obs.x).foldLeft(0.0){case (acc,(s,o)) =>
+			acc + math.pow(s - o, 2.0)
+		}
+        distance < tolerance
       }
     }
     
     def init(p: Parameters, obs: Observations) = new Samplable[Output, Random] {
-    	
-    	override def sample(implicit r: Random) = {
-    	    def f(x: Boolean) = x
-    		Output(obs.x.map(f))
-//    		Output(List(true, false))
-    	}
+    	val modelNoiseDist = Samplable.normal(0,p.p).map(s => s*s)
+		override def sample(implicit r: Random) = {
+			def f(x: Double) = p.p * x + math.sqrt(x) * modelNoiseDist.sample(r)
+			Output(obs.x.map(f))
+		}
     }
     
   }
@@ -77,20 +85,21 @@ object SimplerABC extends App {
   
   val prior = new Prior[Parameters, Random]{
     def density(p: Parameters) = {
-      1.0
+      if(p.p > max || p.p < min) 0.0
+      else 1.0 / ((max - min)*(max - min))
     }
     
     def sample(implicit r: Random) = {
-      Parameters(r.nextDouble() < 0.5)
+      Parameters(r.nextDouble(min, max))
     }
   }
   
-  val obs = Observations(List(true, false, true, false))
+  val obs = Observations(List(0.45, 0.5, 0.55, 0.5))
   
 	object Writer extends PopulationWriter{
 		def apply(p: Seq[Parameters], tolerance: Double){
 			new CSVTableWriter(wd.resolve(tolerance+".csv"), true).apply(
-				Column(p.map(_.c), "C")
+				Column(p.map(_.p), "P")
 			)
 		}
 	}
