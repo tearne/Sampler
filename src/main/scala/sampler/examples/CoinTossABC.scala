@@ -30,6 +30,7 @@ import sampler.data.Empirical._
 import scala.annotation.tailrec
 
 // TODO draw a posterior graph
+// TODO there may be an error stopping the results converging on the correct probability
 
 object SimplerABC extends App {
 
@@ -112,7 +113,7 @@ object SimplerABC extends App {
     val resultParams = ABCRunner(model, random)(
 			prior, 
 			obs,
-			new ABCParameters(20, 1000, 1000000, 20, 500),
+			new ABCParameters(20, 1000, 1, 20, 500),
 			/*runner,*/new SerialRunner,
 			Some(Writer)
 	)
