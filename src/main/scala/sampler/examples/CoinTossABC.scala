@@ -28,6 +28,8 @@ import sampler.data.Types.Column
 import sampler.run.SerialRunner
 import sampler.data.Empirical._
 
+// TODO draw a posterior graph
+
 object SimplerABC extends App {
 
   implicit val random = new Random()
@@ -35,10 +37,12 @@ object SimplerABC extends App {
   val wd = Paths.get("examples").resolve("simplerABC")
   
   class Model extends ABCModel[Random]{
+    
+    // TODO make parameters hold probability of heads
     case class Parameters(c: Boolean) extends ParametersBase {
       def perturb = Parameters(Samplable.coinToss.sample)
       
-//      TODO may be wrong
+//      TODO perturb probability of head p with a normal distribution to expose ABC bug
       
       def perturbDensity(that: Parameters) = {
         if(this.c == that.c) 1.0 else 0.0
