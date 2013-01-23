@@ -80,6 +80,7 @@ class EmpiricalTableSpec extends Specification with Mockito with DataTables{
 		"until, filter, map, flatmap, combine, convolve, crossCorrelate should all return samplable" in todo
 		
 		
+		//TODO has this not been completed yet?
 		//TODO review whether this lot should be in Samplable
 		/*
 		"map over observations" in {

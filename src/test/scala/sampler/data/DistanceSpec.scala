@@ -23,6 +23,8 @@ import sampler.data.Empirical._
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 
+//TODO change name of class to match component being tested
+
 @RunWith(classOf[JUnitRunner])
 class DistanceSpec extends Specification with Mockito with EmpiricalMetricComponent{
 	"Empirical Metric Component" should {

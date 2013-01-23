@@ -91,6 +91,7 @@ class WeightsTableSpec extends Specification with Mockito{
 		//TODO
 		"be convertalbe to empirical sequency" in todo
 		
+		//TODO has this not be completed yet?
 		//TODO consider whether to move this lot into Samplable
 		/*
 		"filter particles in the table" in {

@@ -9,7 +9,7 @@ import org.specs2.specification.Scope
 @RunWith(classOf[JUnitRunner])
 class SamplableSpec extends Specification {
 	"Samplable" should {
-		"have flatMap" in todo	// todo not sure how flatmap should work
+		"have flatMap" in todo	//TODO
 		
 		"sample mocked values in order" in new createInstance {
 			
