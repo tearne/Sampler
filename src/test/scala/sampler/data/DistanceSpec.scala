@@ -27,11 +27,10 @@ import org.specs2.runner.JUnitRunner
 class DistanceSpec extends Specification with Mockito with EmpiricalMetricComponent{
 	"Empirical Metric Component" should {
 		"implement an absolute difference metric" in {
-			val instance1 = IndexedSeq(1,2,3).toEmpiricalSeq // mean 2
-			val instance2 = IndexedSeq(4,5,6).toEmpiricalSeq // mean 5
+			val instance1 = IndexedSeq[Double](1,2,3).toEmpiricalSeq // mean 2
+			val instance2 = IndexedSeq[Double](4,5,6).toEmpiricalSeq // mean 5
 			
-//			TODO needs fixing when implicit Fractional problems resolved
-//			metric.absoluteMean(instance1, instance2) mustEqual 3
+			metric.absoluteMean(instance1, instance2) mustEqual 3
 		}
 		
 		"implement a maximum difference metric" in {
