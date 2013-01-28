@@ -29,6 +29,7 @@ import sampler.data.Samplable
 import sampler.data.Empirical._
 import sampler.data.ParallelSampleBuilder
 import sampler.data.Empirical
+import sampler.r.QuickPlot
 
 object EU_Sensitivity_withDust extends App with EmpiricalMetricComponent{
   
@@ -104,12 +105,28 @@ object EU_Sensitivity_withDust extends App with EmpiricalMetricComponent{
   
   // Report
   populationNames zip sampleSizes foreach(println)
+
+//  Plotting some distributions
+  
+  val ncpFaecesNC1 = chains("PPosNCPFaecesNonCage[1]").toEmpiricalSeq
+  val ncpDustNC1 = chains("PPosNCPDustNonCage[1]").toEmpiricalSeq
+  
+  val ncpNC1 = combinedDist(ncpFaecesNC1, ncpDustNC1)
+  
+  val faecalSample = probDetection(ncpNC1, 1, 0)
+  val dustSample = probDetection(ncpNC1, 0, 1)
+
+  val faecalEmpSeq = (1 to 10000).map(x => faecalSample.sample.value).toEmpiricalSeq
+  val dustEmpSeq = (1 to 10000).map(x => dustSample.sample.value).toEmpiricalSeq
+  
+  val dataMap = Map("Faecal" -> faecalEmpSeq, "Dust" -> dustEmpSeq)
+  val fileName = "NonCage1"
+  val path = Paths.get("", "examples", "ncpSampleSize", "results")
+  
+  QuickPlot.writeDensity(path, fileName, dataMap)
   
   // Analysis code
   def calculateConfidence(sensitivityDist: Samplable[Sensitivity, Random], numFaecal: Int, numDust: Int) = {
-      // Single trial Se => Multiple trials Se
-      def probDetection(se: Sensitivity) = 1 - math.pow((1 - se.faeces), numFaecal) * math.pow((1 - se.dust), numDust)
-     
       // Termination condition for drawing samples
       def terminateCondition(soFar: GenSeq[Boolean]) = {
     	val distance = metric.max(
@@ -126,7 +143,7 @@ object EU_Sensitivity_withDust extends App with EmpiricalMetricComponent{
       
       // Build model for result of 'numTrials',
       //incorporating uncertainty in test performance
-      val detectionProbs = sensitivityDist map (se => Probability(probDetection(se)))
+      val detectionProbs = probDetection(sensitivityDist, numFaecal, numDust)
       val model = Samplable.bernouliTrial(detectionProbs)
       
       // Build sampling distribution and finish
@@ -135,6 +152,13 @@ object EU_Sensitivity_withDust extends App with EmpiricalMetricComponent{
       
       // return proportion positive (i.e. confidence)
       proportionPositive(samples)
+  }
+  
+  // Single trial Se => Multiple trials Se
+  def probDetection(sensitivityDist: Samplable[Sensitivity, Random], numFaecal: Int, numDust: Int) = {
+	  def probDetection(se: Sensitivity) = 1 - math.pow((1 - se.faeces), numFaecal) * math.pow((1 - se.dust), numDust)
+			  
+	  sensitivityDist map (se => Probability(probDetection(se)))
   }
 
 }
