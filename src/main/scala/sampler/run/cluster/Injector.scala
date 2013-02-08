@@ -51,6 +51,7 @@ class Injector extends Actor with ActorLogging{
   		  	attemptWorkerHandshake(m)
   		case WorkerExists =>
   		  	workers += sender
+	  		log.info("Num workers = "+workers.size)  	
   		  	context.parent ! NewWorker(sender)
   		case UnreachableMember(m) => //Is this best thing to listen to?
   		  	val potentialWorker = context.actorFor(RootActorPath(m.address) / workerPath)

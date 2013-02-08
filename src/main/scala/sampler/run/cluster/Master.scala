@@ -52,7 +52,7 @@ class Master extends Actor with ActorLogging{
 		    nextJobId += 1
 		    log.info("Recieved new job, enqueued {}", newWork)
 		    injector ! Broadcast(WorkIsAvailable) //TODO this only once a second?
-  		case NewWorker(w) => self.tell(WorkerIdle, w)	//Assuming that new workers are idle initially
+  		case NewWorker(w) => self.tell(WorkerIsIdle, w)	//Assuming that new workers are idle initially
   		case WorkerDown(w) => 
   			log.info("Current work table is {}", workStates)
   			val lostWork = for(InProgress(worker, work) <- workStates.values if worker == w) yield work
@@ -61,7 +61,7 @@ class Master extends Actor with ActorLogging{
   		  	  workStates -= work.jid
   		  	  log.info("Reallocated {} from unreachable worker {}", work, w)  		  	  
   		  	}
-  		case WorkerIdle => 
+  		case WorkerIsIdle => 
 		    if(!workQueue.isEmpty){
 		      val work = workQueue.dequeue
 			  sender ! work
