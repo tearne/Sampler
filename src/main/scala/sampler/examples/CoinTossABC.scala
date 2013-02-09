@@ -28,54 +28,52 @@ import sampler.data.Types.Column
 import sampler.run.SerialRunner
 import sampler.data.Empirical._
 import scala.annotation.tailrec
+import sampler.r.QuickPlot
 
 // TODO draw a posterior graph
 // TODO there may be an error stopping the results converging on the correct probability
 
 object SimplerABC extends App {
-
   implicit val random = new Random()
+  implicit def toProbability(d: Double) = Probability(d)
   
   val wd = Paths.get("examples").resolve("simplerABC")
   val max = 1.0
   val min = 0.0
   
   class Model extends ABCModel[Random]{
-    
-    case class Parameters(p: Double) extends ParametersBase {
-      val perturbationDist = Samplable.normal(0,1)
+    case class Parameters(pHeads: Double) extends ParametersBase {
+      val perturbationKernel = Samplable.normal(0,1)
       
-      @tailrec
+      //@tailrec
       final def perturb(d: Double): Double = {
-        val candidate = d + perturbationDist.sample
+  //      d + perturbationKernel.sample
+      	val candidate = d + perturbationKernel.sample
         if(candidate <= max && candidate >= min) candidate
         else perturb(d)
       }
       
-      def perturb() = Parameters(perturb(p))
+      def perturb() = Parameters(perturb(pHeads))
       
       def perturbDensity(that: Parameters) = {
-        perturbationDist.density(p - that.p)
+        perturbationKernel.density(pHeads - that.pHeads)
       }
     }
 
-    case class Observations(x: List[Double]) extends ObservationsBase
+    case class Observations(numTrials: Int, numHeads: Int) extends ObservationsBase{
+    	assert(numTrials >= numHeads)
+    	def proportionHeads = numHeads.asInstanceOf[Double] / numTrials
+    }
     
-    case class Output(outputValues: List[Double]) extends OutputBase {
-      
-      def closeToObserved(obs: Observations, tolerance: Double): Boolean = {
-        val distance = outputValues.zip(obs.x).foldLeft(0.0){case (acc,(s,o)) =>
-			acc + math.pow(s - o, 2.0)
-		}
-        distance < tolerance
-      }
+    case class Output(simulated: Observations) extends OutputBase {
+      def closeToObserved(obs: Observations, tolerance: Double): Boolean = 
+        math.abs(simulated.proportionHeads - obs.proportionHeads) < tolerance
     }
     
     def init(p: Parameters, obs: Observations) = new Samplable[Output, Random] {
-    	val modelNoiseDist = Samplable.normal(0,p.p).map(s => s*s)
 		override def sample(implicit r: Random) = {
-			def f(x: Double) = p.p * x + math.sqrt(x) * modelNoiseDist.sample(r)
-			Output(obs.x.map(f))
+			def coinToss() = r.nextBoolean(p.pHeads)
+			Output(Observations(obs.numTrials, (1 to obs.numTrials).map(i => coinToss).count(identity)))
 		}
     }
     
@@ -86,7 +84,7 @@ object SimplerABC extends App {
   
   val prior = new Prior[Parameters, Random]{
     def density(p: Parameters) = {
-      if(p.p > max || p.p < min) 0.0
+      if(p.pHeads > max || p.pHeads < min) 0.0
       else 1.0 / ((max - min)*(max - min))
     }
     
@@ -95,12 +93,12 @@ object SimplerABC extends App {
     }
   }
   
-  val obs = Observations(List(0.45, 0.5, 0.55, 0.5))
+  val obs = Observations(10,5)
   
 	object Writer extends PopulationWriter{
 		def apply(p: Seq[Parameters], tolerance: Double){
 			new CSVTableWriter(wd.resolve(tolerance+".csv"), true).apply(
-				Column(p.map(_.p), "P")
+				Column(p.map(_.pHeads), "P")
 			)
 		}
 	}
@@ -113,8 +111,10 @@ object SimplerABC extends App {
     val resultParams = ABCRunner(model, random)(
 			prior, 
 			obs,
-			new ABCParameters(20, 1000, 1, 20, 500),
+			new ABCParameters(10, 1000, 1, 20, 500),
 			/*runner,*/new SerialRunner,
-			Some(Writer)
-	)
+			None//Some(Writer)
+	).map(_.pHeads)
+	
+	QuickPlot.writeDensity(wd, "script", Map("data" -> resultParams.toEmpiricalSeq))
 }
