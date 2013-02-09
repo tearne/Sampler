@@ -63,13 +63,13 @@ trait ABCComponent{
 	def apply[R <: Random](model: ABCModel[R], r: R)( 
 			prior: Prior[model.Parameters,R],
 			obs: model.Observations, 
-			parameters: ABCParameters,
+			abcParams: ABCParameters,
 			runner: AbortableRunner,
 			writer: Option[model.PopulationWriter] = None
 	): Seq[model.Parameters] = {
 		type P = model.Parameters
 		
-		val uniformlyWeightedParticles = (1 to parameters.particles).par.map(i => Particle(prior.sample(r), 1.0)).seq
+		val uniformlyWeightedParticles = (1 to abcParams.particles).par.map(i => Particle(prior.sample(r), 1.0)).seq
 		
 		def evolve(population: Seq[Particle[P]], tolerance: Double): Option[Seq[Particle[P]]] = {
 			println("Now working on tolerance = "+tolerance)
@@ -86,25 +86,29 @@ trait ABCComponent{
 						None
 					}
 					else{
-						val candidate = samplable.sample(r).perturb		// Potential Bug! (out of range candidate)
-						val assessedModel = model.init(candidate, obs).map(_.closeToObserved(obs, tolerance))
+						def getFHat(params: P) = {
+							val assessedModel = model.init(params, obs).map(_.closeToObserved(obs, tolerance))
+							val numSuccess = builder(assessedModel)(_.size == abcParams.reps)(r)
+								.count(identity) //TODO use a counting statistic?
+							val fHat = numSuccess.toDouble / abcParams.reps
+							if(fHat > 0) Some(fHat)
+							else None
+						}
 						
-						val numSuccess = builder(assessedModel)(_.size == parameters.reps)(r)
-							.count(identity) //TODO use a counting statistic?
-						val fHat = numSuccess.toDouble / parameters.reps
-						
-						val res = if(fHat > 0){
-							//Calculate a weight for this new particle
-							val numerator = fHat * prior.density(candidate)
+						def getWeight(params: P, fHat: Double) = {
+							val numerator = fHat * prior.density(params)
 							val denominator = population.map{case Particle(value, weight) => 
-								weight * value.perturbDensity(candidate)
+								weight * value.perturbDensity(params)
 							}.sum
-							if(numerator > 0 && denominator > 0)
-								Some(Particle(candidate, numerator / denominator))
-							else
-								None
-						} 
-						else None
+							if(numerator > 0 && denominator > 0) Some(numerator / denominator)
+							else None	
+						}
+						
+						val res = for{
+							params <- Some(samplable.sample(r).perturb) if prior.density(params) > 0
+							fHat <- getFHat(params) if fHat > 0
+							weight <- getWeight(params, fHat) 
+						} yield(Particle(params, weight))
 						
 						res match {
 							case s: Some[Particle[P]] => s
@@ -121,12 +125,12 @@ trait ABCComponent{
 			val results: Seq[Option[Particle[P]]] = runner(
 					AbortFunction[Particle[P]](_.contains(None))
 			){
-					val jobs = (1 to parameters.particles).map(particle => AbortableJob[Particle[P]](stillRunning => getNextParticle(stillRunning)))
+					val jobs = (1 to abcParams.particles).map(particle => AbortableJob[Particle[P]](stillRunning => getNextParticle(stillRunning)))
 					jobs.toSeq
 			}
 			
 			val newPopulation = results.flatten
-			if(newPopulation.size == parameters.particles) Some(newPopulation)
+			if(newPopulation.size == abcParams.particles) Some(newPopulation)
 			else None
 		}
 		
@@ -154,7 +158,7 @@ trait ABCComponent{
 			}
 		}
 		
-		val result = refine(uniformlyWeightedParticles, parameters.refinements, parameters.tolerance, parameters.tolerance, 0.5)
+		val result = refine(uniformlyWeightedParticles, abcParams.refinements, abcParams.tolerance, abcParams.tolerance, 0.5)
 		result.map(_.value)
 	}
 }

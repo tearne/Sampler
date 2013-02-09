@@ -45,13 +45,7 @@ object SimplerABC extends App {
     case class Parameters(pHeads: Double) extends ParametersBase {
       val perturbationKernel = Samplable.normal(0,1)
       
-      //@tailrec
-      final def perturb(d: Double): Double = {
-  //      d + perturbationKernel.sample
-      	val candidate = d + perturbationKernel.sample
-        if(candidate <= max && candidate >= min) candidate
-        else perturb(d)
-      }
+      def perturb(d: Double): Double = d + perturbationKernel.sample
       
       def perturb() = Parameters(perturb(pHeads))
       
