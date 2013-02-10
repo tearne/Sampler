@@ -80,8 +80,8 @@ trait WithoutReplacementABC {
 		}
 		
 		case class Output(numPositive: Int) extends OutputBase{
-			def closeToObserved(obs: Observations, tolerance: Double) = {
-				math.abs(numPositive - obs.numPositive) < tolerance
+			def distanceTo(obs: Observations) = {
+				math.abs(numPositive - obs.numPositive)
 			}
 		}
 		

@@ -45,7 +45,7 @@ trait ABCModel[Rnd]{
 	
 	type Output <: OutputBase
 	protected trait OutputBase {
-		def closeToObserved(observed: Observations, tolerance: Double): Boolean
+		def distanceTo(observed: Observations): Double
 	}
 	
 	def init(p: Parameters, obs: Observations): Samplable[Output,Rnd]
@@ -58,7 +58,7 @@ trait ABCModel[Rnd]{
 trait ABCComponent{
 	this: SampleBuilderComponent =>
 		
-	case class Particle[A](value: A, weight: Double)
+	case class Particle[A](value: A, weight: Double, bestFit: Double)
 	
 	def apply[R <: Random](model: ABCModel[R], r: R)( 
 			prior: Prior[model.Parameters,R],
@@ -69,7 +69,7 @@ trait ABCComponent{
 	): Seq[model.Parameters] = {
 		type P = model.Parameters
 		
-		val uniformlyWeightedParticles = (1 to abcParams.particles).par.map(i => Particle(prior.sample(r), 1.0)).seq
+		val uniformlyWeightedParticles = (1 to abcParams.particles).par.map(i => Particle(prior.sample(r), 1.0, Double.MaxValue)).seq
 		
 		def evolve(population: Seq[Particle[P]], tolerance: Double): Option[Seq[Particle[P]]] = {
 			println("Now working on tolerance = "+tolerance)
@@ -79,25 +79,21 @@ trait ABCComponent{
 			
 			def getNextParticle(keepGoing: AtomicBoolean): Option[Particle[P]] = {
 				@tailrec
-				def tryParticle(failures: Int): Option[Particle[P]] = {
+				def getParticle(failures: Int = 0): Option[Particle[P]] = {
 					if(!keepGoing.get) None
-					else if(failures == 1e2) {
-//						println("returning None")
-						None
-					}
+					else if(failures >= abcParams.particleRetries) None
 					else{
-						def getFHat(params: P) = {
-							val assessedModel = model.init(params, obs).map(_.closeToObserved(obs, tolerance))
-							val numSuccess = builder(assessedModel)(_.size == abcParams.reps)(r)
-								.count(identity) //TODO use a counting statistic?
-							val fHat = numSuccess.toDouble / abcParams.reps
-							if(fHat > 0) Some(fHat)
-							else None
+						def getScores(params: P) = {
+							val metricModel = model.init(params, obs).map(_.distanceTo(obs))
+							val metricScores = builder(metricModel)(_.size == abcParams.reps)(r)
+								.filter(_ <= tolerance)
+							metricScores
 						}
 						
-						def getWeight(params: P, fHat: Double) = {
+						def getWeight(params: P, numPassed: Int) = {
+							val fHat = numPassed.toDouble / abcParams.reps
 							val numerator = fHat * prior.density(params)
-							val denominator = population.map{case Particle(value, weight) => 
+							val denominator = population.map{case Particle(value, weight, bestScore) => 
 								weight * value.perturbDensity(params)
 							}.sum
 							if(numerator > 0 && denominator > 0) Some(numerator / denominator)
@@ -106,19 +102,18 @@ trait ABCComponent{
 						
 						val res = for{
 							params <- Some(samplable.sample(r).perturb) if prior.density(params) > 0
-							fHat <- getFHat(params) if fHat > 0
-							weight <- getWeight(params, fHat) 
-						} yield(Particle(params, weight))
+							fitScores <- Some(getScores(params))// if scores.size > 0
+							weight <- getWeight(params, fitScores.size) 
+						} yield(Particle(params, weight, fitScores.min))
 						
 						res match {
 							case s: Some[Particle[P]] => s
-							case None => tryParticle(failures + 1)
+							case None => getParticle(failures + 1)
 						}
 					}
 				}
 				
-				val res = tryParticle(0)
-				res
+				getParticle()
 			}
 			
 			//TODO JobRunner Abortable Job syntax too noisy
@@ -135,32 +130,28 @@ trait ABCComponent{
 		}
 		
 		@tailrec
-		def refine(population: Seq[Particle[P]], numAttempts: Int, tolerance: Double, lastGoodTolerance: Double, decentFactor: Double): Seq[Particle[P]] = {
+		def refine(population: Seq[Particle[P]], numAttempts: Int, tolerance: Double): Seq[Particle[P]] = {
 			if(numAttempts == 0) population
 			else{
-				//TODO on failure, change decent rate so that it persists, rather than just one time
-				
 				evolve(population, tolerance) match {
-					case None => {
-						val newDecentFactor = decentFactor + (1 - decentFactor)/2
-						val retryTolerance = lastGoodTolerance * newDecentFactor
-						println("Retry with decent factor %f, tolerance %f".format(newDecentFactor, retryTolerance))
-						refine(population, numAttempts - 1, retryTolerance, lastGoodTolerance, newDecentFactor)
-					}
-					case Some(newPop) => {
+					case None =>
+						println("Failed to refine current population, evolving within same tolerance")
+						refine(population, numAttempts - 1, tolerance)
+					case Some(newPop) =>
 						writer match { 
 							case Some(w) => w(newPop.map{_.value}, tolerance) 
 							case _ =>
 						}
-						refine(newPop, numAttempts - 1, tolerance * decentFactor, tolerance, decentFactor)
-					}
+						//Next tolerance is the median of the previous best for each particle
+						val medianTolerance = newPop.map(_.bestFit).toEmpiricalSeq.quantile(Probability(0.5))
+						refine(newPop, numAttempts - 1, medianTolerance)
 				}
 			}
 		}
 		
-		val result = refine(uniformlyWeightedParticles, abcParams.refinements, abcParams.tolerance, abcParams.tolerance, 0.5)
+		val result = refine(uniformlyWeightedParticles, abcParams.refinements, abcParams.tolerance)
 		result.map(_.value)
 	}
 }
 
-case class ABCParameters(reps: Int, particles: Int, tolerance: Double, refinements: Int, timeout: Int)
+case class ABCParameters(reps: Int, particles: Int, tolerance: Double, refinements: Int, particleRetries: Int = 100)

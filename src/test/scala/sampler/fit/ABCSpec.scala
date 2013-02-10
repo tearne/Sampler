@@ -20,8 +20,7 @@ class ABCSpec extends Specification {
       (parameters.reps mustEqual repetitions) and
       (parameters.particles mustEqual particles) and
       (parameters.tolerance mustEqual startTolerance) and
-      (parameters.refinements mustEqual refinementAttemps) and
-      (parameters.timeout mustEqual timeout)
+      (parameters.refinements mustEqual refinementAttemps)
     }
   }
 }

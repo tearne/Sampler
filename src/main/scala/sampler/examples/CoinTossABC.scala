@@ -60,8 +60,8 @@ object SimplerABC extends App {
     }
     
     case class Output(simulated: Observations) extends OutputBase {
-      def closeToObserved(obs: Observations, tolerance: Double): Boolean = 
-        math.abs(simulated.proportionHeads - obs.proportionHeads) < tolerance
+      def distanceTo(obs: Observations): Double = 
+        math.abs(simulated.proportionHeads - obs.proportionHeads)
     }
     
     def init(p: Parameters, obs: Observations) = new Samplable[Output, Random] {
@@ -105,8 +105,8 @@ object SimplerABC extends App {
     val resultParams = ABCRunner(model, random)(
 			prior, 
 			obs,
-			new ABCParameters(10, 1000, 1, 20, 500),
-			/*runner,*/new SerialRunner,
+			new ABCParameters(10, 5000, 1, 20, 500),
+			new SerialRunner,
 			None//Some(Writer)
 	).map(_.pHeads)
 	

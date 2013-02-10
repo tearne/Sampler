@@ -55,11 +55,11 @@ object SimpleABC extends App{
 		case class Observations(x: List[Double], y: List[Double]) extends ObservationsBase
 		
 		case class Output(outputValues: List[Double]) extends OutputBase{
-			def closeToObserved(obs: Observations, tolerance: Double): Boolean = {
+			def distanceTo(obs: Observations) = {
 				val distance = outputValues.zip(obs.y).foldLeft(0.0){case (acc,(s,o)) =>
 					acc + math.pow(s - o, 2.0)
 				}
-				distance < tolerance
+				distance
 			}
 		}
 		
