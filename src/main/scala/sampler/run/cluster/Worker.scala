@@ -26,18 +26,23 @@ import akka.kernel.Bootable
 import scala.util.Try
 import scala.util.Success
 import scala.util.Failure
+import com.jezhumble.javasysmon.JavaSysMon
+import sampler.run.AbortableJob
+import java.util.concurrent.atomic.AtomicBoolean
 
-case class DoesWorkerExist()
-case class WorkerExists()
+case class StatusRequest()
+case class Status(numCPU: Int, load: Float, memFree: Float){
+	override def toString() = f"Status(numCPU=$numCPU, load=$load%.2f, memFree=$memFree%.2f)"
+}
 
 case class IsWorkAvailable()
 case class WorkIsAvailable()
 
-case class Job(f: () => Any){def apply() = f()}		//Job from a client
+//case class Job(f: () => Any){def apply() = f()}		//Job from a client
 
 case class WorkerIsIdle()
 case class JobID(requestor: ActorRef, allocId: Int)
-case class Work(job: Job, jid: JobID)
+case class Work(job: AbortableJob[_], jid: JobID)
 case class WorkDone(work: Work, result: Any)
 case class WorkConfirmed(work: Work)
 case class WorkRejected(work: Work)
@@ -70,6 +75,7 @@ object WorkerApp extends App{
 class Worker extends Actor with ActorLogging{
 	import context.dispatcher	
 	case class DoneWorking()
+	val monitor = new JavaSysMon
 	
 	val masters = collection.mutable.Set.empty[ActorRef]
 	
@@ -80,8 +86,12 @@ class Worker extends Actor with ActorLogging{
 	def receive = idle
 	
 	def common: Receive = {
-	  	case DoesWorkerExist => 
-	  	  	sender ! WorkerExists
+	  	case StatusRequest => 
+	  	  	sender ! Status(
+	  	  		monitor.numCpus(),
+	  	  		monitor.cpuTimes.getIdleMillis.asInstanceOf[Float] / monitor.cpuTimes.getTotalMillis,
+	  	  		monitor.physical.getFreeBytes.asInstanceOf[Float] / monitor.physical.getTotalBytes
+	  	  	)
 	  	  	log.info("Confirmed I exist to {}", sender)
 	  	case UnreachableMember(m) => 
 	  		val addr = m.address
@@ -100,7 +110,8 @@ class Worker extends Actor with ActorLogging{
 		case w: Work => 
 			val master = sender
 			Future{
-			  	master ! WorkDone(w, w.job())
+				//TODO make jobs abortable by sending message to master
+			  	master ! WorkDone(w, w.job.run(new AtomicBoolean(true)))
 			  	log.info("Work done, sending result to {}", master)
 			  	DoneWorking
 			}.pipeTo(self)	//Can't this be in the future?

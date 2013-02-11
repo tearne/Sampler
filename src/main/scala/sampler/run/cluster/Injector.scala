@@ -39,7 +39,7 @@ class Injector extends Actor with ActorLogging{
 	
 	def attemptWorkerHandshake(m: Member){
 	  val workerCandidate = context.actorFor(RootActorPath(m.address) / workerPath)
-	  workerCandidate ! DoesWorkerExist
+	  workerCandidate ! StatusRequest
 	  log.info("Attempting handshake with potential worker {}", workerCandidate)
 	}
 	
@@ -49,8 +49,9 @@ class Injector extends Actor with ActorLogging{
   		case MemberUp(m) => 
   		  	log.info("Member {} is up", m)
   		  	attemptWorkerHandshake(m)
-  		case WorkerExists =>
+  		case s:Status =>
   		  	workers += sender
+  		  	log.info("STATUS UPDATE "+s)
 	  		log.info("Num workers = "+workers.size)  	
   		  	context.parent ! NewWorker(sender)
   		case UnreachableMember(m) => //Is this best thing to listen to?

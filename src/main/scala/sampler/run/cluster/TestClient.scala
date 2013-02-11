@@ -26,6 +26,19 @@ import scala.util.Success
 import akka.actor.ActorLogging
 import akka.actor.PoisonPill
 import com.typesafe.config.ConfigFactory
+import sampler.run.AbortableJob
+
+//class SystemLoadQuery extends Actor{
+//	val config = ConfigFactory.load.getConfig("testClient")
+//	val numJobs = config.getInt("numJobs")
+//	implicit val timeout = akka.util.Timeout(config.getInt("numJobs").minutes)
+//	
+//	val master = context.actorOf(Props[Master], name = "master")
+//
+//	def receive = {
+//		
+//	}
+//}
 
 class TestClientBootable extends Bootable{
 	val system = ActorSystem("ClusterSystem")
@@ -42,23 +55,26 @@ object TestClientApp extends App{
 }
 
 class TestClientActor extends Actor with ActorLogging{
-	
 	import context._
 	import scala.concurrent.Await
 	import akka.pattern.{ask, pipe}
-//	implicit val askTimeout = akka.util.Timeout(1.minutes)
 	
 	val config = ConfigFactory.load.getConfig("testClient")
 	val numJobs = config.getInt("numJobs")
 	implicit val timeout = akka.util.Timeout(config.getInt("numJobs").minutes)
 	
 	val master = actorOf(Props[Master], name = "master")
-	val futures = (1 to numJobs).map{i => 
-		master ? Job(() => {
-			(1 to 100000000).foreach{i => math.sqrt(i)}
-			"---"+i.toString+"---"
-		})
+	val futures = makeJobs(numJobs).map(master ? _)
+	
+	def makeJobs(num: Int) = {
+		(1 to num).map{i => 
+			AbortableJob[String](stillRunning => {
+				(1 to 100000000).foreach{i => math.sqrt(i) / math.Pi}
+				Some("---"+i.toString+"---")
+			})
+		}
 	}
+	
 	val f = Future.sequence(futures) mapTo manifest[IndexedSeq[String]] map(_.toString)
 	f.pipeTo(self)
 	
