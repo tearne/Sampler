@@ -29,15 +29,19 @@ import sampler.run.SerialRunner
 import sampler.data.Empirical._
 import scala.annotation.tailrec
 import sampler.r.QuickPlot
+import java.nio.file.Files
 
 // TODO draw a posterior graph
 // TODO there may be an error stopping the results converging on the correct probability
 
-object SimplerABC extends App {
+object CoinTossABC extends App {
   implicit val random = new Random()
   implicit def toProbability(d: Double) = Probability(d)
   
-  val wd = Paths.get("examples").resolve("simplerABC")
+//  Paths
+  
+  val wd = Paths.get("examples").resolve("coinTossABC")
+  Files.createDirectories(wd)
   val max = 1.0
   val min = 0.0
   
@@ -46,7 +50,6 @@ object SimplerABC extends App {
       val perturbationKernel = Samplable.normal(0,1)
       
       def perturb(d: Double): Double = d + perturbationKernel.sample
-      
       def perturb() = Parameters(perturb(pHeads))
       
       def perturbDensity(that: Parameters) = {
@@ -105,7 +108,7 @@ object SimplerABC extends App {
     val resultParams = ABCRunner(model, random)(
 			prior, 
 			obs,
-			new ABCParameters(10, 5000, 1, 20, 500),
+			new ABCParameters(10, 5000, 1, 6, 500),
 			new SerialRunner,
 			None//Some(Writer)
 	).map(_.pHeads)
