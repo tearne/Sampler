@@ -29,7 +29,7 @@ import sampler.math.Probability
  * Anything from which we can draw samples.  E.g. an analytical distribution,
  * or bootstrapping from a data set of observations
  */
-trait Samplable[+A,-R]{ 
+trait Samplable[+A,-R] extends Serializable{ 
 	self =>
 		
 	def sample(implicit r: R): A
@@ -147,7 +147,7 @@ trait SampleBuilder{
 	def apply[T,Rnd](samplable: Samplable[T,Rnd])(condition: GenSeq[T] => Boolean)(implicit r: Rnd): GenSeq[T]
 }
 
-object SerialSampleBuilder extends SampleBuilder{
+object SerialSampleBuilder extends SampleBuilder with Serializable{
 	def apply[T,Rnd](samplable: Samplable[T, Rnd])(condition: GenSeq[T] => Boolean)(implicit r: Rnd) = 
 		samplable.until(condition).sample(r)
 }

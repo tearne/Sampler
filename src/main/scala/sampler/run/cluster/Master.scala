@@ -22,6 +22,7 @@ import akka.cluster.Cluster
 import scala.collection._
 import scala.concurrent.duration._
 import sampler.run.AbortableJob
+import sampler.math.Random
 
 class Master extends Actor with ActorLogging{
 	case class CheckStarted(work: Work, worker: ActorRef)
@@ -47,7 +48,7 @@ class Master extends Actor with ActorLogging{
   				log.info("Informing {} that work is available", sender)
   				sender ! WorkIsAvailable
   			}
-  		case job: AbortableJob[_] => 
+  		case job: Job[Any, Random] => 
   		  	val newWork = Work(job, JobID(sender, nextJobId))
 		    workQueue += newWork 
 		    nextJobId += 1

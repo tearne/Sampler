@@ -29,6 +29,7 @@ import scala.util.Failure
 import com.jezhumble.javasysmon.JavaSysMon
 import sampler.run.AbortableJob
 import java.util.concurrent.atomic.AtomicBoolean
+import sampler.math.Random
 
 case class StatusRequest()
 case class Status(numCPU: Int, load: Float, memFree: Float){
@@ -41,8 +42,16 @@ case class WorkIsAvailable()
 //case class Job(f: () => Any){def apply() = f()}		//Job from a client
 
 case class WorkerIsIdle()
+//case class Job[T, R <: Random](environment: EncapsulatedABC[R], tolerance: Double){
+//	//TODO, but just expect to get message for now
+//	def run(random: R) = null//environment.nextParticle(random)
+//}
+case class Job[T, R <: Random](f: R => T){
+	//TODO, but just expect to get message for now
+	def run(random: R) = f(random)//environment.nextParticle(random)
+}
 case class JobID(requestor: ActorRef, allocId: Int)
-case class Work(job: AbortableJob[_], jid: JobID)
+case class Work(job: Job[Any, Random], jid: JobID)
 case class WorkDone(work: Work, result: Any)
 case class WorkConfirmed(work: Work)
 case class WorkRejected(work: Work)
@@ -75,6 +84,7 @@ object WorkerApp extends App{
 class Worker extends Actor with ActorLogging{
 	import context.dispatcher	
 	case class DoneWorking()
+	val r = new Random
 	val monitor = new JavaSysMon
 	
 	val masters = collection.mutable.Set.empty[ActorRef]
@@ -111,7 +121,7 @@ class Worker extends Actor with ActorLogging{
 			val master = sender
 			Future{
 				//TODO make jobs abortable by sending message to master
-			  	master ! WorkDone(w, w.job.run(new AtomicBoolean(true)))
+			  	master ! WorkDone(w, w.job.run(r))
 			  	log.info("Work done, sending result to {}", master)
 			  	DoneWorking
 			}.pipeTo(self)	//Can't this be in the future?

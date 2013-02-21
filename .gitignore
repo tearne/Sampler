@@ -38,6 +38,7 @@ src/main/scala/sampler/Scratch.scala
 /examples/sampleDists
 /examples/ncpSampleSize/*
 /examples/r/*
+/examples/coinTossABC
 *.csv
 *.r
 *.Rout
