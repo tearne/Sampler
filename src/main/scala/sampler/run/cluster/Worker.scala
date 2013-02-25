@@ -30,6 +30,7 @@ import com.jezhumble.javasysmon.JavaSysMon
 import sampler.run.AbortableJob
 import java.util.concurrent.atomic.AtomicBoolean
 import sampler.math.Random
+import scala.concurrent.Promise
 
 case class StatusRequest()
 case class Status(numCPU: Int, load: Float, memFree: Float){
@@ -42,19 +43,16 @@ case class WorkIsAvailable()
 //case class Job(f: () => Any){def apply() = f()}		//Job from a client
 
 case class WorkerIsIdle()
-//case class Job[T, R <: Random](environment: EncapsulatedABC[R], tolerance: Double){
-//	//TODO, but just expect to get message for now
-//	def run(random: R) = null//environment.nextParticle(random)
-//}
-case class Job[T, R <: Random](f: R => T){
-	//TODO, but just expect to get message for now
-	def run(random: R) = f(random)//environment.nextParticle(random)
+case class Job[T](f: () => Option[T], name: Option[String] = None){
+	def run() = f()
 }
 case class JobID(requestor: ActorRef, allocId: Int)
-case class Work(job: Job[Any, Random], jid: JobID)
+case class Work(job: Job[_], jid: JobID)
 case class WorkDone(work: Work, result: Any)
 case class WorkConfirmed(work: Work)
 case class WorkRejected(work: Work)
+
+case class DoneWorking()
 
 //
 // TODO only allow up to num CPU workers per physical node
@@ -83,8 +81,7 @@ object WorkerApp extends App{
 
 class Worker extends Actor with ActorLogging{
 	import context.dispatcher	
-	case class DoneWorking()
-	val r = new Random
+
 	val monitor = new JavaSysMon
 	
 	val masters = collection.mutable.Set.empty[ActorRef]
@@ -102,41 +99,44 @@ class Worker extends Actor with ActorLogging{
 	  	  		monitor.cpuTimes.getIdleMillis.asInstanceOf[Float] / monitor.cpuTimes.getTotalMillis,
 	  	  		monitor.physical.getFreeBytes.asInstanceOf[Float] / monitor.physical.getTotalBytes
 	  	  	)
-	  	  	log.info("Confirmed I exist to {}", sender)
+	  	  	log.debug("Confirmed I exist to {}", sender)
 	  	case UnreachableMember(m) => 
 	  		val addr = m.address
 	  		masters.find(_.path.address == addr).foreach{ master =>
 	  			masters -= master
-	  			log.info("Removed master {}", master)
+	  			log.debug("Removed master {}", master)
 	  		}
 	}
 	
 	def idle: Receive = common orElse {
 		case WorkIsAvailable =>
-			log.info("Work available from {}", sender)
-			if(!masters.contains(sender)) masters += sender
+			val master = sender
+			log.debug("Work available from {}", sender)
+			if(!masters.contains(master)) masters += master
 			sender ! WorkerIsIdle
-			log.info("Requested work from {}", sender)
+			log.debug("Requested work from {}", sender)
 		case w: Work => 
 			val master = sender
 			Future{
 				//TODO make jobs abortable by sending message to master
-			  	master ! WorkDone(w, w.job.run(r))
+			  	val result = w.job.run()
 			  	log.info("Work done, sending result to {}", master)
+				master ! WorkDone(w, result)
 			  	DoneWorking
 			}.pipeTo(self)	//Can't this be in the future?
 		  	context.become(busy)
 		  	sender ! WorkConfirmed(w)
+		  	
 		  	if(!masters.contains(sender)) masters += sender
 		  	log.info("Confirmed start of work {} to master {}", w, sender)
 	}
 	
 	def busy: Receive = common orElse {
 		case WorkIsAvailable => 
-	  	  	log.info("Ignoring WorkAvailable from {} since busy", sender)
+	  	  	log.debug("Ignoring WorkAvailable from {} since busy", sender)
 	  	  	if(!masters.contains(sender)) masters += sender
 		case w: Work => 
-			log.info("Rejecting Work since busy now")
+			log.debug("Rejecting Work since busy now")
 			if(!masters.contains(sender)) masters += sender
 	  	  	sender ! WorkRejected(w)
 		case DoneWorking => 

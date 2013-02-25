@@ -5,21 +5,18 @@ import akka.actor.Props
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.pattern.ask
-import sampler.fit.ABCModel
 import sampler.math.Random
 import sampler.data.Samplable
 import sampler.math.Probability
-import sampler.fit.Prior
 import sampler.run.AbortableRunner
 import akka.util.Timeout
 import sampler.run.AbortFunction
 import sampler.run.AbortableJob
 import scala.concurrent.Future
 import scala.concurrent.Await
-import sampler.fit.ABCComponent
+//import sampler.fit.ABCComponent
 import sampler.data.SampleBuilderComponent
 import sampler.data.SerialSampleBuilder
-import sampler.fit.ABCParameters
 import sampler.r.QuickPlot
 import java.nio.file.Paths
 import java.nio.file.Files
@@ -41,31 +38,34 @@ object BayesianCoinClientApp extends App{
 	}
 	val random = new Random()
 	
+	val runner = new ClusterRunner
+	
 	val resultParams = ABCRunner(
 			myModel,
-			new ClusterRunner,
+			runner,
 			random
 	).map(_.pHeads)
 	
-//	val wd = Paths.get("examples").resolve("coinTossABC")
-//	Files.createDirectories(wd)
-//	QuickPlot.writeDensity(wd, "script", Map("data" -> resultParams.toEmpiricalSeq))
+	runner.shutdown
+	
+	val wd = Paths.get("examples").resolve("coinTossABC")
+	Files.createDirectories(wd)
+	QuickPlot.writeDensity(wd, "script", Map("data" -> resultParams.toEmpiricalSeq))
 }
 
 class ClusterRunner{
 	import scala.concurrent.duration._
 	
-	val system = ActorSystem("MasterSystem")
-	implicit val timeout = Timeout(1.minutes)
+	val system = ActorSystem("ClusterSystem")
+	implicit val timeout = Timeout(10.minutes)
 	
 	val master = system.actorOf(Props[Master], name = "master")
 	import system.dispatcher
 	
-	def apply[T, R <: Random](jobs: Seq[Job[T,R]]): Seq[T] = {
+	def apply[T](jobs: Seq[Job[T]]): Seq[Option[T]] = {
 		val futures = jobs.map(master ? _)
 		
-		//TODO Nasty!
-		val fSeq = Future.sequence(futures).asInstanceOf[Future[Seq[T]]]
+		val fSeq = Future.sequence(futures).mapTo[Seq[Option[T]]]
 		
 		val res = Await.result(fSeq, timeout.duration)
 		res
@@ -105,7 +105,14 @@ class CoinModel extends ABCModel[Random] with SampleBuilderComponent with Serial
 		}
     }
     val observations = Observations(10,5)
-    val abcParameters = new ABCParameters(10, 10, 1, 1, 500)
+    val abcParameters = new ABCParameters(
+    	reps = 10, 
+		numParticles = 400, 
+		tolerance = 1, 
+		refinements = 2, 
+		particleRetries = 100, 
+		particleChunking = 350
+	)
     val prior = new Prior[Parameters, Random] with Serializable{
 	    def density(p: Parameters) = {
 	      if(p.pHeads > 1 || p.pHeads < 0) 0.0

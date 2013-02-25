@@ -40,14 +40,14 @@ class Injector extends Actor with ActorLogging{
 	def attemptWorkerHandshake(m: Member){
 	  val workerCandidate = context.actorFor(RootActorPath(m.address) / workerPath)
 	  workerCandidate ! StatusRequest
-	  log.info("Attempting handshake with potential worker {}", workerCandidate)
+	  log.debug("Attempting handshake with potential worker {}", workerCandidate)
 	}
 	
 	def receive = {
 		case state: CurrentClusterState => 
   		  	state.members.filter(_.status == MemberStatus.Up).foreach(attemptWorkerHandshake)
   		case MemberUp(m) => 
-  		  	log.info("Member {} is up", m)
+  		  	log.debug("Member {} is up", m)
   		  	attemptWorkerHandshake(m)
   		case s:Status =>
   		  	workers += sender
@@ -63,7 +63,7 @@ class Injector extends Actor with ActorLogging{
   		  		log.info("Warned parent of unreachabler worker {}", potentialWorker)
   		  	}
 		case Broadcast(msg) => 
-			log.info("Broadcasting {}, sender was {}", msg, sender)
+			log.debug("Broadcasting {}, sender was {}", msg, sender)
 			workers.foreach(_.forward(msg))
 	}
 }

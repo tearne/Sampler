@@ -32,6 +32,7 @@ akka {
   }
   remote {
     transport = "akka.remote.netty.NettyRemoteTransport"
+	log-remote-lifecycle-events = off		
     netty {
       hostname = "127.0.0.1"
       port = 2552
@@ -64,14 +65,14 @@ object Sender extends App{
     
     val random = new Random
     val model = new sampler.run.cluster.CoinModel
-    val population: Seq[Particle[model.Parameters]] = (1 to model.abcParameters.particles).par.map(i => Particle(model.prior.sample(random), 1.0, Double.MaxValue)).seq
+    val population: Seq[Particle[model.Parameters]] = (1 to 1000000000).par.map(i => Particle(model.prior.sample(random), 1.0, Double.MaxValue)).seq
     val encapsulated = Encapsulator(model)(population)
     actor ! encapsulated
     
     println("sent msg")
 }
 
-object Receiver extends App{
+object Receiver1 extends App{
 	val system = ActorSystem("MySystem",Config.receiver)
 	val actor = system.actorOf(Props(new Actor{
 		def receive = {
@@ -80,11 +81,21 @@ object Receiver extends App{
 	}), name = "receiver")
 }
 
+object Receiver2 extends App{
+	val system = ActorSystem("MySystem",Config.sender)
+	val actor = system.actorOf(Props(new Actor{
+		def receive = {
+			case m => println(self+" got a message: "+m)
+		}
+	}), name = "receiver")
+}
+
+
 trait Environment{
     type Message <: MsgBase
     protected trait MsgBase
 }
 
 class ConcreteEnvironment extends Environment with Serializable{
-	class Message() extends MsgBase //with Serializable
+	class Message() extends MsgBase with Serializable
 }

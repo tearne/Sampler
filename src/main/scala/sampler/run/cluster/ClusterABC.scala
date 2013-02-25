@@ -5,6 +5,8 @@ import sampler.math.{Random, Probability}
 import sampler.data.SampleBuilderComponent
 import sampler.data.Empirical._
 import scala.annotation.tailrec
+import java.io.ByteArrayOutputStream
+import java.io.ObjectOutputStream
 
 trait Prior[A,Rnd] extends Samplable[A,Rnd]{
 	def density(value: A): Double
@@ -105,37 +107,52 @@ trait ABCComponent{
 	): Seq[model.Parameters] = {
 		type P = model.Parameters
 		
-		val uniformlyWeightedParticles = (1 to model.abcParameters.particles).par.map(i => Particle(model.prior.sample(random), 1.0, Double.MaxValue)).seq
+		val uniformlyWeightedParticles = (1 to model.abcParameters.numParticles).par.map(i => Particle(model.prior.sample(random), 1.0, Double.MaxValue)).seq
 		
 		def evolve(population: Seq[Particle[P]], tolerance: Double): Option[Seq[Particle[P]]] = {
+			import model._
 			println("Now working on tolerance = "+tolerance)
 			
 			//Map the sequence of weighted params (particles) to a map from param to (summed) weight 
 			val samplable = population.groupBy(_.value).map{case (k,v) => (k,v.map(_.weight).sum)}.toEmpiricalWeighted
 			
+			//How many particles generated per job?
+			val jobSizes = (1 to abcParameters.numParticles)
+				.grouped(abcParameters.particleChunking)
+				.map(_.size).toList
+			println(s"JobSizes: $jobSizes")
+			
 			//TODO JobRunner Abortable Job syntax too noisy
 			val encap = Encapsulator.apply[R](model)(population)
-			val results: Seq[Option[Particle[P]]] = runner{
-				val jobs = (1 to model.abcParameters.particles).map(particle => 
-//					Job[Particle[P], R](
-//							encap, 
-//							tolerance
-//					)
-					Job[Option[Particle[P]], R](
-							random => encap.env.nextParticle(encap.prevPopulation, tolerance, random)
-					)
-				)
-				val t = jobs.toSeq
-				t
+			val jobs = jobSizes.map(numParticles => Job{() => 
+				val particles = (1 to numParticles)
+						.view
+						.map(_ => encap.env.nextParticle(encap.prevPopulation, tolerance, random))
+						.takeWhile(_.isDefined)
+						.map(_.get)
+						.force
+					if(particles.size == numParticles) Some(particles) else None 
+				}).toList
+			val baos = new ByteArrayOutputStream()
+			val oos = new ObjectOutputStream(baos)
+			try{
+				val tmp = oos.writeObject(jobs(0).f)
+				println("object "+jobs(0).f)
+				println("Object stream = "+tmp)
+			}catch{
+				case _ => throw new RuntimeException("Bleh!")
 			}
+			val results: Seq[Particle[P]] = runner{
+					jobs
+				}.view.takeWhile(_.isDefined).map(_.get).force.flatten
 			
-			val newPopulation = results.flatten
-			if(newPopulation.size == model.abcParameters.particles) Some(newPopulation)
+			if(results.size == abcParameters.numParticles) Some(results)
 			else None
 		}
 		
 		@tailrec
 		def refine(population: Seq[Particle[P]], numAttempts: Int, tolerance: Double): Seq[Particle[P]] = {
+			println("Generations left to go "+numAttempts)
 			if(numAttempts == 0) population
 			else{
 				evolve(population, tolerance) match {
@@ -155,4 +172,11 @@ trait ABCComponent{
 	}
 }
 
-case class ABCParameters(reps: Int, particles: Int, tolerance: Double, refinements: Int, particleRetries: Int = 100)
+case class ABCParameters(
+		reps: Int, 
+		numParticles: Int, 
+		tolerance: Double, 
+		refinements: Int, 
+		particleRetries: Int = 100, 
+		particleChunking: Int = 100
+)

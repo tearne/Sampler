@@ -17,7 +17,7 @@
 
 package sampler.math
 
-class Random extends scala.util.Random{
+class Random extends scala.util.Random with Serializable{
 	def nextDouble(min: Double, max: Double): Double = 
 		(max - min) * nextDouble() + min
 	
