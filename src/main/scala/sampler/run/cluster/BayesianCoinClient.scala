@@ -30,20 +30,24 @@ object BayesianCoinClientApp extends App{
 //	val system = ActorSystem("ClusterSystem")
 //	system.actorOf(Props[TestClientActor], name = "testClient")
 
-	val myModel = new CoinModel
-	//import myModel._
+//	val myModel = new CoinModelImpl{
+//		
+//	}
+
+	//object CoinModelImpl extends CoinModel 
 	
-	object ABCRunner extends ABCComponent with SampleBuilderComponent{
-		val builder = SerialSampleBuilder
-	}
+	//import myModel._
+//	
+//	object ABCRunner extends ABCComponent{
+//		val builder = SerialSampleBuilder
+//	}
 	val random = new Random()
 	
 	val runner = new ClusterRunner
 	
-	val resultParams = ABCRunner(
-			myModel,
-			runner,
-			random
+	val resultParams = ABCBase(
+			CoinModelImpl,
+			runner
 	).map(_.pHeads)
 	
 	runner.shutdown
@@ -62,10 +66,10 @@ class ClusterRunner{
 	val master = system.actorOf(Props[Master], name = "master")
 	import system.dispatcher
 	
-	def apply[T](jobs: Seq[Job[T]]): Seq[Option[T]] = {
+	def apply[R <: Random](jobs: Seq[Job]): Seq[Option[EncapsulatedEnvironment[R]]] = {
 		val futures = jobs.map(master ? _)
 		
-		val fSeq = Future.sequence(futures).mapTo[Seq[Option[T]]]
+		val fSeq = Future.sequence(futures).mapTo[Seq[Option[EncapsulatedEnvironment[R]]]]
 		
 		val res = Await.result(fSeq, timeout.duration)
 		res
@@ -76,9 +80,9 @@ class ClusterRunner{
 	}
 }
 
-class CoinModel extends ABCModel[Random] with SampleBuilderComponent with Serializable{
+object CoinModelImpl extends ABCModel[Random] with SampleBuilderComponent with Serializable{
 	val builder = SerialSampleBuilder
-	//implicit val random = new Random()
+	val random = new Random()
 	implicit def toProbability(d: Double) = Probability(d)
 	
     case class Parameters(pHeads: Double) extends ParametersBase with Serializable{
@@ -107,11 +111,11 @@ class CoinModel extends ABCModel[Random] with SampleBuilderComponent with Serial
     val observations = Observations(10,5)
     val abcParameters = new ABCParameters(
     	reps = 10, 
-		numParticles = 400, 
+		numParticles = 350, 
 		tolerance = 1, 
-		refinements = 2, 
+		refinements = 6, 
 		particleRetries = 100, 
-		particleChunking = 350
+		particleChunking = 10
 	)
     val prior = new Prior[Parameters, Random] with Serializable{
 	    def density(p: Parameters) = {
@@ -119,6 +123,6 @@ class CoinModel extends ABCModel[Random] with SampleBuilderComponent with Serial
 	      else 1.0
 	    }
 	    
-	    def sample(implicit r: Random) = Parameters(r.nextDouble(0.0, 1.0))
+	    def sample(implicit random: Random) = Parameters(random.nextDouble(0.0, 1.0))
     }
   }

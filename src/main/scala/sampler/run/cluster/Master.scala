@@ -56,7 +56,7 @@ class Master extends Actor with ActorLogging{
   				log.debug("Informing {} that work is available", sender)
   				sender ! WorkIsAvailable
   			}
-  		case job: Job[_] => 
+  		case job: Job => 
   			val requestor = sender
   			val index = nextJobIndex
   			nextJobIndex += 1
@@ -109,9 +109,8 @@ class Master extends Actor with ActorLogging{
 		  	  case Some(InProgress(_, _)) => 
 		  	    work.jid.requestor ! result
 		  		log.info(
-		  				"Job {}:{} done, informed requestor: {}", 
+		  				"Job {} done, informed requestor: {}", 
 		  				work.jid.allocId, 
-		  				work.job.name.getOrElse(""),
 		  				work.jid.requestor
 		  		)
 		  	    workStates -= work.jid

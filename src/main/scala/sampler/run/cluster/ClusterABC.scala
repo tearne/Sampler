@@ -2,7 +2,7 @@ package sampler.run.cluster
 
 import sampler.data.Samplable
 import sampler.math.{Random, Probability}
-import sampler.data.SampleBuilderComponent
+import sampler.data.SampleBuilder
 import sampler.data.Empirical._
 import scala.annotation.tailrec
 import java.io.ByteArrayOutputStream
@@ -14,8 +14,6 @@ trait Prior[A,Rnd] extends Samplable[A,Rnd]{
 case class Particle[A](value: A, weight: Double, bestFit: Double)
 
 trait ABCModel[R <: Random]{
-	this: SampleBuilderComponent =>
-	
 	type Parameters <: ParametersBase
 	protected trait ParametersBase {
 		def perturb(random: R): Parameters
@@ -32,13 +30,16 @@ trait ABCModel[R <: Random]{
 	
 	def initModel(p: Parameters, obs: Observations): Samplable[Output,R]
 	val prior: Prior[Parameters, R]
+	def samplePrior() = prior.sample(random)
+	
 	val observations: Observations
 	val abcParameters: ABCParameters
+	val builder: SampleBuilder
+	val random: R
 	
 	def nextParticle(
 			population: Seq[Particle[Parameters]],
-			tolerance: Double,
-			random: R
+			tolerance: Double
 	) = {
 		@tailrec
 		def getParticle(failures: Int = 0): Option[Particle[Parameters]] = {
@@ -83,31 +84,28 @@ trait ABCModel[R <: Random]{
 	}
 }
 
-abstract class EncapsulatedABC[R <: Random]{
+trait EncapsulatedEnvironment[R <: Random] extends Serializable{
 	type E <: ABCModel[R]
 	val env: E
-	val prevPopulation: Seq[Particle[env.Parameters]]
+	val population: Seq[Particle[env.Parameters]]
 }
 
-object Encapsulator extends Serializable{
-	def apply[R <: Random](abc0: ABCModel[R])(population0: Seq[Particle[abc0.Parameters]]) = new EncapsulatedABC[R] with Serializable{
+object Encapsulator{
+	def apply[R <: Random](abc0: ABCModel[R])(population0: Seq[Particle[abc0.Parameters]]) = new EncapsulatedEnvironment[R] with Serializable{
 		type E = abc0.type
 		val env: E = abc0
-		val prevPopulation = population0
+		val population = population0
 	}
 }
 
-trait ABCComponent{
-	this: SampleBuilderComponent =>
-	
+object ABCBase{
 	def apply[R <: Random](
 			model: ABCModel[R],
-			runner: ClusterRunner,
-			random: R
+			runner: ClusterRunner
 	): Seq[model.Parameters] = {
 		type P = model.Parameters
 		
-		val uniformlyWeightedParticles = (1 to model.abcParameters.numParticles).par.map(i => Particle(model.prior.sample(random), 1.0, Double.MaxValue)).seq
+		val uniformlyWeightedParticles = (1 to model.abcParameters.numParticles).par.map(i => Particle(model.samplePrior, 1.0, Double.MaxValue)).seq
 		
 		def evolve(population: Seq[Particle[P]], tolerance: Double): Option[Seq[Particle[P]]] = {
 			import model._
@@ -119,34 +117,38 @@ trait ABCComponent{
 			//How many particles generated per job?
 			val jobSizes = (1 to abcParameters.numParticles)
 				.grouped(abcParameters.particleChunking)
-				.map(_.size).toList
+				.map(_.size).toSeq
 			println(s"JobSizes: $jobSizes")
 			
 			//TODO JobRunner Abortable Job syntax too noisy
-			val encap = Encapsulator.apply[R](model)(population)
-			val jobs = jobSizes.map(numParticles => Job{() => 
-				val particles = (1 to numParticles)
-						.view
-						.map(_ => encap.env.nextParticle(encap.prevPopulation, tolerance, random))
-						.takeWhile(_.isDefined)
-						.map(_.get)
-						.force
-					if(particles.size == numParticles) Some(particles) else None 
-				}).toList
+			val encap = Encapsulator.apply(model)(population)
+			
+			//Check serializable
 			val baos = new ByteArrayOutputStream()
 			val oos = new ObjectOutputStream(baos)
 			try{
-				val tmp = oos.writeObject(jobs(0).f)
-				println("object "+jobs(0).f)
+				val tmp = oos.writeObject(encap)
+				println("object "+encap)
 				println("Object stream = "+tmp)
 			}catch{
-				case _ => throw new RuntimeException("Bleh!")
+				case e: Throwable => throw new RuntimeException("Bleh!", e)
 			}
-			val results: Seq[Particle[P]] = runner{
-					jobs
-				}.view.takeWhile(_.isDefined).map(_.get).force.flatten
 			
-			if(results.size == abcParameters.numParticles) Some(results)
+			val jobs = jobSizes.map(numParticles => {
+				println("======================================")
+				ABCJob(numParticles, tolerance, encap)
+			}).toList
+			val runnerResults: Seq[Option[EncapsulatedEnvironment[R]]] = runner(jobs)
+			//val t1 = runnerResults.map{_.poulation}	
+			implicit def asTrav(seq: Seq[Particle[P]]) = seq.toTraversable
+			
+			val newParticles = runnerResults.view
+				.takeWhile(_.isDefined)
+				.map(_.get.population.asInstanceOf[Seq[Particle[P]]])
+				.force
+				.flatten
+			
+			if(newParticles.size == abcParameters.numParticles) Some(newParticles)
 			else None
 		}
 		
