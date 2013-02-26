@@ -29,6 +29,10 @@ import scala.util.Failure
 import com.jezhumble.javasysmon.JavaSysMon
 import sampler.run.AbortableJob
 import java.util.concurrent.atomic.AtomicBoolean
+import sampler.math.Random
+import scala.concurrent.Promise
+import sampler.run.cluster._
+import sampler.run.Job
 
 case class StatusRequest()
 case class Status(numCPU: Int, load: Float, memFree: Float){
@@ -43,10 +47,12 @@ case class WorkIsAvailable()
 trait JobParameters
 case class WorkerIsIdle()
 case class JobID(requestor: ActorRef, allocId: Int)
-case class Job(parameters: JobParameters, id: JobID)
-case class JobDone(job: Job, result: Any)
-case class JobConfirmed(work: Job)
-case class JobRejected(work: Job)
+case class Work(job: Job[_], jid: JobID)
+case class WorkDone(work: Work, result: Any)
+case class WorkConfirmed(work: Work)
+case class WorkRejected(work: Work)
+
+case class DoneWorking()
 
 //
 // TODO only allow up to num CPU workers per physical node
@@ -77,7 +83,7 @@ trait WorkerComponent extends Actor with ActorLogging{
 	def run: PartialFunction[Any, Option[Any]]
 	
 	import context.dispatcher	
-	case class DoneWorking()
+
 	val monitor = new JavaSysMon
 	
 	val masters = collection.mutable.Set.empty[ActorRef]
@@ -95,20 +101,22 @@ trait WorkerComponent extends Actor with ActorLogging{
 	  	  		monitor.cpuTimes.getIdleMillis.asInstanceOf[Float] / monitor.cpuTimes.getTotalMillis,
 	  	  		monitor.physical.getFreeBytes.asInstanceOf[Float] / monitor.physical.getTotalBytes
 	  	  	)
-	  	  	log.info("Confirmed I exist to {}", sender)
+	  	  	log.debug("Confirmed I exist to {}", sender)
 	  	case UnreachableMember(m) => 
 	  		val addr = m.address
 	  		masters.find(_.path.address == addr).foreach{ master =>
 	  			masters -= master
-	  			log.info("Removed master {}", master)
+	  			log.debug("Removed master {}", master)
 	  		}
 	}
 	
 	def idle: Receive = common orElse {
 		case WorkIsAvailable =>
-			log.info("Work available from {}", sender)
-			if(!masters.contains(sender)) masters += sender
+			val master = sender
+			log.debug("Work available from {}", sender)
+			if(!masters.contains(master)) masters += master
 			sender ! WorkerIsIdle
+<<<<<<< HEAD
 			log.info("Requested work from {}", sender)
 		case j: Job => 
 			val master = sender
@@ -116,21 +124,40 @@ trait WorkerComponent extends Actor with ActorLogging{
 				//TODO make jobs abortable by sending message to master
 			  	val result = run(j.parameters)
 				master ! JobDone(j, result)
+=======
+			log.debug("Requested work from {}", sender)
+		case w: Work => 
+			val master = sender
+			Future{
+				//TODO make jobs abortable by sending message to master
+			  	val result = w.job.run()
+>>>>>>> oliver
 			  	log.info("Work done, sending result to {}", master)
+				master ! WorkDone(w, result)
 			  	DoneWorking
 			}.pipeTo(self)	//Can't this be in the future?
 		  	context.become(busy)
+<<<<<<< HEAD
 		  	sender ! JobConfirmed(j)
+=======
+		  	sender ! WorkConfirmed(w)
+		  	
+>>>>>>> oliver
 		  	if(!masters.contains(sender)) masters += sender
 		  	log.info("Confirmed start of work {} to master {}", j, sender)
 	}
 	
 	def busy: Receive = common orElse {
 		case WorkIsAvailable => 
-	  	  	log.info("Ignoring WorkAvailable from {} since busy", sender)
+	  	  	log.debug("Ignoring WorkAvailable from {} since busy", sender)
 	  	  	if(!masters.contains(sender)) masters += sender
+<<<<<<< HEAD
 		case j: Job => 
 			log.info("Rejecting Work since busy now")
+=======
+		case w: Work => 
+			log.debug("Rejecting Work since busy now")
+>>>>>>> oliver
 			if(!masters.contains(sender)) masters += sender
 	  	  	sender ! JobRejected(j)
 		case DoneWorking => 

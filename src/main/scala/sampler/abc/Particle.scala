@@ -15,11 +15,6 @@
  * limitations under the License.
  */
 
-package sampler.math
+package sampler.abc
 
-class Random extends scala.util.Random with Serializable{
-	def nextDouble(min: Double, max: Double): Double = 
-		(max - min) * nextDouble() + min
-	
-	def nextBoolean(p: Probability): Boolean = math.random < p.value
-}
+case class Particle[A](value: A, weight: Double, bestFit: Double)

@@ -25,7 +25,7 @@ case class AbortFunction[T](af: Seq[Option[T]] => Boolean){
 }
 
 case class Job[T](f: () => Option[T]){
-	def run(): Option[T] = f()
+	def run() = f()
 }
 case class AbortableJob[T](f: AtomicBoolean => Option[T]){
 	def run(stillRunning: AtomicBoolean): Option[T] = 

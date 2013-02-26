@@ -15,11 +15,22 @@
  * limitations under the License.
  */
 
-package sampler.math
+package sampler.abc
 
-class Random extends scala.util.Random with Serializable{
-	def nextDouble(min: Double, max: Double): Double = 
-		(max - min) * nextDouble() + min
+import sampler.math.Random
+
+trait EncapsulatedPopulation[R <: Random] extends Serializable{ self =>
+	type M <: ABCModel[R]
+	val model: M
+	val population: Seq[Particle[model.Parameters]]
 	
-	def nextBoolean(p: Probability): Boolean = math.random < p.value
+	def update(population0: Seq[Particle[model.Parameters]]) = EncapsulatedPopulation[R](model)(population0)
+}
+
+object EncapsulatedPopulation{
+	def apply[R <: Random](model0: ABCModel[R])(population0: Seq[Particle[model0.Parameters]]) = new EncapsulatedPopulation[R] with Serializable{
+		type M = model0.type
+		val model: M = model0
+		val population = population0
+	}
 }

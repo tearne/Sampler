@@ -15,11 +15,30 @@
  * limitations under the License.
  */
 
-package sampler.math
+package sampler.abc
 
-class Random extends scala.util.Random with Serializable{
-	def nextDouble(min: Double, max: Double): Double = 
-		(max - min) * nextDouble() + min
+import sampler.math.Random
+import sampler.data.Samplable
+
+trait ABCModel[R <: Random]{
+	type Parameters <: ParametersBase
+	protected trait ParametersBase {
+		def perturb(random: R): Parameters
+		def perturbDensity(that: Parameters): Double		
+	}
 	
-	def nextBoolean(p: Probability): Boolean = math.random < p.value
+	type Observations <: ObservationsBase
+	protected trait ObservationsBase
+	
+	type Output <: OutputBase
+	protected trait OutputBase {
+		def distanceTo(observed: Observations): Double
+	}
+	
+	val prior: Prior[Parameters, R]
+	val observations: Observations
+	val meta: ABCMeta
+	val random: R
+	
+	def samplableModel(p: Parameters, obs: Observations): Samplable[Output,R]
 }
