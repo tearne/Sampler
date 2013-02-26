@@ -15,18 +15,18 @@
  * limitations under the License.
  */
 
-package sampler.run.cluster
+package sampler.run.cluster.demo
 
 import akka.actor.{Actor, ActorSystem, Props}
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import akka.kernel.Bootable
-import com.sun.xml.internal.txw2.Content
-import scala.util.Success
 import akka.actor.ActorLogging
-import akka.actor.PoisonPill
 import com.typesafe.config.ConfigFactory
 import sampler.run.AbortableJob
+import akka.pattern.ask
+import akka.pattern.pipe
+import sampler.run.cluster.Master
 
 //class SystemLoadQuery extends Actor{
 //	val config = ConfigFactory.load.getConfig("testClient")

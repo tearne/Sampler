@@ -1,70 +1,36 @@
-package sampler.run.cluster
+/*
+ * Copyright (c) 2012 Crown Copyright 
+ *                    Animal Health and Veterinary Laboratories Agency
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-import sampler.data.Samplable
-import sampler.math.{Random, Probability}
-import sampler.data.SampleBuilder
-import sampler.data.Empirical._
+package sampler.abc
+
+import sampler.math.Random
 import scala.annotation.tailrec
-import java.io.ByteArrayOutputStream
-import java.io.ObjectOutputStream
+import sampler.data.Empirical._
+import sampler.run.ClusterRunner
+import sampler.run.Job
+import sampler.math.Probability
 
-trait Prior[A,Rnd] extends Samplable[A,Rnd]{
-	def density(value: A): Double
-}
-case class Particle[A](value: A, weight: Double, bestFit: Double)
-
-trait ABCModel[R <: Random]{
-	type Parameters <: ParametersBase
-	protected trait ParametersBase {
-		def perturb(random: R): Parameters
-		def perturbDensity(that: Parameters): Double		
-	}
-	
-	type Observations <: ObservationsBase
-	protected trait ObservationsBase
-	
-	type Output <: OutputBase
-	protected trait OutputBase {
-		def distanceTo(observed: Observations): Double
-	}
-	
-	def samplableModel(p: Parameters, obs: Observations): Samplable[Output,R]
-	val prior: Prior[Parameters, R]
-	def samplePrior() = prior.sample(random)
-	
-	val observations: Observations
-	val meta: ABCMeta
-	val builder: SampleBuilder
-	val random: R
-}
-
-trait EncapsulatedPopulation[R <: Random] extends Serializable{ self =>
-	type M <: ABCModel[R]
-	val model: M
-	val population: Seq[Particle[model.Parameters]]
-	
-//	def update(population0: Seq[Particle[model.Parameters]]) = new EncapsulatedPopulation[R] with Serializable{
-//		type M = self.M
-//		val model: M = self.model
-//		val population: Seq[Particle[model.Parameters]] = population0
-//	}
-}
-
-object Encapsulator{
-	def apply[R <: Random](model0: ABCModel[R])(population0: Seq[Particle[model0.Parameters]]) = new EncapsulatedPopulation[R] with Serializable{
-		type M = model0.type
-		val model: M = model0
-		val population = population0
-	}
-}
-
-object ABCBase{
+object ABCMethod{
 	import sampler.data.SerialSampleBuilder
 	
 	def init[R <: Random](model: ABCModel[R]): EncapsulatedPopulation[R] = {
 		val numParticles = model.meta.numParticles
-		val initialPopulation = (1 to numParticles).par.map(i => Particle(model.samplePrior, 1.0, Double.MaxValue)).seq
-		Encapsulator(model)(initialPopulation)
+		val initialPopulation = (1 to numParticles).par.map(i => Particle(model.prior.sample(model.random), 1.0, Double.MaxValue)).seq
+		EncapsulatedPopulation(model)(initialPopulation)
 	}
 	
 	def generateParticles[R <: Random](
@@ -121,7 +87,7 @@ object ABCBase{
 			.takeWhile(_.isDefined)
 			.map(_.get)
 			.force
-		if(particles.size == quantity) Some(Encapsulator(ePop.model)(particles))
+		if(particles.size == quantity) Some(ePop.update(particles))
 		else None
 	}
 	
@@ -136,39 +102,29 @@ object ABCBase{
 		
 		println("Now working on tolerance = "+tolerance)
 		
-		//How many particles to be generated per job?
+		// Number of particles to be generated per job?
 		val jobSizes = (1 to meta.numParticles)
 			.grouped(meta.particleChunking)
 			.map(_.size).toSeq
 		println(s"JobSizes: $jobSizes")
 		
-		//Check serializable
-//		val baos = new ByteArrayOutputStream()
-//		val oos = new ObjectOutputStream(baos)
-//		try{
-//			val tmp = oos.writeObject(encap)
-//			println("object "+encap)
-//			println("Object stream = "+tmp)
-//		}catch{
-//			case e: Throwable => throw new RuntimeException("Bleh!", e)
-//		}
-			
 		val jobs = jobSizes.map(numParticles => Job{() =>
-			ABCBase.generateParticles(ePop, numParticles, tolerance)
+			generateParticles(ePop, numParticles, tolerance)
 		}).toList
-		val runnerResults: Seq[Option[EncapsulatedPopulation[R]]] = runner(jobs)
+		val runnerResults: Seq[Option[EncapsulatedPopulation[R]]] = runner.apply(jobs)
 			
+		//TODO Don't like 'asInstanceOf' below
 		val newParticles = runnerResults.view
 			.takeWhile(_.isDefined)
 			.map(_.get.population.asInstanceOf[Seq[Particle[Params]]])
 			.force
 			.flatten
 			
-		if(newParticles.size == meta.numParticles) Some(Encapsulator(model)(newParticles))
+		if(newParticles.size == meta.numParticles) Some(ePop.update(newParticles))
 		else None
 	}
 		
-	def evolve[R <: Random](
+	def run[R <: Random](
 			ePop: EncapsulatedPopulation[R], 
 			runner: ClusterRunner
 	): Option[EncapsulatedPopulation[R]] = {
@@ -200,12 +156,3 @@ object ABCBase{
 		refine(ePop, meta.refinements, meta.tolerance)
 	}
 }
-
-case class ABCMeta(
-		reps: Int, 
-		numParticles: Int, 
-		tolerance: Double, 
-		refinements: Int, 
-		particleRetries: Int = 100, 
-		particleChunking: Int = 100
-)

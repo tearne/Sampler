@@ -26,6 +26,7 @@ import sampler.math.Random
 import scala.concurrent.Promise
 import java.io.ByteArrayOutputStream
 import java.io.ObjectOutputStream
+import sampler.run.Job
 
 
 case class CheckStarted(work: Work, worker: ActorRef)
@@ -61,9 +62,8 @@ class Master extends Actor with ActorLogging{
   			val index = nextJobIndex
   			nextJobIndex += 1
   		  	val newWork = Work(job, JobID(requestor, index))
-  		  	log.info("New job {} enqueued, id {}", newWork, index)
   		  	workQueue += newWork 
-  		  	log.info("Enqueued work")
+  		  	log.info("New job enqueued, id {}, |Q|={}", newWork, index, workQueue.size)
   		case BroadcastWork =>
 		    if(!workQueue.isEmpty) injector ! Broadcast(WorkIsAvailable) //TODO this only once a second?
   		case NewWorker(w) => self.tell(WorkerIsIdle, w)	//Assuming that new workers are idle initially
