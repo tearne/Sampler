@@ -56,7 +56,7 @@ class Master extends Actor with ActorLogging{
   				log.debug("Informing {} that work is available", sender)
   				sender ! WorkIsAvailable
   			}
-  		case job: Job => 
+  		case job: Job[_] => 
   			val requestor = sender
   			val index = nextJobIndex
   			nextJobIndex += 1

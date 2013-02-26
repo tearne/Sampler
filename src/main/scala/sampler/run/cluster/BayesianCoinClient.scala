@@ -45,16 +45,15 @@ object BayesianCoinClientApp extends App{
 	
 	val runner = new ClusterRunner
 	
-	val resultParams = ABCBase(
-			CoinModelImpl,
-			runner
-	).map(_.pHeads)
+	val encapPopulation0 = ABCBase.init(CoinModel)
+	val finalEncapPopulation = ABCBase.evolve(encapPopulation0, runner).get//.population
+	val finalPopulation = finalEncapPopulation.population.map(_.value.asInstanceOf[CoinModel.Parameters].pHeads)
 	
 	runner.shutdown
 	
 	val wd = Paths.get("examples").resolve("coinTossABC")
 	Files.createDirectories(wd)
-	QuickPlot.writeDensity(wd, "script", Map("data" -> resultParams.toEmpiricalSeq))
+	QuickPlot.writeDensity(wd, "script", Map("data" -> finalPopulation.toEmpiricalSeq))
 }
 
 class ClusterRunner{
@@ -66,10 +65,10 @@ class ClusterRunner{
 	val master = system.actorOf(Props[Master], name = "master")
 	import system.dispatcher
 	
-	def apply[R <: Random](jobs: Seq[Job]): Seq[Option[EncapsulatedEnvironment[R]]] = {
+	def apply[T, R <: Random](jobs: Seq[Job[T]]): Seq[Option[EncapsulatedPopulation[R]]] = {
 		val futures = jobs.map(master ? _)
 		
-		val fSeq = Future.sequence(futures).mapTo[Seq[Option[EncapsulatedEnvironment[R]]]]
+		val fSeq = Future.sequence(futures).mapTo[Seq[Option[EncapsulatedPopulation[R]]]]
 		
 		val res = Await.result(fSeq, timeout.duration)
 		res
@@ -80,7 +79,7 @@ class ClusterRunner{
 	}
 }
 
-object CoinModelImpl extends ABCModel[Random] with SampleBuilderComponent with Serializable{
+object CoinModel extends ABCModel[Random] with SampleBuilderComponent with Serializable{
 	val builder = SerialSampleBuilder
 	val random = new Random()
 	implicit def toProbability(d: Double) = Probability(d)
@@ -102,14 +101,14 @@ object CoinModelImpl extends ABCModel[Random] with SampleBuilderComponent with S
         math.abs(simulated.proportionHeads - obs.proportionHeads)
     }
     
-    def initModel(p: Parameters, obs: Observations) = new Samplable[Output, Random] with Serializable{
+    def samplableModel(p: Parameters, obs: Observations) = new Samplable[Output, Random] with Serializable{
 		override def sample(implicit r: Random) = {
 			def coinToss() = r.nextBoolean(p.pHeads)
 			Output(Observations(obs.numTrials, (1 to obs.numTrials).map(i => coinToss).count(identity)))
 		}
     }
     val observations = Observations(10,5)
-    val abcParameters = new ABCParameters(
+    val meta = new ABCMeta(
     	reps = 10, 
 		numParticles = 350, 
 		tolerance = 1, 

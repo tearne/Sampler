@@ -44,29 +44,29 @@ case class WorkIsAvailable()
 //case class Job(f: () => Any){def apply() = f()}		//Job from a client
 
 case class WorkerIsIdle()
-//case class Job[T](f: () => Option[T], name: Option[String] = None){
-//	def run() = f()
+case class Job[T](f: () => Option[T]){
+	def run() = f()
+}
+//trait Job{
+//	def run(): Option[Any]
 //}
-trait Job{
-	def run(): Option[Any]
-}
-case class ABCJob[R <: Random](numParticles: Int, tolerance: Double, encapPopulation: EncapsulatedEnvironment[R]) extends Job{
-	import encapPopulation._
-	def run(): Option[EncapsulatedEnvironment[R]] = {
-		val particles = (1 to numParticles).view
-			.map(_ => env.nextParticle(population, tolerance))
-			.takeWhile(_.isDefined)
-			.map(_.get)
-			.force
-		if(particles.size == numParticles) 
-			Some{
-				Encapsulator(env)(particles)
-			} 
-		else None 
-	}
-}
+//case class ABCJob[R <: Random](numParticles: Int, tolerance: Double, encapPopulation: EncapsulatedEnvironment[R]) extends Job{
+//	import encapPopulation._
+//	def run(): Option[EncapsulatedEnvironment[R]] = {
+//		val particles = (1 to numParticles).view
+//			.map(_ => env.nextParticle(population, tolerance))
+//			.takeWhile(_.isDefined)
+//			.map(_.get)
+//			.force
+//		if(particles.size == numParticles) 
+//			Some{
+//				Encapsulator(env)(particles)
+//			} 
+//		else None 
+//	}
+//}
 case class JobID(requestor: ActorRef, allocId: Int)
-case class Work(job: Job, jid: JobID)
+case class Work(job: Job[_], jid: JobID)
 case class WorkDone(work: Work, result: Any)
 case class WorkConfirmed(work: Work)
 case class WorkRejected(work: Work)

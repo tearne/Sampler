@@ -28,34 +28,69 @@ trait ABCModel[R <: Random]{
 		def distanceTo(observed: Observations): Double
 	}
 	
-	def initModel(p: Parameters, obs: Observations): Samplable[Output,R]
+	def samplableModel(p: Parameters, obs: Observations): Samplable[Output,R]
 	val prior: Prior[Parameters, R]
 	def samplePrior() = prior.sample(random)
 	
 	val observations: Observations
-	val abcParameters: ABCParameters
+	val meta: ABCMeta
 	val builder: SampleBuilder
 	val random: R
+}
+
+trait EncapsulatedPopulation[R <: Random] extends Serializable{ self =>
+	type M <: ABCModel[R]
+	val model: M
+	val population: Seq[Particle[model.Parameters]]
 	
-	def nextParticle(
-			population: Seq[Particle[Parameters]],
+//	def update(population0: Seq[Particle[model.Parameters]]) = new EncapsulatedPopulation[R] with Serializable{
+//		type M = self.M
+//		val model: M = self.model
+//		val population: Seq[Particle[model.Parameters]] = population0
+//	}
+}
+
+object Encapsulator{
+	def apply[R <: Random](model0: ABCModel[R])(population0: Seq[Particle[model0.Parameters]]) = new EncapsulatedPopulation[R] with Serializable{
+		type M = model0.type
+		val model: M = model0
+		val population = population0
+	}
+}
+
+object ABCBase{
+	import sampler.data.SerialSampleBuilder
+	
+	def init[R <: Random](model: ABCModel[R]): EncapsulatedPopulation[R] = {
+		val numParticles = model.meta.numParticles
+		val initialPopulation = (1 to numParticles).par.map(i => Particle(model.samplePrior, 1.0, Double.MaxValue)).seq
+		Encapsulator(model)(initialPopulation)
+	}
+	
+	def generateParticles[R <: Random](
+			ePop: EncapsulatedPopulation[R], 
+			quantity: Int, 
 			tolerance: Double
-	) = {
+	): Option[EncapsulatedPopulation[R]] = {
+		type Params = ePop.model.Parameters
+		import ePop.model._
+		import ePop.population
+		
 		@tailrec
-		def getParticle(failures: Int = 0): Option[Particle[Parameters]] = {
+		def nextParticle(failures: Int = 0): Option[Particle[Params]] = {
 			//if(!keepGoing.get) None
-			//else 
-			if(failures >= abcParameters.particleRetries) None
+			//else  
+			if(failures >= meta.particleRetries) None
 			else{
-				def getScores(params: Parameters) = {
-					val metricModel = initModel(params, observations).map(_.distanceTo(observations))
-					val metricScores = builder(metricModel)(_.size == abcParameters.reps)(random)
+				def getScores(params: Params) = {
+					val modelWithMetric = samplableModel(params, observations).map(_.distanceTo(observations))
+					val modelWithScores = SerialSampleBuilder(modelWithMetric)(_.size == meta.reps)(random)
 						.filter(_ <= tolerance)
-					metricScores
+					modelWithScores
 				}
 				
 				def getWeight(params: Parameters, numPassed: Int) = {
-					val fHat = numPassed.toDouble / abcParameters.reps
+					val fHat = numPassed.toDouble / meta.reps
 					val numerator = fHat * prior.density(params)
 					val denominator = population.map{case Particle(value, weight, bestScore) => 
 						weight * value.perturbDensity(params)
@@ -75,106 +110,98 @@ trait ABCModel[R <: Random]{
 				
 				res match {
 					case s: Some[Particle[Parameters]] => s
-					case None => getParticle(failures + 1)
+					case None => nextParticle(failures + 1)
 				}
 			}
 		}
 		
-		getParticle()
+		val particles = (1 to quantity)
+			.view
+			.map(i => nextParticle())
+			.takeWhile(_.isDefined)
+			.map(_.get)
+			.force
+		if(particles.size == quantity) Some(Encapsulator(ePop.model)(particles))
+		else None
 	}
-}
-
-trait EncapsulatedEnvironment[R <: Random] extends Serializable{
-	type E <: ABCModel[R]
-	val env: E
-	val population: Seq[Particle[env.Parameters]]
-}
-
-object Encapsulator{
-	def apply[R <: Random](abc0: ABCModel[R])(population0: Seq[Particle[abc0.Parameters]]) = new EncapsulatedEnvironment[R] with Serializable{
-		type E = abc0.type
-		val env: E = abc0
-		val population = population0
+	
+	def evolveOnce[R <: Random](
+			ePop: EncapsulatedPopulation[R], 
+			runner: ClusterRunner,
+			tolerance: Double
+	): Option[EncapsulatedPopulation[R]] = {
+		type Params = ePop.model.Parameters
+		import ePop.model
+		import model.meta
+		
+		println("Now working on tolerance = "+tolerance)
+		
+		//How many particles to be generated per job?
+		val jobSizes = (1 to meta.numParticles)
+			.grouped(meta.particleChunking)
+			.map(_.size).toSeq
+		println(s"JobSizes: $jobSizes")
+		
+		//Check serializable
+//		val baos = new ByteArrayOutputStream()
+//		val oos = new ObjectOutputStream(baos)
+//		try{
+//			val tmp = oos.writeObject(encap)
+//			println("object "+encap)
+//			println("Object stream = "+tmp)
+//		}catch{
+//			case e: Throwable => throw new RuntimeException("Bleh!", e)
+//		}
+			
+		val jobs = jobSizes.map(numParticles => Job{() =>
+			ABCBase.generateParticles(ePop, numParticles, tolerance)
+		}).toList
+		val runnerResults: Seq[Option[EncapsulatedPopulation[R]]] = runner(jobs)
+			
+		val newParticles = runnerResults.view
+			.takeWhile(_.isDefined)
+			.map(_.get.population.asInstanceOf[Seq[Particle[Params]]])
+			.force
+			.flatten
+			
+		if(newParticles.size == meta.numParticles) Some(Encapsulator(model)(newParticles))
+		else None
 	}
-}
-
-object ABCBase{
-	def apply[R <: Random](
-			model: ABCModel[R],
+		
+	def evolve[R <: Random](
+			ePop: EncapsulatedPopulation[R], 
 			runner: ClusterRunner
-	): Seq[model.Parameters] = {
-		type P = model.Parameters
-		
-		val uniformlyWeightedParticles = (1 to model.abcParameters.numParticles).par.map(i => Particle(model.samplePrior, 1.0, Double.MaxValue)).seq
-		
-		def evolve(population: Seq[Particle[P]], tolerance: Double): Option[Seq[Particle[P]]] = {
-			import model._
-			println("Now working on tolerance = "+tolerance)
-			
-			//Map the sequence of weighted params (particles) to a map from param to (summed) weight 
-			val samplable = population.groupBy(_.value).map{case (k,v) => (k,v.map(_.weight).sum)}.toEmpiricalWeighted
-			
-			//How many particles generated per job?
-			val jobSizes = (1 to abcParameters.numParticles)
-				.grouped(abcParameters.particleChunking)
-				.map(_.size).toSeq
-			println(s"JobSizes: $jobSizes")
-			
-			//TODO JobRunner Abortable Job syntax too noisy
-			val encap = Encapsulator.apply(model)(population)
-			
-			//Check serializable
-			val baos = new ByteArrayOutputStream()
-			val oos = new ObjectOutputStream(baos)
-			try{
-				val tmp = oos.writeObject(encap)
-				println("object "+encap)
-				println("Object stream = "+tmp)
-			}catch{
-				case e: Throwable => throw new RuntimeException("Bleh!", e)
-			}
-			
-			val jobs = jobSizes.map(numParticles => {
-				println("======================================")
-				ABCJob(numParticles, tolerance, encap)
-			}).toList
-			val runnerResults: Seq[Option[EncapsulatedEnvironment[R]]] = runner(jobs)
-			//val t1 = runnerResults.map{_.poulation}	
-			implicit def asTrav(seq: Seq[Particle[P]]) = seq.toTraversable
-			
-			val newParticles = runnerResults.view
-				.takeWhile(_.isDefined)
-				.map(_.get.population.asInstanceOf[Seq[Particle[P]]])
-				.force
-				.flatten
-			
-			if(newParticles.size == abcParameters.numParticles) Some(newParticles)
-			else None
-		}
+	): Option[EncapsulatedPopulation[R]] = {
+		type Params = ePop.model.Parameters
+		import ePop.model
+		import model.meta
 		
 		@tailrec
-		def refine(population: Seq[Particle[P]], numAttempts: Int, tolerance: Double): Seq[Particle[P]] = {
+		def refine(
+				ePop: EncapsulatedPopulation[R], 
+				numAttempts: Int, 
+				tolerance: Double
+		): Option[EncapsulatedPopulation[R]] = {
 			println("Generations left to go "+numAttempts)
-			if(numAttempts == 0) population
+			if(numAttempts == 0) Some(ePop)
 			else{
-				evolve(population, tolerance) match {
+				evolveOnce(ePop, runner, tolerance) match {
 					case None =>
 						println("Failed to refine current population, evolving within same tolerance")
-						refine(population, numAttempts - 1, tolerance)
-					case Some(newPop) =>
+						refine(ePop, numAttempts - 1, tolerance)
+					case Some(newEPop) =>
 						//Next tolerance is the median of the previous best for each particle
-						val medianTolerance = newPop.map(_.bestFit).toEmpiricalSeq.quantile(Probability(0.5))
-						refine(newPop, numAttempts - 1, medianTolerance)
+						val medianTolerance = newEPop.population.map(_.bestFit).toEmpiricalSeq.quantile(Probability(0.5))
+						refine(newEPop, numAttempts - 1, medianTolerance)
 				}
 			}
 		}
 		
-		val result = refine(uniformlyWeightedParticles, model.abcParameters.refinements, model.abcParameters.tolerance)
-		result.map(_.value)
+		refine(ePop, meta.refinements, meta.tolerance)
 	}
 }
 
-case class ABCParameters(
+case class ABCMeta(
 		reps: Int, 
 		numParticles: Int, 
 		tolerance: Double, 
