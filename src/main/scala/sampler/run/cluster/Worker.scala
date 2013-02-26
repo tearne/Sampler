@@ -44,7 +44,6 @@ case class WorkIsAvailable()
 
 //case class Job(f: () => Any){def apply() = f()}		//Job from a client
 
-trait JobParameters
 case class WorkerIsIdle()
 case class JobID(requestor: ActorRef, allocId: Int)
 case class Work(job: Job[_], jid: JobID)
@@ -58,30 +57,28 @@ case class DoneWorking()
 // TODO only allow up to num CPU workers per physical node
 //
 
-//class WorkerBootable extends Bootable{
-//	Try{
-//		java.net.InetAddress.getLocalHost.getHostAddress
-//	}match{
-//		case Success(addr) => 
-//			System.setProperty("akka.remote.netty.hostname", addr)
-//			println("Using hostname "+addr)
-//		case Failure(_) => println("Using config hostname")
-//	}
-//	val system = ActorSystem("ClusterSystem")
-//	
-//	def startup = system.actorOf(Props[Worker], name = "worker")
-//	def shutdown = system.shutdown()
-//}
-//
-//object Worker extends App{
-//    if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))
-//	val system = ActorSystem("ClusterSystem")
-//	system.actorOf(Props[MyWorker], name = "worker")
-//}
-
-trait WorkerComponent extends Actor with ActorLogging{
-	def run: PartialFunction[Any, Option[Any]]
+class WorkerBootable extends Bootable{
+	Try{
+		java.net.InetAddress.getLocalHost.getHostAddress
+	}match{
+		case Success(addr) => 
+			System.setProperty("akka.remote.netty.hostname", addr)
+			println("Using hostname "+addr)
+		case Failure(_) => println("Using config hostname")
+	}
+	val system = ActorSystem("ClusterSystem")
 	
+	def startup = system.actorOf(Props[Worker], name = "worker")
+	def shutdown = system.shutdown()
+}
+
+object WorkerApp extends App{
+    if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))
+	val system = ActorSystem("ClusterSystem")
+	system.actorOf(Props[Worker], name = "worker")
+}
+
+class Worker extends Actor with ActorLogging{
 	import context.dispatcher	
 
 	val monitor = new JavaSysMon
@@ -116,50 +113,31 @@ trait WorkerComponent extends Actor with ActorLogging{
 			log.debug("Work available from {}", sender)
 			if(!masters.contains(master)) masters += master
 			sender ! WorkerIsIdle
-<<<<<<< HEAD
-			log.info("Requested work from {}", sender)
-		case j: Job => 
-			val master = sender
-			Future{
-				//TODO make jobs abortable by sending message to master
-			  	val result = run(j.parameters)
-				master ! JobDone(j, result)
-=======
 			log.debug("Requested work from {}", sender)
 		case w: Work => 
 			val master = sender
 			Future{
 				//TODO make jobs abortable by sending message to master
 			  	val result = w.job.run()
->>>>>>> oliver
 			  	log.info("Work done, sending result to {}", master)
 				master ! WorkDone(w, result)
 			  	DoneWorking
 			}.pipeTo(self)	//Can't this be in the future?
 		  	context.become(busy)
-<<<<<<< HEAD
-		  	sender ! JobConfirmed(j)
-=======
 		  	sender ! WorkConfirmed(w)
 		  	
->>>>>>> oliver
 		  	if(!masters.contains(sender)) masters += sender
-		  	log.info("Confirmed start of work {} to master {}", j, sender)
+		  	log.info("Confirmed start of work {} to master {}", w, sender)
 	}
 	
 	def busy: Receive = common orElse {
 		case WorkIsAvailable => 
 	  	  	log.debug("Ignoring WorkAvailable from {} since busy", sender)
 	  	  	if(!masters.contains(sender)) masters += sender
-<<<<<<< HEAD
-		case j: Job => 
-			log.info("Rejecting Work since busy now")
-=======
 		case w: Work => 
 			log.debug("Rejecting Work since busy now")
->>>>>>> oliver
 			if(!masters.contains(sender)) masters += sender
-	  	  	sender ! JobRejected(j)
+	  	  	sender ! WorkRejected(w)
 		case DoneWorking => 
 			log.info("Finished job, advertising for work to {}", masters)
 		  	masters.foreach(_ ! IsWorkAvailable) //Looking for fastest response

@@ -36,11 +36,10 @@ case class InProgress(worker: ActorRef, work: Work) extends WorkState
 case class BroadcastWork()
 
 class Master extends Actor with ActorLogging{
+	
 	val workQueue = mutable.Queue.empty[Work]
-
 	//We have to do a dance with JobIDs since can't expect Jobs to pass equality checks
-	//TODO Should be able to now?
-	val jobStates = mutable.Map.empty[JobID, WorkState] 
+	val workStates = mutable.Map.empty[JobID, WorkState] 
 	
 	val confirmationTimeout = 1.seconds
 	var nextJobIndex = 0
@@ -54,50 +53,6 @@ class Master extends Actor with ActorLogging{
   
 	def receive = {
   		case IsWorkAvailable => 
-<<<<<<< HEAD
-  			if(!jobQueue.isEmpty){ 
-  				log.info("Informing {} that work is available", sender)
-  				sender ! WorkIsAvailable
-  			}
-  		case parameters: JobParameters => 
-  		  	val newJob = Job(parameters, JobID(sender, nextJobId))
-		    jobQueue += newJob 
-		    nextJobId += 1
-		    log.info("Recieved new job, enqueued {}", newJob)
-		    injector ! Broadcast(WorkIsAvailable) //TODO this only once a second?
-  		case NewWorker(w) => self.tell(WorkerIsIdle, w)	//Assuming that new workers are idle initially
-  		case WorkerDown(w) => 
-  			log.info("Current work table is {}", jobStates)
-  			val lostWork = for(InProgress(worker, job) <- jobStates.values if worker == w) yield job
-  		  	lostWork.foreach{job =>
-  		  	  self tell(job.parameters, job.id.requestor)
-  		  	  jobStates -= job.id
-  		  	  log.info("Reallocated {} from unreachable worker {}", job, w)  		  	  
-  		  	}
-  		case WorkerIsIdle => 
-		    if(!jobQueue.isEmpty){
-		      val job = jobQueue.dequeue
-			  sender ! job
-			  jobStates += (job.id -> Starting(job))
-			  context.system.scheduler.scheduleOnce(confirmationTimeout, self, CheckStarted(job, sender))
-		      log.info("Allocated {} to worker {}, Q size now {}", job, sender, jobQueue.size)
-		    }
-		case JobRejected(job) =>
-		  	log.info("Job {} rejected by {}, resubmitting to queue.", job, sender)
-		  	self ! job.parameters
-		  	jobStates -= job.id
-		case JobConfirmed(job) =>
-		  	val jid = job.id
-		  	if(!jobStates.contains(jid))
-		  	  log.warning("{} confirmed {} which wasn't allocated!", sender, job)
-		  	else jobStates.update(jid, InProgress(sender, job))
-		case CheckStarted(job, worker) => //Reminder to check the allocated work was confirmed
-		  jobStates.get(job.id).foreach{
-		    case Starting(work) =>
-		      //Work wasn't confirmed in time, so reallocate it
-		    	self ! job.parameters
-		    	jobStates - job.id
-=======
   			if(!workQueue.isEmpty){ 
   				log.debug("Informing {} that work is available", sender)
   				sender ! WorkIsAvailable
@@ -108,7 +63,7 @@ class Master extends Actor with ActorLogging{
   			nextJobIndex += 1
   		  	val newWork = Work(job, JobID(requestor, index))
   		  	workQueue += newWork 
-  		  	log.info("New job enqueued, id {}, |Q|={}", newWork, index, workQueue.size)
+  		  	log.info("New job enqueued, id {}, |Q|={}", index, workQueue.size)
   		case BroadcastWork =>
 		    if(!workQueue.isEmpty) injector ! Broadcast(WorkIsAvailable) //TODO this only once a second?
   		case NewWorker(w) => self.tell(WorkerIsIdle, w)	//Assuming that new workers are idle initially
@@ -147,18 +102,11 @@ class Master extends Actor with ActorLogging{
 		    	log.info("Work {} not started in time, resubmitting.", work)
 		    	self ! work.job
 		    	workStates - work.jid
->>>>>>> oliver
 		    case _ =>
 		  }
-		case JobDone(job, result) =>
-		  jobStates.get(job.id) match{
+		case WorkDone(work, result) =>
+		  workStates.get(work.jid) match{
 		  	  case Some(InProgress(_, _)) => 
-<<<<<<< HEAD
-		  	    job.id.requestor ! result
-		  		log.info("{} done", job)
-		  	    jobStates -= job.id
-		  	    log.info("Work states {}", jobStates)
-=======
 		  	    work.jid.requestor ! result
 		  		log.info(
 		  				"Job {} done, informed requestor: {}", 
@@ -167,9 +115,8 @@ class Master extends Actor with ActorLogging{
 		  		)
 		  	    workStates -= work.jid
 		  	    log.debug("Work states {}", workStates)
->>>>>>> oliver
 		  	  case _ => 
-		  	    log.error("Unexpected result {} for work {} from {}", result, job, sender)
+		  	    log.error("Unexpected result {} for work {} from {}", result, work, sender)
 		  	}
 	}
 }
