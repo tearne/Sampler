@@ -26,7 +26,7 @@ import akka.kernel.Bootable
 import scala.util.Try
 import scala.util.Success
 import scala.util.Failure
-import com.jezhumble.javasysmon.JavaSysMon
+//import com.jezhumble.javasysmon.JavaSysMon
 import sampler.run.AbortableJob
 import java.util.concurrent.atomic.AtomicBoolean
 import sampler.math.Random
@@ -81,7 +81,7 @@ object WorkerApp extends App{
 class Worker extends Actor with ActorLogging{
 	import context.dispatcher	
 
-	val monitor = new JavaSysMon
+//	val monitor = new JavaSysMon
 	
 	val masters = collection.mutable.Set.empty[ActorRef]
 	
@@ -93,11 +93,12 @@ class Worker extends Actor with ActorLogging{
 	
 	def common: Receive = {
 	  	case StatusRequest => 
-	  	  	sender ! Status(
-	  	  		monitor.numCpus(),
-	  	  		monitor.cpuTimes.getIdleMillis.asInstanceOf[Float] / monitor.cpuTimes.getTotalMillis,
-	  	  		monitor.physical.getFreeBytes.asInstanceOf[Float] / monitor.physical.getTotalBytes
-	  	  	)
+	  		sender ! Status(1, 1.0f ,1.0f)
+//	  	  	sender ! Status(
+//	  	  		monitor.numCpus(),
+//	  	  		monitor.cpuTimes.getIdleMillis.asInstanceOf[Float] / monitor.cpuTimes.getTotalMillis,
+//	  	  		monitor.physical.getFreeBytes.asInstanceOf[Float] / monitor.physical.getTotalBytes
+//	  	  	)
 	  	  	log.debug("Confirmed I exist to {}", sender)
 	  	case UnreachableMember(m) => 
 	  		val addr = m.address
