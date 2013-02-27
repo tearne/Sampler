@@ -19,7 +19,8 @@ libraryDependencies ++= Seq(
 	"com.typesafe.akka" %% "akka-actor" % "2.1.0", 
 	"com.typesafe.akka" %% "akka-remote" % "2.1.0",
 	"com.typesafe.akka" %% "akka-cluster-experimental" % "2.1.0",
-	"org.apache.commons" % "commons-math3" % "3.0"
+	"org.apache.commons" % "commons-math3" % "3.0",
+	"com.amazonaws" % "aws-java-sdk" % "1.3.32"
 )
 
 retrieveManaged := true
