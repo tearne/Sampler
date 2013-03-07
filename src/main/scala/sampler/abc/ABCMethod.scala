@@ -30,14 +30,14 @@ object ABCMethod{
 	def init[R <: Random](model: ABCModel[R]): EncapsulatedPopulation[R] = {
 		val numParticles = model.meta.numParticles
 		val initialPopulation = (1 to numParticles).par.map(i => Particle(model.prior.sample(model.random), 1.0, Double.MaxValue)).seq
-		EncapsulatedPopulation(model)(initialPopulation)
+		EncapsulatedPopulation[R, model.type](model)(initialPopulation)
 	}
 	
 	def generateParticles[R <: Random](
 			ePop: EncapsulatedPopulation[R], 
 			quantity: Int, 
 			tolerance: Double
-	): Option[EncapsulatedPopulation[R]] = {
+	): Option[EncapsulatedPopulation[R] { type M = ePop.model.type } ] = {
 		type Params = ePop.model.Parameters
 		import ePop.model._
 		import ePop.population
@@ -95,7 +95,7 @@ object ABCMethod{
 			ePop: EncapsulatedPopulation[R], 
 			runner: ClusterRunner,
 			tolerance: Double
-	): Option[EncapsulatedPopulation[R]] = {
+	): Option[EncapsulatedPopulation[R] { type M = ePop.model.type } ] = {
 		type Params = ePop.model.Parameters
 		import ePop.model
 		import model.meta

@@ -44,3 +44,5 @@ src/main/scala/sampler/Scratch.scala
 *.Rout
 *.pdf
 *.ppt*
+tags
+*.swp

@@ -24,11 +24,11 @@ trait EncapsulatedPopulation[R <: Random] extends Serializable{ self =>
 	val model: M
 	val population: Seq[Particle[model.Parameters]]
 	
-	def update(population0: Seq[Particle[model.Parameters]]) = EncapsulatedPopulation[R](model)(population0)
+	def update(population0: Seq[Particle[model.Parameters]]) = EncapsulatedPopulation[R, model.type](model)(population0)
 }
 
 object EncapsulatedPopulation{
-	def apply[R <: Random](model0: ABCModel[R])(population0: Seq[Particle[model0.Parameters]]) = new EncapsulatedPopulation[R] with Serializable{
+	def apply[R <: Random, M0 <: ABCModel[R]](model0: M0)(population0: Seq[Particle[model0.Parameters]]) = new EncapsulatedPopulation[R] with Serializable{
 		type M = model0.type
 		val model: M = model0
 		val population = population0
