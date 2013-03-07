@@ -29,7 +29,7 @@ object ABCMethod{
 	
 	def init[R <: Random](model: ABCModel[R]): EncapsulatedPopulation[R] = {
 		val numParticles = model.meta.numParticles
-		val initialPopulation = (1 to numParticles).par.map(i => Particle(model.prior.sample(model.random), 1.0, Double.MaxValue)).seq
+		val initialPopulation = (1 to numParticles).par.map(i => Particle(model.prior.sample(), 1.0, Double.MaxValue)).seq
 		EncapsulatedPopulation(model)(initialPopulation)
 	}
 	
@@ -50,7 +50,7 @@ object ABCMethod{
 			else{
 				def getScores(params: Params) = {
 					val modelWithMetric = samplableModel(params, observations).map(_.distanceTo(observations))
-					val modelWithScores = SerialSampleBuilder(modelWithMetric)(_.size == meta.reps)(random)
+					val modelWithScores = SerialSampleBuilder(modelWithMetric)(_.size == meta.reps)
 						.filter(_ <= tolerance)
 					modelWithScores
 				}
@@ -69,7 +69,7 @@ object ABCMethod{
 				val samplable = population.groupBy(_.value).map{case (k,v) => (k,v.map(_.weight).sum)}.toEmpiricalWeighted
 				
 				val res = for{
-					params <- Some(samplable.sample(random).perturb(random)) if prior.density(params) > 0
+					params <- Some(samplable.sample().perturb()) if prior.density(params) > 0
 					fitScores <- Some(getScores(params))// if scores.size > 0
 					weight <- getWeight(params, fitScores.size) 
 				} yield(Particle(params, weight, fitScores.min))

@@ -63,7 +63,7 @@ object CoinModel extends ABCModel[Random] with Serializable{
     case class Parameters(pHeads: Double) extends ParametersBase with Serializable{
       val kernel = Samplable.normal(0,1)
       
-      def perturb(random: Random) = Parameters(pHeads + kernel.sample(random))
+      def perturb() = Parameters(pHeads + kernel.sample())
       def perturbDensity(that: Parameters) = kernel.density(pHeads - that.pHeads)
     }
 
@@ -77,19 +77,21 @@ object CoinModel extends ABCModel[Random] with Serializable{
         math.abs(simulated.proportionHeads - obs.proportionHeads)
     }
     
-    def samplableModel(p: Parameters, obs: Observations) = new Samplable[Output, Random] with Serializable{
-		override def sample(implicit r: Random) = {
-			def coinToss() = r.nextBoolean(p.pHeads)
-			Output(Observations(obs.numTrials, (1 to obs.numTrials).map(i => coinToss).count(identity)))
-		}
+    def samplableModel(p: Parameters, obs: Observations) = new Samplable[Output] with Serializable{
+      val r = new Random()
+      override def sample() = {
+        def coinToss() = r.nextBoolean(p.pHeads)
+        Output(Observations(obs.numTrials, (1 to obs.numTrials).map(i => coinToss).count(identity)))
+      }
     }
     
-    val prior = new Prior[Parameters, Random] with Serializable{
+    val prior = new Prior[Parameters] with Serializable{
+      val r = new Random()
 	    def density(p: Parameters) = {
 	      if(p.pHeads > 1 || p.pHeads < 0) 0.0
 	      else 1.0
 	    }
 	    
-	    def sample(implicit random: Random) = Parameters(random.nextDouble(0.0, 1.0))
+	    def sample() = Parameters(r.nextDouble(0.0, 1.0))
     }
 }

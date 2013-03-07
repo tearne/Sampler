@@ -27,7 +27,8 @@ import sampler.math.Probability
  * with few repeated values.
  */
 class EmpiricalSeq[A](val values: IndexedSeq[A]) extends Empirical[A]{ self =>
-	def sample(implicit r: Random) = values(r.nextInt(size))
+  val r = new Random()
+	def sample() = values(r.nextInt(size))
 	
 	private lazy val size = values.size
 	

@@ -16,7 +16,7 @@
  */
 
 package sampler.fit
-
+/*
 import sampler.data._
 import sampler.data.Empirical._
 import sampler.data.Types._
@@ -29,7 +29,7 @@ import sampler.run.AbortableRunner
 import java.util.concurrent.atomic.AtomicBoolean
 import sampler.run.{AbortFunction, AbortableJob}
 
-trait Prior[A,Rnd] extends Samplable[A,Rnd]{
+trait Prior[A] extends Samplable[A]{
 	def density(value: A): Double
 }
 
@@ -155,3 +155,4 @@ trait ABCComponent{
 }
 
 case class ABCParameters(reps: Int, particles: Int, tolerance: Double, refinements: Int, particleRetries: Int = 100)
+*/

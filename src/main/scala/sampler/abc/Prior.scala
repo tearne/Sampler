@@ -19,6 +19,6 @@ package sampler.abc
 
 import sampler.data.Samplable
 
-trait Prior[A,Rnd] extends Samplable[A,Rnd]{
+trait Prior[A] extends Samplable[A]{
 	def density(value: A): Double
 }

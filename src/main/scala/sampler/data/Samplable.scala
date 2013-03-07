@@ -29,10 +29,10 @@ import sampler.math.Probability
  * Anything from which we can draw samples.  E.g. an analytical distribution,
  * or bootstrapping from a data set of observations
  */
-trait Samplable[+A,-R] extends Serializable{ 
+trait Samplable[+A] extends Serializable{ 
 	self =>
 		
-	def sample(implicit r: R): A
+	def sample(): A
 	
 	/*
 	 * Note:
@@ -50,67 +50,68 @@ trait Samplable[+A,-R] extends Serializable{
 	 * transforming.
 	 */
 	
-	def until(condition: IndexedSeq[A] => Boolean) = new Samplable[IndexedSeq[A], R]{
-		def sample(implicit r: R) = {
+	def until(condition: IndexedSeq[A] => Boolean) = new Samplable[IndexedSeq[A]]{
+		def sample() = {
 			@tailrec
 			def append(previous: IndexedSeq[A]): IndexedSeq[A] = {
 				if(condition(previous)) previous
-				else append(previous.:+(self.sample(r)))
+				else append(previous.:+(self.sample()))
 			}
-			append(IndexedSeq[A](self.sample(r)))
+			append(IndexedSeq[A](self.sample()))
 		}
 	}
 	
-	def filter(predicate: A => Boolean) = new Samplable[A,R]{
-		def sample(implicit r: R) = {
+	def filter(predicate: A => Boolean) = new Samplable[A]{
+		def sample() = {
 			@tailrec
-			def tryAgain(r: R): A = {
-				val s = self.sample(r)
+			def tryAgain(): A = {
+				val s = self.sample()
 				if(predicate(s)) s
-				else tryAgain(r)
+				else tryAgain()
 			}
 			
-			tryAgain(r)
+			tryAgain()
 		}
 	}
 	
-	def map[B](f: A => B) = new Samplable[B,R]{
-		def sample(implicit r: R) = f(self.sample(r))
+	def map[B](f: A => B) = new Samplable[B]{
+		def sample() = f(self.sample())
 	}
 	
-	def flatMap[B, S <: R](f: A => Samplable[B,S]) = new Samplable[B,S]{
-		def sample(implicit r: S) = f(self.sample(r)).sample(r)
+	def flatMap[B](f: A => Samplable[B]) = new Samplable[B]{
+		def sample() = f(self.sample()).sample()
 	}
 	
-	def combine[B, C, S <: R](that: Samplable[B,S], op: Function2[A,B,C]) = new Samplable[C,S]{
-		def sample(implicit r: S) = op(self.sample(r), that.sample(r))
+  def combine[B, C](that: Samplable[B], op: (A, B) => C) = new Samplable[C]{
+		def sample() = op(self.sample(), that.sample())
 	}
 	
-	//TODO can't seem to make a version where B <: A
-	def convolve[B >: A, S <: R](that: Samplable[B,S])(implicit n: Numeric[B]) = combine(that, n.plus _)
-	def crossCorrelate[B >: A, S <: R](that: Samplable[B,S])(implicit n: Numeric[B]) = combine(that, n.minus _)
+  def convolve[B >: A](that: Samplable[B])(implicit n: Numeric[B]) = combine(that, n.plus _)
+    def crossCorrelate[B >: A](that: Samplable[B])(implicit n: Numeric[B]) = combine(that, n.minus _)
 }
 
 object Samplable{
-	//util.Random is used here, so covariance of the Random type parameter will allow 
-	//any subclass to be supplied. 
 	import util.{Random => ScalaRandom}
+  import sampler.math.{Random => SamplerRandom}
 	
-	def diracDelta[T](value: T) = new Samplable[T,ScalaRandom]{
-		def sample(implicit r: ScalaRandom) = value
+	def diracDelta[T](value: T) = new Samplable[T]{
+		def sample() = value
 	}
 	
-	def uniform(lower: Double, upper: Double)(implicit r: ScalaRandom) = new Samplable[Double, ScalaRandom]{
-		def sample(implicit r: ScalaRandom) = (upper - lower) * r.nextDouble()
+	def uniform(lower: Double, upper: Double) = new Samplable[Double]{
+    val r = new ScalaRandom()
+		def sample() = (upper - lower) * r.nextDouble()
 	}
 	
-	def uniform[T](items: IndexedSeq[T])(implicit r: ScalaRandom) = new Samplable[T, ScalaRandom]{
+	def uniform[T](items: IndexedSeq[T]) = new Samplable[T]{
+    val r = new ScalaRandom()
 		val size = items.size
-		def sample(implicit r: ScalaRandom) = items(r.nextInt(size))
+		def sample() = items(r.nextInt(size))
 	}
 	
-	def withoutReplacement[T](items: IndexedSeq[T], sampleSize: Int) = new Samplable[List[T], ScalaRandom]{
-		def sample(implicit r: ScalaRandom) = {
+	def withoutReplacement[T](items: IndexedSeq[T], sampleSize: Int) = new Samplable[List[T]]{
+    val r = new ScalaRandom()
+		def sample() = {
 			@tailrec
 			def takeAnother(acc: List[T], bag: IndexedSeq[T]): List[T] = {
 				if(acc.size == sampleSize) acc
@@ -124,36 +125,40 @@ object Samplable{
 		}
 	}
 	
-	def binaryPopulation(numInfected: Int, size: Int)(implicit r: ScalaRandom) = new Samplable[Boolean, ScalaRandom]{
-		def sample(implicit r: ScalaRandom) = r.nextInt(size) < numInfected
+	def binaryPopulation(numInfected: Int, size: Int) = new Samplable[Boolean]{
+    val r = new ScalaRandom()
+		def sample() = r.nextInt(size) < numInfected
 	}
 	
-	def normal(mean:Double, variance: Double) = new Samplable[Double, ScalaRandom]{
+	def normal(mean:Double, variance: Double) = new Samplable[Double]{
+    val r = new ScalaRandom()
 		val d = new NormalDistribution(0,variance)
-		def sample(implicit r: ScalaRandom) = d.sample
+		def sample() = d.sample
 		def density(value: Double) = d.density(value)
 	}
 	
-	def bernouliTrial(probSuccess: Samplable[Probability, Random]) = new Samplable[Boolean, Random]{
-	  def sample(implicit r: Random) = r.nextBoolean(probSuccess.sample)
+	def bernouliTrial(probSuccess: Samplable[Probability]) = new Samplable[Boolean]{
+    val r = new SamplerRandom()
+	  def sample() = r.nextBoolean(probSuccess.sample)
 	}
 	
-	def coinToss(implicit r: Random) = new Samplable[Boolean, Random] {
-	  def sample(implicit r: Random) = r.nextBoolean(Probability(0.5))
+	def coinToss() = new Samplable[Boolean] {
+    val r = new SamplerRandom()
+	  def sample() = r.nextBoolean(Probability(0.5))
 	}
 }
 
 trait SampleBuilder{
-	def apply[T,Rnd](samplable: Samplable[T,Rnd])(condition: GenSeq[T] => Boolean)(implicit r: Rnd): GenSeq[T]
+	def apply[T](samplable: Samplable[T])(condition: GenSeq[T] => Boolean): GenSeq[T]
 }
 
 object SerialSampleBuilder extends SampleBuilder with Serializable{
-	def apply[T,Rnd](samplable: Samplable[T, Rnd])(condition: GenSeq[T] => Boolean)(implicit r: Rnd) = 
-		samplable.until(condition).sample(r)
+	def apply[T](samplable: Samplable[T])(condition: GenSeq[T] => Boolean) = 
+		samplable.until(condition).sample()
 }
 
 class ParallelSampleBuilder(chunkSize: Int) extends SampleBuilder{
-	def apply[T,Rnd](samplable: Samplable[T, Rnd])(condition: GenSeq[T] => Boolean)(implicit r: Rnd) = {
+	def apply[T](samplable: Samplable[T])(condition: GenSeq[T] => Boolean) = {
 		def takeMore(previous: ParSeq[T]): ParSeq[T] = {
 			if(condition(previous)) previous
 			else takeMore(

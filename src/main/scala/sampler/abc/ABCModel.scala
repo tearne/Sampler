@@ -23,7 +23,7 @@ import sampler.data.Samplable
 trait ABCModel[R <: Random]{
 	type Parameters <: ParametersBase
 	protected trait ParametersBase {
-		def perturb(random: R): Parameters
+		def perturb(): Parameters
 		def perturbDensity(that: Parameters): Double		
 	}
 	
@@ -35,10 +35,10 @@ trait ABCModel[R <: Random]{
 		def distanceTo(observed: Observations): Double
 	}
 	
-	val prior: Prior[Parameters, R]
+	val prior: Prior[Parameters]
 	val observations: Observations
 	val meta: ABCMeta
 	val random: R
 	
-	def samplableModel(p: Parameters, obs: Observations): Samplable[Output,R]
+	def samplableModel(p: Parameters, obs: Observations): Samplable[Output]
 }

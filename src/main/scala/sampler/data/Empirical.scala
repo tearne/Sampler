@@ -35,7 +35,7 @@ import scala.collection.GenMap
  * No variance in [A] since the probabilities Map[A, Probability] can't
  * support it   
  */
-trait Empirical[A] extends Samplable[A,Random]{
+trait Empirical[A] extends Samplable[A]{
 	 // The number of _unique_ observations (not overall number of observations)
 	val supportSize: Int
 	
