@@ -21,7 +21,7 @@ import sampler.data.Empirical._
 import sampler.math.Random
 import sampler.data.Samplable
 import scala.collection.parallel.ParSeq
-import java.nio.file.Paths
+import java.nio.file.{Paths, Files}
 import sampler.io.CSVTableWriter
 import sampler.data.Types.Column
 import sampler.math.Probability
@@ -50,6 +50,7 @@ object SampleDistribution extends App with EmpiricalMetricComponent{
   implicit val random = new Random
   
   val outputPath = Paths.get("examples", "sampleDists")
+  Files.createDirectories(outputPath)
   
   val listOfTestPrevs = List(5, 10, 20, 30, 50, 70, 90)
   
@@ -112,39 +113,39 @@ dev.off()
   ScriptRunner(plotScript, outputPath.resolve("plotScript.r"))
 
   /** Takes a long time to run so commented out for later runs **/
-//  val confidence = Probability(0.95)
-//  val precision = 0.09
-//  
-//  var sampleSizes: List[Int] = List()
-//  var prevalences: List[Int] = List()
-//  
-//  for(i <- 1 until 100) {
-//	  prevalences = prevalences.:+(i)
-//	  
-//	  println("Calculating sample size for prevalence " + i + "% ...")
-//	  
-//	  val n = minimumSampleSize(populationSize, i.toDouble/100.0, confidence, precision)
-//	  sampleSizes = sampleSizes.:+(n)
-//	  
-//	  println("\t" + n + " samples")
-//  }
-//  
-//  val prevCol = Column(prevalences, "Prevalence")
-//  val ssCol = Column(sampleSizes, "SampleSize")
-//  
-//  new CSVTableWriter(outputPath.resolve("SSfor100with95.csv"), true)(prevCol, ssCol)
+  val confidence = Probability(0.95)
+  val precision = 0.09
   
-  val ssScript = """
+  var sampleSizes: List[Int] = List()
+  var prevalences: List[Int] = List()
+  
+  for(i <- 1 until 100) {
+	  prevalences = prevalences.:+(i)
+	  
+	  println("Calculating sample size for prevalence " + i + "% ...")
+	  
+	  val n = minimumSampleSize(populationSize, i.toDouble/100.0, confidence, precision)
+	  sampleSizes = sampleSizes.:+(n)
+	  
+	  println("\t" + n + " samples")
+  }
+  
+  val prevCol = Column(prevalences, "Prevalence")
+  val ssCol = Column(sampleSizes, "SampleSize")
+  
+  new CSVTableWriter(outputPath.resolve("SSfor100with95.csv"), true)(prevCol, ssCol)
+  
+  val ssScript = s"""
 require("ggplot2")
 require("reshape")
-    
+
 data <- read.csv("SSfor100with95.csv")
 
 formulaN = c()
 
 for(i in 1:99){
-prev = i/100
-formulaN = c(formulaN, (1.96^2 * prev * (1-prev))/0.09^2)
+	prev = i/100
+	formulaN = c(formulaN, (1.96^2 * prev * (1-prev))/0.09^2)
 }
     
 newData <- c(data, as.data.frame(formulaN))
@@ -160,26 +161,6 @@ ggplot(melt(newData,id="Prevalence"), aes(x=Prevalence, y=value, colour=variable
     scale_y_continuous(name="Sample size") +
     scale_colour_discrete(name="Method")
 
-reduced2 <- read.csv("SSfor100with95_reduced2.csv")
-
-reducedN = c()
-    
-for(i in seq(2, 98, 2)){
-prev = i/100
-reducedN = c(reducedN, (1.96^2 * prev * (1-prev))/0.09^2)
-}
-
-reducedData <- c(reduced2, as.data.frame(reducedN))
-reducedData <- as.data.frame(reducedData)
-
-names(reducedData) <- c("Prevalence", "Sampling", "Classical Stats")
-    
-ggplot(melt(reducedData,id="Prevalence"), aes(x=Prevalence, y=value, colour=variable)) + 
-    geom_line() + 
-    scale_x_continuous(name="Prevalence") +
-    scale_y_continuous(name="Sample size") +
-    scale_colour_discrete(name="Method")
-  
 dev.off()
 """
 

@@ -100,11 +100,11 @@ object Samplable{
 		def sample(implicit r: ScalaRandom) = value
 	}
 	
-	def uniform(lower: Double, upper: Double)(implicit r: ScalaRandom) = new Samplable[Double, ScalaRandom]{
+	def uniform(lower: Double, upper: Double) = new Samplable[Double, ScalaRandom]{
 		def sample(implicit r: ScalaRandom) = (upper - lower) * r.nextDouble()
 	}
 	
-	def uniform[T](items: IndexedSeq[T])(implicit r: ScalaRandom) = new Samplable[T, ScalaRandom]{
+	def uniform[T](items: IndexedSeq[T]) = new Samplable[T, ScalaRandom]{
 		val size = items.size
 		def sample(implicit r: ScalaRandom) = items(r.nextInt(size))
 	}

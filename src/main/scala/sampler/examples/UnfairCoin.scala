@@ -28,18 +28,19 @@ import sampler.data.Samplable
 import sampler.data.Empirical._
 import sampler.abc.ABCMeta
 import sampler.abc.Prior
+import sampler.run.SerialRunner
 
 object UnfairCoin extends App{
 	if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))
 	else System.setProperty("akka.remote.netty.port", "2555")
 	
-	val runner = new ClusterRunner
+	//val runner = new ClusterRunner
 	
 	val encapPopulation0 = ABCMethod.init(CoinModel)
-	val finalEncapPopulation = ABCMethod.run(encapPopulation0, runner).get//.population
+	val finalEncapPopulation = ABCMethod.run(encapPopulation0, new SerialRunner).get//.population
 	val finalPopulation = finalEncapPopulation.population.map(_.value.asInstanceOf[CoinModel.Parameters].pHeads)
 	
-	runner.shutdown
+	//runner.shutdown
 	
 	val wd = Paths.get("examples").resolve("coinTossABC")
 	Files.createDirectories(wd)
@@ -51,9 +52,9 @@ object CoinModel extends ABCModel[Random] with Serializable{
 	val observations = Observations(10,5)
     val meta = new ABCMeta(
     	reps = 10,
-		numParticles = 500, 
+		numParticles = 100, 
 		tolerance = 1, 
-		refinements = 4,
+		refinements = 6,
 		particleRetries = 100, 
 		particleChunking = 100
 	)
