@@ -15,9 +15,9 @@ class SamplableSpec extends Specification {
 			
 			def append(previous: List[Int]): List[Int] = {
 				if(previous.length == 10) previous
-				else append(previous.:+(instance.sample(rand)))
+				else append(previous.:+(instance.sample()))
 			}
-			val sampleList = append(List(instance.sample(rand)))
+			val sampleList = append(List(instance.sample()))
 			
 			val expectedList = List(0,1,2,3,4,5,6,7,8,9)
 			
@@ -52,10 +52,10 @@ class SamplableSpec extends Specification {
 		    
 		    def append(previous: List[Int]): List[Int] = {
 				if(previous.length == 10) previous
-				else append(previous.:+(mappedInstance.sample(rand)))
+				else append(previous.:+(mappedInstance.sample()))
 			}
 		    
-			val sampleList = append(List(mappedInstance.sample(rand)))
+			val sampleList = append(List(mappedInstance.sample()))
 			
 			val expectedList = List(0,2,4,6,8,10,12,14,16,18)
 			
@@ -69,9 +69,9 @@ class SamplableSpec extends Specification {
 				
 				def append(previous: List[Int]): List[Int] = {
 					if(previous.length == 7) previous
-					else append(previous.:+(newSamplable.sample(rand)))
+					else append(previous.:+(newSamplable.sample()))
 				}
-				val sampleList = append(List(newSamplable.sample(rand)))
+				val sampleList = append(List(newSamplable.sample()))
 				
 				sampleList mustEqual List(3,4,5,6,7,8,9)
 			}
@@ -81,9 +81,9 @@ class SamplableSpec extends Specification {
 
 				def append(previous: List[Int]): List[Int] = {
 					if(previous.length == 5) previous
-					else append(previous.:+(newSamplable.sample(rand)))
+					else append(previous.:+(newSamplable.sample()))
 				}
-				val sampleList = append(List(newSamplable.sample(rand)))
+				val sampleList = append(List(newSamplable.sample()))
 				
 				sampleList mustEqual List(0,2,4,6,8)
 			}
@@ -93,19 +93,19 @@ class SamplableSpec extends Specification {
 		  "which can combine two samplables with a mutliplier" in new createInstance{
 		    def product(a: Int, b: Int) = a*b
 		    
-		    val doubler = new Samplable[Int, Random] {
+		    val doubler = new Samplable[Int] {
 		    	val it = List(0,1,2,3,4).iterator
 			
-				def sample(implicit r: Random): Int = it.next()
+				def sample(): Int = it.next()
 		    }
 		    
 		    val result = doubler.combine(instance, product)
 		    
 		    def append(previous: List[Int]): List[Int] = {
 					if(previous.length == 5) previous
-					else append(previous.:+(result.sample(rand)))
+					else append(previous.:+(result.sample()))
 				}
-		    val sampleList = append(List(result.sample(rand)))
+		    val sampleList = append(List(result.sample()))
 				
 			sampleList mustEqual List(0,1,4,9,16)
 		  }
@@ -115,9 +115,9 @@ class SamplableSpec extends Specification {
 		    
 		    def append(previous: List[Int]): List[Int] = {
 					if(previous.length == 5) previous
-					else append(previous.:+(result.sample(rand)))
+					else append(previous.:+(result.sample()))
 				}
-		    val sampleList = append(List(result.sample(rand)))
+		    val sampleList = append(List(result.sample()))
 				
 			sampleList mustEqual List(6,7,8,9,10)
 		  }
@@ -127,9 +127,9 @@ class SamplableSpec extends Specification {
 		    
 		    def append(previous: List[Int]): List[Int] = {
 					if(previous.length == 5) previous
-					else append(previous.:+(result.sample(rand)))
+					else append(previous.:+(result.sample()))
 				}
-		    val sampleList = append(List(result.sample(rand)))
+		    val sampleList = append(List(result.sample()))
 				
 			sampleList mustEqual List(4,5,6,7,8)
 		  }
@@ -193,46 +193,46 @@ class SamplableSpec extends Specification {
 			class S extends T
 			val isT: T = new S
 			
-			val t = new Samplable[T, Random2]{
-				def sample(implicit r: Random2) = new T
+			val t = new Samplable[T]{
+				def sample() = new T
 			}
-			val s = new Samplable[S, Random]{
-				def sample(implicit r: Random) = new S
+			val s = new Samplable[S]{
+				def sample() = new S
 			}
 			
-			val res1 = t.sample(new Random2)
-			val res2 = s.sample(new Random)
-			val res3 = s.sample(new Random2)
+			val res1 = t.sample()
+			val res2 = s.sample()
+			val res3 = s.sample()
 			
-			val u: Samplable[T,Random] = s
-			val w: Samplable[S,Random2] = s
+			val u: Samplable[T] = s
+			val w: Samplable[S] = s
 			
 			class U
-			val p: Samplable[U,Random2] = t.combine(s, (a:T, b:S) => new U)
+			val p: Samplable[U] = t.combine(s, (a:T, b:S) => new U)
 		}
 	}
 	
 	trait createInstance extends Scope {
 		implicit val rand = new Random()
 		
-		val instance = new Samplable[Int, Random] {
+		val instance = new Samplable[Int] {
 			val it = List(0,1,2,3,4,5,6,7,8,9).iterator
 			
-			def sample(implicit r: Random): Int = it.next()
+			def sample(): Int = it.next()
 		}
 	}
 	
 	trait createTwoInstance extends Scope {
 	  implicit val rand = new Random()
 	  
-	  val instance1 = new Samplable[Int, Random] {
+	  val instance1 = new Samplable[Int] {
 		val it = List(1,1,1,1,1).iterator
-		def sample(implicit r: Random): Int = it.next()
+		def sample(): Int = it.next()
 	  }
 		    
-	  val instance2 = new Samplable[Int, Random] {
+	  val instance2 = new Samplable[Int] {
 		val it = List(5,6,7,8,9).iterator
-		def sample(implicit r: Random): Int = it.next()
+		def sample(): Int = it.next()
 	  }
 	}
 }
