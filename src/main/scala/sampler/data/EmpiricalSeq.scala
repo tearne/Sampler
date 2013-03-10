@@ -26,7 +26,7 @@ import sampler.math.Probability
  * collecting observations from continuous distributions or distributions 
  * with few repeated values.
  */
-class EmpiricalSeq[A](val values: IndexedSeq[A]) extends Empirical[A]{ self =>
+class EmpiricalSeq[A](val values: IndexedSeq[A])(implicit val o: Ordering[A] = null, val f: Fractional[A] = null) extends Empirical[A]{ self =>
   val r = new Random()
 	def sample() = values(r.nextInt(size))
 	

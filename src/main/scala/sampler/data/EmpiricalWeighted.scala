@@ -26,7 +26,7 @@ import sampler.math.AliasTable
  * Empirical implementation which uses a weight attached to each
  * observation value for sampling.
  */
-class EmpiricalWeighted[A](val weights: Map[A, Double]) extends Empirical[A]{
+class EmpiricalWeighted[A](val weights: Map[A, Double])(implicit val o: Ordering[A] = null, val f: Fractional[A] = null) extends Empirical[A]{
 	//TODO Tidy up the Alias stuff, pushing this stuff away
 	private lazy val (indexedValues, indexedProbabilities) = probabilities.toIndexedSeq.unzip
 	

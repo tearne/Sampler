@@ -42,19 +42,20 @@ trait Empirical[A] extends Samplable[A]{
 	 // The probability or relative frequency associated with each observation value 
 	val probabilities: Map[A, Probability]
 	
-	def rightTail(itemInclusive: A)(implicit o: Ordering[A]): Probability = {
-		//TODO would be nice if 'ordered' below didn't need to be recalculated on each
-		//     call, but the 'o' is only available when inside this method
-		val ordered = probabilities.keys.toList.sorted(o)	
-		val value = ordered.dropWhile(i => o.lt(i,itemInclusive)).foldLeft(0.0){
+	val o: Ordering[A]
+	lazy val rtOrdered = probabilities.keys.toList.sorted(o)
+	
+	def rightTail(itemInclusive: A)(implicit guard: Ordering[A]): Probability = {
+		val value = rtOrdered.dropWhile(i => o.lt(i,itemInclusive)).foldLeft(0.0){
 			case (acc, i) => acc + probabilities(i).value
 		}
 		Probability(value)
 	}
 	
-	//TODO Tried to do this with a context bound instead of an implicit arg 
-	//     but failed.  Is it possible/desirable to use a context bound?
-	def quantile(prob: Probability)(implicit f: Fractional[A]): A = {
+	val f: Fractional[A]
+	lazy val qOrdered = probabilities.keys.toIndexedSeq.sorted(f)
+	
+	def quantile(prob: Probability)(implicit guard: Fractional[A]): A = {
 		import f._
 		val (lower, upper) = {
 			val raw = prob.value * supportSize - 1
@@ -65,12 +66,9 @@ trait Empirical[A] extends Samplable[A]{
 			else (idx, idx + 1)
 		}
 		
-		//TODO would be nice if this didn't need to be recalculated on each
-		// call, but we only have the fractional (f) inside the method
-		val ordered = probabilities.keys.toIndexedSeq.sorted
 		val two = one + one
 		
-		(ordered(lower) + ordered(upper)) / two 
+		(qOrdered(lower) + qOrdered(upper)) / two 
 	}
 	
 	def canEqual(other: Any): Boolean = other.isInstanceOf[Empirical[_]]
