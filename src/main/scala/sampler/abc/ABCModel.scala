@@ -17,10 +17,12 @@
 
 package sampler.abc
 
-import sampler.math.Random
+import sampler.math.{ Random, StatisticsComponent }
 import sampler.data.Samplable
 
 trait ABCModel[R <: Random]{
+  val statistics: StatisticsComponent
+
 	type Parameters <: ParametersBase
 	protected trait ParametersBase {
 		def perturb(): Parameters

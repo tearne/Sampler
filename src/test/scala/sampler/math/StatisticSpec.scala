@@ -25,8 +25,7 @@ import sampler.data.Empirical._
 import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class StatisticSpec extends Specification with Mockito{
-	val stats = new Statistics
+class StatisticSpec extends Specification with Mockito with StatisticsComponentImpl {
   
 	"Statistic" should {
 		"calculate the mean" in {
@@ -34,13 +33,13 @@ class StatisticSpec extends Specification with Mockito{
 		  "EmpiricalSeq" in {
 		    val empSeq = IndexedSeq[Double](1,2,3,4).toEmpiricalSeq
 		    
-		    stats.mean(empSeq) mustEqual 2.5
+		    mean(empSeq) mustEqual 2.5
 		  }
 		  
 		  "EmpiricalTable" in {
 		    val empTable = IndexedSeq[Double](1,2,3,4).toEmpiricalTable
 		    
-		    stats.mean(empTable) mustEqual 2.5
+		    mean(empTable) mustEqual 2.5
 		  }
 		  
 		  "EmpiricalWeighted" in {
@@ -51,7 +50,7 @@ class StatisticSpec extends Specification with Mockito{
 		        (4, 0.25)
 		      ).toEmpiricalWeighted
 		    
-		    stats.mean(empWeight) mustEqual 2.5
+		    mean(empWeight) mustEqual 2.5
 		  }
 		}
 	}

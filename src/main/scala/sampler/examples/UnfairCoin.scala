@@ -24,6 +24,7 @@ import sampler.r.QuickPlot
 import sampler.abc.ABCModel
 import sampler.math.Random
 import sampler.math.Probability
+import sampler.math.StatisticsComponentImpl
 import sampler.data.Samplable
 import sampler.data.Empirical._
 import sampler.abc.ABCMeta
@@ -47,6 +48,7 @@ object UnfairCoin extends App{
 }
 
 object CoinModel extends ABCModel[Random] with Serializable{
+  val statistics = new StatisticsComponentImpl {}
 	val random = new Random()
 	val observations = Observations(10,5)
     val meta = new ABCMeta(

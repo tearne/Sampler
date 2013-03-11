@@ -25,14 +25,15 @@ import java.nio.file.Paths
 import sampler.io.CSVTableWriter
 import sampler.data.Types.Column
 import sampler.math.Probability
+import sampler.math.StatisticsComponentImpl
 import sampler.r.ScriptRunner
 import scala.annotation.tailrec
-import sampler.data.EmpiricalMetricComponent
+import sampler.data.EmpiricalMetricComponentImpl
 import sampler.data.EmpiricalTable
 import sampler.data.ParallelSampleBuilder
 import scala.collection.GenSeq
 
-object SampleDistribution extends App with EmpiricalMetricComponent{
+object SampleDistribution extends App with EmpiricalMetricComponentImpl with StatisticsComponentImpl {
 	/*
 	 * In a population of a given size, sampling a given number 
 	 * without replacement, what is the distribution of results 
@@ -195,7 +196,7 @@ dev.off()
 	  	.map(_.count(identity) / sampleSize.toDouble)			// Transform to model of sample prevalance
 	  
 	  def terminationCondition(soFar: GenSeq[Double]) = {
-		val distance = metric.max(
+		val distance = max(
 			soFar.take(soFar.size - chunkSize).toEmpiricalTable, 
 			soFar.toEmpiricalTable
 		)

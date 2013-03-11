@@ -42,35 +42,6 @@ trait Empirical[A] extends Samplable[A]{
 	 // The probability or relative frequency associated with each observation value 
 	val probabilities: Map[A, Probability]
 	
-	val o: Ordering[A]
-	lazy val rtOrdered = probabilities.keys.toList.sorted(o)
-	
-	def rightTail(itemInclusive: A)(implicit guard: Ordering[A]): Probability = {
-		val value = rtOrdered.dropWhile(i => o.lt(i,itemInclusive)).foldLeft(0.0){
-			case (acc, i) => acc + probabilities(i).value
-		}
-		Probability(value)
-	}
-	
-	val f: Fractional[A]
-	lazy val qOrdered = probabilities.keys.toIndexedSeq.sorted(f)
-	
-	def quantile(prob: Probability)(implicit guard: Fractional[A]): A = {
-		import f._
-		val (lower, upper) = {
-			val raw = prob.value * supportSize - 1
-			val idx = scala.math.ceil(raw).toInt
-			if(idx <= 0) (0,0)
-			else if(raw != math.floor(raw)) (idx, idx)
-			else if(idx == supportSize - 1) (idx, idx)
-			else (idx, idx + 1)
-		}
-		
-		val two = one + one
-		
-		(qOrdered(lower) + qOrdered(upper)) / two 
-	}
-	
 	def canEqual(other: Any): Boolean = other.isInstanceOf[Empirical[_]]
 	override def equals(other: Any) = other match {
 		//Implement equality in terms of the probabilities of drawing values
@@ -112,7 +83,7 @@ object Empirical{
 		}
 	}
 	
-	implicit class RichMapProbability[A](table: Map[A, Probability]){
+	implicit class RichMapProbability[A](table: Map[A, Probability]) {
 		def toEmpiricalWeighted = new EmpiricalWeighted[A](table.map{case (k,v) => (k,v.value)})
 	}
 }
@@ -121,29 +92,25 @@ object Empirical{
  *  Measuring the distance between pairs of Empirical
  */
 //TODO test
-trait EmpiricalMetricSubComponent{
-	this: StatisticsComponent =>
-		
-	val metric: EmpiricalMetric = new EmpiricalMetric
-	
-	class EmpiricalMetric{
-		def absoluteMean[A: Fractional](a: Empirical[A], b: Empirical[A]) = {
-			math.abs(statistics.mean(a)-statistics.mean(b))
-		}
-		
-		def max[A](a: Empirical[A], b: Empirical[A]): Double = {
-			val indexes = a.probabilities.keySet ++ b.probabilities.keySet
-			def distAtIndex(i: A) = math.abs(
-					a.probabilities.get(i).map(_.value).getOrElse(0.0) -
-					b.probabilities.get(i).map(_.value).getOrElse(0.0)
-			)
-			indexes.map(distAtIndex(_)).max
-		}
-	}
+trait EmpiricalMetricComponent extends StatisticsComponent {
+  def absoluteMean[A: Fractional](a: Empirical[A], b: Empirical[A]): Double
+  
+  def max[A](a: Empirical[A], b: Empirical[A]): Double
 }
 
+trait EmpiricalMetricComponentImpl extends EmpiricalMetricComponent {
+		
+  def absoluteMean[A: Fractional](a: Empirical[A], b: Empirical[A]) = {
+    math.abs(mean(a)-mean(b))
+  }
+  
+  def max[A](a: Empirical[A], b: Empirical[A]): Double = {
+    val indexes = a.probabilities.keySet ++ b.probabilities.keySet
+    def distAtIndex(i: A) = math.abs(
+        a.probabilities.get(i).map(_.value).getOrElse(0.0) -
+        b.probabilities.get(i).map(_.value).getOrElse(0.0)
+    )
+    indexes.map(distAtIndex(_)).max
+  }
+}
 
-/*
- * To simplify mixin
- */
-trait EmpiricalMetricComponent extends EmpiricalMetricSubComponent with StatisticsComponent

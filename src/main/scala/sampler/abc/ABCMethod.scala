@@ -147,7 +147,7 @@ object ABCMethod{
 						refine(ePop, numAttempts - 1, tolerance)
 					case Some(newEPop) =>
 						//Next tolerance is the median of the previous best for each particle
-						val medianTolerance = newEPop.population.map(_.bestFit).toEmpiricalSeq.quantile(Probability(0.5))
+						val medianTolerance = model.statistics.quantile(newEPop.population.map(_.bestFit).toEmpiricalSeq, Probability(0.5))
 						refine(newEPop, numAttempts - 1, medianTolerance)
 				}
 			}

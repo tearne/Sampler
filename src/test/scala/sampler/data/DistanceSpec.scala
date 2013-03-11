@@ -22,24 +22,25 @@ import org.specs2.mock.Mockito
 import sampler.data.Empirical._
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
+import sampler.math.StatisticsComponentImpl
 
 //TODO change name of class to match component being tested
 
 @RunWith(classOf[JUnitRunner])
-class DistanceSpec extends Specification with Mockito with EmpiricalMetricComponent{
+class DistanceSpec extends Specification with Mockito with EmpiricalMetricComponentImpl with StatisticsComponentImpl {
 	"Empirical Metric Component" should {
 		"implement an absolute difference metric" in {
 			val instance1 = IndexedSeq[Double](1,2,3).toEmpiricalSeq // mean 2
 			val instance2 = IndexedSeq[Double](4,5,6).toEmpiricalSeq // mean 5
 			
-			metric.absoluteMean(instance1, instance2) mustEqual 3
+			absoluteMean(instance1, instance2) mustEqual 3
 		}
 		
 		"implement a maximum difference metric" in {
 			val instance1 = IndexedSeq(1,2,3,4).toEmpiricalSeq 
 			val instance2 = IndexedSeq(1,2,2,2).toEmpiricalSeq // biggest distance 4
 			
-			metric.max(instance1, instance2) mustEqual 0.5
+			max(instance1, instance2) mustEqual 0.5
 		}
 	}
 }

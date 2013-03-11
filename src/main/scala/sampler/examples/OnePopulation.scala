@@ -26,11 +26,12 @@ import sampler.io.CSVTableWriter
 import java.nio.file.Paths
 import sampler.data.Types.Column
 import scala.collection.parallel.ParSeq
-import sampler.data.EmpiricalMetricComponent
+import sampler.data.EmpiricalMetricComponentImpl
+import sampler.math.StatisticsComponentImpl
 import sampler.data.ParallelSampleBuilder
 import scala.collection.GenSeq
 
-object AnotherOnePopulation extends App with EmpiricalMetricComponent{
+object AnotherOnePopulation extends App with EmpiricalMetricComponentImpl with StatisticsComponentImpl {
 	/*
 	 * In a population of a given size, and sampling with replacement,
 	 * how many samples should be taken to be % confident of observing
@@ -61,7 +62,7 @@ object AnotherOnePopulation extends App with EmpiricalMetricComponent{
 		def isWithinTolerance(samplePrev: Double) = math.abs(samplePrev - truePrevalence) < precision	
 		
 		def terminationCondition(soFar: GenSeq[Double]) = {
-			val distance = metric.max(
+			val distance = max(
 			    soFar.take(soFar.size - chunkSize).toEmpiricalTable,
 			    soFar.toEmpiricalTable
 			)

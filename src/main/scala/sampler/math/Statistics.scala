@@ -22,15 +22,41 @@ import sampler.data.Empirical
 /*
  * Mix in the StatisticsComponent to enable easy calculation of stats on Empirical
  */
-trait StatisticsComponent{
-	val statistics: Statistics = new Statistics
+trait StatisticsComponent {
+	def rightTail[A](e: Empirical[A], itemInclusive: A)(implicit o: Ordering[A]): Probability
 	
-	implicit class RichEmpirical[A](e: Empirical[A]){
-		def mean(implicit f: Fractional[A]) = statistics.mean(e)
-	}
+	def quantile[A](e: Empirical[A], prob: Probability)(implicit f: Fractional[A]): A
+
+	def mean[A](e: Empirical[A])(implicit num: Fractional[A]): Double
 }
 
-class Statistics{
+trait StatisticsComponentImpl extends StatisticsComponent {
+	def rightTail[A](e: Empirical[A], itemInclusive: A)(implicit o: Ordering[A]): Probability = {
+    import e._
+		val value = probabilities.keys.toList.sorted(o).dropWhile(i => o.lt(i,itemInclusive)).foldLeft(0.0){
+			case (acc, i) => acc + probabilities(i).value
+		}
+		Probability(value)
+	}
+	
+	def quantile[A](e: Empirical[A], prob: Probability)(implicit f: Fractional[A]): A = {
+    import e._
+		import f._
+		val (lower, upper) = {
+			val raw = prob.value * supportSize - 1
+			val idx = scala.math.ceil(raw).toInt
+			if(idx <= 0) (0,0)
+			else if(raw != math.floor(raw)) (idx, idx)
+			else if(idx == supportSize - 1) (idx, idx)
+			else (idx, idx + 1)
+		}
+		
+		val two = one + one
+    val ordered = probabilities.keys.toIndexedSeq.sorted(f)
+		
+		(ordered(lower) + ordered(upper)) / two 
+	}
+	
 	def mean[A](e: Empirical[A])(implicit num: Fractional[A]) = {
 		import num._
 		e.probabilities.foldLeft(0.0){case (acc, (v,p)) => {
@@ -38,3 +64,4 @@ class Statistics{
 		}}
 	}
 }
+

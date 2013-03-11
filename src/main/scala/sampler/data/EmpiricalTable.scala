@@ -27,7 +27,7 @@ import sampler.math.AliasTable
  * observation values. Ideal for sampling from discrete distributions 
  * where many repeated observations are expected. 
  */
-class EmpiricalTable[A](val counts: Map[A, Int])(implicit val o: Ordering[A] = null, val f: Fractional[A] = null) extends Empirical[A]{
+class EmpiricalTable[A](val counts: Map[A, Int]) extends Empirical[A]{
 	private lazy val (indexedValues, indexedProbabilities) = probabilities.toIndexedSeq.unzip
 
 	private lazy val aliasTable = new AliasTable(indexedProbabilities)
