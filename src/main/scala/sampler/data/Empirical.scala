@@ -56,21 +56,27 @@ trait Empirical[A] extends Samplable[A,Random]{
 	//     but failed.  Is it possible/desirable to use a context bound?
 	def quantile(prob: Probability)(implicit f: Fractional[A]): A = {
 		import f._
-		val (lower, upper) = {
-			val raw = prob.value * supportSize - 1
-			val idx = scala.math.ceil(raw).toInt
-			if(idx <= 0) (0,0)
-			else if(raw != math.floor(raw)) (idx, idx)
-			else if(idx == supportSize - 1) (idx, idx)
-			else (idx, idx + 1)
-		}
+//		val (lower, upper) = {
+//			val raw = prob.value * supportSize - 1
+//			val idx = scala.math.ceil(raw).toInt
+//			if(idx <= 0) (0,0)
+//			else if(raw != math.floor(raw)) (idx, idx)
+//			else if(idx == supportSize - 1) (idx, idx)
+//			else (idx, idx + 1)
+//		}
+//		
+//		//TODO would be nice if this didn't need to be recalculated on each
+//		// call, but we only have the fractional (f) inside the method
+//		val ordered = probabilities.keys.toIndexedSeq.sorted
+//		val two = one + one
+//		
+//		(ordered(lower) + ordered(upper)) / two 
 		
-		//TODO would be nice if this didn't need to be recalculated on each
-		// call, but we only have the fractional (f) inside the method
+		//TODO the above doesn't work for collections with repeated values
 		val ordered = probabilities.keys.toIndexedSeq.sorted
-		val two = one + one
-		
-		(ordered(lower) + ordered(upper)) / two 
+		val cumulativeProbability = ordered.map(value => probabilities(value).value).scanLeft(0.0)(_ + _).tail
+		val index = cumulativeProbability.zipWithIndex.find(_._1 >= prob.value).get._2
+		ordered(index)
 	}
 	
 	def canEqual(other: Any): Boolean = other.isInstanceOf[Empirical[_]]

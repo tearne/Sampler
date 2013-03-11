@@ -27,7 +27,7 @@ object FlockMortality extends App{
 
 	val posteriors = Map(
 		"Beta" -> finalPopulation.map(_.beta).toEmpiricalSeq,
-		"Nu" -> finalPopulation.map(_.nu).toEmpiricalSeq,
+		"Eta" -> finalPopulation.map(_.eta).toEmpiricalSeq,
 		"Gamma" -> finalPopulation.map(_.gamma).toEmpiricalSeq,
 		"Sigma" -> finalPopulation.map(_.sigma).toEmpiricalSeq,
 		"Sigma2" -> finalPopulation.map(_.sigma2).toEmpiricalSeq
@@ -37,7 +37,7 @@ object FlockMortality extends App{
 	
 	new CSVTableWriter(wd.resolve("results.csv"), overwrite = true).apply(
 		Column(finalPopulation.map(_.beta), "Beta"),
-		Column(finalPopulation.map(_.nu), "Nu"),	
+		Column(finalPopulation.map(_.eta), "Eta"),	
 		Column(finalPopulation.map(_.gamma), "Gamma"),
 		Column(finalPopulation.map(_.delta), "Delta"),
 		Column(finalPopulation.map(_.sigma), "Sigma"),
@@ -55,14 +55,14 @@ object FlockMortality extends App{
 	val half = Probability(0.5)
 	
 	val medBeta = finalPopulation.map(_.beta).toEmpiricalSeq.quantile(half)
-	val medNu = finalPopulation.map(_.nu).toEmpiricalSeq.quantile(half)
+	val medEta = finalPopulation.map(_.eta).toEmpiricalSeq.quantile(half)
 	val medGamma = finalPopulation.map(_.gamma).toEmpiricalSeq.quantile(half)
 	val medDelta = finalPopulation.map(_.delta).toEmpiricalSeq.quantile(half)
 	val medSigma = finalPopulation.map(_.sigma).toEmpiricalSeq.quantile(half)
 	val medSigma2 = finalPopulation.map(_.sigma2).toEmpiricalSeq.quantile(half)
 	val medOffset = finalPopulation.map(_.offset).map(_.toDouble).toEmpiricalTable.quantile(half).toInt
 	
-	val medParams = Parameters(medBeta, medNu, medGamma, medDelta, medSigma, medSigma2, medOffset)
+	val medParams = Parameters(medBeta, medEta, medGamma, medDelta, medSigma, medSigma2, medOffset)
 	val fitted = samplableModel(medParams, observations).sample(random)
 	
 	val days = 0 until observations.dailyDead.size
@@ -84,7 +84,6 @@ object FlockMortality extends App{
 	val rScript = 
 s"""
 lapply(c("ggplot2", "reshape", "deSolve"), require, character.only=T)
-setwd("${wd.toAbsolutePath()}")
 
 posterior = read.csv("$csvName")
 observations = read.csv("obseravtions.csv")
@@ -125,14 +124,14 @@ object FlockMortalityModel extends ABCModel[Random]{
 	val meta = new ABCMeta(
     	reps = 1,
 		numParticles = 100, 
-		refinements = 50,
+		refinements = 70,
 		particleRetries = 100, 
 		particleChunking = 100
 	)
 	
 	case class Parameters(
 			beta: Double, 
-			nu: Double, 
+			eta: Double, 
 			gamma: Double, 
 			delta: Double, 
 			sigma: Double, 
@@ -145,7 +144,7 @@ object FlockMortalityModel extends ABCModel[Random]{
 		
 		def perturb(random: Random) = Parameters(
 			beta + kernel.sample(random),
-			nu + kernel.sample(random),
+			eta + kernel.sample(random),
 			gamma + kernel.sample(random),
 			delta + kernel.sample(random),
 			sigma + kernel.sample(random),
@@ -154,7 +153,7 @@ object FlockMortalityModel extends ABCModel[Random]{
 		)
 		def perturbDensity(that: Parameters) = 
 			kernel.density(beta - that.beta) *
-			kernel.density(nu - that.nu) *
+			kernel.density(eta - that.eta) *
 			kernel.density(gamma - that.gamma) *
 			kernel.density(delta - that.delta) *
 			kernel.density(sigma - that.sigma) *
@@ -213,8 +212,8 @@ object FlockMortalityModel extends ABCModel[Random]{
 					val dr = Array.fill(y.length)(0.0);
 				  
 					dr(0) = -beta * y(0) * y(2) 						//S: -beta S I
-					dr(1) = beta * y(0) * y(2) - nu * y(1)			//E: beta S I - gamma E
-					dr(2) = nu * y(1) - gamma * y(2) - delta * y(2)	//I: nu I - gamma I - delta I
+					dr(1) = beta * y(0) * y(2) - eta * y(1)				//E: beta S I - gamma E
+					dr(2) = eta * y(1) - gamma * y(2) - delta * y(2)	//I: eta I - gamma I - delta I
 					dr(3) = gamma * y(2)								//R: gamma I
 					dr(4) = delta * y(2)								//D: the observed data
 							  
@@ -282,7 +281,7 @@ object FlockMortalityModel extends ABCModel[Random]{
 			
 			import p._
 			val d = unitRange(beta) *
-			unitRange(nu) *
+			unitRange(eta) *
 			unitRange(gamma) *
 			unitRange(delta) *
 			unitRange(sigma) *
@@ -295,7 +294,7 @@ object FlockMortalityModel extends ABCModel[Random]{
 		//TODO can use random in the model?
 		def sample(implicit r: Random) = Parameters(
 			beta = r.nextDouble(0, 1),
-			nu = r.nextDouble(0, 1),
+			eta = r.nextDouble(0, 1),
 			gamma = r.nextDouble(0, 1),
 			delta = r.nextDouble(0, 1),
 			sigma = r.nextDouble(0, 1),

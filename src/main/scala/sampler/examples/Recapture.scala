@@ -1,0 +1,141 @@
+package sampler.examples
+
+import sampler.abc.ABCModel
+import sampler.math.Random
+import sampler.abc.ABCMeta
+import sampler.math.Probability
+import sampler.data.Samplable
+import sampler.abc.Prior
+import sampler.abc.ABCMethod
+import sampler.run.SerialRunner
+import java.nio.file.{Paths, Files}
+import sampler.data.Types.Column
+import sampler.io.CSVTableWriter
+import sampler.r.ScriptRunner
+import org.apache.commons.math3.distribution.BetaDistribution
+
+object Recapture extends App{
+	val wd = Paths.get("examples").resolve("Recapture")
+	Files.createDirectories(wd)
+
+	/*
+	 * Population size
+	 */
+	val encapPopulation0 = ABCMethod.init(RecaptureModel)
+	val finalEncapPopulation = ABCMethod.run(encapPopulation0, new SerialRunner).get//.population
+	val finalPopulation = finalEncapPopulation.population.map(_.value.asInstanceOf[RecaptureModel.Parameters])
+	
+	new CSVTableWriter(wd.resolve("recapture.csv"), overwrite = true).apply(
+		Column(finalPopulation.map(_.populationSize), "popSize"),
+		Column(finalPopulation.map(_.prevalence), "prev")
+	)
+
+	
+	val rScript = 
+s"""
+lapply(c("ggplot2", "reshape", "deSolve"), require, character.only=T)
+
+recapture = read.csv("recapture.csv")
+
+pdf("plots.pdf", width=4.13, height=2.91) #A7 landscape paper
+ggplot(melt(data.frame(Se=rbeta(1000000,21,2), Sp=rbeta(1000000,42,1.8))), aes(x=value, colour=variable))+geom_density()
+ggplot(subset(recapture, select="popSize"), aes(x=popSize)) + geom_histogram(binwidth=10)
+ggplot(subset(recapture, select="prev"), aes(x=prev)) + geom_density()
+dev.off()
+"""
+
+	ScriptRunner.apply(rScript, wd.resolve("script.r"))
+}
+
+object RecaptureModel extends ABCModel[Random] with Serializable{
+	val numberTagged = 50
+	val observations = Observations(220, 35, 86.0/220)
+	
+	val se = new BetaDistribution(21, 2) 
+	val sp = new BetaDistribution(42, 1.8)
+
+	val random = new Random()
+    val meta = new ABCMeta(
+    	reps = 10,
+		numParticles = 200, 
+		refinements = 30,
+		particleRetries = 100, 
+		particleChunking = 1000
+	)
+	
+    case class Parameters(populationSize: Int, prevalence: Double) extends ParametersBase with Serializable{
+      val kernel = Samplable.normal(0, 0.1)
+	  val threeDie = Samplable.uniform(IndexedSeq(-1,0,0,0,1))
+      private def threeDensity(v: Int) = v match{
+      	case -1 => 1.0 / 5
+      	case 1 => 1.0 / 5
+      	case 0 => 3.0 / 5
+      	case _ => 0
+      }
+		
+      def perturb(random: Random) = Parameters(
+      	populationSize + threeDie.sample(random),
+      	kernel.sample(random) + prevalence
+      )
+      def perturbDensity(that: Parameters) = 
+      	threeDensity(populationSize - that.populationSize) *
+      	kernel.density(prevalence - that.prevalence)
+    }
+
+    case class Observations(numSampled: Int, numRecaptured: Int, prevalence: Double) extends ObservationsBase with Serializable
+    
+    case class Output(obs: Observations) extends OutputBase with Serializable{
+      def distanceTo(otherObs: Observations): Double = {
+      	assert(obs.numSampled == otherObs.numSampled)
+      	val d1 = math.abs(obs.numRecaptured - otherObs.numRecaptured)
+      	val d2 = math.pow(obs.prevalence - otherObs.prevalence, 4.0)
+      	d1 + d2
+      }
+    }
+    
+    case class AnimalState(tagged: Boolean, infected: Boolean)
+    def samplableModel(p: Parameters, obs: Observations) = {
+		def numTaggedDistribution(numTagged: Int, populationSize: Int, sampleSize: Int): Samplable[Output, Random] = {
+    	  val population = (1 to populationSize).map(index => 
+    	  	AnimalState(index <= numTagged, random.nextBoolean(Probability(p.prevalence)))
+    	  )
+    	  def getNumPositives(animals: Seq[AnimalState]): Int = {
+    	  	val testResults = animals.map{a =>
+    	  		if(a.infected) random.nextBoolean(Probability(se.sample))
+    	  		else random.nextBoolean(Probability(1 - sp.sample))
+    	  	}
+    	  	testResults.count(identity)
+    	  }
+    	  
+    	  val model = Samplable.withoutReplacement(population, sampleSize)
+    		.map{sampledStates =>
+			  Output(Observations(
+				sampleSize,
+				sampledStates.map(_.tagged).count(identity),
+				getNumPositives(sampledStates) / sampleSize.toDouble
+		      ))
+    	  	}
+		  model
+		}
+    	
+    	numTaggedDistribution(numberTagged, p.populationSize, obs.numSampled)
+    }
+    
+    val prior = new Prior[Parameters, Random]{
+    	val upperLimit = 500
+    	val lowerLimit = 250
+    	def unitRange(d: Double) = if(d > 1.0 || d < 0.0) 0.0 else 1.0
+    	def popSizeRange(n: Int) = 	      
+    		if(n > upperLimit || n < lowerLimit) 0.0
+    		else 1.0 / (upperLimit - lowerLimit)
+    	
+    	def density(p: Parameters) = {
+    		popSizeRange(p.populationSize) * unitRange(p.prevalence)
+	    }
+	    
+	    def sample(implicit random: Random) = Parameters(
+	    		random.nextInt(upperLimit-lowerLimit) + lowerLimit,
+	    		random.nextDouble(0, 1)
+	    )
+    }
+}

@@ -24,4 +24,4 @@ libraryDependencies ++= Seq(
 
 retrieveManaged := true
 
-scalaVersion := "2.10.1-RC1"
+scalaVersion := "2.10.1-RC2"

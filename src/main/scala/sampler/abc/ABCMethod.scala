@@ -93,7 +93,7 @@ object ABCMethod{
 			.map(_.get)
 			.force
 		
-		println("Num particles = "+particles.size)
+		println("Num particles = "+particles.size+", required "+quantity)
 		
 		if(particles.size == quantity) Some(ePop.update(particles))
 		else None
