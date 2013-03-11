@@ -20,35 +20,31 @@ package sampler.abc
 import sampler.math.Random
 import scala.annotation.tailrec
 import sampler.data.Empirical._
-import sampler.run.ClusterRunner
+import sampler.run.JobRunner
 import sampler.run.Job
 import sampler.math.Probability
+import sampler.data.SerialSampleBuilder
 
-object ABCMethod{
-	import sampler.data.SerialSampleBuilder
+class ABCMethod[M <: ABCModel](val model: M) {
+  import model._
 	
-	def init[R <: Random](model: ABCModel[R]): EncapsulatedPopulation[R] = {
+	def init: Population = {
 		val numParticles = model.meta.numParticles
-		val initialPopulation = (1 to numParticles).par.map(i => Particle(model.prior.sample(), 1.0, Double.MaxValue)).seq
-		EncapsulatedPopulation(model)(initialPopulation)
+		(1 to numParticles).par.map(i => Particle(model.prior.sample(), 1.0, Double.MaxValue)).seq
 	}
 	
-	def generateParticles[R <: Random](
-			ePop: EncapsulatedPopulation[R], 
+	def generateParticles(
+			pop: Population, 
 			quantity: Int, 
 			tolerance: Double
-	): Option[EncapsulatedPopulation[R]] = {
-		type Params = ePop.model.Parameters
-		import ePop.model._
-		import ePop.population
-		
+	): Option[Population] = {
 		@tailrec
-		def nextParticle(failures: Int = 0): Option[Particle[Params]] = {
+		def nextParticle(failures: Int = 0): Option[Particle[Parameters]] = {
 			//if(!keepGoing.get) None
 			//else  
 			if(failures >= meta.particleRetries) None
 			else{
-				def getScores(params: Params) = {
+				def getScores(params: Parameters) = {
 					val modelWithMetric = samplableModel(params, observations).map(_.distanceTo(observations))
 					val modelWithScores = SerialSampleBuilder(modelWithMetric)(_.size == meta.reps)
 						.filter(_ <= tolerance)
@@ -58,7 +54,7 @@ object ABCMethod{
 				def getWeight(params: Parameters, numPassed: Int) = {
 					val fHat = numPassed.toDouble / meta.reps
 					val numerator = fHat * prior.density(params)
-					val denominator = population.map{case Particle(value, weight, bestScore) => 
+					val denominator = pop.map{case Particle(value, weight, bestScore) => 
 						weight * value.perturbDensity(params)
 					}.sum
 					if(numerator > 0 && denominator > 0) Some(numerator / denominator)
@@ -66,7 +62,7 @@ object ABCMethod{
 				}
 				
 				//TODO inefficient to do this every time
-				val samplable = population.groupBy(_.value).map{case (k,v) => (k,v.map(_.weight).sum)}.toEmpiricalWeighted
+				val samplable = pop.groupBy(_.value).map{case (k,v) => (k,v.map(_.weight).sum)}.toEmpiricalWeighted
 				
 				val res = for{
 					params <- Some(samplable.sample().perturb()) if prior.density(params) > 0
@@ -87,17 +83,15 @@ object ABCMethod{
 			.takeWhile(_.isDefined)
 			.map(_.get)
 			.force
-		if(particles.size == quantity) Some(ePop.update(particles))
+		if(particles.size == quantity) Some(particles)
 		else None
 	}
 	
-	def evolveOnce[R <: Random](
-			ePop: EncapsulatedPopulation[R], 
-			runner: ClusterRunner,
+	def evolveOnce(
+		  pop: Population, 
+			runner: JobRunner,
 			tolerance: Double
-	): Option[EncapsulatedPopulation[R]] = {
-		type Params = ePop.model.Parameters
-		import ePop.model
+	): Option[Population] = {
 		import model.meta
 		
 		println("Now working on tolerance = "+tolerance)
@@ -109,50 +103,43 @@ object ABCMethod{
 		println(s"JobSizes: $jobSizes")
 		
 		val jobs = jobSizes.map(numParticles => Job{() =>
-			generateParticles(ePop, numParticles, tolerance)
+			generateParticles(pop, numParticles, tolerance)
 		}).toList
-		val runnerResults: Seq[Option[EncapsulatedPopulation[R]]] = runner.apply(jobs)
-			
-		//TODO Don't like 'asInstanceOf' below
-		val newParticles = runnerResults.view
-			.takeWhile(_.isDefined)
-			.map(_.get.population.asInstanceOf[Seq[Particle[Params]]])
-			.force
-			.flatten
-			
-		if(newParticles.size == meta.numParticles) Some(ePop.update(newParticles))
-		else None
+		val runnerResults: Seq[Option[Population]] = runner.apply(jobs)
+
+    // TODO: Assertion belongs in generateParticles
+    //assert(runnerResults.size == meta.numParticles)
+
+    if(runnerResults.contains(None)) None else Some(runnerResults.flatMap(_.get))
 	}
 		
-	def run[R <: Random](
-			ePop: EncapsulatedPopulation[R], 
-			runner: ClusterRunner
-	): Option[EncapsulatedPopulation[R]] = {
-		type Params = ePop.model.Parameters
-		import ePop.model
+	def run(
+			pop: Population, 
+			runner: JobRunner
+	): Option[Population] = {
 		import model.meta
 		
 		@tailrec
 		def refine(
-				ePop: EncapsulatedPopulation[R], 
+				pop: Population, 
 				numAttempts: Int, 
 				tolerance: Double
-		): Option[EncapsulatedPopulation[R]] = {
+		): Option[Population] = {
 			println("Generations left to go "+numAttempts)
-			if(numAttempts == 0) Some(ePop)
+			if(numAttempts == 0) Some(pop)
 			else{
-				evolveOnce(ePop, runner, tolerance) match {
+				evolveOnce(pop, runner, tolerance) match {
 					case None =>
 						println("Failed to refine current population, evolving within same tolerance")
-						refine(ePop, numAttempts - 1, tolerance)
-					case Some(newEPop) =>
+						refine(pop, numAttempts - 1, tolerance)
+					case Some(newPop) =>
 						//Next tolerance is the median of the previous best for each particle
-						val medianTolerance = model.statistics.quantile(newEPop.population.map(_.bestFit).toEmpiricalSeq, Probability(0.5))
-						refine(newEPop, numAttempts - 1, medianTolerance)
+						val medianTolerance = model.statistics.quantile(newPop.map(_.bestFit).toEmpiricalSeq, Probability(0.5))
+						refine(newPop, numAttempts - 1, medianTolerance)
 				}
 			}
 		}
 		
-		refine(ePop, meta.refinements, meta.tolerance)
+		refine(pop, meta.refinements, meta.tolerance)
 	}
 }

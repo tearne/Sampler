@@ -20,7 +20,7 @@ package sampler.abc
 import sampler.math.{ Random, StatisticsComponent }
 import sampler.data.Samplable
 
-trait ABCModel[R <: Random]{
+trait ABCModel{
   val statistics: StatisticsComponent
 
 	type Parameters <: ParametersBase
@@ -40,7 +40,11 @@ trait ABCModel[R <: Random]{
 	val prior: Prior[Parameters]
 	val observations: Observations
 	val meta: ABCMeta
+
+  type R <: Random
 	val random: R
 	
 	def samplableModel(p: Parameters, obs: Observations): Samplable[Output]
+
+  type Population = Seq[Particle[Parameters]]
 }

@@ -19,6 +19,7 @@ package sampler.examples
 
 import java.nio.file.{Paths, Files}
 import sampler.run.ClusterRunner
+import sampler.run.SerialRunner
 import sampler.abc.ABCMethod
 import sampler.r.QuickPlot
 import sampler.abc.ABCModel
@@ -34,21 +35,25 @@ object UnfairCoin extends App{
 	if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))
 	else System.setProperty("akka.remote.netty.port", "2555")
 	
-	val runner = new ClusterRunner
+	//val runner = new ClusterRunner
+	val runner = new SerialRunner
 	
-	val encapPopulation0 = ABCMethod.init(CoinModel)
-	val finalEncapPopulation = ABCMethod.run(encapPopulation0, runner).get//.population
-	val finalPopulation = finalEncapPopulation.population.map(_.value.asInstanceOf[CoinModel.Parameters].pHeads)
+  val abcMethod = new ABCMethod(CoinModel)
+
+	val population0 = abcMethod.init
+  // FIXME: get could fail, preventing runner shutdown
+	val finalPopulation = abcMethod.run(population0, runner).get.map(_.value.pHeads)
 	
-	runner.shutdown
+	//runner.shutdown
 	
 	val wd = Paths.get("examples").resolve("coinTossABC")
 	Files.createDirectories(wd)
 	QuickPlot.writeDensity(wd, "script", Map("data" -> finalPopulation.toEmpiricalSeq))
 }
 
-object CoinModel extends ABCModel[Random] with Serializable{
+object CoinModel extends ABCModel with Serializable{
   val statistics = new StatisticsComponentImpl {}
+  type R = Random
 	val random = new Random()
 	val observations = Observations(10,5)
     val meta = new ABCMeta(
