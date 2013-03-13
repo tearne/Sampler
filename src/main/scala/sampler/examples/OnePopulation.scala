@@ -23,7 +23,7 @@ import sampler.math.Probability
 import sampler.data.Samplable
 import scala.collection.mutable.ListBuffer
 import sampler.io.CSVTableWriter
-import java.nio.file.Paths
+import java.nio.file.{Files,Paths}
 import sampler.data.Types.Column
 import scala.collection.parallel.ParSeq
 import sampler.data.EmpiricalMetricComponentImpl
@@ -31,7 +31,7 @@ import sampler.math.StatisticsComponentImpl
 import sampler.data.ParallelSampleBuilder
 import scala.collection.GenSeq
 
-object AnotherOnePopulation extends App with EmpiricalMetricComponentImpl with StatisticsComponentImpl {
+object OnePopulation extends App with EmpiricalMetricComponentImpl with StatisticsComponentImpl {
 	/*
 	 * In a population of a given size, and sampling with replacement,
 	 * how many samples should be taken to be % confident of observing
@@ -39,6 +39,9 @@ object AnotherOnePopulation extends App with EmpiricalMetricComponentImpl with S
 	 */
 	
 	val start = System.currentTimeMillis
+	
+	val wd = Paths.get("egoutput","onePopulation")
+	Files.createDirectories(wd)
 	
 	//Domain parameters
 	val populationSize = 100
@@ -95,7 +98,7 @@ object AnotherOnePopulation extends App with EmpiricalMetricComponentImpl with S
 			.get._1
 	}
 	
-	new CSVTableWriter(Paths.get("OnePopulation.csv"))(
+	new CSVTableWriter(wd.resolve("OnePopulation.csv"))(
 		Column(sampleSizeList.toList, "SampleSize"),
 		Column(confidenceList.toList, "Confidence")
 	)

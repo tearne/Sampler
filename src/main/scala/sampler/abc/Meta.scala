@@ -20,7 +20,7 @@ package sampler.abc
 case class ABCMeta(
 		reps: Int, 
 		numParticles: Int, 
-		tolerance: Double, 
+		tolerance: Double = Double.MaxValue, 
 		refinements: Int, 
 		particleRetries: Int = 100, 
 		particleChunking: Int = 100

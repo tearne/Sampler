@@ -15,34 +15,9 @@ src_managed/
 project/boot/
 project/plugins/project/
 
-# Scala-IDE specific
-.scala_dependencies
-
 .DS_Store
-.RData
-.Rapp.history
-.Rhistory
-anova_JSON.txt
-data.csv
-script.txt
-script.txt.Rout
 src/.DS_Store
-src/main/scala/sampler/prototype/Scratch.scala
-src/main/scala/sampler/Scratch.scala
 /testData
-/examples/**/*.csv
-/examples/**/*.r
-/examples/**/*.Rout
-/examples/**/*.pdf
-/examples/**/*.ppt*
-/examples/sampleDists
-/examples/ncpSampleSize/*
-/examples/r/*
-/examples/coinTossABC
-*.csv
-*.r
-*.Rout
-*.pdf
-*.ppt*
+/egoutput
 tags
 *.swp

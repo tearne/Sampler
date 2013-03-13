@@ -42,7 +42,10 @@ class ABCMethod[M <: ABCModel](val model: M) {
 		def nextParticle(failures: Int = 0): Option[Particle[Parameters]] = {
 			//if(!keepGoing.get) None
 			//else  
-			if(failures >= meta.particleRetries) None
+			if(failures >= meta.particleRetries) {
+				println(s"Failed after $failures trials")
+				None
+			}
 			else{
 				def getScores(params: Parameters) = {
 					val modelWithMetric = samplableModel(params, observations).map(_.distanceTo(observations))
@@ -67,6 +70,7 @@ class ABCMethod[M <: ABCModel](val model: M) {
 				val res = for{
 					params <- Some(samplable.sample().perturb()) if prior.density(params) > 0
 					fitScores <- Some(getScores(params))// if scores.size > 0
+					//_ = println("---"+fitScores)
 					weight <- getWeight(params, fitScores.size) 
 				} yield(Particle(params, weight, fitScores.min))
 				
@@ -99,7 +103,7 @@ class ABCMethod[M <: ABCModel](val model: M) {
 		// Number of particles to be generated per job?
 		val jobSizes = (1 to meta.numParticles)
 			.grouped(meta.particleChunking)
-			.map(_.size).toSeq
+			.map(_.size).toList
 		println(s"JobSizes: $jobSizes")
 		
 		val jobs = jobSizes.map(numParticles => Job{() =>
@@ -123,6 +127,7 @@ class ABCMethod[M <: ABCModel](val model: M) {
 		def refine(
 				pop: Population, 
 				numAttempts: Int, 
+				currentTolerance: Double,
 				tolerance: Double
 		): Option[Population] = {
 			println("Generations left to go "+numAttempts)
@@ -130,16 +135,16 @@ class ABCMethod[M <: ABCModel](val model: M) {
 			else{
 				evolveOnce(pop, runner, tolerance) match {
 					case None =>
-						println("Failed to refine current population, evolving within same tolerance")
-						refine(pop, numAttempts - 1, tolerance)
+						println(s"Failed to refine current population, evolving within previous tolerance $tolerance")
+						refine(pop, numAttempts - 1, tolerance, tolerance)
 					case Some(newPop) =>
 						//Next tolerance is the median of the previous best for each particle
 						val medianTolerance = model.statistics.quantile(newPop.map(_.bestFit).toEmpiricalSeq, Probability(0.5))
-						refine(newPop, numAttempts - 1, medianTolerance)
+						refine(newPop, numAttempts - 1, medianTolerance, currentTolerance)
 				}
 			}
 		}
 		
-		refine(pop, meta.refinements, meta.tolerance)
+		refine(pop, meta.refinements, meta.tolerance,  meta.tolerance)
 	}
 }

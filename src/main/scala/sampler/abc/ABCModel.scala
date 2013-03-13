@@ -41,7 +41,7 @@ trait ABCModel{
 	val observations: Observations
 	val meta: ABCMeta
 
-  type R <: Random
+	type R <: Random
 	val random: R
 	
 	def samplableModel(p: Parameters, obs: Observations): Samplable[Output]

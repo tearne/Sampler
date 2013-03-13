@@ -30,6 +30,7 @@ import sampler.data.Samplable
 import sampler.data.Empirical._
 import sampler.abc.ABCMeta
 import sampler.abc.Prior
+import sampler.run.SerialRunner
 
 object UnfairCoin extends App{
 	if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))
@@ -38,7 +39,7 @@ object UnfairCoin extends App{
 	//val runner = new ClusterRunner
 	val runner = new SerialRunner
 	
-  val abcMethod = new ABCMethod(CoinModel)
+	val abcMethod = new ABCMethod(CoinModel)
 
 	val population0 = abcMethod.init
   // FIXME: get could fail, preventing runner shutdown
@@ -46,7 +47,7 @@ object UnfairCoin extends App{
 	
 	//runner.shutdown
 	
-	val wd = Paths.get("examples").resolve("coinTossABC")
+	val wd = Paths.get("egoutput", "coinTossABC")
 	Files.createDirectories(wd)
 	QuickPlot.writeDensity(wd, "script", Map("data" -> finalPopulation.toEmpiricalSeq))
 }
@@ -54,13 +55,13 @@ object UnfairCoin extends App{
 object CoinModel extends ABCModel with Serializable{
   val statistics = new StatisticsComponentImpl {}
   type R = Random
-	val random = new Random()
+  val random = new Random()
 	val observations = Observations(10,5)
     val meta = new ABCMeta(
     	reps = 10,
-		numParticles = 500, 
+		numParticles = 100, 
 		tolerance = 1, 
-		refinements = 4,
+		refinements = 6,
 		particleRetries = 100, 
 		particleChunking = 100
 	)
@@ -93,12 +94,12 @@ object CoinModel extends ABCModel with Serializable{
     }
     
     val prior = new Prior[Parameters] with Serializable{
-      val r = new Random()
+      //val r = new Random()
 	    def density(p: Parameters) = {
 	      if(p.pHeads > 1 || p.pHeads < 0) 0.0
 	      else 1.0
 	    }
 	    
-	    def sample() = Parameters(r.nextDouble(0.0, 1.0))
+	    def sample() = Parameters(random.nextDouble(0.0, 1.0))
     }
 }
