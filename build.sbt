@@ -1,3 +1,8 @@
+import AssemblyKeys._
+assemblySettings
+
+test in assembly := {}
+
 name := "Sampler"
 
 version := "0.0.8"
@@ -20,10 +25,10 @@ libraryDependencies ++= Seq(
 	"com.typesafe.akka" %% "akka-remote" % "2.1.0",
 	"com.typesafe.akka" %% "akka-cluster-experimental" % "2.1.0",
 	"org.apache.commons" % "commons-math3" % "3.0",
-	"com.amazonaws" % "aws-java-sdk" % "1.3.32",
+	"com.amazonaws" % "aws-java-sdk" % "1.4.0.1",
 	"javasysmon" % "javasysmon" % "0.3.3" from "http://cloud.github.com/downloads/jezhumble/javasysmon/javasysmon-0.3.3.jar"
 )
 
 retrieveManaged := true
 
-scalaVersion := "2.10.1-RC3"
+scalaVersion := "2.10.1"
