@@ -25,7 +25,7 @@ import sampler.run.Job
 import sampler.math.Probability
 import sampler.data.SerialSampleBuilder
 
-class ABCMethod[M <: ABCModel](val model: M) {
+class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
   import model._
 	
 	def init: Population = {
@@ -128,17 +128,18 @@ class ABCMethod[M <: ABCModel](val model: M) {
 				pop: Population, 
 				numAttempts: Int, 
 				currentTolerance: Double,
-				tolerance: Double
+				previousTolerance: Double
 		): Option[Population] = {
 			println("Generations left to go "+numAttempts)
 			if(numAttempts == 0) Some(pop)
 			else{
-				evolveOnce(pop, runner, tolerance) match {
+				evolveOnce(pop, runner, currentTolerance) match {
 					case None =>
-						println(s"Failed to refine current population, evolving within previous tolerance $tolerance")
-						refine(pop, numAttempts - 1, tolerance, tolerance)
+						println(s"Failed to refine current population, evolving within previous tolerance $previousTolerance")
+						refine(pop, numAttempts - 1, previousTolerance, previousTolerance)
 					case Some(newPop) =>
 						//Next tolerance is the median of the previous best for each particle
+						val fit = newPop.map(_.bestFit)
 						val medianTolerance = model.statistics.quantile(newPop.map(_.bestFit).toEmpiricalSeq, Probability(0.5))
 						refine(newPop, numAttempts - 1, medianTolerance, currentTolerance)
 				}
