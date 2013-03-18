@@ -10,6 +10,10 @@ import com.amazonaws.services.ec2.model.DescribeInstancesRequest
 import com.amazonaws.services.ec2.model.Filter
 import com.amazonaws.services.ec2.model.Tag
 
+object Test extends App{
+	AWS
+}
+
 object AWS{
 	private val keyPath = Paths.get("/mnt/hgfs/EC2/AWS-Key.properties")
 	private val keyProps = new PropertiesCredentials(Files.newInputStream(keyPath))
@@ -20,29 +24,19 @@ object AWS{
 	val request = new DescribeInstancesRequest()
 	val filter = new Filter("tag:Master", List("true"))
 		
-	private val instances = AWS.ec2.describeInstances()
+	def runningInstances = AWS.ec2.describeInstances()
 		.getReservations
 		.map(_.getInstances)
 		.flatten
 		.filter(_.getState.getName == "running")
 		
-	val masterPublicName = {
-		val candidates = instances.filter(_.getTags().contains(new Tag("master", "true")))
-		assert(candidates.size == 1, "Num masters = "+candidates.size)
-		candidates(0).getPublicDnsName()
+	def clusterNodes(tag: String) = {
+		runningInstances.filter(_.getTags().contains(new Tag("cluster", tag)))
+			.map(_.getPublicDnsName())
+			.toList
 	}
 	
-	val workersPublicNames = 
-		instances.filter(!_.getTags().contains(new Tag("master", "true")))
-		.map(_.getPublicDnsName())
-		.toList
-		
-	val allNodeNames = workersPublicNames.+:(masterPublicName)
-		
 	println(new AmazonIdentityManagementClient(keyProps).getUser)
-	println("Master: " + masterPublicName)
-	println("Num Workers: " + workersPublicNames.size)
-	println(workersPublicNames)
 	
 	val keyFile = Paths.get("/mnt/hgfs/EC2/otkp.pem")
 }

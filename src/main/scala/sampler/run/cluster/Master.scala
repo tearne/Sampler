@@ -82,7 +82,7 @@ class Master extends Actor with ActorLogging{
 			  sender ! work
 			  workStates += (work.jid -> Starting(work))
 			  context.system.scheduler.scheduleOnce(confirmationTimeout, self, CheckStarted(work, worker))
-			  log.info("Allocated {} to {}, Q size now {}", work, worker, workQueue.size)
+			  log.info("Allocated {} to {}, |Q| = {}", work, worker, workQueue.size)
 		    }
 		case WorkRejected(work) =>
 			val worker = sender

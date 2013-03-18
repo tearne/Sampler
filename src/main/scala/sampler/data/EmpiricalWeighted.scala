@@ -32,7 +32,7 @@ class EmpiricalWeighted[A](val weights: Map[A, Double]) extends Empirical[A]{
 	
 	private lazy val aliasTable = new AliasTable(indexedProbabilities)
 	
-  val r = new Random()
+	val r = new Random()
 
 	def sample() = indexedValues(aliasTable.next(r))
 	
