@@ -91,26 +91,23 @@ trait Samplable[+A] extends Serializable{
 }
 
 object Samplable{
-	import util.{Random => ScalaRandom}
-  import sampler.math.{Random => SamplerRandom}
-	
 	def diracDelta[T](value: T) = new Samplable[T]{
 		def sample() = value
 	}
 	
 	def uniform(lower: Double, upper: Double) = new Samplable[Double]{
-    val r = new ScalaRandom()
+		val r = new Random()
 		def sample() = (upper - lower) * r.nextDouble()
 	}
 	
 	def uniform[T](items: IndexedSeq[T]) = new Samplable[T]{
-    val r = new ScalaRandom()
+		val r = new Random()
 		val size = items.size
 		def sample() = items(r.nextInt(size))
 	}
 	
 	def withoutReplacement[T](items: IndexedSeq[T], sampleSize: Int) = new Samplable[List[T]]{
-    val r = new ScalaRandom()
+		val r = new Random()
 		def sample() = {
 			@tailrec
 			def takeAnother(acc: List[T], bag: IndexedSeq[T]): List[T] = {
@@ -126,24 +123,24 @@ object Samplable{
 	}
 	
 	def binaryPopulation(numInfected: Int, size: Int) = new Samplable[Boolean]{
-    val r = new ScalaRandom()
+		val r = new Random()
 		def sample() = r.nextInt(size) < numInfected
 	}
 	
 	def normal(mean:Double, variance: Double) = new Samplable[Double]{
-    val r = new ScalaRandom()
+		val r = new Random()
 		val d = new NormalDistribution(0,variance)
 		def sample() = d.sample
 		def density(value: Double) = d.density(value)
 	}
 	
 	def bernouliTrial(probSuccess: Samplable[Probability]) = new Samplable[Boolean]{
-    val r = new SamplerRandom()
+    val r = new Random()
 	  def sample() = r.nextBoolean(probSuccess.sample)
 	}
 	
 	def coinToss() = new Samplable[Boolean] {
-    val r = new SamplerRandom()
+    val r = new Random()
 	  def sample() = r.nextBoolean(Probability(0.5))
 	}
 }
