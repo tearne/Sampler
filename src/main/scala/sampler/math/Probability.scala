@@ -18,15 +18,11 @@
 package sampler.math
 
 case class Probability(val value: Double){
-	def sample = null
-	def >(q: Probability) = value > q.value
-	def <(q: Probability) = value < q.value
-	
-	if(value > 1 || value < 0)
-		throw new ProbabilityException(value + "is not a valid probability")
-}
-object Probability{
-	val zero = Probability(0)
+  assert(value <= 1 && value >= 0, value + "is not a valid probability")
 }
 
-class ProbabilityException(msg: String) extends RuntimeException
+object Probability{
+	val zero = Probability(0)
+
+  implicit def toDouble(p: Probability): Double = p.value
+}

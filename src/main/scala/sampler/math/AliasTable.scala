@@ -22,8 +22,7 @@ import scala.annotation.tailrec
 class AliasTable(origProbs: IndexedSeq[Probability]) {
     val probabilities = origProbs.map(v => v.value)
   
-    if(!isEqualOne(probabilities.sum)) 
-      throw new ProbabilityException("Cannot use the alias method if probabilities don't sum to one")
+    assert(isEqualOne(probabilities.sum), "Cannot use the alias method if probabilities don't sum to one")
   
     private def isEqualOne(value: Double) = if(value > 1 - 1E-8 && value < 1 + 1E-8) true else false
     
