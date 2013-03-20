@@ -31,7 +31,7 @@ class ClusterRunner extends JobRunner{
 	import scala.concurrent.duration._
 	
 	val system = ActorSystem("ClusterSystem")
-	implicit val timeout = Timeout(10.minutes)
+	implicit val timeout = Timeout(1.minutes)
 	
 	val master = system.actorOf(Props[Master], name = "master")
 	import system.dispatcher

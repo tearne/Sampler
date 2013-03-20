@@ -24,6 +24,7 @@ import sampler.run.JobRunner
 import sampler.run.Job
 import sampler.math.Probability
 import sampler.data.SerialSampleBuilder
+import sampler.data.Empirical
 
 class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
   import model._
@@ -33,8 +34,9 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 		(1 to numParticles).par.map(i => Particle(model.prior.sample(), 1.0, Double.MaxValue)).seq
 	}
 	
+  	//TODO make private?
 	def generateParticles(
-			pop: Population, 
+			samplablePop: Empirical[Parameters], 
 			quantity: Int, 
 			tolerance: Double
 	): Option[Population] = {
@@ -57,25 +59,22 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 				def getWeight(params: Parameters, numPassed: Int) = {
 					val fHat = numPassed.toDouble / meta.reps
 					val numerator = fHat * prior.density(params)
-					val denominator = pop.map{case Particle(value, weight, bestScore) => 
-						weight * value.perturbDensity(params)
+					val denominator = samplablePop.probabilities.map{case (params0, probability) => 
+						probability.value * params0.perturbDensity(params)
 					}.sum
 					if(numerator > 0 && denominator > 0) Some(numerator / denominator)
 					else None	
 				}
 				
-				//TODO inefficient to do this every time
-				val samplable = pop.groupBy(_.value).map{case (k,v) => (k,v.map(_.weight).sum)}.toEmpiricalWeighted
-				
-				val res = for{
-					params <- Some(samplable.sample().perturb()) if prior.density(params) > 0
+				val res: Option[Particle[Parameters]] = for{
+					params <- Some(samplablePop.sample().perturb()) if prior.density(params) > 0
 					fitScores <- Some(getScores(params))// if scores.size > 0
 					//_ = println("---"+fitScores)
 					weight <- getWeight(params, fitScores.size) 
 				} yield(Particle(params, weight, fitScores.min))
 				
 				res match {
-					case s: Some[Particle[Parameters]] => s
+					case s: Some[Particle[Parameters]] => {println("returning "+s); s}
 					case None => nextParticle(failures + 1)
 				}
 			}
@@ -106,11 +105,15 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 			.map(_.size).toList
 		println(s"JobSizes: $jobSizes")
 		
+		// Prepare samplable Parameters from current population
+		val samplable: Empirical[Parameters] = pop.groupBy(_.value).map{case (k,v) => (k,v.map(_.weight).sum)}.toEmpiricalWeighted
+		
 		val jobs = jobSizes.map(numParticles => Job{() =>
-			generateParticles(pop, numParticles, tolerance)
+			generateParticles(samplable, numParticles, tolerance)
 		}).toList
 		val runnerResults: Seq[Option[Population]] = runner.apply(jobs)
-
+		println("runnerResults "+runnerResults)
+		
     // TODO: Assertion belongs in generateParticles
     //assert(runnerResults.size == meta.numParticles)
 
