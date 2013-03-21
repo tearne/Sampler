@@ -22,7 +22,6 @@ import akka.cluster.Cluster
 import akka.cluster.ClusterEvent.UnreachableMember
 import scala.concurrent.Future
 import akka.pattern.pipe
-import akka.kernel.Bootable
 import scala.util.Try
 import scala.util.Success
 import scala.util.Failure
@@ -55,20 +54,20 @@ case class DoneWorking()
 // TODO only allow up to num CPU workers per physical node
 //
 
-class WorkerBootable extends Bootable{
-	Try{
-		java.net.InetAddress.getLocalHost.getHostAddress
-	}match{
-		case Success(addr) => 
-			System.setProperty("akka.remote.netty.hostname", addr)
-			println("Using hostname "+addr)
-		case Failure(_) => println("Using config hostname")
-	}
-	val system = ActorSystem("ClusterSystem")
-	
-	def startup = system.actorOf(Props[Worker], name = "worker")
-	def shutdown = system.shutdown()
-}
+//class WorkerBootable extends Bootable{
+//	Try{
+//		java.net.InetAddress.getLocalHost.getHostAddress
+//	}match{
+//		case Success(addr) => 
+//			System.setProperty("akka.remote.netty.hostname", addr)
+//			println("Using hostname "+addr)
+//		case Failure(_) => println("Using config hostname")
+//	}
+//	val system = ActorSystem("ClusterSystem")
+//	
+//	def startup = system.actorOf(Props[Worker], name = "worker")
+//	def shutdown = system.shutdown()
+//}
 
 object WorkerApp extends App{
     if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))

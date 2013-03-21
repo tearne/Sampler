@@ -42,14 +42,16 @@ object UnfairCoin extends App{
 	val abcMethod = new ABCMethod(CoinModel)
 
 	val population0 = abcMethod.init
-  // FIXME: get could fail, preventing runner shutdown
-	val finalPopulation = abcMethod.run(population0, runner).get.map(_.value.pHeads)
 	
+	//TODO Fix slightly nasty mapping to population values
+	val finalPopulation = abcMethod.run(population0, runner).map(_.map(_.value))
 	runner.shutdown
+	
+	val headsDensity = finalPopulation.get.map(_.pHeads).toEmpiricalSeq
 	
 	val wd = Paths.get("egoutput", "coinTossABC")
 	Files.createDirectories(wd)
-	QuickPlot.writeDensity(wd, "posterior", Map("data" -> finalPopulation.toEmpiricalSeq))
+	QuickPlot.writeDensity(wd, "posterior", Map("data" -> headsDensity))
 }
 
 object CoinModel extends ABCModel with Serializable{

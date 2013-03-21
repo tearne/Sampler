@@ -46,5 +46,5 @@ trait ABCModel{
 	
 	def samplableModel(p: Parameters, obs: Observations): Samplable[Output]
 
-  type Population = Seq[Particle[Parameters]]
+	type Population = Seq[Particle[Parameters]]
 }
