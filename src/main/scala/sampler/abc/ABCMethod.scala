@@ -25,6 +25,8 @@ import sampler.run.Job
 import sampler.math.Probability
 import sampler.data.SerialSampleBuilder
 import sampler.data.Empirical
+import java.io.FileOutputStream
+import java.io.ObjectOutputStream
 
 class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
   import model._
@@ -34,9 +36,8 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 		(1 to numParticles).par.map(i => Particle(model.prior.sample(), 1.0, Double.MaxValue)).seq
 	}
 	
-  	//TODO make private?
-	def generateParticles(
-			samplablePop: Empirical[Parameters], 
+	private def generateParticles(
+			samplablePop: Empirical[Parameters],
 			quantity: Int, 
 			tolerance: Double
 	): Option[Population] = {
@@ -74,7 +75,7 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 				} yield(Particle(params, weight, fitScores.min))
 				
 				res match {
-					case s: Some[Particle[Parameters]] => {println("returning "+s); s}
+					case s: Some[Particle[Parameters]] => s
 					case None => nextParticle(failures + 1)
 				}
 			}

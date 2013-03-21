@@ -19,7 +19,7 @@ package sampler.math
 
 import scala.annotation.tailrec
 
-class AliasTable(origProbs: IndexedSeq[Probability]) {
+class AliasTable(origProbs: IndexedSeq[Probability]) extends Serializable{
     val probabilities = origProbs.map(v => v.value)
   
     if(!isEqualOne(probabilities.sum)) 
