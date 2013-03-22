@@ -15,19 +15,19 @@
  * limitations under the License.
  */
 
-package sampler.run
+package sampler.run.cluster
 
 import akka.actor.ActorSystem
 import akka.util.Timeout
 import akka.actor.Props
 import akka.pattern.ask
-import sampler.math.Random
 import scala.concurrent.Future
 import scala.concurrent.Await
-import sampler.run.cluster.Master
 import scala.concurrent.duration.DurationInt
+import sampler.run.Job
+import sampler.run.JobRunner
 
-class ClusterRunner extends JobRunner{
+class Runner extends JobRunner{
 	import scala.concurrent.duration._
 	
 	val system = ActorSystem("ClusterSystem")

@@ -21,7 +21,6 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.cluster.Cluster
 import scala.collection._
 import scala.concurrent.duration._
-import sampler.run.AbortableJob
 import sampler.math.Random
 import scala.concurrent.Promise
 import java.io.ByteArrayOutputStream

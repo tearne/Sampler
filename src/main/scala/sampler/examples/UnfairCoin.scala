@@ -18,7 +18,7 @@
 package sampler.examples
 
 import java.nio.file.{Paths, Files}
-import sampler.run.ClusterRunner
+import sampler.run.cluster.Runner
 import sampler.run.SerialRunner
 import sampler.abc.ABCMethod
 import sampler.r.QuickPlot
@@ -36,7 +36,7 @@ object UnfairCoin extends App{
 	if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))
 	else System.setProperty("akka.remote.netty.port", "2555")
 	
-	val runner = new ClusterRunner
+	val runner = new Runner
 //	val runner = new SerialRunner
 	
 	val abcMethod = new ABCMethod(CoinModel)

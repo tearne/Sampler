@@ -26,7 +26,6 @@ import scala.util.Try
 import scala.util.Success
 import scala.util.Failure
 import com.jezhumble.javasysmon.JavaSysMon
-import sampler.run.AbortableJob
 import java.util.concurrent.atomic.AtomicBoolean
 import sampler.math.Random
 import scala.concurrent.Promise

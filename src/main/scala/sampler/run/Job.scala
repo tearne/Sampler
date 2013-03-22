@@ -20,47 +20,23 @@ package sampler.run
 import scala.annotation.tailrec
 import java.util.concurrent.atomic.AtomicBoolean
 
-case class AbortFunction[T](af: Seq[Option[T]] => Boolean){
-	def apply(soFar: Seq[Option[T]]) = af(soFar)
-}
-
 case class Job[T](f: () => Option[T]){
 	def run() = f()
-}
-case class AbortableJob[T](f: AtomicBoolean => Option[T]){
-	def run(stillRunning: AtomicBoolean): Option[T] = 
-		if(stillRunning.get) f(stillRunning) else None
 }
 
 trait JobRunner{
 	def apply[T](jobs: Seq[Job[T]]): Seq[Option[T]]
 }
 
-trait AbortableRunner extends JobRunner{
-	def apply[T](abort: AbortFunction[T])(jobs: Seq[AbortableJob[T]]): Seq[Option[T]]
-	
-	def apply[T](jobs: Seq[Job[T]]): Seq[Option[T]] = 
-		apply(
-				//Never abort
-				AbortFunction((i:Seq[Option[T]]) => false)
-		)(
-				//Convert Job into pretend abortable job
-				jobs.map(j => AbortableJob((b:AtomicBoolean) => j.run()))
-		)
-}
-
-//TODO test this
-class SerialRunner extends AbortableRunner{
-	def apply[T](abortFn: AbortFunction[T])(jobs: Seq[AbortableJob[T]]): Seq[Option[T]] = {
+class SerialRunner extends JobRunner{
+	def apply[T](jobs: Seq[Job[T]]): Seq[Option[T]] = {
 		val indexedJobs = jobs.toIndexedSeq
-		val stillRunning = new AtomicBoolean(true)
 		
 		@tailrec
 		def doJobsFrom(idx: Int, acc: Seq[Option[T]]): Seq[Option[T]] = {
 			if(idx == jobs.size) acc.reverse
-			else if(abortFn(acc)) acc
 			else {
-				doJobsFrom(idx + 1, indexedJobs(idx).run(stillRunning) +: acc)
+				doJobsFrom(idx + 1, indexedJobs(idx).run() +: acc)
 			}
 		}
 		
@@ -68,7 +44,6 @@ class SerialRunner extends AbortableRunner{
 	}
 }
 
-//TODO some way to make this abortable?
 class ParallelCollectionRunner extends JobRunner{
 	def apply[T](jobs: Seq[Job[T]]): Seq[Option[T]] = {
 		jobs.par.map(_.run).seq
