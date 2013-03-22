@@ -40,7 +40,7 @@ object OnePopulation extends App with EmpiricalMetricComponentImpl with Statisti
 	
 	val start = System.currentTimeMillis
 	
-	val wd = Paths.get("egoutput","onePopulation")
+	val wd = Paths.get("egout","onePopulation")
 	Files.createDirectories(wd)
 	
 	//Domain parameters

@@ -6,6 +6,8 @@
 *.class
 *.log
 
+egout/
+
 # sbt specific
 dist/*
 target/

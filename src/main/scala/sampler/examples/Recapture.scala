@@ -32,7 +32,7 @@ import org.apache.commons.math3.distribution.BetaDistribution
 import sampler.math.StatisticsComponentImpl
 
 object Recapture extends App{
-	val wd = Paths.get("egoutput","recapture")
+	val wd = Paths.get("egout","recapture")
 	Files.createDirectories(wd)
 
 	/*

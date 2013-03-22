@@ -49,7 +49,7 @@ object UnfairCoin extends App{
 	
 	val headsDensity = finalPopulation.get.map(_.pHeads).toEmpiricalSeq
 	
-	val wd = Paths.get("egoutput", "coinTossABC")
+	val wd = Paths.get("egout", "coinTossABC")
 	Files.createDirectories(wd)
 	QuickPlot.writeDensity(wd, "posterior", Map("data" -> headsDensity))
 }

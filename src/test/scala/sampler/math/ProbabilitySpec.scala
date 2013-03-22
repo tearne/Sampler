@@ -25,8 +25,8 @@ import org.specs2.runner.JUnitRunner
 class ProbabilitySpec extends Specification{
 	"Probability" should {
 		"throw exception if out of range" in {
-			(Probability(1.000001) must throwA[ProbabilityException]) and
-			(Probability(-0.000001) must throwA[ProbabilityException])
+			(Probability(1.000001) must throwAn[AssertionError]) and
+			(Probability(-0.000001) must throwAn[AssertionError])
 		}
 		"have value based hashcode and equals" in {
 			val instance1a = Probability(0.2)

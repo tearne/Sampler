@@ -35,7 +35,7 @@
 //
 //object FlockMortality extends App{
 //	import FlockMortalityModel._
-//	val wd = Paths.get("egoutput","FlockMortality")
+//	val wd = Paths.get("egout","FlockMortality")
 //	Files.createDirectories(wd)
 //	
 //	val abcMethod = new ABCMethod(FlockMortalityModel)
@@ -144,7 +144,7 @@
 //	val meta = new ABCMeta(
 //    	reps = 1,
 //		numParticles = 100, 
-//		refinements = 70,
+//		refinements = 50,
 //		particleRetries = 100, 
 //		particleChunking = 100
 //	)

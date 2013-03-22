@@ -93,7 +93,7 @@ class AliasTableSpec extends Specification with Mockito {
 	    "if the probabilities don't add to one" in {
 	      val probabilities = IndexedSeq(0.1, 0.2, 0.3, 0.3).map(v => Probability(v))
 	    			
-	      new AliasTable(probabilities) must throwA[ProbabilityException]
+	      new AliasTable(probabilities) must throwAn[AssertionError]
 	    }
 	}
     
@@ -105,7 +105,7 @@ class AliasTableSpec extends Specification with Mockito {
 	      val probabilities = IndexedSeq(seventh, seventh, seventh, seventh, seventh, seventh, forteenth, forteenth).map(v => Probability(v))
 	      // Sum = 0.9999999999999998
 	      
-	      new AliasTable(probabilities) must not(throwA[ProbabilityException])
+	      new AliasTable(probabilities) must not(throwAn[AssertionError])
 	    }
     }
   }

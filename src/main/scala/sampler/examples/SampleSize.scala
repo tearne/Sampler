@@ -37,7 +37,7 @@ object SampleSize extends App with EmpiricalMetricComponentImpl with StatisticsC
 	val convergenceTolerance = 0.01
 	implicit val random = new Random
 
-	val wd = Paths.get("egoutput","sampleSize")
+	val wd = Paths.get("egout","sampleSize")
 	Files.createDirectories(wd)
 	
 	def numPositivesDistribution(numPositive: Int, populationSize: Int, sampleSize: Int): Samplable[Int] = {
