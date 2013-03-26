@@ -6,7 +6,7 @@ import akka.sbt.AkkaKernelPlugin.{ Dist, outputDirectory, distJvmOptions}
 object KernelBuild extends Build {
     val Organization = "akka.sample"
     val Version = "0.0.8"
-    val ScalaVersion = "2.10.0"
+    val ScalaVersion = "2.10.1"
      
     lazy val project = Project(
 	    id = "cluster-kernel",
@@ -48,11 +48,11 @@ object Dependencies {
 object Dependency {
     // Versions
     object V {
-    	val Akka = "2.1.0"
+    	val Akka = "2.1.2"
     }
      
     val akkaKernel = "com.typesafe.akka" %% "akka-kernel" % V.Akka// cross CrossVersion.full
     val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % V.Akka// cross CrossVersion.full
-    val logback = "ch.qos.logback" % "logback-classic" % "1.0.0"
+    val logback = "ch.qos.logback" % "logback-classic" % "1.0.9"
 }
 

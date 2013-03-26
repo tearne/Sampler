@@ -2,8 +2,20 @@ package sampler.run.cluster
 
 import akka.actor.ActorSystem
 import akka.actor.Props
+import scala.util.Try
+import scala.util.Success
+import scala.util.Failure
 
 object ClusterStateQuery extends App{
+	Try{
+		java.net.InetAddress.getLocalHost.getHostAddress
+	}match{
+		case Success(addr) => 
+			System.setProperty("akka.remote.netty.hostname", addr)
+			println("Using hostname "+addr)
+		case Failure(_) => println("Using config hostname")
+	}
+	
 	apply()
 	
 	def apply(){

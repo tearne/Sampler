@@ -32,6 +32,7 @@ import scala.concurrent.Promise
 import sampler.run.cluster._
 import sampler.run.Job
 import scala.language.existentials
+import akka.kernel.Bootable
 
 case class StatusRequest()
 case class Status(numCPU: Int, load: Float, memFree: Float){
@@ -54,8 +55,23 @@ case class DoneWorking()
 // TODO only allow up to num CPU workers per physical node
 //
 
+class WorkerBootable extends Bootable{
+	Try{
+		java.net.InetAddress.getLocalHost.getHostAddress
+	}match{
+		case Success(addr) => 
+			System.setProperty("akka.remote.netty.hostname", addr)
+			println("Using hostname "+addr)
+		case Failure(_) => println("Using config hostname")
+	}
+	val system = ActorSystem("ClusterSystem")
+	
+	def startup = system.actorOf(Props[Worker], name = "worker")
+	def shutdown = system.shutdown()
+}
+
 object WorkerApp extends App{
-    if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))
+	if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))
 	val system = ActorSystem("ClusterSystem")
 	system.actorOf(Props[Worker], name = "worker")
 }

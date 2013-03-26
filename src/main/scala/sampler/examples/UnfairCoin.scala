@@ -31,10 +31,12 @@ import sampler.data.Empirical._
 import sampler.abc.ABCMeta
 import sampler.abc.Prior
 import sampler.run.SerialRunner
+import sampler.io.CSVTableWriter
+import sampler.data.Types._
 
 object UnfairCoin extends App{
 	if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))
-	else System.setProperty("akka.remote.netty.port", "2555")
+	//else System.setProperty("akka.remote.netty.port", "2555")
 	
 	val runner = new Runner
 //	val runner = new SerialRunner
@@ -51,7 +53,11 @@ object UnfairCoin extends App{
 	
 	val wd = Paths.get("egout", "coinTossABC")
 	Files.createDirectories(wd)
-	QuickPlot.writeDensity(wd, "posterior", Map("data" -> headsDensity))
+	new CSVTableWriter(wd.resolve("results.csv"), true)(
+		Column(headsDensity.values, "TruePos")
+	)
+	
+	//QuickPlot.writeDensity(wd, "posterior", Map("data" -> headsDensity))
 }
 
 object CoinModel extends ABCModel with Serializable{
@@ -61,8 +67,8 @@ object CoinModel extends ABCModel with Serializable{
 	val observations = Observations(10,7)
     val meta = new ABCMeta(
     	reps = 10,
-		numParticles = 200, 
-		refinements = 5,
+		numParticles = 1000, 
+		refinements = 10,
 		particleRetries = 100, 
 		particleChunking = 100
 	)

@@ -26,9 +26,21 @@ import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 import sampler.run.Job
 import sampler.run.JobRunner
+import scala.util.Try
+import scala.util.Success
+import scala.util.Failure
 
 class Runner extends JobRunner{
 	import scala.concurrent.duration._
+	
+	Try{
+		java.net.InetAddress.getLocalHost.getHostAddress
+	}match{
+		case Success(addr) => 
+			System.setProperty("akka.remote.netty.hostname", addr)
+			println("Using hostname "+addr)
+		case Failure(_) => println("Using config hostname")
+	}
 	
 	val system = ActorSystem("ClusterSystem")
 	implicit val timeout = Timeout(1.minutes)

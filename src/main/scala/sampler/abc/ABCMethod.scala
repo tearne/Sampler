@@ -113,7 +113,6 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 			generateParticles(samplable, numParticles, tolerance)
 		}).toList
 		val runnerResults: Seq[Option[Population]] = runner.apply(jobs)
-		println("runnerResults "+runnerResults)
 		
     // TODO: Assertion belongs in generateParticles
     //assert(runnerResults.size == meta.numParticles)

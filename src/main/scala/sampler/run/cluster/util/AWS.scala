@@ -37,6 +37,7 @@ object AWS{
 	}
 	
 	println(new AmazonIdentityManagementClient(keyProps).getUser)
+	runningInstances.view.map(_.getPrivateIpAddress()).foreach(println)
 	
 	val keyFile = Paths.get("/mnt/hgfs/EC2/otkp.pem")
 }

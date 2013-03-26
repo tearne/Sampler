@@ -2,21 +2,34 @@ package sampler.run.cluster.util
 
 import scala.sys.process.Process
 import java.nio.file.{Paths, Path, Files}
-import sampler.run.cluster.util.SSHCommand
 
 object ClusterOperations extends App{
 
-	//TODO Chain process
+	//TODO Chain processes
 	
-	val clusterTag = "b"
-	val s3bucket = "ot-bucket"
-	val payload = Paths.get("target", "Sampler-assembly-0.0.8.jar")
-	val payloadExe = "java -cp Sampler-assembly-0.0.8.jar sampler.run.cluster.WorkerApp"
+	val tag = "a"
+	val username = "ec2-user"
+	val payload = Paths.get("target","cluster-kernel")
+	val payloadExe = "cluster-kernel/bin/start sampler.run.cluster.WorkerBootable"
 	
-	val s3Path = s"s3://$s3bucket/${payload.getFileName()}"
+		
+		
+	val s3bucket = s"s3://ot-bucket/"//${payload.getFileName()}"
+//	val s3Payload = s"s3://$s3bucket/${payload.getFileName()}"
+	
+	AWS.clusterNodes(tag).foreach(println)
+//	AWS.clusterNodes(tag).foreach(host => installBasics(host))
+//	emptyS3Bucket(s3bucket)
+	doS3upload(payload, s3bucket)
+	AWS.clusterNodes(tag).foreach(host => stopPayload(host))
+	AWS.clusterNodes(tag).foreach(host => resetInstance(host))
+//	AWS.clusterNodes(tag).foreach(host => directUpload(host, Paths.get("/home/user/.s3cfg")))
+	AWS.clusterNodes(tag).foreach(host => doS3download(host, s3bucket+payload.getFileName()))
+	AWS.clusterNodes(tag).foreach(host => runPayload(host))
+	
 	
 	def directUpload(host: String, file: Path){
-		val cmd = s"scp -i ${AWS.keyFile.toString} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $file ec2-user@$host:~"
+		val cmd = s"scp -i ${AWS.keyFile.toString} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $file $username@$host:~"
 		println(cmd)
 		Process(cmd).!
 	}
@@ -28,28 +41,43 @@ object ClusterOperations extends App{
 	
 	//TODO gives no feedback in console
 	def doS3upload(localPath: Path, s3Target: String){
-		val command = s"s3cmd put${if(Files.isDirectory(localPath))" --recursive" else ""} $localPath $s3Target"
+		val command = s"s3cmd sync --delete-removed${if(Files.isDirectory(localPath))" --recursive" else ""} $localPath $s3Target"
+		println(command)
 		Process(command).!
 	}
 	
 	def resetInstance(host: String){
 		val resetInstanceCommand = """killall java; rm -r ~/*"""
-		SSHCommand(host, resetInstanceCommand)
+		SSHCommand(username, host, resetInstanceCommand)
+	}
+	
+	def stopPayload(host: String){
+		val resetInstanceCommand = """killall java"""
+		SSHCommand(username, host, resetInstanceCommand)
+	}
+	
+	def installBasics(host: String){
+		val script = 
+"""
+# Java
+sudo yum -y install java-1.7.0
+echo 2 | sudo alternatives --config java
+# s3cmd + don't forget to --configure
+cd /etc/yum.repos.d
+sudo wget http://s3tools.org/repo/RHEL_6/s3tools.repo
+sudo yum install s3cmd -y
+"""
+		SSHCommand(username, host, script)
 	}
 	
 	def doS3download(host: String, s3Path: String){
-		val s3downloadCommand = s"s3cmd get --force --recursive $s3Path"
-		SSHCommand(host, s3downloadCommand)
+		val s3downloadCommand = s"s3cmd sync --recursive $s3Path ."
+		println(s3downloadCommand)
+		SSHCommand(username, host, s3downloadCommand)
+		SSHCommand(username, host, "chmod u+x cluster-kernel/bin/start")
 	}
 	
 	def runPayload(host: String){
-		SSHCommand.background(host, payloadExe)
+		SSHCommand.background(username, host, payloadExe)
 	}
-	
-	//emptyS3Bucket(s3bucket)
-//	doS3upload(payload, s3Path)
-//	AWS.clusterNodes(clusterTag).foreach(host => resetInstance(host))
-//	AWS.clusterNodes(clusterTag).foreach(host => directUpload(host, Paths.get("/home/user/.s3cfg")))
-//	AWS.clusterNodes(clusterTag).foreach(host => doS3download(host, s3Path))
-//	AWS.clusterNodes(clusterTag).foreach(host => runPayload(host))
 }
