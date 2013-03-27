@@ -17,16 +17,17 @@ object ClusterOperations extends App{
 	val s3bucket = s"s3://ot-bucket/"//${payload.getFileName()}"
 //	val s3Payload = s"s3://$s3bucket/${payload.getFileName()}"
 	
-	AWS.clusterNodes(tag).foreach(println)
+//	AWS.clusterNodes(tag).foreach(println)
 //	AWS.clusterNodes(tag).foreach(host => installBasics(host))
 //	emptyS3Bucket(s3bucket)
 	doS3upload(payload, s3bucket)
-	AWS.clusterNodes(tag).foreach(host => stopPayload(host))
-	AWS.clusterNodes(tag).foreach(host => resetInstance(host))
+//	AWS.clusterNodes(tag).foreach(host => stopPayload(host))
+//	AWS.clusterNodes(tag).foreach(host => resetInstance(host))
 //	AWS.clusterNodes(tag).foreach(host => directUpload(host, Paths.get("/home/user/.s3cfg")))
 	AWS.clusterNodes(tag).foreach(host => doS3download(host, s3bucket+payload.getFileName()))
 	AWS.clusterNodes(tag).foreach(host => runPayload(host))
 	
+	AWS.clusterNodes(tag).foreach(println)
 	
 	def directUpload(host: String, file: Path){
 		val cmd = s"scp -i ${AWS.keyFile.toString} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $file $username@$host:~"
@@ -71,7 +72,7 @@ sudo yum install s3cmd -y
 	}
 	
 	def doS3download(host: String, s3Path: String){
-		val s3downloadCommand = s"s3cmd sync --recursive $s3Path ."
+		val s3downloadCommand = s"s3cmd sync $s3Path ."
 		println(s3downloadCommand)
 		SSHCommand(username, host, s3downloadCommand)
 		SSHCommand(username, host, "chmod u+x cluster-kernel/bin/start")

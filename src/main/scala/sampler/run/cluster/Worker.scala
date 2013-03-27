@@ -33,6 +33,7 @@ import sampler.run.cluster._
 import sampler.run.Job
 import scala.language.existentials
 import akka.kernel.Bootable
+import com.typesafe.config.ConfigFactory
 
 case class StatusRequest()
 case class Status(numCPU: Int, load: Float, memFree: Float){
@@ -56,14 +57,20 @@ case class DoneWorking()
 //
 
 class WorkerBootable extends Bootable{
-	Try{
-		java.net.InetAddress.getLocalHost.getHostAddress
-	}match{
-		case Success(addr) => 
-			System.setProperty("akka.remote.netty.hostname", addr)
-			println("Using hostname "+addr)
-		case Failure(_) => println("Using config hostname")
-	}
+	
+	//TODO why does this break things???
+	//if(ConfigFactory.load().getBoolean("cluster.inet-bind")){
+		Try{
+			java.net.InetAddress.getLocalHost.getHostAddress
+		}match{
+			case Success(addr) => 
+				System.setProperty("akka.remote.netty.hostname", addr)
+				println("I'm binding to "+addr)
+			case Failure(_) => 
+				println("Using config hostname")
+		}
+	//} else println("I'm binding to localhost")
+	
 	val system = ActorSystem("ClusterSystem")
 	
 	def startup = system.actorOf(Props[Worker], name = "worker")
@@ -71,6 +78,16 @@ class WorkerBootable extends Bootable{
 }
 
 object WorkerApp extends App{
+	if(ConfigFactory.load().getBoolean("cluster.inet-bind")){
+		Try{
+			java.net.InetAddress.getLocalHost.getHostAddress
+		}match{
+			case Success(addr) => 
+				System.setProperty("akka.remote.netty.hostname", addr)
+				println("Binding to "+addr)
+			case Failure(_) => println("Using config hostname")
+		}
+	} else println("Binding to localhost")
 	if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))
 	val system = ActorSystem("ClusterSystem")
 	system.actorOf(Props[Worker], name = "worker")

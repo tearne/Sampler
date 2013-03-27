@@ -29,18 +29,22 @@ import sampler.run.JobRunner
 import scala.util.Try
 import scala.util.Success
 import scala.util.Failure
+import com.typesafe.config.ConfigFactory
 
-class Runner extends JobRunner{
+class Runner() extends JobRunner{
 	import scala.concurrent.duration._
 	
-	Try{
-		java.net.InetAddress.getLocalHost.getHostAddress
-	}match{
-		case Success(addr) => 
-			System.setProperty("akka.remote.netty.hostname", addr)
-			println("Using hostname "+addr)
-		case Failure(_) => println("Using config hostname")
-	}
+	//TODO this messes up later config loads in Akka
+	//if(ConfigFactory.load().getBoolean("cluster.inet-bind")){
+		Try{
+			java.net.InetAddress.getLocalHost.getHostAddress
+		}match{
+			case Success(addr) => 
+				System.setProperty("akka.remote.netty.hostname", addr)
+				println("Binding to "+addr)
+			case Failure(_) => println("Using config hostname")
+		}
+	//} else println("Binding to localhost")
 	
 	val system = ActorSystem("ClusterSystem")
 	implicit val timeout = Timeout(1.minutes)

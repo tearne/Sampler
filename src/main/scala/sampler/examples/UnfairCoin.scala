@@ -66,7 +66,7 @@ object CoinModel extends ABCModel with Serializable{
   val random = new Random()
 	val observations = Observations(10,7)
     val meta = new ABCMeta(
-    	reps = 10,
+    	reps = 1000,
 		numParticles = 1000, 
 		refinements = 10,
 		particleRetries = 100, 
