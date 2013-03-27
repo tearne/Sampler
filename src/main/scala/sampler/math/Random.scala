@@ -17,9 +17,16 @@
 
 package sampler.math
 
-class Random extends scala.util.Random with Serializable{
-	def nextDouble(min: Double, max: Double): Double = 
-		(max - min) * nextDouble() + min
-	
-	def nextBoolean(p: Probability): Boolean = math.random < p.value
+trait RandomSource {
+  def newRandom = new Random
 }
+
+class Random extends scala.util.Random with Serializable{
+  def this(dummy: String) = this()
+
+  def nextDouble(min: Double, max: Double): Double = 
+    (max - min) * nextDouble() + min
+  
+  def nextBoolean(p: Probability): Boolean = math.random < p.value
+}
+

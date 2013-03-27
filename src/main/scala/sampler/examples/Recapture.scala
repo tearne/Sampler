@@ -17,7 +17,7 @@
 package sampler.examples
 
 import sampler.abc.ABCModel
-import sampler.math.Random
+import sampler.math.RandomSource
 import sampler.abc.ABCMeta
 import sampler.math.Probability
 import sampler.data.Samplable
@@ -40,6 +40,8 @@ object Recapture extends App{
 	 * Population size
 	 */
 	val abcMethod = new ABCMethod(RecaptureModel)
+  implicit val abcRandomSource = RecaptureModel.abcRandomSource
+
 	val encapPopulation0 = abcMethod.init
 	
 	val runner = new Runner
@@ -74,9 +76,12 @@ dev.off()
 
 object RecaptureModel extends ABCModel with Serializable{
 	val statistics = new StatisticsComponentImpl {}
-	//TODO why need this type?
-	type R = Random
-	val random = new Random()
+
+  implicit val abcRandomSource = new RandomSource {} // Used implicitly ... check use sites
+  val abcRandom = abcRandomSource.newRandom
+
+	val animalRandomSource = new RandomSource {}
+  val animalRandom = animalRandomSource.newRandom    // Used explicitly ... check use sites
 	
 	val numberTagged = 50
 	val observations = Observations(220, 35, 86.0/220)
@@ -122,16 +127,17 @@ object RecaptureModel extends ABCModel with Serializable{
       }
     }
     
+
     case class AnimalState(tagged: Boolean, infected: Boolean)
     def samplableModel(p: Parameters, obs: Observations) = {
 		def numTaggedDistribution(numTagged: Int, populationSize: Int, sampleSize: Int): Samplable[Output] = {
     	  val population = (1 to populationSize).map(index => 
-    	  	AnimalState(index <= numTagged, random.nextBoolean(Probability(p.prevalence)))
+    	  	AnimalState(index <= numTagged, animalRandom.nextBoolean(Probability(p.prevalence)))
     	  )
     	  def getNumPositives(animals: Seq[AnimalState]): Int = {
     	  	val testResults = animals.map{a =>
-    	  		if(a.infected) random.nextBoolean(Probability(se.sample))
-    	  		else random.nextBoolean(Probability(1 - sp.sample))
+    	  		if(a.infected) animalRandom.nextBoolean(Probability(se.sample))
+    	  		else animalRandom.nextBoolean(Probability(1 - sp.sample))
     	  	}
     	  	testResults.count(identity)
     	  }
@@ -163,8 +169,8 @@ object RecaptureModel extends ABCModel with Serializable{
 	    }
 	    
 	    def sample = Parameters(
-	    		random.nextInt(upperLimit-lowerLimit) + lowerLimit,
-	    		random.nextDouble(0, 1)
+	    		abcRandom.nextInt(upperLimit-lowerLimit) + lowerLimit,
+	    		abcRandom.nextDouble(0, 1)
 	    )
     }
 }

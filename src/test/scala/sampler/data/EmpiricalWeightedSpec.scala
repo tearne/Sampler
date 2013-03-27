@@ -23,12 +23,12 @@ import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import sampler.math.Probability
 import org.specs2.mock.Mockito
-import sampler.math.Random
 import org.specs2.matcher.MatchResult
-import sampler.math.Random
+import sampler.math.RandomSource
 
 @RunWith(classOf[JUnitRunner])
 class WeightsTableSpec extends Specification with Mockito{
+  implicit val rs = new RandomSource {}
 	
 	val p1 = (1, 1.25)
 	val p2 = (2, 1.25)
@@ -64,7 +64,7 @@ class WeightsTableSpec extends Specification with Mockito{
 		
 		"sample distribution (using the alias method as default)" in {
 		  
-		  implicit val rand = new Random
+		  implicit val rand = rs.newRandom
 		  
 		  var listOfSamples: List[Int] = List()
 		  

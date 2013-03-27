@@ -17,7 +17,7 @@
 
 package sampler.abc
 
-import sampler.math.{ Random, StatisticsComponent }
+import sampler.math.{ RandomSource, StatisticsComponent }
 import sampler.data.Samplable
 
 trait ABCModel{
@@ -41,9 +41,6 @@ trait ABCModel{
 	val observations: Observations
 	val meta: ABCMeta
 
-	type R <: Random
-	val random: R
-	
 	def samplableModel(p: Parameters, obs: Observations): Samplable[Output]
 
 	type Population = Seq[Particle[Parameters]]

@@ -23,7 +23,7 @@ import sampler.run.SerialRunner
 import sampler.abc.ABCMethod
 import sampler.r.QuickPlot
 import sampler.abc.ABCModel
-import sampler.math.Random
+import sampler.math.RandomSource
 import sampler.math.Probability
 import sampler.math.StatisticsComponentImpl
 import sampler.data.Samplable
@@ -42,6 +42,7 @@ object UnfairCoin extends App{
 	val runner = new SerialRunner
 	
 	val abcMethod = new ABCMethod(CoinModel)
+  implicit val abcRandomSource = CoinModel.abcRandomSource
 
 	val population0 = abcMethod.init
 	
@@ -62,8 +63,12 @@ object UnfairCoin extends App{
 
 object CoinModel extends ABCModel with Serializable{
   val statistics = new StatisticsComponentImpl with Serializable{}
-  type R = Random
-  val random = new Random()
+
+  implicit val abcRandomSource = new RandomSource {} // Used implicitly ... check use sites
+  val abcRandom = abcRandomSource.newRandom
+
+  val coinModelRandomSource = new RandomSource {}    // Used explicitly ... check use sites
+
 	val observations = Observations(10,7)
     val meta = new ABCMeta(
     	reps = 100000,
@@ -95,7 +100,7 @@ object CoinModel extends ABCModel with Serializable{
     }
     
     def samplableModel(p: Parameters, obs: Observations) = new Samplable[Output] with Serializable{
-      val r = new Random()
+      val r = coinModelRandomSource.newRandom
       override def sample() = {
         def coinToss() = r.nextBoolean(p.pHeads)
         Output(Observations(obs.numTrials, (1 to obs.numTrials).map(i => coinToss).count(identity)))
@@ -108,6 +113,6 @@ object CoinModel extends ABCModel with Serializable{
 	      else 1.0
 	    }
 	    
-	    def sample() = Parameters(random.nextDouble(0.0, 1.0))
+	    def sample() = Parameters(abcRandom.nextDouble(0.0, 1.0))
     }
 }

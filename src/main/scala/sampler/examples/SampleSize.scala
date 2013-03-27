@@ -18,7 +18,7 @@ package sampler.examples
 
 import sampler.data._
 import sampler.data.Empirical._
-import sampler.math.{Random, Probability}
+import sampler.math.{RandomSource, Probability}
 import scala.collection.GenSeq
 import sampler.data.Types.Column
 import scala.annotation.tailrec
@@ -35,7 +35,7 @@ object SampleSize extends App with EmpiricalMetricComponentImpl with StatisticsC
 	
 	val chunkSize = 2000
 	val convergenceTolerance = 0.01
-	implicit val random = new Random
+	implicit val rs = new RandomSource {}
 
 	val wd = Paths.get("egout","sampleSize")
 	Files.createDirectories(wd)

@@ -61,7 +61,7 @@ trait Empirical[A] extends Samplable[A]{
  * Is there a better way to achieve the same thing? 
  */
 object Empirical{
-	implicit class RichIndexedSeq[A](genSeq: GenSeq[A]) {
+	implicit class RichIndexedSeq[A](genSeq: GenSeq[A])(implicit rs: RandomSource) {
 		val indSeq = genSeq.toIndexedSeq
 		def toEmpiricalSeq = new EmpiricalSeq[A](indSeq)
 		def toEmpiricalTable = new EmpiricalTable[A](
@@ -69,21 +69,21 @@ object Empirical{
 		)
 	}
 	
-	implicit class RichMapInt[A](table: GenMap[A,Int]) {
+	implicit class RichMapInt[A](table: GenMap[A,Int])(implicit rs: RandomSource) {
 		def toEmpiricalTable = {
 			if(table.values.find(_ <= 0).isDefined) throw new UnsupportedOperationException("Cannot convert to EmpiricalTable, non-positive counts found")
 			else new EmpiricalTable[A](table.seq.toMap)
 		}
 	}
 	
-	implicit class RichMapDouble[A](table: GenMap[A,Double]) {
+	implicit class RichMapDouble[A](table: GenMap[A,Double])(implicit rs: RandomSource) {
 		def toEmpiricalWeighted = {
 			if(table.values.find(_ <= 0).isDefined) throw new UnsupportedOperationException("Cannot convert to EmpiricalWeighted, non-positive weights found")
 			else new EmpiricalWeighted[A](table.seq.toMap)
 		}
 	}
 	
-	implicit class RichMapProbability[A](table: Map[A, Probability]) {
+	implicit class RichMapProbability[A](table: Map[A, Probability])(implicit rs: RandomSource) {
 		def toEmpiricalWeighted = new EmpiricalWeighted[A](table.map{case (k,v) => (k,v.value)})
 	}
 }

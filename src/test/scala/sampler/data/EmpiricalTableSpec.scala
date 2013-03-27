@@ -21,7 +21,7 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.junit.runner.RunWith
 import org.specs2.mock.Mockito
-import sampler.math.Random
+import sampler.math.RandomSource
 import sampler.math.Probability
 import scala.math.Fractional
 import org.specs2.matcher.DataTables
@@ -29,6 +29,8 @@ import sampler.data.Empirical._
 
 @RunWith(classOf[JUnitRunner])
 class EmpiricalTableSpec extends Specification with Mockito with DataTables{
+  implicit val rs = new RandomSource {}
+
 	val once = 1
 	val twice = 2
 	val thrice = 3
@@ -60,7 +62,7 @@ class EmpiricalTableSpec extends Specification with Mockito with DataTables{
 		}
 		
 		"sample uniformly by observation index" in {
-			implicit val rand = new Random
+			implicit val rand = rs.newRandom
 		  
 		    var listOfSamples: List[Int] = List()
 		  

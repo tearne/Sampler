@@ -21,11 +21,12 @@ import sampler.data.Empirical._
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import org.specs2.mutable.Specification
-import sampler.math.Probability
+import sampler.math.{ RandomSource, Probability }
 
 @RunWith(classOf[JUnitRunner])
 class EmpiricalSeqSpec extends Specification{
-  
+  implicit val rs = new RandomSource {}
+
 	val seq1 = IndexedSeq(1,2,3,4)
   
 	val es1 = seq1.toEmpiricalSeq

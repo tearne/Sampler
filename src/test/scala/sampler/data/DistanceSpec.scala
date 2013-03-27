@@ -22,12 +22,14 @@ import org.specs2.mock.Mockito
 import sampler.data.Empirical._
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-import sampler.math.StatisticsComponentImpl
+import sampler.math.{ RandomSource, StatisticsComponentImpl }
 
 //TODO change name of class to match component being tested
 
 @RunWith(classOf[JUnitRunner])
 class DistanceSpec extends Specification with Mockito with EmpiricalMetricComponentImpl with StatisticsComponentImpl {
+  implicit val rs = new RandomSource {}
+
 	"Empirical Metric Component" should {
 		"implement an absolute difference metric" in {
 			val instance1 = IndexedSeq[Double](1,2,3).toEmpiricalSeq // mean 2
