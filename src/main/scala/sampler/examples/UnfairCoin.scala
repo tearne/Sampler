@@ -38,8 +38,8 @@ object UnfairCoin extends App{
 	if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))
 	//else System.setProperty("akka.remote.netty.port", "2555")
 	
-	val runner = new Runner
-//	val runner = new SerialRunner
+//	val runner = new Runner
+	val runner = new SerialRunner
 	
 	val abcMethod = new ABCMethod(CoinModel)
 
@@ -47,7 +47,7 @@ object UnfairCoin extends App{
 	
 	//TODO Fix slightly nasty mapping to population values
 	val finalPopulation = abcMethod.run(population0, runner).map(_.map(_.value))
-	runner.shutdown
+//	runner.shutdown
 	
 	val headsDensity = finalPopulation.get.map(_.pHeads).toEmpiricalSeq
 	
@@ -66,11 +66,11 @@ object CoinModel extends ABCModel with Serializable{
   val random = new Random()
 	val observations = Observations(10,7)
     val meta = new ABCMeta(
-    	reps = 1000,
+    	reps = 100000,
 		numParticles = 1000, 
 		refinements = 10,
 		particleRetries = 100, 
-		particleChunking = 100
+		particleChunking = 10
 	)
 	
 	implicit def toProbability(d: Double) = Probability(d)

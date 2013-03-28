@@ -47,7 +47,7 @@ class Runner() extends JobRunner{
 	//} else println("Binding to localhost")
 	
 	val system = ActorSystem("ClusterSystem")
-	implicit val timeout = Timeout(1.minutes)
+	implicit val timeout = Timeout(5.minutes)
 	
 	val master = system.actorOf(Props[Master], name = "master")
 	import system.dispatcher

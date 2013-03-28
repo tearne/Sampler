@@ -51,7 +51,7 @@ class Injector extends Actor with ActorLogging{
   		  	attemptWorkerHandshake(m)
   		case s:Status =>
   		  	workers += sender
-  		  	log.info("WORKER STATUS $sender: $s")
+  		  	log.info(s"WORKER STATUS $sender: $s")
 	  		log.info("Num workers = "+workers.size)  	
   		  	context.parent ! NewWorker(sender)
   		case UnreachableMember(m) => //Is this best thing to listen to?

@@ -30,6 +30,7 @@ import sampler.io.CSVTableWriter
 import sampler.r.ScriptRunner
 import org.apache.commons.math3.distribution.BetaDistribution
 import sampler.math.StatisticsComponentImpl
+import sampler.run.cluster.Runner
 
 object Recapture extends App{
 	val wd = Paths.get("egout","recapture")
@@ -40,8 +41,14 @@ object Recapture extends App{
 	 */
 	val abcMethod = new ABCMethod(RecaptureModel)
 	val encapPopulation0 = abcMethod.init
-	val finalPopulation = abcMethod.run(encapPopulation0, new SerialRunner).get.map(_.value)//.population
+	
+	val runner = new Runner
+//	val runner = new SerialRunner
+	
+	val finalPopulation = abcMethod.run(encapPopulation0, runner).get.map(_.value)//.population
 //	val finalPopulation = finalEncapPopulation.population//.map(_.value.asInstanceOf[RecaptureModel.Parameters])
+	
+	runner.shutdown
 	
 	new CSVTableWriter(wd.resolve("recapture.csv"), overwrite = true).apply(
 		Column(finalPopulation.map(_.populationSize), "popSize"),
@@ -62,7 +69,7 @@ ggplot(subset(recapture, select="prev"), aes(x=prev)) + geom_density()
 dev.off()
 """
 
-	ScriptRunner.apply(rScript, wd.resolve("script.r"))
+//	ScriptRunner.apply(rScript, wd.resolve("script.r"))
 }
 
 object RecaptureModel extends ABCModel with Serializable{
@@ -82,7 +89,7 @@ object RecaptureModel extends ABCModel with Serializable{
 		numParticles = 200, 
 		refinements = 30,
 		particleRetries = 100, 
-		particleChunking = 1000
+		particleChunking = 10
 	)
 	
     case class Parameters(populationSize: Int, prevalence: Double) extends ParametersBase with Serializable{
@@ -143,7 +150,7 @@ object RecaptureModel extends ABCModel with Serializable{
     	numTaggedDistribution(numberTagged, p.populationSize, obs.numSampled)
     }
     
-    val prior = new Prior[Parameters]{
+    val prior = new Prior[Parameters] with Serializable{
     	val upperLimit = 500
     	val lowerLimit = 250
     	def unitRange(d: Double) = if(d > 1.0 || d < 0.0) 0.0 else 1.0

@@ -30,8 +30,8 @@ object AWS{
 		.flatten
 		.filter(_.getState.getName == "running")
 		
-	def clusterNodes(tag: String) = {
-		runningInstances.filter(_.getTags().contains(new Tag("cluster", tag)))
+	def clusterNodes(tagName: String, tagValue: String) = {
+		runningInstances.filter(_.getTags().contains(new Tag(tagName, tagValue)))
 			.map(_.getPublicDnsName())
 			.toList
 	}

@@ -7,7 +7,8 @@ object ClusterOperations extends App{
 
 	//TODO Chain processes
 	
-	val tag = "a"
+	val tagName = "Name"
+	val tagValue = "ot"
 	val username = "ec2-user"
 	val payload = Paths.get("target","cluster-kernel")
 	val payloadExe = "cluster-kernel/bin/start sampler.run.cluster.WorkerBootable"
@@ -17,17 +18,19 @@ object ClusterOperations extends App{
 	val s3bucket = s"s3://ot-bucket/"//${payload.getFileName()}"
 //	val s3Payload = s"s3://$s3bucket/${payload.getFileName()}"
 	
-//	AWS.clusterNodes(tag).foreach(println)
-//	AWS.clusterNodes(tag).foreach(host => installBasics(host))
+	val nodes = AWS.clusterNodes(tagName, tagValue)
+	
+	nodes.foreach(println)
+//	nodes.foreach(host => installBasics(host))
 //	emptyS3Bucket(s3bucket)
 	doS3upload(payload, s3bucket)
-//	AWS.clusterNodes(tag).foreach(host => stopPayload(host))
-//	AWS.clusterNodes(tag).foreach(host => resetInstance(host))
-//	AWS.clusterNodes(tag).foreach(host => directUpload(host, Paths.get("/home/user/.s3cfg")))
-	AWS.clusterNodes(tag).foreach(host => doS3download(host, s3bucket+payload.getFileName()))
-	AWS.clusterNodes(tag).foreach(host => runPayload(host))
+	nodes.foreach(host => stopPayload(host))
+//	nodes.foreach(host => resetInstance(host))
+//	nodes.foreach(host => directUpload(host, Paths.get("/home/user/.s3cfg")))
+	nodes.foreach(host => doS3download(host, s3bucket+payload.getFileName()))
+	nodes.foreach(host => runPayload(host))
 	
-	AWS.clusterNodes(tag).foreach(println)
+	nodes.foreach(println)
 	
 	def directUpload(host: String, file: Path){
 		val cmd = s"scp -i ${AWS.keyFile.toString} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $file $username@$host:~"
