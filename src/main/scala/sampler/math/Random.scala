@@ -18,11 +18,14 @@
 package sampler.math
 
 trait RandomSource {
+  def newRandom: Random
+}
+
+trait UniformRandomSource extends RandomSource {
   def newRandom = new Random
 }
 
 class Random extends scala.util.Random with Serializable{
-  def this(dummy: String) = this()
 
   def nextDouble(min: Double, max: Double): Double = 
     (max - min) * nextDouble() + min

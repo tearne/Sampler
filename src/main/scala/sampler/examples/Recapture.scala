@@ -74,13 +74,25 @@ dev.off()
 //	ScriptRunner.apply(rScript, wd.resolve("script.r"))
 }
 
-object RecaptureModel extends ABCModel with Serializable{
+object RecaptureModel extends RecaptureModelBase {
+  val abcRandomSource = new RandomRandomSource {}
+  val animalRandomSource = new RandomRandomSource {}
+}
+
+object TestRecaptureModel extends RecaptureModelBase {
+  val abcRandomSource = new RandomRandomSource {}
+  val animalRandomSource = new RandomSource {
+    def newRandom = mock[Random]
+  }
+}
+
+trait RecaptureModelBase extends ABCModel with Serializable{
 	val statistics = new StatisticsComponentImpl {}
 
-  implicit val abcRandomSource = new RandomSource {} // Used implicitly ... check use sites
+  implicit val abcRandomSource: RandomSource //= new RandomRandomSource {} // Used implicitly ... check use sites
   val abcRandom = abcRandomSource.newRandom
 
-	val animalRandomSource = new RandomSource {}
+	val animalRandomSource: RandomSource // = new RandomRandomSource {}
   val animalRandom = animalRandomSource.newRandom    // Used explicitly ... check use sites
 	
 	val numberTagged = 50
@@ -142,7 +154,8 @@ object RecaptureModel extends ABCModel with Serializable{
     	  	testResults.count(identity)
     	  }
     	  
-    	  val model = Samplable.withoutReplacement(population, sampleSize)
+    	  val model = Samplable.withoutReplacement(population, sampleSize) // TODO is the the random source for the model or the 
+                                                                         // meta-model? If the model then be explicit about (animalRandom)
     		.map{sampledStates =>
 			  Output(Observations(
 				sampleSize,

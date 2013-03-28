@@ -34,14 +34,22 @@ import sampler.run.SerialRunner
 import sampler.io.CSVTableWriter
 import sampler.data.Types._
 
-object UnfairCoin extends App{
+object UnfairCoin extends UnfairCoinBase with App {
+  val abcMethod = new ABCMethod(CoinModel)
+}
+
+object TestUnfairCoin extends UnfairCoinBase with App {
+  val abcMethod = new ABCMethod(TestCoinModel)
+}
+
+trait UnfairCoinBase {
 	if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))
 	//else System.setProperty("akka.remote.netty.port", "2555")
 	
 //	val runner = new Runner
 	val runner = new SerialRunner
 	
-	val abcMethod = new ABCMethod(CoinModel)
+	val abcMethod: ABCMethod
   implicit val abcRandomSource = CoinModel.abcRandomSource
 
 	val population0 = abcMethod.init
@@ -49,7 +57,8 @@ object UnfairCoin extends App{
 	//TODO Fix slightly nasty mapping to population values
 	val finalPopulation = abcMethod.run(population0, runner).map(_.map(_.value))
 //	runner.shutdown
-	
+
+  //TODO Make Column use Seq to avoid need for random source
 	val headsDensity = finalPopulation.get.map(_.pHeads).toEmpiricalSeq
 	
 	val wd = Paths.get("egout", "coinTossABC")
@@ -61,13 +70,27 @@ object UnfairCoin extends App{
 	//QuickPlot.writeDensity(wd, "posterior", Map("data" -> headsDensity))
 }
 
-object CoinModel extends ABCModel with Serializable{
+object CoinModel extends CoinModelBase {
+  val abcRandomSource = new RandomSource {} // Used implicitly ... check use sites
+  val coinModelRandomSource = new RandomSource {}    // Used explicitly ... check use sites
+}
+
+object TestCoinModel extends CoinModelBase {
+  val abcRandomSource = new RandomSource {} // Used implicitly ... check use sites
+  val coinModelRandomSource = new RandomSource {
+    def newRandome = new Random {
+      // etc ...
+    }
+  }    // Used explicitly ... check use sites
+}
+
+trait CoinModelBase extends ABCModel with Serializable{
   val statistics = new StatisticsComponentImpl with Serializable{}
 
-  implicit val abcRandomSource = new RandomSource {} // Used implicitly ... check use sites
+  implicit val abcRandomSource: RandomSource 
   val abcRandom = abcRandomSource.newRandom
 
-  val coinModelRandomSource = new RandomSource {}    // Used explicitly ... check use sites
+  val coinModelRandomSource: RandomSource
 
 	val observations = Observations(10,7)
     val meta = new ABCMeta(
@@ -81,7 +104,7 @@ object CoinModel extends ABCModel with Serializable{
 	implicit def toProbability(d: Double) = Probability(d)
 	
     case class Parameters(pHeads: Double) extends ParametersBase with Serializable{
-      val kernel = Samplable.normal(0,0.5)
+      lazy val kernel = Samplable.normal(0,0.5)
       
       def perturb() = Parameters(pHeads + kernel.sample())
       def perturbDensity(that: Parameters) = kernel.density(pHeads - that.pHeads)
