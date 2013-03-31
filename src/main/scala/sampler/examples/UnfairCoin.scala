@@ -23,9 +23,7 @@ import sampler.run.SerialRunner
 import sampler.abc.ABCMethod
 import sampler.r.QuickPlot
 import sampler.abc.ABCModel
-import sampler.math.RandomSource
-import sampler.math.Probability
-import sampler.math.StatisticsComponentImpl
+import sampler.math._
 import sampler.data.Samplable
 import sampler.data.Empirical._
 import sampler.abc.ABCMeta
@@ -35,22 +33,22 @@ import sampler.io.CSVTableWriter
 import sampler.data.Types._
 
 object UnfairCoin extends UnfairCoinBase with App {
-  val abcMethod = new ABCMethod(CoinModel)
-}
-
-object TestUnfairCoin extends UnfairCoinBase with App {
-  val abcMethod = new ABCMethod(TestCoinModel)
-}
-
-trait UnfairCoinBase {
 	if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))
 	//else System.setProperty("akka.remote.netty.port", "2555")
 	
+	val abcMethod = new ABCMethod(CoinModel)
+}
+
+//object TestUnfairCoin extends UnfairCoinBase with App {
+//  val abcMethod = new ABCMethod(TestCoinModel)
+//}
+
+trait UnfairCoinBase {
 //	val runner = new Runner
 	val runner = new SerialRunner
 	
-	val abcMethod: ABCMethod
-  implicit val abcRandomSource = CoinModel.abcRandomSource
+	val abcMethod: ABCMethod[CoinModel.type]
+	implicit val abcRandomSource = CoinModel.abcRandomSource
 
 	val population0 = abcMethod.init
 	
@@ -71,18 +69,18 @@ trait UnfairCoinBase {
 }
 
 object CoinModel extends CoinModelBase {
-  val abcRandomSource = new RandomSource {} // Used implicitly ... check use sites
-  val coinModelRandomSource = new RandomSource {}    // Used explicitly ... check use sites
+  val abcRandomSource = new RandomSourceImpl {} // Used implicitly ... check use sites
+  val coinModelRandomSource = new RandomSourceImpl {}    // Used explicitly ... check use sites
 }
 
-object TestCoinModel extends CoinModelBase {
-  val abcRandomSource = new RandomSource {} // Used implicitly ... check use sites
-  val coinModelRandomSource = new RandomSource {
-    def newRandome = new Random {
-      // etc ...
-    }
-  }    // Used explicitly ... check use sites
-}
+//object TestCoinModel extends CoinModelBase {
+//  val abcRandomSource = new RandomSource {} // Used implicitly ... check use sites
+//  val coinModelRandomSource = new RandomSource {
+//    def newRandome = new Random {
+//      // etc ...
+//    }
+//  }    // Used explicitly ... check use sites
+//}
 
 trait CoinModelBase extends ABCModel with Serializable{
   val statistics = new StatisticsComponentImpl with Serializable{}

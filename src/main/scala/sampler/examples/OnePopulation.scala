@@ -18,8 +18,7 @@
 package sampler.examples
 
 import sampler.data.Empirical._
-import sampler.math.RandomSource
-import sampler.math.Probability
+import sampler.math._
 import sampler.data.Samplable
 import scala.collection.mutable.ListBuffer
 import sampler.io.CSVTableWriter
@@ -53,7 +52,7 @@ object OnePopulation extends App with EmpiricalMetricComponentImpl with Statisti
 	val chunkSize = 2000
 	val convergenceCriterion = 0.001
 	
-	implicit val rs = new RandomSource {}
+	implicit val rs = new RandomSourceImpl {}
 
 	val numInfected = (populationSize*truePrevalence).round.toInt
 	val population = (1 to populationSize).map(_ < numInfected)

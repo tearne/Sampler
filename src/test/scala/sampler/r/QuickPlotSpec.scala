@@ -7,11 +7,11 @@ import sampler.data.Empirical._
 import java.nio.file.Paths
 import scala.io.Source
 import java.io.File
-import sampler.math.RandomSource
+import sampler.math._
 
 @RunWith(classOf[JUnitRunner])
 class QuickPlotSpec extends Specification {
-  implicit val rs = new RandomSource {}
+  implicit val rs = new RandomSourceImpl {}
 
   // TODO investigate the possibility of mocking ScriptRunner to improve test coverage
   

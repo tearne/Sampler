@@ -26,7 +26,7 @@ import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class StatisticSpec extends Specification with Mockito with StatisticsComponentImpl {
-  implicit val rs = new RandomSource {}
+  implicit val rs = new RandomSourceImpl {}
   
 	"Statistic" should {
 		"calculate the mean" in {

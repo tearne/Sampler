@@ -3,12 +3,12 @@ package sampler.data
 import org.specs2.mutable.Specification
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-import sampler.math.{ Random, RandomSource }
+import sampler.math._
 import org.specs2.specification.Scope
 
 @RunWith(classOf[JUnitRunner])
 class SamplableSpec extends Specification {
-  implicit val rs = new RandomSource {}
+  implicit val rs = new RandomSourceImpl {}
 
 	"Samplable" should {
 		"have flatMap" in todo	//TODO

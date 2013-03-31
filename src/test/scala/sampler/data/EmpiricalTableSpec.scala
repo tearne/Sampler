@@ -21,15 +21,14 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.junit.runner.RunWith
 import org.specs2.mock.Mockito
-import sampler.math.RandomSource
-import sampler.math.Probability
+import sampler.math._
 import scala.math.Fractional
 import org.specs2.matcher.DataTables
 import sampler.data.Empirical._
 
 @RunWith(classOf[JUnitRunner])
 class EmpiricalTableSpec extends Specification with Mockito with DataTables{
-  implicit val rs = new RandomSource {}
+  implicit val rs = new RandomSourceImpl {}
 
 	val once = 1
 	val twice = 2

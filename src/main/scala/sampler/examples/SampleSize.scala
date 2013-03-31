@@ -25,8 +25,7 @@ import scala.annotation.tailrec
 import sampler.io.CSVTableWriter
 import sampler.r.ScriptRunner
 import java.nio.file.{Paths, Files}
-import sampler.math.StatisticsComponent
-import sampler.math.StatisticsComponentImpl
+import sampler.math._
 
 object SampleSize extends App with EmpiricalMetricComponentImpl with StatisticsComponentImpl{
 	//Domain parameters
@@ -35,7 +34,7 @@ object SampleSize extends App with EmpiricalMetricComponentImpl with StatisticsC
 	
 	val chunkSize = 2000
 	val convergenceTolerance = 0.01
-	implicit val rs = new RandomSource {}
+	implicit val rs = new RandomSourceImpl {}
 
 	val wd = Paths.get("egout","sampleSize")
 	Files.createDirectories(wd)

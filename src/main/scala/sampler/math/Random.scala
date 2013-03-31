@@ -21,7 +21,7 @@ trait RandomSource {
   def newRandom: Random
 }
 
-trait UniformRandomSource extends RandomSource {
+trait RandomSourceImpl extends RandomSource {
   def newRandom = new Random
 }
 

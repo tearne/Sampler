@@ -17,9 +17,8 @@
 package sampler.examples
 
 import sampler.abc.ABCModel
-import sampler.math.RandomSource
+import sampler.math._
 import sampler.abc.ABCMeta
-import sampler.math.Probability
 import sampler.data.Samplable
 import sampler.abc.Prior
 import sampler.abc.ABCMethod
@@ -29,7 +28,6 @@ import sampler.data.Types.Column
 import sampler.io.CSVTableWriter
 import sampler.r.ScriptRunner
 import org.apache.commons.math3.distribution.BetaDistribution
-import sampler.math.StatisticsComponentImpl
 import sampler.run.cluster.Runner
 
 object Recapture extends App{
@@ -40,7 +38,7 @@ object Recapture extends App{
 	 * Population size
 	 */
 	val abcMethod = new ABCMethod(RecaptureModel)
-  implicit val abcRandomSource = RecaptureModel.abcRandomSource
+	implicit val abcRandomSource = RecaptureModel.abcRandomSource
 
 	val encapPopulation0 = abcMethod.init
 	
@@ -75,16 +73,16 @@ dev.off()
 }
 
 object RecaptureModel extends RecaptureModelBase {
-  val abcRandomSource = new RandomRandomSource {}
-  val animalRandomSource = new RandomRandomSource {}
+  val abcRandomSource = new RandomSourceImpl {}
+  val animalRandomSource = new RandomSourceImpl {}
 }
 
-object TestRecaptureModel extends RecaptureModelBase {
-  val abcRandomSource = new RandomRandomSource {}
-  val animalRandomSource = new RandomSource {
-    def newRandom = mock[Random]
-  }
-}
+//object TestRecaptureModel extends RecaptureModelBase {
+//  val abcRandomSource = new RandomSourceImpl {}
+//  val animalRandomSource = new RandomSourceImpl {
+//    def newRandom = mock[Random]
+//  }
+//}
 
 trait RecaptureModelBase extends ABCModel with Serializable{
 	val statistics = new StatisticsComponentImpl {}
