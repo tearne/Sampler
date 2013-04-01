@@ -35,7 +35,7 @@ object RecaptureApp extends RecaptureFactory with Recapture with App
 
 trait RecaptureFactory{
 	val abcMethod = new ABCMethod(RecaptureModel)
-	val abcRandom = new Random
+	val abcRandom = Random
 	val runner: JobRunner = new SerialRunner
 }
 
@@ -80,12 +80,12 @@ dev.off()
 }
 
 object RecaptureModel extends RecaptureModelBase {
-  val abcRandom = new Random
-  val modelRandom = new Random
+  val abcRandom = Random
+  val modelRandom = Random
 }
 
 trait RecaptureModelBase extends ABCModel with Serializable{
-	val statistics = new StatisticsComponentImpl {}
+	val statistics = StatisticsComponent
 
   implicit val abcRandom: Random
   val modelRandom: Random

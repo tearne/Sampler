@@ -8,7 +8,7 @@ import org.specs2.specification.Scope
 
 @RunWith(classOf[JUnitRunner])
 class SamplableSpec extends Specification {
-  implicit val r = new Random
+  implicit val r = Random
 
 	"Samplable" should {
 		"have flatMap" in todo	//TODO

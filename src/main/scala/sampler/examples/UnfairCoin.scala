@@ -68,9 +68,9 @@ trait UnfairCoin {
 }
 
 object CoinModel extends CoinModelBase {
-  val abcRandom = new Random
-  val modelRandom = new Random
-  val statistics = new StatisticsComponentImpl with Serializable{}
+  val abcRandom = Random
+  val modelRandom = Random
+  val statistics = StatisticsComponent
 }
 
 trait CoinModelBase extends ABCModel with Serializable{

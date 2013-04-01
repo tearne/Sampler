@@ -28,7 +28,7 @@ import sampler.math._
 
 @RunWith(classOf[JUnitRunner])
 class WeightsTableSpec extends Specification with Mockito{
-  implicit val r = new Random
+  implicit val r = Random
 	
 	val p1 = (1, 1.25)
 	val p2 = (2, 1.25)

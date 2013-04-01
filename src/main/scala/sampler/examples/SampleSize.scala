@@ -27,14 +27,14 @@ import sampler.r.ScriptRunner
 import java.nio.file.{Paths, Files}
 import sampler.math._
 
-object SampleSize extends App with EmpiricalMetricComponentImpl with StatisticsComponentImpl{
+object SampleSize extends App with EmpiricalMetricComponent with StatisticsComponent{
 	//Domain parameters
 	val populationSize = 100
 	val sampleSize = 35
 	
 	val chunkSize = 2000
 	val convergenceTolerance = 0.01
-	implicit val r = new Random
+	implicit val r = Random
 
 	val wd = Paths.get("egout","sampleSize")
 	Files.createDirectories(wd)
@@ -80,7 +80,7 @@ object SampleSize extends App with EmpiricalMetricComponentImpl with StatisticsC
 			.view
 			.map{sampleSize =>
 				//println("trying "+sampleSize)
-				val stats = new StatisticsComponentImpl(){}
+				val stats = StatisticsComponent
 				val sampDist = samplingDistribution(truNumPos, populationSize, sampleSize)
 				val lowerTail = stats.quantile(sampDist, Probability(0.025))
 				val upperTail = stats.quantile(sampDist, Probability(0.975))

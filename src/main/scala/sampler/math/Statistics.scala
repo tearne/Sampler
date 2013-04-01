@@ -22,15 +22,7 @@ import sampler.data.Empirical
 /*
  * Mix in the StatisticsComponent to enable easy calculation of stats on Empirical
  */
-trait StatisticsComponent {
-	def rightTail[A](e: Empirical[A], itemInclusive: A)(implicit o: Ordering[A]): Probability
-	
-	def quantile[A](e: Empirical[A], prob: Probability)(implicit f: Fractional[A]): A
-
-	def mean[A](e: Empirical[A])(implicit num: Fractional[A]): Double
-}
-
-trait StatisticsComponentImpl extends StatisticsComponent {
+trait StatisticsComponent{
 	def rightTail[A](e: Empirical[A], itemInclusive: A)(implicit o: Ordering[A]): Probability = {
     import e._
 		val value = probabilities.keys.toList.sorted(o).dropWhile(i => o.lt(i,itemInclusive)).foldLeft(0.0){
@@ -64,4 +56,6 @@ trait StatisticsComponentImpl extends StatisticsComponent {
 		}}
 	}
 }
+
+object StatisticsComponent extends StatisticsComponent with Serializable
 

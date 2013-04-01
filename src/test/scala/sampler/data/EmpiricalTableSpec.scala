@@ -28,7 +28,7 @@ import sampler.data.Empirical._
 
 @RunWith(classOf[JUnitRunner])
 class EmpiricalTableSpec extends Specification with Mockito with DataTables{
-  implicit val r = new Random
+  implicit val r = Random
 
 	val once = 1
 	val twice = 2

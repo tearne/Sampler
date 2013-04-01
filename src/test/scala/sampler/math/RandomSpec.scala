@@ -25,7 +25,7 @@ import org.specs2.runner.JUnitRunner
 class RandomSpec extends Specification{
 	"RandomSpec" should {
 	  
-	  val random = new Random()
+	  val random = Random
 	  
 		"generate integers" in {
 		  

@@ -26,8 +26,8 @@ import sampler.math._
 //TODO change name of class to match component being tested
 
 @RunWith(classOf[JUnitRunner])
-class DistanceSpec extends Specification with Mockito with EmpiricalMetricComponentImpl with StatisticsComponentImpl {
-  implicit val r = new Random
+class DistanceSpec extends Specification with Mockito with EmpiricalMetricComponent with StatisticsComponent {
+  implicit val r = Random
 
 	"Empirical Metric Component" should {
 		"implement an absolute difference metric" in {

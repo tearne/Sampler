@@ -92,13 +92,8 @@ object Empirical{
  *  Measuring the distance between pairs of Empirical
  */
 //TODO test
-trait EmpiricalMetricComponent extends StatisticsComponent {
-  def absoluteMean[A: Fractional](a: Empirical[A], b: Empirical[A]): Double
-  
-  def max[A](a: Empirical[A], b: Empirical[A]): Double
-}
 
-trait EmpiricalMetricComponentImpl extends EmpiricalMetricComponent {
+trait EmpiricalMetricComponent extends StatisticsComponent {
 		
   def absoluteMean[A: Fractional](a: Empirical[A], b: Empirical[A]) = {
     math.abs(mean(a)-mean(b))

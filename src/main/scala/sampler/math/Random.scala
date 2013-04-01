@@ -17,17 +17,12 @@
 
 package sampler.math
 
-//trait RandomFactory {
-//  def newRandom: Random = new Random
-//}
-//
-//object RandomFactory extends RandomFactory
-
-class Random extends scala.util.Random with Serializable{
-
+trait Random extends scala.util.Random{
   def nextDouble(min: Double, max: Double): Double = 
     (max - min) * nextDouble() + min
   
   def nextBoolean(p: Probability): Boolean = math.random < p.value
 }
+
+object Random extends Random with Serializable
 

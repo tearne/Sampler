@@ -25,13 +25,13 @@ import sampler.io.CSVTableWriter
 import java.nio.file.{Files,Paths}
 import sampler.data.Types.Column
 import scala.collection.parallel.ParSeq
-import sampler.data.EmpiricalMetricComponentImpl
-import sampler.math.StatisticsComponentImpl
+import sampler.data.EmpiricalMetricComponent
+import sampler.math.StatisticsComponent
 import sampler.data.ParallelSampleBuilder
 import scala.collection.GenSeq
 import sampler.math.Random
 
-object OnePopulation extends App with EmpiricalMetricComponentImpl with StatisticsComponentImpl {
+object OnePopulation extends App with EmpiricalMetricComponent with StatisticsComponent {
 	/*
 	 * In a population of a given size, and sampling with replacement,
 	 * how many samples should be taken to be % confident of observing
@@ -53,7 +53,7 @@ object OnePopulation extends App with EmpiricalMetricComponentImpl with Statisti
 	val chunkSize = 2000
 	val convergenceCriterion = 0.001
 	
-	implicit val r = new Random
+	implicit val r = Random
 
 	val numInfected = (populationSize*truePrevalence).round.toInt
 	val population = (1 to populationSize).map(_ < numInfected)
