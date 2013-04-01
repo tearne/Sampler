@@ -31,24 +31,24 @@ import sampler.abc.Prior
 import sampler.run.SerialRunner
 import sampler.io.CSVTableWriter
 import sampler.data.Types._
+import sampler.math.Random
+import sampler.run.JobRunner
 
-object UnfairCoinApp extends UnfairCoin with App {
+object UnfairCoinApp extends UnfairCoinFactory with UnfairCoin with App {
 	if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))
 	//else System.setProperty("akka.remote.netty.port", "2555")
-	
-	val abcMethod = new ABCMethod(CoinModel)
 }
 
-//object TestUnfairCoin extends UnfairCoinBase with App {
-//  val abcMethod = new ABCMethod(TestCoinModel)
-//}
+trait UnfairCoinFactory{
+	val abcMethod = new ABCMethod(CoinModel)
+	val runner: JobRunner = new SerialRunner
+}
 
 trait UnfairCoin {
-//	val runner = new Runner
-	val runner = new SerialRunner
+	val runner: JobRunner
 	
 	val abcMethod: ABCMethod[CoinModel.type]
-	implicit val abcRandomFactory = CoinModel.abcRandomFactory
+	implicit val abcRandom = CoinModel.abcRandom
 
 	val population0 = abcMethod.init
 	
@@ -68,26 +68,15 @@ trait UnfairCoin {
 }
 
 object CoinModel extends CoinModelBase {
-  val abcRandomFactory = RandomFactory 		//TODO Used implicitly ... check use sites
-  val coinModelRandomFactory = RandomFactory //TODO Used explicitly ... check use sites
+  val abcRandom = new Random
+  val modelRandom = new Random
+  val statistics = new StatisticsComponentImpl with Serializable{}
 }
 
-//object TestCoinModel extends CoinModelBase {
-//  val abcRandomSource = new RandomSource {} // Used implicitly ... check use sites
-//  val coinModelRandomSource = new RandomSource {
-//    def newRandome = new Random {
-//      // etc ...
-//    }
-//  }    // Used explicitly ... check use sites
-//}
-
 trait CoinModelBase extends ABCModel with Serializable{
-  val statistics = new StatisticsComponentImpl with Serializable{}
-
-  implicit val abcRandomFactory: RandomFactory 
-  val abcRandom = abcRandomFactory.newRandom
-
-  val coinModelRandomFactory: RandomFactory
+  val statistics: StatisticsComponent
+  implicit val abcRandom: Random
+  val modelRandom: Random
 
 	val observations = Observations(10,7)
     val meta = new ABCMeta(
@@ -120,7 +109,7 @@ trait CoinModelBase extends ABCModel with Serializable{
     }
     
     def samplableModel(p: Parameters, obs: Observations) = new Samplable[Output] with Serializable{
-      val r = coinModelRandomFactory.newRandom
+      val r = modelRandom
       override def sample() = {
         def coinToss() = r.nextBoolean(Probability(p.pHeads))
         Output(Observations(obs.numTrials, (1 to obs.numTrials).map(i => coinToss).count(identity)))

@@ -17,7 +17,7 @@
 
 package sampler.abc
 
-import sampler.math.{ RandomFactory, StatisticsComponent }
+import sampler.math.{ Random, StatisticsComponent }
 import sampler.data.Samplable
 
 trait ABCModel{

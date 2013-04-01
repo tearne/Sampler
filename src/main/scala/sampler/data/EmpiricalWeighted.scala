@@ -17,7 +17,7 @@
 
 package sampler.data
 
-import sampler.math.{ Random, RandomFactory }
+import sampler.math.Random
 import sampler.math.Probability
 import scala.collection.GenTraversableOnce
 import sampler.math.AliasTable
@@ -26,14 +26,12 @@ import sampler.math.AliasTable
  * Empirical implementation which uses a weight attached to each
  * observation value for sampling.
  */
-class EmpiricalWeighted[A](val weights: Map[A, Double])(implicit rs: RandomFactory) extends Empirical[A]{
+class EmpiricalWeighted[A](val weights: Map[A, Double])(implicit r: Random) extends Empirical[A]{
 	//TODO Tidy up the Alias stuff, pushing this stuff away
 	private lazy val (indexedValues, indexedProbabilities) = probabilities.toIndexedSeq.unzip
 	
 	private lazy val aliasTable = new AliasTable(indexedProbabilities)
 	
-	val r = rs.newRandom
-
 	def sample() = indexedValues(aliasTable.next(r))
 	
 	lazy val supportSize = weights.size

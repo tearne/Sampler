@@ -29,26 +29,33 @@ import sampler.io.CSVTableWriter
 import sampler.r.ScriptRunner
 import org.apache.commons.math3.distribution.BetaDistribution
 import sampler.run.cluster.Runner
+import sampler.run.JobRunner
 
-object Recapture extends App{
+object RecaptureApp extends RecaptureFactory with Recapture with App
+
+trait RecaptureFactory{
+	val abcMethod = new ABCMethod(RecaptureModel)
+	val abcRandom = new Random
+	val runner: JobRunner = new SerialRunner
+}
+
+trait Recapture{
 	val wd = Paths.get("egout","recapture")
 	Files.createDirectories(wd)
 
 	/*
 	 * Population size
 	 */
-	val abcMethod = new ABCMethod(RecaptureModel)
-	implicit val abcRandomFactory = RandomFactory
+	val abcMethod: ABCMethod[RecaptureModel.type]
+	implicit val abcRandom: Random
+	val runner: JobRunner
 
 	val encapPopulation0 = abcMethod.init
-	
-	val runner = new Runner
-//	val runner = new SerialRunner
 	
 	val finalPopulation = abcMethod.run(encapPopulation0, runner).get.map(_.value)//.population
 //	val finalPopulation = finalEncapPopulation.population//.map(_.value.asInstanceOf[RecaptureModel.Parameters])
 	
-	runner.shutdown
+	//runner.shutdown
 	
 	new CSVTableWriter(wd.resolve("recapture.csv"), overwrite = true).apply(
 		Column(finalPopulation.map(_.populationSize), "popSize"),
@@ -73,25 +80,15 @@ dev.off()
 }
 
 object RecaptureModel extends RecaptureModelBase {
-  val abcRandomSource = RandomFactory
-  val animalRandomSource = RandomFactory
+  val abcRandom = new Random
+  val modelRandom = new Random
 }
-
-//object TestRecaptureModel extends RecaptureModelBase {
-//  val abcRandomSource = new RandomSourceImpl {}
-//  val animalRandomSource = new RandomSourceImpl {
-//    def newRandom = mock[Random]
-//  }
-//}
 
 trait RecaptureModelBase extends ABCModel with Serializable{
 	val statistics = new StatisticsComponentImpl {}
 
-  implicit val abcRandomSource: RandomFactory //= new RandomRandomSource {} // Used implicitly ... check use sites
-  val abcRandom = abcRandomSource.newRandom
-
-	val animalRandomSource: RandomFactory // = new RandomRandomSource {}
-  val animalRandom = animalRandomSource.newRandom    // Used explicitly ... check use sites
+  implicit val abcRandom: Random
+  val modelRandom: Random
 	
 	val numberTagged = 50
 	val observations = Observations(220, 35, 86.0/220)
@@ -142,12 +139,12 @@ trait RecaptureModelBase extends ABCModel with Serializable{
     def samplableModel(p: Parameters, obs: Observations) = {
 		def numTaggedDistribution(numTagged: Int, populationSize: Int, sampleSize: Int): Samplable[Output] = {
     	  val population = (1 to populationSize).map(index => 
-    	  	AnimalState(index <= numTagged, animalRandom.nextBoolean(Probability(p.prevalence)))
+    	  	AnimalState(index <= numTagged, modelRandom.nextBoolean(Probability(p.prevalence)))
     	  )
     	  def getNumPositives(animals: Seq[AnimalState]): Int = {
     	  	val testResults = animals.map{a =>
-    	  		if(a.infected) animalRandom.nextBoolean(Probability(se.sample))
-    	  		else animalRandom.nextBoolean(Probability(1 - sp.sample))
+    	  		if(a.infected) modelRandom.nextBoolean(Probability(se.sample))
+    	  		else modelRandom.nextBoolean(Probability(1 - sp.sample))
     	  	}
     	  	testResults.count(identity)
     	  }

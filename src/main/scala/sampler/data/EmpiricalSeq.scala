@@ -17,7 +17,7 @@
 
 package sampler.data
 
-import sampler.math.{ Random, RandomFactory }
+import sampler.math.Random
 import scala.collection.GenTraversableOnce
 import sampler.math.Probability
 
@@ -26,8 +26,7 @@ import sampler.math.Probability
  * collecting observations from continuous distributions or distributions 
  * with few repeated values.
  */
-class EmpiricalSeq[A](val values: IndexedSeq[A])(implicit rs: RandomFactory) extends Empirical[A]{ self =>
-  val r = rs.newRandom
+class EmpiricalSeq[A](val values: IndexedSeq[A])(implicit r: Random) extends Empirical[A]{ self =>
 	def sample() = values(r.nextInt(size))
 	
 	private lazy val size = values.size

@@ -28,7 +28,7 @@ import sampler.math._
 
 @RunWith(classOf[JUnitRunner])
 class WeightsTableSpec extends Specification with Mockito{
-  implicit val rf = RandomFactory
+  implicit val r = new Random
 	
 	val p1 = (1, 1.25)
 	val p2 = (2, 1.25)
@@ -63,9 +63,6 @@ class WeightsTableSpec extends Specification with Mockito{
 		}
 		
 		"sample distribution (using the alias method as default)" in {
-		  
-		  implicit val rand = rf.newRandom
-		  
 		  var listOfSamples: List[Int] = List()
 		  
 		  for(i <- 0 until 1000)

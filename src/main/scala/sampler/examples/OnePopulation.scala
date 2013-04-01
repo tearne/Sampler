@@ -29,6 +29,7 @@ import sampler.data.EmpiricalMetricComponentImpl
 import sampler.math.StatisticsComponentImpl
 import sampler.data.ParallelSampleBuilder
 import scala.collection.GenSeq
+import sampler.math.Random
 
 object OnePopulation extends App with EmpiricalMetricComponentImpl with StatisticsComponentImpl {
 	/*
@@ -52,7 +53,7 @@ object OnePopulation extends App with EmpiricalMetricComponentImpl with Statisti
 	val chunkSize = 2000
 	val convergenceCriterion = 0.001
 	
-	implicit val rs = RandomFactory
+	implicit val r = new Random
 
 	val numInfected = (populationSize*truePrevalence).round.toInt
 	val population = (1 to populationSize).map(_ < numInfected)
