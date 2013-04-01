@@ -52,7 +52,7 @@ object OnePopulation extends App with EmpiricalMetricComponentImpl with Statisti
 	val chunkSize = 2000
 	val convergenceCriterion = 0.001
 	
-	implicit val rs = new RandomSourceImpl {}
+	implicit val rs = RandomFactory
 
 	val numInfected = (populationSize*truePrevalence).round.toInt
 	val population = (1 to populationSize).map(_ < numInfected)

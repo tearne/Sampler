@@ -17,7 +17,7 @@
 
 package sampler.data
 
-import sampler.math.{ Random, RandomSource }
+import sampler.math.{ Random, RandomFactory }
 import scala.collection.GenTraversableOnce
 import sampler.math.Probability
 import sampler.math.AliasTable
@@ -27,7 +27,7 @@ import sampler.math.AliasTable
  * observation values. Ideal for sampling from discrete distributions 
  * where many repeated observations are expected. 
  */
-class EmpiricalTable[A](val counts: Map[A, Int])(implicit rs: RandomSource) extends Empirical[A]{
+class EmpiricalTable[A](val counts: Map[A, Int])(implicit rs: RandomFactory) extends Empirical[A]{
 	private lazy val (indexedValues, indexedProbabilities) = probabilities.toIndexedSeq.unzip
 
 	private lazy val aliasTable = new AliasTable(indexedProbabilities)

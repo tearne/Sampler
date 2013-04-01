@@ -28,7 +28,7 @@ import sampler.data.Empirical._
 
 @RunWith(classOf[JUnitRunner])
 class EmpiricalTableSpec extends Specification with Mockito with DataTables{
-  implicit val rs = new RandomSourceImpl {}
+  implicit val rf = RandomFactory
 
 	val once = 1
 	val twice = 2
@@ -61,7 +61,7 @@ class EmpiricalTableSpec extends Specification with Mockito with DataTables{
 		}
 		
 		"sample uniformly by observation index" in {
-			implicit val rand = rs.newRandom
+			implicit val rand = rf.newRandom
 		  
 		    var listOfSamples: List[Int] = List()
 		  

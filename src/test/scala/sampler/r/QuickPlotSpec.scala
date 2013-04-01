@@ -11,7 +11,7 @@ import sampler.math._
 
 @RunWith(classOf[JUnitRunner])
 class QuickPlotSpec extends Specification {
-  implicit val rs = new RandomSourceImpl {}
+  implicit val rf = RandomFactory
 
   // TODO investigate the possibility of mocking ScriptRunner to improve test coverage
   

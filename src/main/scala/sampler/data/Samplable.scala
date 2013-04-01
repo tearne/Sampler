@@ -17,7 +17,7 @@
 
 package sampler.data
 
-import sampler.math.{ Random, RandomSource }
+import sampler.math.{ Random, RandomFactory }
 import scala.annotation.tailrec
 import org.apache.commons.math3.distribution.NormalDistribution
 import scala.collection.GenSeq
@@ -95,18 +95,18 @@ object Samplable{
 		def sample() = value
 	}
 	
-	def uniform(lower: Double, upper: Double)(implicit rs: RandomSource) = new Samplable[Double]{
+	def uniform(lower: Double, upper: Double)(implicit rs: RandomFactory) = new Samplable[Double]{
 		val r = rs.newRandom
 		def sample() = (upper - lower) * r.nextDouble()
 	}
 	
-	def uniform[T](items: IndexedSeq[T])(implicit rs: RandomSource) = new Samplable[T]{
+	def uniform[T](items: IndexedSeq[T])(implicit rs: RandomFactory) = new Samplable[T]{
 		val r = rs.newRandom
 		val size = items.size
 		def sample() = items(r.nextInt(size))
 	}
 	
-	def withoutReplacement[T](items: IndexedSeq[T], sampleSize: Int)(implicit rs: RandomSource) = new Samplable[List[T]]{
+	def withoutReplacement[T](items: IndexedSeq[T], sampleSize: Int)(implicit rs: RandomFactory) = new Samplable[List[T]]{
 		val r = rs.newRandom
 		def sample() = {
 			@tailrec
@@ -122,24 +122,24 @@ object Samplable{
 		}
 	}
 	
-	def binaryPopulation(numInfected: Int, size: Int)(implicit rs: RandomSource) = new Samplable[Boolean]{
+	def binaryPopulation(numInfected: Int, size: Int)(implicit rs: RandomFactory) = new Samplable[Boolean]{
 		val r = rs.newRandom
 		def sample() = r.nextInt(size) < numInfected
 	}
 	
-	def normal(mean:Double, variance: Double)(implicit rs: RandomSource) = new Samplable[Double]{
+	def normal(mean:Double, variance: Double)(implicit rs: RandomFactory) = new Samplable[Double]{
 		val r = rs.newRandom
 		val d = new NormalDistribution(0,variance)
 		def sample() = d.sample
 		def density(value: Double) = d.density(value)
 	}
 	
-	def bernouliTrial(probSuccess: Samplable[Probability])(implicit rs: RandomSource) = new Samplable[Boolean]{
+	def bernouliTrial(probSuccess: Samplable[Probability])(implicit rs: RandomFactory) = new Samplable[Boolean]{
 		val r = rs.newRandom
 	  def sample() = r.nextBoolean(probSuccess.sample)
 	}
 	
-	def coinToss()(implicit rs: RandomSource) = new Samplable[Boolean] {
+	def coinToss()(implicit rs: RandomFactory) = new Samplable[Boolean] {
 		val r = rs.newRandom
 	  def sample() = r.nextBoolean(Probability(0.5))
 	}

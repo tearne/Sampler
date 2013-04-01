@@ -17,7 +17,7 @@
 
 package sampler.abc
 
-import sampler.math.RandomSource
+import sampler.math.RandomFactory
 import scala.annotation.tailrec
 import sampler.data.Empirical._
 import sampler.run.JobRunner
@@ -95,7 +95,7 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 		  pop: Population, 
 			runner: JobRunner,
 			tolerance: Double
-	)(implicit rs: RandomSource): Option[Population] = {
+	)(implicit rs: RandomFactory): Option[Population] = {
 		import model.meta
 		
 		println("Now working on tolerance = "+tolerance)
@@ -123,7 +123,7 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 	def run(
 			pop: Population, 
 			runner: JobRunner
-	)(implicit rs: RandomSource): Option[Population] = {
+	)(implicit rs: RandomFactory): Option[Population] = {
 		import model.meta
 		
 		@tailrec

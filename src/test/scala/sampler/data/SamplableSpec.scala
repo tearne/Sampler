@@ -8,7 +8,7 @@ import org.specs2.specification.Scope
 
 @RunWith(classOf[JUnitRunner])
 class SamplableSpec extends Specification {
-  implicit val rs = new RandomSourceImpl {}
+  implicit val rf = RandomFactory
 
 	"Samplable" should {
 		"have flatMap" in todo	//TODO
@@ -142,7 +142,7 @@ class SamplableSpec extends Specification {
 		  import sampler.data.Empirical._
 		  import sampler.math.Probability
 
-		  implicit val r = rs.newRandom
+		  implicit val r = rf.newRandom
 		  
 		  "that returns only true when all probabilities equal one" in {
 		    val probs = Seq(1, 1, 1).map(value => Probability(value))
@@ -176,7 +176,7 @@ class SamplableSpec extends Specification {
 		}
 		
 		"have a (fair) coin object which can be tossed / sampled" in {
-		  implicit val r = rs.newRandom
+		  implicit val r = rf.newRandom
 		  
 		  val model = Samplable.coinToss
 		  
@@ -215,7 +215,7 @@ class SamplableSpec extends Specification {
 	}
 	
 	trait createInstance extends Scope {
-		implicit val rand = rs.newRandom
+		implicit val rand = rf.newRandom
 		
 		val instance = new Samplable[Int] {
 			val it = List(0,1,2,3,4,5,6,7,8,9).iterator
@@ -225,7 +225,7 @@ class SamplableSpec extends Specification {
 	}
 	
 	trait createTwoInstance extends Scope {
-	  implicit val rand = rs.newRandom
+	  implicit val rand = rf.newRandom
 	  
 	  val instance1 = new Samplable[Int] {
 		val it = List(1,1,1,1,1).iterator

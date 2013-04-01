@@ -17,13 +17,11 @@
 
 package sampler.math
 
-trait RandomSource {
-  def newRandom: Random
+trait RandomFactory {
+  def newRandom: Random = new Random
 }
 
-trait RandomSourceImpl extends RandomSource {
-  def newRandom = new Random
-}
+object RandomFactory extends RandomFactory
 
 class Random extends scala.util.Random with Serializable{
 

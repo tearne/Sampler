@@ -25,7 +25,7 @@ import sampler.math._
 
 @RunWith(classOf[JUnitRunner])
 class EmpiricalSeqSpec extends Specification{
-  implicit val rs = new RandomSourceImpl {}
+  implicit val rf = RandomFactory
 
 	val seq1 = IndexedSeq(1,2,3,4)
   

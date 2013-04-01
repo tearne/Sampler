@@ -38,7 +38,7 @@ object Recapture extends App{
 	 * Population size
 	 */
 	val abcMethod = new ABCMethod(RecaptureModel)
-	implicit val abcRandomSource = RecaptureModel.abcRandomSource
+	implicit val abcRandomFactory = RandomFactory
 
 	val encapPopulation0 = abcMethod.init
 	
@@ -73,8 +73,8 @@ dev.off()
 }
 
 object RecaptureModel extends RecaptureModelBase {
-  val abcRandomSource = new RandomSourceImpl {}
-  val animalRandomSource = new RandomSourceImpl {}
+  val abcRandomSource = RandomFactory
+  val animalRandomSource = RandomFactory
 }
 
 //object TestRecaptureModel extends RecaptureModelBase {
@@ -87,10 +87,10 @@ object RecaptureModel extends RecaptureModelBase {
 trait RecaptureModelBase extends ABCModel with Serializable{
 	val statistics = new StatisticsComponentImpl {}
 
-  implicit val abcRandomSource: RandomSource //= new RandomRandomSource {} // Used implicitly ... check use sites
+  implicit val abcRandomSource: RandomFactory //= new RandomRandomSource {} // Used implicitly ... check use sites
   val abcRandom = abcRandomSource.newRandom
 
-	val animalRandomSource: RandomSource // = new RandomRandomSource {}
+	val animalRandomSource: RandomFactory // = new RandomRandomSource {}
   val animalRandom = animalRandomSource.newRandom    // Used explicitly ... check use sites
 	
 	val numberTagged = 50

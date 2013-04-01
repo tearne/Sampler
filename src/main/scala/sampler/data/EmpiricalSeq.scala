@@ -17,7 +17,7 @@
 
 package sampler.data
 
-import sampler.math.{ Random, RandomSource }
+import sampler.math.{ Random, RandomFactory }
 import scala.collection.GenTraversableOnce
 import sampler.math.Probability
 
@@ -26,7 +26,7 @@ import sampler.math.Probability
  * collecting observations from continuous distributions or distributions 
  * with few repeated values.
  */
-class EmpiricalSeq[A](val values: IndexedSeq[A])(implicit rs: RandomSource) extends Empirical[A]{ self =>
+class EmpiricalSeq[A](val values: IndexedSeq[A])(implicit rs: RandomFactory) extends Empirical[A]{ self =>
   val r = rs.newRandom
 	def sample() = values(r.nextInt(size))
 	

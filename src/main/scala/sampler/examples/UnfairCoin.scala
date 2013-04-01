@@ -32,7 +32,7 @@ import sampler.run.SerialRunner
 import sampler.io.CSVTableWriter
 import sampler.data.Types._
 
-object UnfairCoin extends UnfairCoinBase with App {
+object UnfairCoinApp extends UnfairCoin with App {
 	if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))
 	//else System.setProperty("akka.remote.netty.port", "2555")
 	
@@ -43,12 +43,12 @@ object UnfairCoin extends UnfairCoinBase with App {
 //  val abcMethod = new ABCMethod(TestCoinModel)
 //}
 
-trait UnfairCoinBase {
+trait UnfairCoin {
 //	val runner = new Runner
 	val runner = new SerialRunner
 	
 	val abcMethod: ABCMethod[CoinModel.type]
-	implicit val abcRandomSource = CoinModel.abcRandomSource
+	implicit val abcRandomFactory = CoinModel.abcRandomFactory
 
 	val population0 = abcMethod.init
 	
@@ -56,21 +56,20 @@ trait UnfairCoinBase {
 	val finalPopulation = abcMethod.run(population0, runner).map(_.map(_.value))
 //	runner.shutdown
 
-  //TODO Make Column use Seq to avoid need for random source
-	val headsDensity = finalPopulation.get.map(_.pHeads).toEmpiricalSeq
+	val headsDensity = finalPopulation.get.map(_.pHeads)
 	
 	val wd = Paths.get("egout", "coinTossABC")
 	Files.createDirectories(wd)
 	new CSVTableWriter(wd.resolve("results.csv"), true)(
-		Column(headsDensity.values, "TruePos")
+		Column(headsDensity, "TruePos")
 	)
 	
 	//QuickPlot.writeDensity(wd, "posterior", Map("data" -> headsDensity))
 }
 
 object CoinModel extends CoinModelBase {
-  val abcRandomSource = new RandomSourceImpl {} // Used implicitly ... check use sites
-  val coinModelRandomSource = new RandomSourceImpl {}    // Used explicitly ... check use sites
+  val abcRandomFactory = RandomFactory 		//TODO Used implicitly ... check use sites
+  val coinModelRandomFactory = RandomFactory //TODO Used explicitly ... check use sites
 }
 
 //object TestCoinModel extends CoinModelBase {
@@ -85,10 +84,10 @@ object CoinModel extends CoinModelBase {
 trait CoinModelBase extends ABCModel with Serializable{
   val statistics = new StatisticsComponentImpl with Serializable{}
 
-  implicit val abcRandomSource: RandomSource 
-  val abcRandom = abcRandomSource.newRandom
+  implicit val abcRandomFactory: RandomFactory 
+  val abcRandom = abcRandomFactory.newRandom
 
-  val coinModelRandomSource: RandomSource
+  val coinModelRandomFactory: RandomFactory
 
 	val observations = Observations(10,7)
     val meta = new ABCMeta(
@@ -99,7 +98,7 @@ trait CoinModelBase extends ABCModel with Serializable{
 		particleChunking = 10
 	)
 	
-	implicit def toProbability(d: Double) = Probability(d)
+	//implicit def toProbability(d: Double) = Probability(d)
 	
     case class Parameters(pHeads: Double) extends ParametersBase with Serializable{
       lazy val kernel = Samplable.normal(0,0.5)
@@ -121,9 +120,9 @@ trait CoinModelBase extends ABCModel with Serializable{
     }
     
     def samplableModel(p: Parameters, obs: Observations) = new Samplable[Output] with Serializable{
-      val r = coinModelRandomSource.newRandom
+      val r = coinModelRandomFactory.newRandom
       override def sample() = {
-        def coinToss() = r.nextBoolean(p.pHeads)
+        def coinToss() = r.nextBoolean(Probability(p.pHeads))
         Output(Observations(obs.numTrials, (1 to obs.numTrials).map(i => coinToss).count(identity)))
       }
     }

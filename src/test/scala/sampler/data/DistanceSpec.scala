@@ -27,7 +27,7 @@ import sampler.math._
 
 @RunWith(classOf[JUnitRunner])
 class DistanceSpec extends Specification with Mockito with EmpiricalMetricComponentImpl with StatisticsComponentImpl {
-  implicit val rs = new RandomSourceImpl {}
+  implicit val rf = RandomFactory
 
 	"Empirical Metric Component" should {
 		"implement an absolute difference metric" in {
