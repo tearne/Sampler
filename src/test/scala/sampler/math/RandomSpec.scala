@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Crown Copyright 
+ * Copyright (c) 2012-2013 Crown Copyright 
  *                    Animal Health and Veterinary Laboratories Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,14 +24,11 @@ import org.specs2.runner.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class RandomSpec extends Specification{
 	"RandomSpec" should {
-	  
 	  val random = Random
 	  
 		"generate integers" in {
-		  
 		  "of a number in the correct range" in {
 		    val draw1 = random.nextInt(5)
-		    
 		    draw1 must beBetween(0,4)
 		  }
 		  
@@ -44,7 +41,6 @@ class RandomSpec extends Specification{
 			}
 		    
 			val requiredIterations = 1000
-					
 		    val sampledInts = sample(List(), 0, requiredIterations)
 		    
 		    (sampledInts.count(_ == 0) must beBetween(200, 300)) and
@@ -56,7 +52,6 @@ class RandomSpec extends Specification{
 		}
 		
 		"generate doubles" in {
-		  
 		  "in the correct range" in {
 		    val draw1 = random.nextDouble(0.5, 2.5)
 		    val draw2 = random.nextDouble(1.5, 2.5)
@@ -69,7 +64,6 @@ class RandomSpec extends Specification{
 		}
 		
 		"generate booleans" in {
-		  
 		  "with the correct ratio of true/false" in {
 		    def booleanSample(samples: List[Boolean], p: Probability, currentIt: Int, numIts: Int): List[Boolean] = {
 		      if(currentIt >= numIts) samples

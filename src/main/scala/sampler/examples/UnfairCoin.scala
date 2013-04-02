@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Crown Copyright 
+ * Copyright (c) 2012-2013 Crown Copyright 
  *                    Animal Health and Veterinary Laboratories Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -74,7 +74,6 @@ object CoinModel extends CoinModelBase {
 }
 
 trait CoinModelBase extends ABCModel with Serializable{
-  val statistics: StatisticsComponent
   implicit val abcRandom: Random
   val modelRandom: Random
 
@@ -86,8 +85,6 @@ trait CoinModelBase extends ABCModel with Serializable{
 		particleRetries = 100, 
 		particleChunking = 10
 	)
-	
-	//implicit def toProbability(d: Double) = Probability(d)
 	
     case class Parameters(pHeads: Double) extends ParametersBase with Serializable{
       lazy val kernel = Samplable.normal(0,0.5)

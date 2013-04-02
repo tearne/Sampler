@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Crown Copyright 
+ * Copyright (c) 2012-2013 Crown Copyright 
  *                    Animal Health and Veterinary Laboratories Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +16,8 @@
  */
 
 package sampler.math
+
+import scala.language.implicitConversions
 
 case class Probability(val value: Double){
   assert(value <= 1 && value >= 0, value + "is not a valid probability")
