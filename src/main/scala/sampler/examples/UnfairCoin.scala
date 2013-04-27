@@ -18,7 +18,6 @@
 package sampler.examples
 
 import java.nio.file.{Paths, Files}
-import sampler.run.cluster.Runner
 import sampler.run.SerialRunner
 import sampler.abc.ABCMethod
 import sampler.r.QuickPlot
@@ -33,15 +32,28 @@ import sampler.io.CSVTableWriter
 import sampler.data.Types._
 import sampler.math.Random
 import sampler.run.JobRunner
+import sampler.run.Aborter
+import akka.actor.ActorSystem
+import sampler.run.akka.FailFastRunner
 
 object UnfairCoinApp extends UnfairCoinFactory with UnfairCoin with App {
-	if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))
-	//else System.setProperty("akka.remote.netty.port", "2555")
+	println("object")
 }
 
 trait UnfairCoinFactory{
+//	if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))
+//	else {
+		System.setProperty("akka.remote.netty.port", "2555")
+		println("Port 2555")
+//	}
+	
+	println("trait")
+	
 	val abcMethod = new ABCMethod(CoinModel)
-	val runner: JobRunner = new SerialRunner
+	//TODO won't we always be using an aborter, so should build in?
+//	val runner: JobRunner = new SerialRunner(new Aborter)
+	val system = ActorSystem("ClusterSystem")
+	val runner: JobRunner = new FailFastRunner(system)
 }
 
 trait UnfairCoin {
@@ -58,7 +70,7 @@ trait UnfairCoin {
 
 	val headsDensity = finalPopulation.get.map(_.pHeads)
 	
-	val wd = Paths.get("egout", "coinTossABC")
+	val wd = Paths.get("egout", "UnfairCoin")
 	Files.createDirectories(wd)
 	new CSVTableWriter(wd.resolve("results.csv"), true)(
 		Column(headsDensity, "TruePos")
@@ -79,11 +91,11 @@ trait CoinModelBase extends ABCModel with Serializable{
 
 	val observations = Observations(10,7)
     val meta = new ABCMeta(
-    	reps = 100000,
-		numParticles = 1000, 
+    	reps = 10000,
+		numParticles = 100, 
 		refinements = 10,
 		particleRetries = 100, 
-		particleChunking = 10
+		particleChunking = 50
 	)
 	
     case class Parameters(pHeads: Double) extends ParametersBase with Serializable{

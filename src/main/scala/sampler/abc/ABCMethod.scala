@@ -27,6 +27,9 @@ import sampler.data.Empirical
 import java.io.FileOutputStream
 import java.io.ObjectOutputStream
 import sampler.math.Random
+import sampler.run.Aborter
+import sampler.run.UserInitiatedAbortException
+import scala.util.Try
 
 class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
   import model._
@@ -39,16 +42,15 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 	private def generateParticles(
 			samplablePop: Empirical[Parameters],
 			quantity: Int, 
-			tolerance: Double
-	): Option[Population] = {
+			tolerance: Double,
+			aborter: Aborter
+	): Population = {
 		@tailrec
-		def nextParticle(failures: Int = 0): Option[Particle[Parameters]] = {
-			//if(!keepGoing.get) None
-			//else  
-			if(failures >= meta.particleRetries) {
-				println(s"Failed after $failures trials")
-				None
-			}
+		def nextParticle(failures: Int = 0): Particle[Parameters] = {
+			if(aborter.isAborted) 
+				throw new UserInitiatedAbortException("Abort flag was set")
+			else if(failures >= meta.particleRetries) 
+				throw new UserInitiatedAbortException(s"Aborted after the maximum of $failures trials")
 			else{
 				def getScores(params: Parameters) = {
 					val modelWithMetric = samplableModel(params, observations).map(_.distanceTo(observations))
@@ -75,20 +77,13 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 				} yield(Particle(params, weight, fitScores.min))
 				
 				res match {
-					case s: Some[Particle[Parameters]] => s
+					case Some(p: Particle[Parameters]) => p
 					case None => nextParticle(failures + 1)
 				}
 			}
 		}
 		
-		val particles = (1 to quantity)
-			.view
-			.map(i => nextParticle())
-			.takeWhile(_.isDefined)
-			.map(_.get)
-			.force
-		if(particles.size == quantity) Some(particles)
-		else None
+		(1 to quantity).map(i => nextParticle()) 
 	}
 	
 	def evolveOnce(
@@ -109,15 +104,18 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 		// Prepare samplable Parameters from current population
 		val samplable: Empirical[Parameters] = pop.groupBy(_.value).map{case (k,v) => (k,v.map(_.weight).sum)}.toEmpiricalWeighted
 		
-		val jobs = jobSizes.map(numParticles => Job{() =>
-			generateParticles(samplable, numParticles, tolerance)
+		val jobs = jobSizes.map(numParticles => Job{(aborter:Aborter) =>
+			generateParticles(samplable, numParticles, tolerance, aborter)
 		}).toList
-		val runnerResults: Seq[Option[Population]] = runner.apply(jobs)
+		val runnerResults: Seq[Try[Population]] = runner.apply(jobs)
+		//val t = Try(runnerResults.map(_.get))
 		
-    // TODO: Assertion belongs in generateParticles
-    //assert(runnerResults.size == meta.numParticles)
-
-    if(runnerResults.contains(None)) None else Some(runnerResults.flatMap(_.get))
+		if(runnerResults.contains()) None else Some()
+		
+	    // TODO: Assertion belongs in generateParticles
+	    //assert(runnerResults.size == meta.numParticles)
+	
+	    if(runnerResults.contains(None)) None else Some(runnerResults.flatMap(_.get))
 	}
 		
 	def run(
@@ -134,6 +132,7 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 				previousTolerance: Double
 		): Option[Population] = {
 			println("Generations left to go "+numAttempts)
+			//TODO report a failure ratio at the end of a generation
 			if(numAttempts == 0) Some(pop)
 			else{
 				evolveOnce(pop, runner, currentTolerance) match {

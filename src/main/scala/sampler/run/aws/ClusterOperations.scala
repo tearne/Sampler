@@ -1,4 +1,4 @@
-package sampler.run.cluster.util
+package sampler.run.aws
 
 import scala.sys.process.Process
 import java.nio.file.{Paths, Path, Files}

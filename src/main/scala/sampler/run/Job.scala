@@ -19,24 +19,35 @@ package sampler.run
 
 import scala.annotation.tailrec
 import java.util.concurrent.atomic.AtomicBoolean
+import scala.util.Try
+import scala.concurrent.Promise
+import scala.util.Success
 
-case class Job[T](f: () => Option[T]){
-	def run() = f()
+case class Job[T](f: (Aborter) => T){
+	def run(aborter: Aborter) = f(aborter)
+}
+
+class UserInitiatedAbortException(message: String = null, cause: Throwable = null) extends RuntimeException(message, cause)
+
+class Aborter{
+	val b = new AtomicBoolean(false)
+	def abort {b.set(true)}
+	def isAborted = b.get()
 }
 
 trait JobRunner{
-	def apply[T](jobs: Seq[Job[T]]): Seq[Option[T]]
+	def apply[T](jobs: Seq[Job[T]]): Seq[Try[T]]
 }
 
-class SerialRunner extends JobRunner{
-	def apply[T](jobs: Seq[Job[T]]): Seq[Option[T]] = {
+class SerialRunner(aborter: Aborter) extends JobRunner{
+	def apply[T](jobs: Seq[Job[T]]): Seq[Try[T]] = {
 		val indexedJobs = jobs.toIndexedSeq
 		
 		@tailrec
-		def doJobsFrom(idx: Int, acc: Seq[Option[T]]): Seq[Option[T]] = {
+		def doJobsFrom(idx: Int, acc: Seq[Try[T]]): Seq[Try[T]] = {
 			if(idx == jobs.size) acc.reverse
 			else {
-				doJobsFrom(idx + 1, indexedJobs(idx).run() +: acc)
+				doJobsFrom(idx + 1, Try(indexedJobs(idx).run(aborter)) +: acc)
 			}
 		}
 		
@@ -44,8 +55,8 @@ class SerialRunner extends JobRunner{
 	}
 }
 
-class ParallelCollectionRunner extends JobRunner{
-	def apply[T](jobs: Seq[Job[T]]): Seq[Option[T]] = {
-		jobs.par.map(_.run).seq
+class ParallelCollectionRunner(aborter: Aborter) extends JobRunner{
+	def apply[T](jobs: Seq[Job[T]]): Seq[Try[T]] = {
+		jobs.par.map(job => Try(job.run(aborter))).seq
 	}
 }

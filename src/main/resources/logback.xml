@@ -2,26 +2,27 @@
 <configuration>
 	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
 	    <encoder>
-	    	<pattern>%-4relative [%thread] %-5level %logger{35} - %msg %n</pattern>
+	    	<pattern>%date{ISO8601} %-5level %logger{36} %X{akkaSource} - %msg%n</pattern>
 	    </encoder>
 	</appender>
 	     
 	<appender name="SAMPLER" class="ch.qos.logback.core.FileAppender">
 	    <File>Sampler.log</File>
 		<encoder>
-			<pattern>%date{ISO8601} %-5level %logger{36} %X{sourceThread} - %msg%n</pattern>
+			<pattern>%date{ISO8601} %-5level %logger{36} %X{akkaSource} - %msg%n</pattern>
 		</encoder>
 	</appender>
 	
 	<appender name="LIB" class="ch.qos.logback.core.FileAppender">
 	    <File>Lib.log</File>
 		<encoder>
-			<pattern>%date{ISO8601} %-5level %logger{36} %X{sourceThread} - %msg%n</pattern>
+			<pattern>%date{ISO8601} %-5level %logger{36} %X{akkaSource} - %msg%n</pattern>
 		</encoder>
 	</appender>
 	     
 	<logger name="sampler" level="ALL" additivity="false">
 		<appender-ref ref="SAMPLER" />
+		<appender-ref ref="STDOUT" />
 	</logger>     
 	
 	<root>

@@ -1,17 +1,10 @@
-package sampler.run.cluster.util
-
-import java.nio.file.Path
-import scala.sys.process.Process
+package sampler.run.aws
 import scala.collection.JavaConversions._
 import java.nio.file.{Paths,Files}
-import com.amazonaws.services.ec2.AmazonEC2Client
 import com.amazonaws.auth.PropertiesCredentials
-import com.amazonaws.services.ec2.model.DescribeInstancesRequest
-import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClient
-import java.nio.charset.Charset
 import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model.GetObjectRequest
-import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Region
 import com.amazonaws.regions.Regions;
 
 object S3Download extends App{

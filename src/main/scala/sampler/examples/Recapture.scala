@@ -28,15 +28,15 @@ import sampler.data.Types.Column
 import sampler.io.CSVTableWriter
 import sampler.r.ScriptRunner
 import org.apache.commons.math3.distribution.BetaDistribution
-import sampler.run.cluster.Runner
 import sampler.run.JobRunner
+import sampler.run.Aborter
 
 object RecaptureApp extends RecaptureFactory with Recapture with App
 
 trait RecaptureFactory{
 	val abcMethod = new ABCMethod(RecaptureModel)
 	val abcRandom = Random
-	val runner: JobRunner = new SerialRunner
+	val runner: JobRunner = new SerialRunner(new Aborter)
 }
 
 trait Recapture{

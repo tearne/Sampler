@@ -1,4 +1,4 @@
-package sampler.run.cluster.util
+package sampler.run.aws
 
 import java.nio.file.Paths
 import com.amazonaws.auth.PropertiesCredentials
