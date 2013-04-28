@@ -25,13 +25,18 @@ case class Delegate(request: Request, worker: ActorRef)
 class Master extends Actor with ActorLogging {
 	case class BroadcastWorkAvailable()
 	
-	val workerMgr: ActorRef = context.actorOf(Props[Broadcaster])
+	val broadcasterName = "broadcaster"
+	val broadcaster: ActorRef = context.actorOf(Props[Broadcaster], broadcasterName)
 	
 	val requestQ = collection.mutable.Queue.empty[Request]
 	val jobIDIterator = Iterator.iterate(0)(_ + 1)
 	
 	import context.dispatcher
 	context.system.scheduler.schedule(1.seconds, 5.second, self, BroadcastWorkAvailable)
+	
+	override def postStop(){
+		log.info("Post stop")
+	}
 	
 	def receive = {
 		case job: Job[_] => 
@@ -41,18 +46,15 @@ class Master extends Actor with ActorLogging {
   		  	requestQ += newReq 
   		  	log.info("New job request enqueued, id {}, |Q|={}", jobID, requestQ.size)
 		case BroadcastWorkAvailable =>
-			if(!requestQ.isEmpty) workerMgr ! Broadcast(WorkAvailable)
+			if(!requestQ.isEmpty) broadcaster ! Broadcast(WorkAvailable)
 		case WorkerIdle =>
 			log.info("Idle msg from {}",sender)
 			val worker = sender
 			if(!requestQ.isEmpty) 
 				context.actorOf(Props[RequestSupervisor]) ! Delegate(requestQ.dequeue, worker)
 		case AbortAll =>
-			//Not all children are Monitors, but non-Monitors 
-			//should just ignore the Abort message
-			//TODO Use ActorSelection
-			log.info("Aborting all work")
-			context.children.foreach(_ ! Abort)
+			//All children other than the broadcaster are work monitors
+			context.children.filter(_.path.name != broadcasterName).foreach(_ ! Abort)
 			requestQ.clear
 	}
 }

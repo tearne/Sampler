@@ -37,11 +37,10 @@ class RequestSupervisor extends Actor with ActorLogging{
 		case ConfirmationReminder => 
 			log.info("Confirmation reminder")
 			failed(request)
+		//TODO test
 		case MemberRemoved(m) =>
-			val workerPath = Seq("user", "worker")
-			val potentialWorker = context.actorFor(RootActorPath(m.address) / workerPath)
-			if(worker == potentialWorker) {
-				log.info("Member {} removed", m)
+			if(worker.path.address == m.address) {
+				log.info(s"Worker lost at $m, resubmitting work to master")
 				failed(request)
 			}
 		case WorkRejected => failed(request)
@@ -69,7 +68,7 @@ class RequestSupervisor extends Actor with ActorLogging{
 			context.stop(self)
 		case result: Try[_] =>
 			request.requestor ! result
-			//TODO better mechanism for new work after job completeion 
+			//TODO better mechanism for asking for new work after job completion 
 			log.info("Job done")
 			context.parent.tell(WorkerIdle, worker)
 			context.stop(self)

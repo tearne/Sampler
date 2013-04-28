@@ -40,22 +40,10 @@ object WorkerApp extends App with HostnameSetup{
  */
 class Worker extends Actor with ActorLogging{
 	case class Done()
-//	val monitor = new JavaSysMon
-//	case class Status(numCPU: Int, load: Float, memFree: Float){
-//		override def toString() = f"Status(numCPU=$numCPU, load=$load%.2f, memFree=$memFree%.2f)"
-//	}
 	
 	def receive = idle
 	
 	def idle: Receive = {
-		//TODO if can enforce one JVM per node, then multiple 
-		// jobs can be accepted depending on number of cores
-//		case NodeCapability =>
-//			sender ! Status(
-//	  	  		monitor.numCpus(),
-//	  	  		monitor.cpuTimes.getIdleMillis.asInstanceOf[Float] / monitor.cpuTimes.getTotalMillis,
-//	  	  		monitor.physical.getFreeBytes.asInstanceOf[Float] / monitor.physical.getTotalBytes
-//	  	  	)
 		case StatusRequest => sender ! WorkerIdle
 		case WorkAvailable => sender ! WorkerIdle
 		case request: Request =>

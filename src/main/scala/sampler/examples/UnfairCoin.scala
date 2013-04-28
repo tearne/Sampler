@@ -47,8 +47,6 @@ trait UnfairCoinFactory{
 		println("Port 2555")
 //	}
 	
-	println("trait")
-	
 	val abcMethod = new ABCMethod(CoinModel)
 	//TODO won't we always be using an aborter, so should build in?
 //	val runner: JobRunner = new SerialRunner(new Aborter)

@@ -14,15 +14,18 @@ case class Broadcast(msg: Any)
 class Broadcaster extends Actor with ActorLogging{
 	val cluster = Cluster(context.system)
   	override def preStart(): Unit = cluster.subscribe(self, classOf[ClusterDomainEvent])
-	override def postStop(): Unit = cluster.unsubscribe(self)
+	override def postStop(): Unit = {
+		cluster.unsubscribe(self)
+		log.info("Post stop")
+	}
 	
 	val workers = collection.mutable.Set.empty[ActorRef]
-	val workerPath = Seq("user", "worker")
+	val workerPath = Seq("user", "workerroot")
 	
 	def attemptWorkerHandshake(m: Member){
 		val workerCandidate = context.actorFor(RootActorPath(m.address) / workerPath)
 		workerCandidate ! StatusRequest
-		log.debug("Attempting handshake with potential worker {}", workerCandidate)
+		log.info("Attempting handshake with potential worker {}", workerCandidate)
 	}
 	
 	def receive = {
@@ -31,10 +34,11 @@ class Broadcaster extends Actor with ActorLogging{
   		case MemberUp(m) => 
   		  	log.info("Member {} is up", m)
   		  	attemptWorkerHandshake(m)
+  		//TODO Test this
   		case MemberRemoved(m) =>
-  		  	val potentialWorker = context.actorFor(RootActorPath(m.address) / workerPath)
-  		  	log.info("Downref = "+potentialWorker.path)
-  		  	if(workers.contains(potentialWorker)) workers -= potentialWorker
+  			val down = workers.filter(_.path.address == m.address)
+  			workers --= down
+  		  	log.info(s"Workers down $down")
   		  	log.info("{} workers in pool", workers.size)
   		  	
   		case WorkerBusy =>
@@ -46,7 +50,7 @@ class Broadcaster extends Actor with ActorLogging{
   			context.parent.forward(WorkerIdle)
 		
   		case Broadcast(msg) => 
-			log.info("Broadcasting {} on behalf of {}", msg, sender)
+			log.info("Broadcasting {} on behalf of {} to known workers {}", msg, sender, workers)
 			workers.foreach(_.forward(msg))
 	}
 }
