@@ -41,7 +41,7 @@ object FlockMortality extends App{
 	val abcMethod = new ABCMethod(FlockMortalityModel)
 	val encapPopulation0 = abcMethod.init
 	implicit val modelRandom = FlockMortalityModel.modelRandom 
-	val finalPopulation = abcMethod.run(encapPopulation0, new SerialRunner(new Aborter)).get.map(_.value)//.population
+	val finalPopulation = abcMethod.run(encapPopulation0, SerialRunner()).get.map(_.value)//.population
 
 	val posteriors = Map(
 		"Beta" -> finalPopulation.map(_.beta).toEmpiricalSeq,

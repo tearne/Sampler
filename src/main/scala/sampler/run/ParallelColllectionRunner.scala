@@ -15,10 +15,15 @@
  * limitations under the License.
  */
 
-package sampler.abc
+package sampler.run
 
-import sampler.data.Samplable
+import scala.util.Try
 
-trait Prior[A] extends Samplable[A]{
-	def density(value: A): Double
+class ParallelCollectionRunner(aborter: Aborter) extends JobRunner{
+	def apply[T](jobs: Seq[Job[T]]): Seq[Try[T]] = {
+		jobs.par.map(job => Try(job.run(aborter))).seq
+	}
+}
+object ParallelCollectionRunner{
+	def apply() = new ParallelCollectionRunner(new Aborter)
 }

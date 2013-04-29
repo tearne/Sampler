@@ -38,25 +38,3 @@ class Aborter{
 trait JobRunner{
 	def apply[T](jobs: Seq[Job[T]]): Seq[Try[T]]
 }
-
-class SerialRunner(aborter: Aborter) extends JobRunner{
-	def apply[T](jobs: Seq[Job[T]]): Seq[Try[T]] = {
-		val indexedJobs = jobs.toIndexedSeq
-		
-		@tailrec
-		def doJobsFrom(idx: Int, acc: Seq[Try[T]]): Seq[Try[T]] = {
-			if(idx == jobs.size) acc.reverse
-			else {
-				doJobsFrom(idx + 1, Try(indexedJobs(idx).run(aborter)) +: acc)
-			}
-		}
-		
-		doJobsFrom(0, Nil)
-	}
-}
-
-class ParallelCollectionRunner(aborter: Aborter) extends JobRunner{
-	def apply[T](jobs: Seq[Job[T]]): Seq[Try[T]] = {
-		jobs.par.map(job => Try(job.run(aborter))).seq
-	}
-}

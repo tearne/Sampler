@@ -49,9 +49,9 @@ trait UnfairCoinFactory{
 	
 	val abcMethod = new ABCMethod(CoinModel)
 	//TODO won't we always be using an aborter, so should build in?
-//	val runner: JobRunner = new SerialRunner(new Aborter)
-	val system = ActorSystem("ClusterSystem")
-	val runner: JobRunner = new FailFastRunner(system)
+	val runner: JobRunner = SerialRunner()
+//	val system = ActorSystem("ClusterSystem")
+//	val runner: JobRunner = new FailFastRunner(system)
 }
 
 trait UnfairCoin {

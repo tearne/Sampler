@@ -15,10 +15,27 @@
  * limitations under the License.
  */
 
-package sampler.abc
+package sampler.run
 
-import sampler.data.Samplable
+import scala.util.Try
+import scala.annotation.tailrec
 
-trait Prior[A] extends Samplable[A]{
-	def density(value: A): Double
+class SerialRunner(aborter: Aborter) extends JobRunner{
+	def apply[T](jobs: Seq[Job[T]]): Seq[Try[T]] = {
+		val indexedJobs = jobs.toIndexedSeq
+		
+		@tailrec
+		def doJobsFrom(idx: Int, acc: Seq[Try[T]]): Seq[Try[T]] = {
+			if(idx == jobs.size) acc.reverse
+			else {
+				doJobsFrom(idx + 1, Try(indexedJobs(idx).run(aborter)) +: acc)
+			}
+		}
+		
+		doJobsFrom(0, Nil)
+	}
+}
+
+object SerialRunner{
+	def apply() = new SerialRunner(new Aborter)
 }
