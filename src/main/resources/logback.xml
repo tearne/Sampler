@@ -7,14 +7,14 @@
 	</appender>
 	     
 	<appender name="SAMPLER" class="ch.qos.logback.core.FileAppender">
-	    <File>Sampler.log</File>
+	    <File>log/Sampler.log</File>
 		<encoder>
 			<pattern>%date{ISO8601} %-5level %logger{36} %X{akkaSource} - %msg%n</pattern>
 		</encoder>
 	</appender>
 	
 	<appender name="LIB" class="ch.qos.logback.core.FileAppender">
-	    <File>Lib.log</File>
+	    <File>log/Lib.log</File>
 		<encoder>
 			<pattern>%date{ISO8601} %-5level %logger{36} %X{akkaSource} - %msg%n</pattern>
 		</encoder>

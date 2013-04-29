@@ -30,9 +30,11 @@ import sampler.math.Random
 import sampler.run.Aborter
 import sampler.run.UserInitiatedAbortException
 import scala.util.Try
+import org.slf4j.LoggerFactory
 
 class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
-  import model._
+	import model._
+	val log = LoggerFactory.getLogger(this.getClass)
 	
 	def init: Population = {
 		val numParticles = model.meta.numParticles
@@ -93,13 +95,11 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 	)(implicit r: Random): Option[Population] = {
 		import model.meta
 		
-		println("Now working on tolerance = "+tolerance)
-		
 		// Number of particles to be generated per job?
 		val jobSizes = (1 to meta.numParticles)
 			.grouped(meta.particleChunking)
 			.map(_.size).toList
-		println(s"JobSizes: $jobSizes")
+		log.info(s"Tolerance = $tolerance, Job sizes = $jobSizes")
 		
 		// Prepare samplable Parameters from current population
 		val samplable: Empirical[Parameters] = pop.groupBy(_.value).map{case (k,v) => (k,v.map(_.weight).sum)}.toEmpiricalWeighted
@@ -108,13 +108,7 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 			generateParticles(samplable, numParticles, tolerance, aborter)
 		}).toList
 		val runnerResults: Seq[Try[Population]] = runner.apply(jobs)
-		//val t = Try(runnerResults.map(_.get))
 		
-		if(runnerResults.contains()) None else Some()
-		
-	    // TODO: Assertion belongs in generateParticles
-	    //assert(runnerResults.size == meta.numParticles)
-	
 	    if(runnerResults.contains(None)) None else Some(runnerResults.flatMap(_.get))
 	}
 		
@@ -131,13 +125,13 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 				currentTolerance: Double,
 				previousTolerance: Double
 		): Option[Population] = {
-			println("Generations left to go "+numAttempts)
+			log.info(numAttempts + " generations remaining")
 			//TODO report a failure ratio at the end of a generation
 			if(numAttempts == 0) Some(pop)
 			else{
 				evolveOnce(pop, runner, currentTolerance) match {
 					case None =>
-						println(s"Failed to refine current population, evolving within previous tolerance $previousTolerance")
+						log.warn(s"Failed to refine current population, evolving within previous tolerance $previousTolerance")
 						refine(pop, numAttempts - 1, previousTolerance, previousTolerance)
 					case Some(newPop) =>
 						//Next tolerance is the median of the previous best for each particle

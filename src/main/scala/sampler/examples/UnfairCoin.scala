@@ -36,9 +36,9 @@ import sampler.run.Aborter
 import akka.actor.ActorSystem
 import sampler.run.akka.FailFastRunner
 
-object UnfairCoinApp extends UnfairCoinFactory with UnfairCoin with App {
-	println("object")
-}
+object UnfairCoinApp extends App 
+	with UnfairCoinFactory 
+	with UnfairCoin
 
 trait UnfairCoinFactory{
 //	if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))
