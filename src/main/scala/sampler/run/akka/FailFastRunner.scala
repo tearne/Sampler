@@ -19,13 +19,17 @@ import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
 
+case class Batch[T](jobs: Seq[Job[T]]){
+	val size = jobs.size
+}
+
 class FailFastRunner(val system: ActorSystem) extends JobRunner{
 	implicit val timeout = Timeout(5.minutes)
 	import system.dispatcher
 	
 	def apply[T](jobs: Seq[Job[T]]): Seq[Try[T]] = {
 		val ff = system.actorOf(Props[FailFastActor])
-		Await.result((ff ? jobs).mapTo[Seq[Try[T]]], timeout.duration)
+		Await.result((ff ? Batch(jobs)).mapTo[Seq[Try[T]]], timeout.duration)
 	}
 }
 
@@ -36,11 +40,10 @@ class FailFastActor extends Actor with ActorLogging{
 	def receive = startup
 	
 	def startup: Receive = {
-		case jobs: Seq[Job[_]] => 
+		case b: Batch[_] => 
 			val client = sender
-			val numJobs = jobs.size
-			jobs.foreach(master ! _)
-			context.become(running(client, numJobs))
+			b.jobs.foreach(master ! _)
+			context.become(running(client, b.size))
 	}
 	
 	def running(client: ActorRef, numJobs: Int): Receive = {
