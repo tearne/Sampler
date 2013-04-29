@@ -33,25 +33,18 @@ import sampler.data.Types._
 import sampler.math.Random
 import sampler.run.JobRunner
 import sampler.run.Aborter
-import akka.actor.ActorSystem
 import sampler.run.akka.FailFastRunner
+import sampler.run.akka.ActorSystem
 
 object UnfairCoinApp extends App 
 	with UnfairCoinFactory 
 	with UnfairCoin
 
 trait UnfairCoinFactory{
-//	if(args.nonEmpty) System.setProperty("akka.remote.netty.port", args(0))
-//	else {
-		System.setProperty("akka.remote.netty.port", "2555")
-		println("Port 2555")
-//	}
-	
 	val abcMethod = new ABCMethod(CoinModel)
-	//TODO won't we always be using an aborter, so should build in?
-	val runner: JobRunner = SerialRunner()
-//	val system = ActorSystem("ClusterSystem")
-//	val runner: JobRunner = new FailFastRunner(system)
+//	val runner: JobRunner = SerialRunner()
+	val system = ActorSystem.withPortFallback("ClusterSystem")
+	val runner: JobRunner = new FailFastRunner(system)
 }
 
 trait UnfairCoin {

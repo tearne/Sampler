@@ -26,12 +26,12 @@ import com.typesafe.config.ConfigFactory
 object ActorSystem {
 	val log = LoggerFactory.getLogger(this.getClass())
 	
-	def apply(name: String): AkkaSystem = {
+	def withPortFallback(name: String): AkkaSystem = {
 		try{
 				AkkaSystem(name)
 		} catch {
 			case e: ChannelException => {
-				log.error("Failed to bind to configured port, falling back to random: "+e.getLocalizedMessage())
+				log.warn("Failed to bind to configured port, falling back to random: "+e.getLocalizedMessage())
 				System.setProperty("akka.remote.netty.port", "0")
 				ConfigFactory.invalidateCaches()
 				AkkaSystem(name)

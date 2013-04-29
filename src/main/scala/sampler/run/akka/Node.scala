@@ -72,7 +72,7 @@ object NodeApp extends App{
 	
 	val numCores = Runtime.getRuntime().availableProcessors()
 	
-	val system = ActorSystem("ClusterSystem")
+	val system = ActorSystem.withPortFallback("ClusterSystem")
 	val rootNodeActor = system.actorOf(Props[Node], name="workerroot")
 	log.info("Started "+rootNodeActor)
 }
