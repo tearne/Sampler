@@ -129,8 +129,8 @@ object Samplable{
 		def density(value: Double) = d.density(value)
 	}
 	
-	def bernouliTrial(probSuccess: Samplable[Probability])(implicit r: Random) = new Samplable[Boolean]{
-	  def sample() = r.nextBoolean(probSuccess.sample)
+	def bernouliTrial(probSuccess: Probability)(implicit r: Random) = new Samplable[Boolean]{
+	  def sample() = r.nextBoolean(probSuccess)
 	}
 	
 	def coinToss()(implicit r: Random) = new Samplable[Boolean] {
