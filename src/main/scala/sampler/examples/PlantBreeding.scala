@@ -16,10 +16,11 @@
 package sampler.examples
 
 import scala.annotation.tailrec
-
 import sampler.data.Samplable
 import sampler.math.Probability
 import sampler.math.Random
+import sampler.data.Empirical._
+import sampler.math.StatisticsComponent
 
 
 /*
@@ -29,7 +30,9 @@ import sampler.math.Random
  * in the final plant?
  */
 
-case class Species(chromosomeLengths: Int*)
+case class Species(chromosomeLengths: Int*){
+	val size = chromosomeLengths.sum
+}
 
 class Gene(val name: String) extends AnyVal
 
@@ -41,44 +44,79 @@ case class Locus(chromosome: Int, leftTid: Boolean, cM: Int, species: Species){
 	val nextCM = if(chromosomeLengths(chromosome) == cM - 1) None else Some(cM + 1)
 }
 
-case class Chromatid(genes: Seq[Gene])
+case class Chromatid(genes: Seq[Gene]){
+	val size = genes.size
+	def countOf(gene: Gene) = genes.count(_ == gene)
+}
 object Chromatid{
 	def ofGenes(gene: Gene, length: Int) = Chromatid(Seq.fill(length)(gene))
 }
 
-case class Chromosome(left: Chromatid, right: Chromatid)
+case class Chromosome(left: Chromatid, right: Chromatid){
+	assert(left.size == right.size)
+	def countOf(gene: Gene) = left.countOf(gene) + right.countOf(gene)
+}
 object Chromosome {
 	def ofGenes(gene: Gene, length: Int) = Chromosome(
-			Chromatid.ofGenes(gene, length),
-			Chromatid.ofGenes(gene, length)
-			)
+		Chromatid.ofGenes(gene, length),
+		Chromatid.ofGenes(gene, length)
+	)
 }
 
-case class Plant(chromosomes: Seq[Chromosome]){
-	def geneAt(locus: Locus) = //TODO this is a mess
+case class Plant(chromosomes: Seq[Chromosome], species: Species){ self =>
+	def geneAt(locus: Locus) = {
 		if(locus.leftTid) chromosomes(locus.chromosome).left.genes(locus.cM)
 		else chromosomes(locus.chromosome).right.genes(locus.cM)
-	
-	def satisfiesTrait(tr: Trait) =
+	}
+		
+	def satisfiesTrait(tr: Trait) = 
 		geneAt(Locus(tr.chromosome, true, tr.cM, tr.species)) == tr.gene || geneAt(Locus(tr.chromosome, false, tr.cM, tr.species)) == tr.gene
 	
-	def selectsFor(traits: Seq[Trait]) = 
-		!traits.exists(t => !satisfiesTrait(t))
-		
-	def crossWith(other: Plant): Plant = {
-		//check same species
-		//TODO
+	def selectFor(traits: Seq[Trait]) = {
+		!traits.exists(t => !satisfiesTrait(t) || t.species != species)
 	}
+	
+	def countOf(gene: Gene) = {
+		chromosomes.foldLeft(0)(_ + _.countOf(gene))
+	}
+	
+	implicit val r = Random
+	def recombinationModel = Samplable.bernouliTrial(Probability(0.01))
+	def coin = Samplable.coinToss
+	
+	def x(that: Plant): Plant = {
+			assert(this.species == that.species)
+			@tailrec
+			def gameteBuilder(parent: Plant, prevLocus: Locus, acc: Seq[Gene] = Nil): Chromatid = {
+				prevLocus.nextCM match{
+					case None => Chromatid(acc)
+					case Some(nextCM) => 
+						val amOnLeftChromosome = (prevLocus.leftTid ^ recombinationModel.sample)
+						val nextLocus = prevLocus.copy(leftTid = amOnLeftChromosome, cM = nextCM)
+						val nextGene = parent.geneAt(nextLocus)
+						gameteBuilder(parent, nextLocus, nextGene +: acc)
+				}
+			}
+			
+			val offSpringChromosomes = (0 to species.chromosomeLengths.size).map(chromosomeIdx => Chromosome(
+				gameteBuilder(this, Locus(chromosomeIdx, coin.sample, 0, species)),
+				gameteBuilder(that, Locus(chromosomeIdx, coin.sample, 0, species))
+			))
+			
+			Plant(offSpringChromosomes, species)
+		}
+	
 }
 object Plant {
 	def ofGenes(gene: Gene, species: Species) = Plant(
-			species.chromosomeLengths.map(length => Chromosome.ofGenes(gene, length))
-			)
+		species.chromosomeLengths.map(length => Chromosome.ofGenes(gene, length)),
+		species
+	)
 }
 
 
 
-class PlantBreeding {
+object PlantBreeding extends App{
 	val species = Species(100,200,300)
 	
 	val pVGene = new Gene("PreferredVariety")
@@ -94,41 +132,20 @@ class PlantBreeding {
 			//No contribution on third chromosome
 	)
 	
+	val pV = Plant.ofGenes(pVGene, species)
+	val donor1 = Plant.ofGenes(d1Gene, species)
+	val donor2 = Plant.ofGenes(d2Gene, species)
 	
-	val PV = Plant.ofGenes(pVGene, species)
-	val Donor1 = Plant.ofGenes(d1Gene, species)
-	val Donor2 = Plant.ofGenes(d2Gene, species)
+	def cross (a: Samplable[Plant], b: Samplable[Plant], traits: Seq[Trait]): Samplable[Plant] = {
+		a.combine(b, (p1: Plant,p2: Plant) => p1 x p2).filter(_.selectFor(traits))
+	}
 	
+	implicit def toSamplabe(p: Plant) = Samplable.diracDelta(p)
 	implicit val r = Random
-	def recombinationModel = Samplable.bernouliTrial(Probability(0.01))
-	def coin = Samplable.coinToss
 
-	def cross(mum: Plant, dad: Plant): Plant = {
-		@tailrec
-		def gameteBuilder(parent: Plant, prevLocus: Locus, acc: Seq[Gene] = Nil): Chromatid = {
-			prevLocus.nextCM match{
-				case None => Chromatid(acc)
-				case Some(nextCM) => 
-					val amOnLeftChromosome = (prevLocus.leftTid ^ recombinationModel.sample)
-					val nextLocus = prevLocus.copy(leftTid = amOnLeftChromosome, cM = nextCM)
-					val nextGene = parent.geneAt(nextLocus)
-					gameteBuilder(parent, nextLocus, nextGene +: acc)
-			}
-		}
-		
-		val offSpringChromosomes = (0 to species.chromosomeLengths.size).map(chromosomeIdx => Chromosome(
-			gameteBuilder(mum, Locus(chromosomeIdx, coin.sample, 0, species)),
-			gameteBuilder(dad, Locus(chromosomeIdx, coin.sample, 0, species))
-		))
-		
-		Plant(offSpringChromosomes)
-	}
+	val cross1 = cross(pV, donor1, traits.filter(_.gene == d1Gene))
+	val cross2 = cross(cross1, donor2, traits)
 	
-	def offspringSampler(mum: Plant, dad: Plant) = new Samplable[Plant] {
-		def sample(): Plant = cross(mum, dad)
-	}//.filter(_.selectsFor(traits))
-	
-	def d1d2Offspring = {
-		
-	}
+	val result = (0 to 100000).map(_ => cross2.sample.countOf(pVGene).toDouble / species.size).toEmpiricalSeq
+	println(StatisticsComponent.mean(result))
 }

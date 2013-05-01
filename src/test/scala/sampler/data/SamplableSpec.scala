@@ -141,20 +141,16 @@ class SamplableSpec extends Specification {
 		  import sampler.data.Empirical._
 		  import sampler.math.Probability
 
-		  "that returns only true when all probabilities equal one" in {
-		    val probs = Seq(1, 1, 1).map(value => Probability(value))
-		    
-		    val model = Samplable.bernouliTrial(probs.toEmpiricalSeq)
+		  "that consistently returns true when probability equals one" in {
+		    val model = Samplable.bernouliTrial(Probability(1))
 		    
 		    val result = (1 to 10).map(_ => model.sample)
 		    
 		    result.count(_ == true) mustEqual 10
 		  }
 		  
-		  "that returns only false when all probabilities equal zero" in {
-		    val probs = Seq(0, 0, 0).map(value => Probability(value))
-		    
-		    val model = Samplable.bernouliTrial(probs.toEmpiricalSeq)
+		  "that consistently returns false when probability equals zero" in {
+		    val model = Samplable.bernouliTrial(Probability(0))
 		    
 		    val result = (1 to 10).map(_ => model.sample)
 		    
@@ -162,9 +158,7 @@ class SamplableSpec extends Specification {
 		  }
 		  
 		  "that returns results in the correct proportion given supplied probabilities" in {
-		    val probs = Seq(0.8, 0.8, 0.8).map(value => Probability(value))
-		    
-		    val model = Samplable.bernouliTrial(probs.toEmpiricalSeq)
+		    val model = Samplable.bernouliTrial(Probability(0.8))
 		    
 		    val result = (1 to 1000).map(_ => model.sample)
 		    
