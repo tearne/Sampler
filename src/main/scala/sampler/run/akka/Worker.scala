@@ -29,7 +29,7 @@ object WorkerApp extends App with HostnameSetup{
 		System.setProperty("akka.remote.netty.port", args(0))
 		ConfigFactory.invalidateCaches()
 	}
-	val system = ActorSystem("ClusterSystem")
+	val system = ActorSystem.withPortFallback("ClusterSystem")
 	system.actorOf(Props[Worker], name = "worker")
 }
 

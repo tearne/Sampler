@@ -12,7 +12,7 @@ import sampler.run.UserInitiatedAbortException
 
 object Test extends App{
 	System.setProperty("akka.remote.netty.port", "2553")
-	val system = ActorSystem("ClusterSystem")
+	val system = ActorSystem.withPortFallback("ClusterSystem")
 	//val master = system.actorOf(Props[Master], name = "worker")
 	
 	val jobs = (1 to 10).map{i => 
