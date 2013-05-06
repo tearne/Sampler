@@ -24,7 +24,7 @@ import sampler.math.StatisticsComponent
 import sampler.r.QuickPlot
 import java.nio.file.Paths
 import java.nio.file.Files
-import scala.util.{Try, Success, Failure}
+//import scala.util.{Try, Success, Failure}
 import sampler.data.Empirical
 import sampler.data.EmpiricalSeq
 import sampler.data.SerialSampleBuilder
@@ -55,25 +55,40 @@ object Breeding extends App{
 			//No traits of interest on third chromosome
 	)
 	
-	def cross (a: Samplable[Plant], b: Samplable[Plant], traits: Seq[Trait] = Nil): EmpiricalSeq[BredPlant] = {
-		val sampler = a.combine(b, (p1: Plant, p2: Plant) => p1.crossAndSelect(p2, traits)).filter(_.isDefined)
+	def cross (a: RootPlant, b: RootPlant): EmpiricalSeq[Offspring] = {
+		val sampler = new Samplable[Offspring]{
+			def sample = a.crossAndSelect(b, Nil)
+		}
 		import Empirical._
-		SerialSampleBuilder(sampler)(_.size == 2000).flatten.toEmpiricalSeq
+		implicit val r = Random
+		SerialSampleBuilder(sampler)(_.size == 1000).toEmpiricalSeq
+	}
+	
+	def backCross (a: Samplable[Offspring], traits: Seq[Trait] = Nil): EmpiricalSeq[Offspring] = {
+		val sampler = a.filter(_.isInstanceOf[Successful]).map(a1 =>a1.crossAndSelect(prefVar, traits))
+		import Empirical._
+		implicit val r = Random
+		SerialSampleBuilder(sampler)(_.size == 1000).toEmpiricalSeq
 	}
 	
 	
 	val d1d2_f1   	= cross(donor1, donor2)
 	println(s"size = ${d1d2_f1.values.size}")
 	
-	val d1d2pV_f1 	= cross(d1d2_f1, prefVar, traits)
+	val d1d2pV_f1 	= backCross(d1d2_f1, traits)
 	println(s"size = ${d1d2pV_f1.values.size}")
 
-	val bc1 		= cross(d1d2pV_f1, prefVar, traits)
+	val bc1			= backCross(d1d2pV_f1, traits)
 	println(s"size = ${bc1.values.size}")
 	
-	val proportionPV = bc1.values.map(i => {
-		bc1.sample.countOf(prefVar).toDouble / species.numGenes
-	}).toEmpiricalSeq
+	//TODO Why need this everywhere??
+	implicit val r = Random
+	val proportionPV = bc1.values.collect{case s: Successful => 
+		s.countOf(prefVar).toDouble / species.numGenes
+	}.toEmpiricalSeq //TODO why must pass as empirical seq?
+	
+	val probSuccess = 1 - bc1.probabilities(Failure)
+	println(s"Prob success in last cross $probSuccess")
 	
 	val wd = Paths.get("egout","Breeding")
 	Files.createDirectories(wd)
@@ -129,7 +144,7 @@ object Biology{
 		private def recombinationModel = Samplable.bernouliTrial(Probability(0.1))
 		private def coin = Samplable.coinToss
 		
-		def crossAndSelect(that: Plant, traits: Seq[Trait]): Option[BredPlant] = {
+		def crossAndSelect(that: Plant, traits: Seq[Trait]): Offspring = {
 			assert(this.species == that.species)
 			@tailrec
 			def gameteBuilder(parent: Plant, locus: Locus, acc: Seq[RootPlant] = Nil): Chromatid = {
@@ -148,7 +163,7 @@ object Biology{
 			}
 			
 			@tailrec
-			def loop(acc: IndexedSeq[Chromosome] = IndexedSeq.empty[Chromosome], idx: Int = 0): Option[BredPlant] = {
+			def loop(acc: IndexedSeq[Chromosome] = IndexedSeq.empty[Chromosome], idx: Int = 0): Offspring = {
 				val coin1 = coin.sample
 				val coin2 = coin.sample
 				val g1 = gameteBuilder(this, Locus(idx, coin1, 0, species))
@@ -156,8 +171,8 @@ object Biology{
 				val newChromosome = Chromosome(g1,g2)
 				val newAcc = acc :+ newChromosome
 				
-				if(idx == species.numChromosomes - 1) Some(BredPlant(newAcc, species))
-				else if(traits.filter(_.chromosome == idx).exists(tr => !newChromosome.satisfiesTrait(tr))) None
+				if(idx == species.numChromosomes - 1) Successful(newAcc, species)
+				else if(traits.filter(_.chromosome == idx).exists(tr => !newChromosome.satisfiesTrait(tr))) Failure
 				else loop(newAcc, idx + 1)
 			}
 			
@@ -167,13 +182,18 @@ object Biology{
 	case class RootPlant(name: String, species: Species) extends Plant{
 		def geneAt(l: Locus) = this
 	}
-	case class BredPlant(chromosomes: Seq[Chromosome], species: Species) extends Plant{
+	trait Offspring extends Plant
+	case class Successful(chromosomes: Seq[Chromosome], species: Species) extends Offspring{
 		def geneAt(locus: Locus) = 
 			if(locus.leftTid) chromosomes(locus.chromosome).left.genes(locus.cM)
 			else chromosomes(locus.chromosome).right.genes(locus.cM)
 
 		def countOf(gene: RootPlant) = 
 			chromosomes.foldLeft(0)(_ + _.countOf(gene))
+	}
+	object Failure extends Offspring{
+		val species: Species = null
+		def geneAt(l: Locus) = throw new RuntimeException("TODO, this is ugly")
 	}
 
 	implicit class RootPlantAsSamplable(p: RootPlant) extends Samplable[RootPlant]{
