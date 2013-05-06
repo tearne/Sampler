@@ -25,6 +25,9 @@ import sampler.r.QuickPlot
 import java.nio.file.Paths
 import java.nio.file.Files
 import scala.util.{Try, Success, Failure}
+import sampler.data.Empirical
+import sampler.data.EmpiricalSeq
+import sampler.data.SerialSampleBuilder
 
 
 /*
@@ -40,30 +43,36 @@ object Breeding extends App{
 	//Number of centimorgan per chromosome
 	val species = Species(100,200,300)
 	
-	val prefVar = RootPlant("PreferredVariety", species)
-	val donor1  = RootPlant("Donor1", species)
-	val donor2  = RootPlant("Donor2", species)
+	val prefVar = RootPlant("PV", species)
+	val donor1  = RootPlant("D1", species)
+	val donor2  = RootPlant("D2", species)
 	
 	//Traits which will be selected for
 	val traits = Seq(
-			Trait(0,60, donor1, species),
-			Trait(1,160, donor2, species),
-			Trait(1,20, donor1, species)
+			Trait(0,30, donor1, species),
+			Trait(1,60, donor2, species),
+			Trait(1,120, donor1, species)
 			//No traits of interest on third chromosome
 	)
 	
-	def cross (a: Samplable[Plant], b: Samplable[Plant], traits: Seq[Trait] = Nil): Samplable[BredPlant] = {
-		a.combine(b, (p1: Plant, p2: Plant) => p1 x p2).filter(p => Selector(p, traits).isDefined)
+	def cross (a: Samplable[Plant], b: Samplable[Plant], traits: Seq[Trait] = Nil): EmpiricalSeq[BredPlant] = {
+		val sampler = a.combine(b, (p1: Plant, p2: Plant) => p1.crossAndSelect(p2, traits)).filter(_.isDefined)
+		import Empirical._
+		SerialSampleBuilder(sampler)(_.size == 2000).flatten.toEmpiricalSeq
 	}
 	
-	val d1d2_f1   	= cross(donor1, donor2)
-	val d1d2pV_f1 	= cross(d1d2_f1, prefVar, traits)
-	val bc1 		= cross(d1d2pV_f1, prefVar, traits)
 	
-	val proportionPV = (0 to 10).map(i => {
-		val proportion = bc1.sample.countOf(prefVar).toDouble / species.size
-		println("Done "+i+" got "+proportion)
-		proportion
+	val d1d2_f1   	= cross(donor1, donor2)
+	println(s"size = ${d1d2_f1.values.size}")
+	
+	val d1d2pV_f1 	= cross(d1d2_f1, prefVar, traits)
+	println(s"size = ${d1d2pV_f1.values.size}")
+
+	val bc1 		= cross(d1d2pV_f1, prefVar, traits)
+	println(s"size = ${bc1.values.size}")
+	
+	val proportionPV = bc1.values.map(i => {
+		bc1.sample.countOf(prefVar).toDouble / species.numGenes
 	}).toEmpiricalSeq
 	
 	val wd = Paths.get("egout","Breeding")
@@ -79,7 +88,8 @@ object Biology{
 	implicit val r = Random
 	
 	case class Species(chromosomeLengths: Int*){
-		val size = 2 * chromosomeLengths.sum
+		val numChromosomes = chromosomeLengths.size
+		val numGenes = 2 * chromosomeLengths.sum
 	}
 	
 	case class Locus(chromosome: Int, leftTid: Boolean, cM: Int, species: Species){
@@ -93,6 +103,7 @@ object Biology{
 	case class Chromatid(genes: Seq[RootPlant]){
 		val size = genes.size
 		def countOf(gene: RootPlant) = genes.count(_ == gene)
+		override def toString = genes.map(_.name).toString
 	}
 	object Chromatid{
 		def ofGenes(gene: RootPlant, length: Int) = Chromatid(Seq.fill(length)(gene))
@@ -101,6 +112,8 @@ object Biology{
 	case class Chromosome(left: Chromatid, right: Chromatid){
 		assert(left.size == right.size)
 		def countOf(gene: RootPlant) = left.countOf(gene) + right.countOf(gene)
+		def satisfiesTrait(tr: Trait) = 
+			left.genes(tr.cM) == tr.gene || right.genes(tr.cM) == tr.gene
 	}
 	object Chromosome {
 		def ofGenes(gene: RootPlant, length: Int) = Chromosome(
@@ -113,10 +126,10 @@ object Biology{
 		val species: Species
 		def geneAt(l: Locus): RootPlant
 		
-		private def recombinationModel = Samplable.bernouliTrial(Probability(0.01))
+		private def recombinationModel = Samplable.bernouliTrial(Probability(0.1))
 		private def coin = Samplable.coinToss
 		
-		def x (that: Plant): BredPlant = {
+		def crossAndSelect(that: Plant, traits: Seq[Trait]): Option[BredPlant] = {
 			assert(this.species == that.species)
 			@tailrec
 			def gameteBuilder(parent: Plant, locus: Locus, acc: Seq[RootPlant] = Nil): Chromatid = {
@@ -134,14 +147,21 @@ object Biology{
 				}
 			}
 			
+			@tailrec
+			def loop(acc: IndexedSeq[Chromosome] = IndexedSeq.empty[Chromosome], idx: Int = 0): Option[BredPlant] = {
+				val coin1 = coin.sample
+				val coin2 = coin.sample
+				val g1 = gameteBuilder(this, Locus(idx, coin1, 0, species))
+				val g2 = gameteBuilder(that, Locus(idx, coin2, 0, species))
+				val newChromosome = Chromosome(g1,g2)
+				val newAcc = acc :+ newChromosome
+				
+				if(idx == species.numChromosomes - 1) Some(BredPlant(newAcc, species))
+				else if(traits.filter(_.chromosome == idx).exists(tr => !newChromosome.satisfiesTrait(tr))) None
+				else loop(newAcc, idx + 1)
+			}
 			
-			val offSpringChromosomes = (0 until species.chromosomeLengths.size).map(chromosomeIdx => {
-				val g1 = gameteBuilder(this, Locus(chromosomeIdx, coin.sample, 0, species))
-				val g2 = gameteBuilder(that, Locus(chromosomeIdx, coin.sample, 0, species))
-				Chromosome(g1,g2)
-			})
-			
-			BredPlant(offSpringChromosomes, species)	
+			loop()
 		}
 	}
 	case class RootPlant(name: String, species: Species) extends Plant{
