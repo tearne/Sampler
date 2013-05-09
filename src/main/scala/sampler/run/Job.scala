@@ -23,18 +23,37 @@ import scala.util.Try
 import scala.concurrent.Promise
 import scala.util.Success
 
-case class Job[T](f: (Aborter) => T){
+case class Abortable[T](f: (Aborter) => T){
 	def run(aborter: Aborter) = f(aborter)
 }
+trait LocalJobRunner{
+	def apply[T](jobs: Seq[Abortable[T]]): Seq[Try[T]]
+}
 
-class UserInitiatedAbortException(message: String = null, cause: Throwable = null) extends RuntimeException(message, cause)
 
-class Aborter{
+trait JobRequest[Ret]
+
+class UserInitiatedAbortException(message: String = null, cause: Throwable = null) 
+	extends RuntimeException(message, cause)
+
+trait Aborter{
+	def abort: Unit
+	def isAborted: Boolean
+}
+
+class SimpleAborter extends Aborter{
 	val b = new AtomicBoolean(false)
 	def abort {b.set(true)}
 	def isAborted = b.get()
 }
 
-trait JobRunner{
-	def apply[T](jobs: Seq[Job[T]]): Seq[Try[T]]
+class WrappedAborter(ab: AtomicBoolean) extends Aborter{
+	def abort {ab.set(true)}
+	def isAborted = ab.get()
 }
+
+trait ActorJob[T]
+trait ActorJobRunner{
+	def apply[T](jobs: Seq[ActorJob[T]]): Seq[Try[T]]
+}
+

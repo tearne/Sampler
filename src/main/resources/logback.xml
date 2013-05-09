@@ -29,9 +29,9 @@
 	     
 	<logger name="sampler.run" level="ALL" additivity="false">
 		<appender-ref ref="SAMPLER-RUN" />
-		<!-- 
+		 
 		<appender-ref ref="STDOUT" />
-		-->
+		
 	</logger>     
 	
 	<logger name="sampler" level="ALL" additivity="false">

@@ -15,27 +15,21 @@
  * limitations under the License.
  */
 
-package sampler.run.akka
+package sampler.run.akka.client
 
-import akka.actor.{ActorSystem => AkkaSystem}
-import scala.util.Try
-import org.jboss.netty.channel.ChannelException
-import org.slf4j.LoggerFactory
-import com.typesafe.config.ConfigFactory
+import java.util.concurrent.atomic.AtomicBoolean
 
-object ActorSystem {
-	val log = LoggerFactory.getLogger(this.getClass())
+trait Runner{
+	def run: PartialFunction[Any, Any]
+
+	var aborted: AtomicBoolean = _
+
+	def abort() {aborted.set(true)}
+	def isAborted = aborted.get
 	
-	def withPortFallback(name: String): AkkaSystem = {
-		try{
-				AkkaSystem(name)
-		} catch {
-			case e: ChannelException => {
-				log.warn("Failed to bind to configured port, falling back to random: "+e.getLocalizedMessage())
-				System.setProperty("akka.remote.netty.port", "0")
-				ConfigFactory.invalidateCaches()
-				AkkaSystem(name)
-			} 
-		}
+	def apply(payload: Any) = {
+		//TODO Check not running
+		aborted = new AtomicBoolean(false)
+		run(payload)
 	}
 }

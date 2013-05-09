@@ -19,11 +19,11 @@ package sampler.run
 
 import scala.util.Try
 
-class ParallelCollectionRunner(aborter: Aborter) extends JobRunner{
-	def apply[T](jobs: Seq[Job[T]]): Seq[Try[T]] = {
+class ParallelCollectionRunner(aborter: Aborter) extends LocalJobRunner{
+	def apply[T](jobs: Seq[Abortable[T]]): Seq[Try[T]] = {
 		jobs.par.map(job => Try(job.run(aborter))).seq
 	}
 }
 object ParallelCollectionRunner{
-	def apply() = new ParallelCollectionRunner(new Aborter)
+	def apply() = new ParallelCollectionRunner(new SimpleAborter)
 }

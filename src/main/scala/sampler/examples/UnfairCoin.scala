@@ -31,24 +31,36 @@ import sampler.run.SerialRunner
 import sampler.io.CSVTableWriter
 import sampler.data.Types._
 import sampler.math.Random
-import sampler.run.JobRunner
 import sampler.run.Aborter
-import sampler.run.akka.FailFastRunner
-import sampler.run.akka.ActorSystem
+import sampler.run.akka.AkkaUtil
+import sampler.run.ActorJobRunner
+import sampler.run.akka.client.FailFastRunner
+import sampler.run.akka.worker.NodeApp
+import sampler.run.akka.worker.RunnerFactory
+import sampler.run.akka.client.Runner
+import sampler.data.Empirical
+import sampler.run.WrappedAborter
+import sampler.abc.ABCUtil._
+import sampler.abc.ABCUtil
 
 object UnfairCoinApp extends App 
 	with UnfairCoinFactory 
 	with UnfairCoin
+	
+object UnfairCoinRemoteWorker extends App{
+	ABCUtil.startWorkerNode(CoinModel)
+}
 
 trait UnfairCoinFactory{
 	val abcMethod = new ABCMethod(CoinModel)
-//	val runner: JobRunner = SerialRunner()
-	val system = ActorSystem.withPortFallback("ClusterSystem")
-	val runner: JobRunner = new FailFastRunner(system)
+//	val system = AkkaUtil.systemWithPortFallback("ClusterSystem")
+	
+//	val tasker = new ABCUtil.ActorTasker(new FailFastRunner(system))
+	val tasker = new ABCUtil.LocalTasker(SerialRunner())
 }
 
 trait UnfairCoin {
-	val runner: JobRunner
+	val tasker: ABCUtil.Tasker
 	
 	val abcMethod: ABCMethod[CoinModel.type]
 	implicit val abcRandom = CoinModel.abcRandom
@@ -56,8 +68,7 @@ trait UnfairCoin {
 	val population0 = abcMethod.init
 	
 	//TODO Fix slightly nasty mapping to population values
-	val finalPopulation = abcMethod.run(population0, runner).map(_.map(_.value))
-//	runner.shutdown
+	val finalPopulation = abcMethod.run(population0, tasker).map(_.map(_.value))
 
 	val headsDensity = finalPopulation.get.map(_.pHeads)
 	
@@ -67,7 +78,7 @@ trait UnfairCoin {
 		Column(headsDensity, "TruePos")
 	)
 	
-	//QuickPlot.writeDensity(wd, "posterior", Map("data" -> headsDensity))
+	QuickPlot.writeDensity(wd, "posterior", Map("data" -> headsDensity.toEmpiricalSeq))
 }
 
 object CoinModel extends CoinModelBase {

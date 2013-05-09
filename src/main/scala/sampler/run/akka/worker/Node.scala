@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.run.akka
+package sampler.run.akka.worker
 
 import akka.actor.Actor
 import akka.actor.ActorLogging
@@ -24,14 +24,18 @@ import org.slf4j.LoggerFactory
 import com.typesafe.config.ConfigFactory
 import scala.util.Try
 import scala.util.{Success, Failure}
+import sampler.run.akka.client.Runner
+import sampler.run.akka.worker.StatusRequest
+import sampler.run.akka.worker.Worker
+import sampler.run.akka.AkkaUtil
 
 //case class Status(numCPU: Int, load: Float, memFree: Float){
 //	override def toString() = f"Status(numCPU=$numCPU, load=$load%.2f, memFree=$memFree%.2f)"
 //}
 
-class Node extends Actor with ActorLogging{
+class Node(runnerFactory: RunnerFactory) extends Actor with ActorLogging{
 	val numCores = Runtime.getRuntime().availableProcessors()
-	(1 to numCores).foreach(i => context.actorOf(Props[Worker]))
+	(1 to numCores).foreach(i => context.actorOf(Props(new Worker(runnerFactory.create))))
 	
 	log.info(s"Started $numCores workers")
 	
@@ -53,8 +57,12 @@ class Node extends Actor with ActorLogging{
 	}
 }
 
+trait RunnerFactory{
+	def create: Runner
+}
 
-object NodeApp extends App{
+//TODO can dom some kind of dependency injection thing for the factory instead of constructor?
+class NodeApp(runnerFactory: RunnerFactory){
 	val log = LoggerFactory.getLogger(this.getClass())
 	
 	if(ConfigFactory.load().getBoolean("cluster.inet-bind")){
@@ -70,9 +78,7 @@ object NodeApp extends App{
 	} else log.info("Binding with hostname in config")
 	ConfigFactory.invalidateCaches()
 	
-	val numCores = Runtime.getRuntime().availableProcessors()
-	
-	val system = ActorSystem.withPortFallback("ClusterSystem")
-	val rootNodeActor = system.actorOf(Props[Node], name="workerroot")
+	val system = AkkaUtil.systemWithPortFallback("ClusterSystem")
+	val rootNodeActor = system.actorOf(Props(new Node(runnerFactory)), name="workerroot")
 	log.info("Started "+rootNodeActor)
 }

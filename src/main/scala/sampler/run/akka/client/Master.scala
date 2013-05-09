@@ -15,26 +15,23 @@
  * limitations under the License.
  */
 
-package sampler.run.akka
+package sampler.run.akka.client
 
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
-import sampler.run.Job
-import akka.actor.Terminated
 import scala.concurrent.duration._
 import akka.actor.Props
+import akka.actor.actorRef2Scala
+import sampler.run.akka.worker.Abort
+import sampler.run.akka.worker.WorkerIdle
+import sampler.run.ActorJob
+import sampler.run.akka.worker.Broadcaster
 import scala.language.existentials
-import akka.actor.ActorSystem
-import sampler.run.Aborter
-import sampler.run.UserInitiatedAbortException
-import scala.util.Try
-import scala.concurrent.Await
-import akka.pattern.ask
-import akka.util.Timeout
-import scala.concurrent.Future
+import sampler.run.akka.worker.Broadcast
 
-case class Request(job: Job[_], requestor: ActorRef, jobID: Long)
+//TODO Request has request inside it?!!
+case class Request(job: ActorJob[_], requestor: ActorRef, jobID: Long)
 case class WorkAvailable()
 case class AbortAll()
 case class Delegate(request: Request, worker: ActorRef)
@@ -56,7 +53,7 @@ class Master extends Actor with ActorLogging {
 	}
 	
 	def receive = {
-		case job: Job[_] => 
+		case job: ActorJob[_] => 
 			val requestor = sender
 			val jobID = jobIDIterator.next
   		  	val newReq = Request(job, requestor, jobID)
@@ -65,7 +62,7 @@ class Master extends Actor with ActorLogging {
 		case BroadcastWorkAvailable =>
 			if(!requestQ.isEmpty) broadcaster ! Broadcast(WorkAvailable)
 		case WorkerIdle =>
-			log.info("Idle msg from {}",sender)
+			log.info("Idle msg from {}.  {} Jobs in Q",sender, requestQ.size)
 			val worker = sender
 			if(!requestQ.isEmpty) 
 				context.actorOf(Props[RequestSupervisor]) ! Delegate(requestQ.dequeue, worker)

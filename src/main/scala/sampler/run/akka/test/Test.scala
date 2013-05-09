@@ -15,27 +15,23 @@
  * limitations under the License.
  */
 
-package sampler.run
+package sampler.run.akka.test
 
-import scala.util.Try
-import scala.annotation.tailrec
+import sampler.run.ActorJob
+import sampler.run.akka.client.FailFastRunner
+import sampler.run.akka.AkkaUtil
 
-class SerialRunner(aborter: Aborter) extends LocalJobRunner{
-	def apply[T](jobs: Seq[Abortable[T]]): Seq[Try[T]] = {
-		val indexedJobs = jobs.toIndexedSeq
-		
-		@tailrec
-		def doJobsFrom(idx: Int, acc: Seq[Try[T]]): Seq[Try[T]] = {
-			if(idx == jobs.size) acc.reverse
-			else {
-				doJobsFrom(idx + 1, Try(indexedJobs(idx).run(aborter)) +: acc)
-			}
-		}
-		
-		doJobsFrom(0, Nil)
-	}
-}
+case class TestJob(i: Int) extends ActorJob[String]
 
-object SerialRunner{
-	def apply() = new SerialRunner(new SimpleAborter)
+object Test extends App{
+	val system = AkkaUtil.systemWithPortFallback("ClusterSystem")
+	
+	val jobs = (1 to 10).map{i => TestJob(i)}
+	
+	val result = new FailFastRunner(system).apply(jobs)
+	
+	println("*********************")
+	println("Result is ..."+result)
+	println("*********************")
+	
 }

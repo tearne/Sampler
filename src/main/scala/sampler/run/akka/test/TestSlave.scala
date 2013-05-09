@@ -15,27 +15,27 @@
  * limitations under the License.
  */
 
-package sampler.run
+package sampler.run.akka.test
 
-import scala.util.Try
-import scala.annotation.tailrec
+import sampler.run.UserInitiatedAbortException
+import sampler.run.akka.worker.RunnerFactory
+import sampler.run.akka.worker.NodeApp
+import sampler.run.akka.client.Runner
 
-class SerialRunner(aborter: Aborter) extends LocalJobRunner{
-	def apply[T](jobs: Seq[Abortable[T]]): Seq[Try[T]] = {
-		val indexedJobs = jobs.toIndexedSeq
-		
-		@tailrec
-		def doJobsFrom(idx: Int, acc: Seq[Try[T]]): Seq[Try[T]] = {
-			if(idx == jobs.size) acc.reverse
-			else {
-				doJobsFrom(idx + 1, Try(indexedJobs(idx).run(aborter)) +: acc)
-			}
-		}
-		
-		doJobsFrom(0, Nil)
-	}
+object TestSlave extends App{
+	val node = new NodeApp(new RunnerFactory{
+		def create = new TestRunner
+	})
 }
 
-object SerialRunner{
-	def apply() = new SerialRunner(new SimpleAborter)
+class TestRunner extends Runner{
+	def run = PartialFunction[Any, Any]{
+		case request: TestJob => 
+			if(request.i == 3) throw new RuntimeException("Induced exception")
+			(1 to 10000000).foreach{j => {
+				if(isAborted) throw new UserInitiatedAbortException("Abort flag set")
+				math.sqrt(j.toDouble)
+			}}
+			"Done"+request.i
+	}
 }
