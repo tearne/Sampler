@@ -11,39 +11,23 @@
 		<encoder>
 			<pattern>%date{ISO8601} %-5level %logger{36} %X{akkaSource} - %msg%n</pattern>
 		</encoder>
-	</appender>  
-	     
-	<appender name="SAMPLER-RUN" class="ch.qos.logback.core.FileAppender">
-	    <File>log/SamplerRun.log</File>
+	</appender>
+	
+	<appender name="FILE" class="ch.qos.logback.core.FileAppender">
+	    <File>log/Other.log</File>
 		<encoder>
 			<pattern>%date{ISO8601} %-5level %logger{36} %X{akkaSource} - %msg%n</pattern>
 		</encoder>
 	</appender>
 	
-	<appender name="LIB" class="ch.qos.logback.core.FileAppender">
-	    <File>log/Lib.log</File>
-		<encoder>
-			<pattern>%date{ISO8601} %-5level %logger{36} %X{akkaSource} - %msg%n</pattern>
-		</encoder>
-	</appender>
-	     
-	<logger name="sampler.run" level="ALL" additivity="false">
-		<appender-ref ref="SAMPLER-RUN" />
-		 
-		<appender-ref ref="STDOUT" />
-		
-	</logger>     
-	
-	<logger name="sampler" level="ALL" additivity="false">
+	<logger name="sampler" level="NULL" additivity="false">
 		<appender-ref ref="SAMPLER" />
-		<!-- 
 		<appender-ref ref="STDOUT" />
-		 -->
 	</logger>
 	
 	<root>
-	    <level value="INFO" />
+	    <level value="DEBUG" />
 	    <appender-ref ref="STDOUT" />
-	    <appender-ref ref="LIB" />
+	    <appender-ref ref="FILE" />
 	</root>
 </configuration>
