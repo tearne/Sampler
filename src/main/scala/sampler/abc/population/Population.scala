@@ -18,12 +18,12 @@
 package sampler.abc.population
 
 import scala.annotation.tailrec
-import sampler.run.Aborter
 import sampler.data.Empirical
 import sampler.run.UserInitiatedAbortException
 import sampler.data.SerialSampleBuilder
 import sampler.abc.ABCModel
 import sampler.abc.Particle
+import sampler.run.local.Aborter
 
 object Population {
 	def apply(model: ABCModel)(

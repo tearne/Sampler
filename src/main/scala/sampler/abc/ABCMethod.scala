@@ -27,7 +27,7 @@ import sampler.data.Empirical.RichIndexedSeq
 import sampler.data.Empirical.RichMapDouble
 import sampler.math.Probability
 import sampler.math.Random
-import sampler.abc.population.PopulationFactory
+import sampler.abc.population.PopulationBuilder
 
 class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 	import model._
@@ -40,7 +40,7 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 	
 	def evolveOnce(
 			pop: Population, 
-			pFactory: PopulationFactory,
+			pBuilder: PopulationBuilder,
 			tolerance: Double
 	)(implicit r: Random): Option[Population] = {
 		import model.meta
@@ -54,7 +54,7 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 		// Prepare samplable Parameters from current population
 		val population: Empirical[Parameters] = pop.groupBy(_.value).map{case (k,v) => (k,v.map(_.weight).sum)}.toEmpiricalWeighted
 		
-		val results: Seq[Try[Population]] = pFactory.run(model)(population, jobSizes, tolerance)
+		val results: Seq[Try[Population]] = pBuilder.run(model)(population, jobSizes, tolerance)
 		
 		//TODO Need to check correct number of results?
 	    if(results.contains(Failure)) None 
@@ -63,7 +63,7 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 		
 	def run(
 			pop: Population, 
-			pFactory: PopulationFactory
+			pBuilder: PopulationBuilder
 	)(implicit r: Random): Option[Population] = {
 		import model.meta
 		
@@ -78,7 +78,7 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 			//TODO report a failure ratio at the end of a generation
 			if(numAttempts == 0) Some(pop)
 			else{
-				evolveOnce(pop, pFactory, currentTolerance) match {
+				evolveOnce(pop, pBuilder, currentTolerance) match {
 					case None =>
 						log.warn(s"Failed to refine current population, evolving within previous tolerance $previousTolerance")
 						refine(pop, numAttempts - 1, previousTolerance, previousTolerance)

@@ -17,51 +17,46 @@
 
 package sampler.examples
 
-import java.nio.file.{Paths, Files}
-import sampler.run.SerialRunner
-import sampler.abc.ABCMethod
-import sampler.r.QuickPlot
-import sampler.abc.ABCModel
-import sampler.math._
-import sampler.data.Samplable
-import sampler.data.Empirical._
+import java.nio.file.Files
+import java.nio.file.Paths
 import sampler.abc.ABCMeta
+import sampler.abc.ABCMethod
+import sampler.abc.ABCModel
 import sampler.abc.Prior
-import sampler.run.SerialRunner
+import sampler.data.Empirical.RichIndexedSeq
+import sampler.data.Samplable
+import sampler.data.Types.Column
+import sampler.data.Types.DoubleColumn
 import sampler.io.CSVTableWriter
-import sampler.data.Types._
+import sampler.math.Probability
 import sampler.math.Random
-import sampler.run.Aborter
-import sampler.run.akka.PortFallbackSystem
-import sampler.run.ActorJobRunner
-import sampler.run.akka.FailFastRunner
-import sampler.run.akka.worker.Executor
-import sampler.data.Empirical
-import sampler.run.WrappedAborter
-import sampler.abc.population.ActorPopulationFactory
-import sampler.abc.population.PopulationFactory
-import sampler.run.akka.NodeApplication
-import sampler.abc.population.ActorRunner
+import sampler.math.StatisticsComponent
+import sampler.r.QuickPlot
+import sampler.run.actor.NodeApplication
+import sampler.run.actor.PortFallbackSystem
+import sampler.abc.population.ActorPopulationExecutor
+import sampler.abc.population.ActorPopulationDispatcher
+import sampler.abc.population.PopulationBuilder
 
 object UnfairCoinApplication extends App 
 	with UnfairCoinFactory 
 	with UnfairCoin
 	
 object UnfairCoinWorker extends App {
-	new NodeApplication(new ActorRunner(CoinModel))
+	new NodeApplication(new ActorPopulationExecutor(CoinModel))
 }
 
 trait UnfairCoinFactory{
 	val abcMethod = new ABCMethod(CoinModel)
 	
 	val system = PortFallbackSystem.systemWithPortFallback("ClusterSystem")
-	val pFactory = ActorPopulationFactory.tasker(system)
+	val pBuilder = ActorPopulationDispatcher(system)
 
 	//	val pFactory = new ABCUtil.LocalTasker(SerialRunner())
 }
 
 trait UnfairCoin {
-	val pFactory: PopulationFactory
+	val pBuilder: PopulationBuilder
 	
 	val abcMethod: ABCMethod[CoinModel.type]
 	implicit val abcRandom = CoinModel.abcRandom
@@ -69,7 +64,7 @@ trait UnfairCoin {
 	val population0 = abcMethod.init
 	
 	//TODO Fix slightly nasty mapping to population values
-	val finalPopulation = abcMethod.run(population0, pFactory).map(_.map(_.value))
+	val finalPopulation = abcMethod.run(population0, pBuilder).map(_.map(_.value))
 
 	val headsDensity = finalPopulation.get.map(_.pHeads)
 	
