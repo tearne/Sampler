@@ -23,8 +23,8 @@ import org.jboss.netty.channel.ChannelException
 import org.slf4j.LoggerFactory
 import com.typesafe.config.ConfigFactory
 
-object AkkaUtil {
-	val log = LoggerFactory.getLogger(this.getClass())
+object PortFallbackSystem {
+	val log = LoggerFactory.getLogger(PortFallbackSystem.this.getClass())
 	
 	def systemWithPortFallback(name: String): AkkaSystem = {
 		try{

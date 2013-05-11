@@ -15,21 +15,10 @@
  * limitations under the License.
  */
 
-package sampler.run.akka.client
+package sampler.io
 
-import java.util.concurrent.atomic.AtomicBoolean
+import org.slf4j.LoggerFactory
 
-trait Runner{
-	def run: PartialFunction[Any, Any]
-
-	var aborted: AtomicBoolean = _
-
-	def abort() {aborted.set(true)}
-	def isAborted = aborted.get
-	
-	def apply(payload: Any) = {
-		//TODO Check not running
-		aborted = new AtomicBoolean(false)
-		run(payload)
-	}
+trait SLF4JLogging{
+	lazy val log = LoggerFactory.getLogger(getClass)
 }

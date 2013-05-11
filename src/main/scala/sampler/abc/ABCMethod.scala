@@ -18,128 +18,16 @@
 package sampler.abc
 
 import scala.annotation.tailrec
-import sampler.data.Empirical._
-import sampler.math.Probability
-import sampler.data.SerialSampleBuilder
-import sampler.data.Empirical
-import java.io.FileOutputStream
-import java.io.ObjectOutputStream
-import sampler.math.Random
-import sampler.run.Aborter
-import sampler.run.UserInitiatedAbortException
-import scala.util.Try
-import org.slf4j.LoggerFactory
-import sampler.run.LocalJobRunner
-import sampler.run.Abortable
 import scala.util.Failure
 import scala.util.Success
-import sampler.run.ActorJobRunner
-import sampler.run.ActorJob
-import sampler.run.akka.client.Runner
-import sampler.run.WrappedAborter
-import scala.language.existentials
-import sampler.run.akka.worker.NodeApp
-import sampler.run.akka.worker.RunnerFactory
-
-object ABCUtil{
-	def generateParticles(model: ABCModel)(
-			samplablePop: Empirical[model.Parameters],
-			quantity: Int, 
-			tolerance: Double,
-			aborter: Aborter
-	): model.Population = {
-		import model._
-		@tailrec
-		def nextParticle(failures: Int = 0): Particle[Parameters] = {
-			if(aborter.isAborted) throw new UserInitiatedAbortException("Abort flag was set")
-			else if(failures >= meta.particleRetries) throw new UserInitiatedAbortException(s"Aborted after the maximum of $failures trials")
-			else{
-				def getScores(params: Parameters): IndexedSeq[Double] = {
-					val modelWithMetric = samplableModel(params, observations).map(_.distanceTo(observations))
-					val modelWithScores = SerialSampleBuilder(modelWithMetric)(_.size == meta.reps)
-						.filter(_ <= tolerance)
-					modelWithScores
-				}
-				
-				def getWeight(params: Parameters, numPassed: Int): Option[Double] = {
-					val fHat = numPassed.toDouble / meta.reps
-					val numerator = fHat * prior.density(params)
-					val denominator = samplablePop.probabilities.map{case (params0, probability) => 
-						probability.value * params0.perturbDensity(params)
-					}.sum
-					if(numerator > 0 && denominator > 0) Some(numerator / denominator)
-					else None	
-				}
-				
-				val res: Option[Particle[Parameters]] = for{
-					params <- Some(samplablePop.sample().perturb()) if prior.density(params) > 0
-					fitScores <- Some(getScores(params))
-					weight <- getWeight(params, fitScores.size) 
-				} yield(Particle(params, weight, fitScores.min))
-				
-				res match {
-					case Some(p: Particle[Parameters]) => p
-					case None => nextParticle(failures + 1)
-				}
-			}
-		}
-		
-		(1 to quantity).map(i => nextParticle()) 
-	}
-	
-	trait Tasker{
-		def run(model: ABCModel)(
-				pop: Empirical[model.Parameters], 
-				jobSizes: Seq[Int], 
-				tolerance: Double
-		): Seq[Try[model.Population]]
-	}
-	
-	class LocalTasker(runner: LocalJobRunner) extends Tasker{
-		def run(model: ABCModel)(pop: Empirical[model.Parameters], jobSizes: Seq[Int], tolerance: Double): Seq[Try[model.Population]] = {
-			val jobs = jobSizes.map{quantity => Abortable{aborter =>
-				generateParticles(model)(pop, quantity, tolerance, aborter)
-			}}
-			
-			runner.apply(jobs)
-		}
-	}
-	
-	case class ABCJob(samplablepopulation: Empirical[_], quantity: Int, tolerance: Double) extends ActorJob[ABCModel#Population]
-	
-	class ActorTasker(runner: ActorJobRunner) extends Tasker{
-		def run(model: ABCModel)(pop: Empirical[model.Parameters], jobSizes: Seq[Int], tolerance: Double): Seq[Try[model.Population]] = {
-			val jobs = jobSizes.map{quantity =>
-				ABCJob(pop, quantity, tolerance)
-			}
-			
-			//TODO Is there a way to eliminate this cast? 
-			//It's needed since the ABCActorJob[T] type T can't
-			//carry the model as required for model.Population
-			runner(jobs).asInstanceOf[Seq[Try[model.Population]]]
-		}
-	}
-	
-	def startWorkerNode(model: ABCModel){
-		new NodeApp(new ActorRunnerFactory(model))
-	}
-	
-	class ActorRunnerFactory(model: ABCModel) extends RunnerFactory{
-		def create = new ActorRunner(model)
-			
-		class ActorRunner(model: ABCModel) extends Runner{
-			def run = PartialFunction[Any, Any]{
-				case ABCJob(pop, quantity, tol) => 
-					generateParticles(model)(
-							pop.asInstanceOf[Empirical[model.Parameters]], 
-							quantity, 
-							tol, 
-							new WrappedAborter(aborted)
-					)
-			}
-		}
-	}
-}
+import scala.util.Try
+import org.slf4j.LoggerFactory
+import sampler.data.Empirical
+import sampler.data.Empirical.RichIndexedSeq
+import sampler.data.Empirical.RichMapDouble
+import sampler.math.Probability
+import sampler.math.Random
+import sampler.abc.population.PopulationFactory
 
 class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 	import model._
@@ -151,8 +39,8 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 	}
 	
 	def evolveOnce(
-		  pop: Population, 
-			tasker: ABCUtil.Tasker,
+			pop: Population, 
+			pFactory: PopulationFactory,
 			tolerance: Double
 	)(implicit r: Random): Option[Population] = {
 		import model.meta
@@ -166,21 +54,16 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 		// Prepare samplable Parameters from current population
 		val population: Empirical[Parameters] = pop.groupBy(_.value).map{case (k,v) => (k,v.map(_.weight).sum)}.toEmpiricalWeighted
 		
-//		val jobs = jobSizes.map(numParticles => 
-//			tasker.buildJob(population, numPaticles, tolerance) 
-//		}).toList
-//		val runnerResults: Seq[Try[Population]] = tasker.run(jobs)
-//		
-		val results: Seq[Try[Population]] = tasker.run(model)(population, jobSizes, tolerance)
+		val results: Seq[Try[Population]] = pFactory.run(model)(population, jobSizes, tolerance)
 		
-		//TOD check correct number of results?
+		//TODO Need to check correct number of results?
 	    if(results.contains(Failure)) None 
 	    else Some(results.collect{case Success(s) => s}.flatten)
 	}
 		
 	def run(
 			pop: Population, 
-			tasker: ABCUtil.Tasker
+			pFactory: PopulationFactory
 	)(implicit r: Random): Option[Population] = {
 		import model.meta
 		
@@ -195,7 +78,7 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 			//TODO report a failure ratio at the end of a generation
 			if(numAttempts == 0) Some(pop)
 			else{
-				evolveOnce(pop, tasker, currentTolerance) match {
+				evolveOnce(pop, pFactory, currentTolerance) match {
 					case None =>
 						log.warn(s"Failed to refine current population, evolving within previous tolerance $previousTolerance")
 						refine(pop, numAttempts - 1, previousTolerance, previousTolerance)

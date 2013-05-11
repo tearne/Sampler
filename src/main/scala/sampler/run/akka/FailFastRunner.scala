@@ -15,27 +15,29 @@
  * limitations under the License.
  */
 
-package sampler.run
+package sampler.run.akka
 
+import scala.concurrent.Await
+import scala.concurrent.duration.DurationInt
 import scala.util.Try
-import scala.annotation.tailrec
+import akka.actor.ActorSystem
+import akka.pattern.ask
+import akka.util.Timeout
+import sampler.run.ActorJob
+import sampler.run.ActorJobRunner
+import akka.actor.Props
+import sampler.run.akka.client.failfast.FailFastActor
+import sampler.run.akka.client.failfast.Batch
 
-class SerialRunner(aborter: Aborter) extends LocalJobRunner{
-	def apply[T](jobs: Seq[Abortable[T]]): Seq[Try[T]] = {
-		val indexedJobs = jobs.toIndexedSeq
-		
-		@tailrec
-		def doJobsFrom(idx: Int, acc: Seq[Try[T]]): Seq[Try[T]] = {
-			if(idx == jobs.size) acc.reverse
-			else {
-				doJobsFrom(idx + 1, Try(indexedJobs(idx).run(aborter)) +: acc)
-			}
-		}
-		
-		doJobsFrom(0, Nil)
+class FailFastRunner(system: ActorSystem) extends ActorJobRunner{
+	implicit val timeout = Timeout(5.minutes)
+	import system.dispatcher
+	
+	def apply[R](jobs: Seq[ActorJob[R]]): Seq[Try[R]] = {
+		val ff = system.actorOf(Props[FailFastActor])
+		Await.result((ff ? Batch(jobs)).mapTo[Seq[Try[R]]], timeout.duration)
 	}
 }
 
-object SerialRunner{
-	def apply() = new SerialRunner(Aborter())
-}
+
+

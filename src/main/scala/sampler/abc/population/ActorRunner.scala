@@ -15,27 +15,22 @@
  * limitations under the License.
  */
 
-package sampler.run
+package sampler.abc.population
 
-import scala.util.Try
-import scala.annotation.tailrec
+import sampler.abc.ABCModel
+import sampler.run.akka.worker.Executor
+import sampler.data.Empirical
+import sampler.run.WrappedAborter
 
-class SerialRunner(aborter: Aborter) extends LocalJobRunner{
-	def apply[T](jobs: Seq[Abortable[T]]): Seq[Try[T]] = {
-		val indexedJobs = jobs.toIndexedSeq
-		
-		@tailrec
-		def doJobsFrom(idx: Int, acc: Seq[Try[T]]): Seq[Try[T]] = {
-			if(idx == jobs.size) acc.reverse
-			else {
-				doJobsFrom(idx + 1, Try(indexedJobs(idx).run(aborter)) +: acc)
-			}
-		}
-		
-		doJobsFrom(0, Nil)
+class ActorRunner(model: ABCModel) extends Executor{
+	def run = PartialFunction[Any, Any]{
+		case Job(pop, quantity, tol) => 
+			Population(model)(
+					pop.asInstanceOf[Empirical[model.Parameters]], 
+					quantity, 
+					tol, 
+					//TODO this seems a bit ugly
+					new WrappedAborter(aborted)
+			)
 	}
-}
-
-object SerialRunner{
-	def apply() = new SerialRunner(Aborter())
 }

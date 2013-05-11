@@ -30,7 +30,6 @@ import sampler.run.akka.worker.Broadcaster
 import scala.language.existentials
 import sampler.run.akka.worker.Broadcast
 
-//TODO Request has request inside it?!!
 case class Request(job: ActorJob[_], requestor: ActorRef, jobID: Long)
 case class WorkAvailable()
 case class AbortAll()

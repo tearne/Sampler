@@ -32,35 +32,36 @@ import sampler.io.CSVTableWriter
 import sampler.data.Types._
 import sampler.math.Random
 import sampler.run.Aborter
-import sampler.run.akka.AkkaUtil
+import sampler.run.akka.PortFallbackSystem
 import sampler.run.ActorJobRunner
-import sampler.run.akka.client.FailFastRunner
-import sampler.run.akka.worker.NodeApp
-import sampler.run.akka.worker.RunnerFactory
-import sampler.run.akka.client.Runner
+import sampler.run.akka.FailFastRunner
+import sampler.run.akka.worker.Executor
 import sampler.data.Empirical
 import sampler.run.WrappedAborter
-import sampler.abc.ABCUtil._
-import sampler.abc.ABCUtil
+import sampler.abc.population.ActorPopulationFactory
+import sampler.abc.population.PopulationFactory
+import sampler.run.akka.NodeApplication
+import sampler.abc.population.ActorRunner
 
-object UnfairCoinApp extends App 
+object UnfairCoinApplication extends App 
 	with UnfairCoinFactory 
 	with UnfairCoin
 	
-object UnfairCoinRemoteWorker extends App{
-	ABCUtil.startWorkerNode(CoinModel)
+object UnfairCoinWorker extends App {
+	new NodeApplication(new ActorRunner(CoinModel))
 }
 
 trait UnfairCoinFactory{
 	val abcMethod = new ABCMethod(CoinModel)
-//	val system = AkkaUtil.systemWithPortFallback("ClusterSystem")
 	
-//	val tasker = new ABCUtil.ActorTasker(new FailFastRunner(system))
-	val tasker = new ABCUtil.LocalTasker(SerialRunner())
+	val system = PortFallbackSystem.systemWithPortFallback("ClusterSystem")
+	val pFactory = ActorPopulationFactory.tasker(system)
+
+	//	val pFactory = new ABCUtil.LocalTasker(SerialRunner())
 }
 
 trait UnfairCoin {
-	val tasker: ABCUtil.Tasker
+	val pFactory: PopulationFactory
 	
 	val abcMethod: ABCMethod[CoinModel.type]
 	implicit val abcRandom = CoinModel.abcRandom
@@ -68,7 +69,7 @@ trait UnfairCoin {
 	val population0 = abcMethod.init
 	
 	//TODO Fix slightly nasty mapping to population values
-	val finalPopulation = abcMethod.run(population0, tasker).map(_.map(_.value))
+	val finalPopulation = abcMethod.run(population0, pFactory).map(_.map(_.value))
 
 	val headsDensity = finalPopulation.get.map(_.pHeads)
 	

@@ -40,11 +40,8 @@ trait Aborter{
 	def abort: Unit
 	def isAborted: Boolean
 }
-
-class SimpleAborter extends Aborter{
-	val b = new AtomicBoolean(false)
-	def abort {b.set(true)}
-	def isAborted = b.get()
+object Aborter{
+	def apply() = new WrappedAborter(new AtomicBoolean(false))
 }
 
 class WrappedAborter(ab: AtomicBoolean) extends Aborter{

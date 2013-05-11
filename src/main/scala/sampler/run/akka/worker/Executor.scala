@@ -15,23 +15,21 @@
  * limitations under the License.
  */
 
-package sampler.run.akka.test
+package sampler.run.akka.worker
 
-import sampler.run.ActorJob
-import sampler.run.akka.client.FailFastRunner
-import sampler.run.akka.AkkaUtil
+import java.util.concurrent.atomic.AtomicBoolean
 
-case class TestJob(i: Int) extends ActorJob[String]
+trait Executor{
+	def run: PartialFunction[Any, Any]
 
-object Test extends App{
-	val system = AkkaUtil.systemWithPortFallback("ClusterSystem")
+	var aborted: AtomicBoolean = _
+
+	def abort() {aborted.set(true)}
+	def isAborted = aborted.get
 	
-	val jobs = (1 to 10).map{i => TestJob(i)}
-	
-	val result = new FailFastRunner(system).apply(jobs)
-	
-	println("*********************")
-	println("Result is ..."+result)
-	println("*********************")
-	
+	def apply(payload: Any) = {
+		//TODO Check not running
+		aborted = new AtomicBoolean(false)
+		run(payload)
+	}
 }

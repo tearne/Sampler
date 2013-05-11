@@ -15,27 +15,10 @@
  * limitations under the License.
  */
 
-package sampler.run
+package sampler.run.akka.client.failfast
 
-import scala.util.Try
-import scala.annotation.tailrec
+import sampler.run.ActorJob
 
-class SerialRunner(aborter: Aborter) extends LocalJobRunner{
-	def apply[T](jobs: Seq[Abortable[T]]): Seq[Try[T]] = {
-		val indexedJobs = jobs.toIndexedSeq
-		
-		@tailrec
-		def doJobsFrom(idx: Int, acc: Seq[Try[T]]): Seq[Try[T]] = {
-			if(idx == jobs.size) acc.reverse
-			else {
-				doJobsFrom(idx + 1, Try(indexedJobs(idx).run(aborter)) +: acc)
-			}
-		}
-		
-		doJobsFrom(0, Nil)
-	}
-}
-
-object SerialRunner{
-	def apply() = new SerialRunner(Aborter())
+case class Batch[R](jobs: Seq[ActorJob[R]]){
+	val size = jobs.size
 }

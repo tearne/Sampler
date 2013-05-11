@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2012-13 Crown Copyright 
- *                       Animal Health and Veterinary Laboratories Agency
+ * Copyright (c) 2012 Crown Copyright 
+ *                    Animal Health and Veterinary Laboratories Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,15 +15,17 @@
  * limitations under the License.
  */
 
-package sampler.run
+package sampler.abc.population
 
 import scala.util.Try
 
-class ParallelCollectionRunner(aborter: Aborter) extends LocalJobRunner{
-	def apply[T](jobs: Seq[Abortable[T]]): Seq[Try[T]] = {
-		jobs.par.map(job => Try(job.run(aborter))).seq
-	}
-}
-object ParallelCollectionRunner{
-	def apply() = new ParallelCollectionRunner(Aborter())
+import sampler.abc.ABCModel
+import sampler.data.Empirical
+
+trait PopulationFactory{
+	def run(model: ABCModel)(
+			pop: Empirical[model.Parameters], 
+			jobSizes: Seq[Int], 
+			tolerance: Double
+	): Seq[Try[model.Population]]
 }

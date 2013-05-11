@@ -22,7 +22,7 @@ import akka.actor.ActorLogging
 import scala.concurrent.Future
 import scala.util.Try
 import akka.actor.actorRef2Scala
-import sampler.run.akka.client.Runner
+import sampler.run.akka.worker.Executor
 import sampler.run.akka.client.WorkAvailable
 import sampler.run.akka.client.Request
 import sampler.run.ActorJob
@@ -48,7 +48,7 @@ case class WorkRejected()
  * and switches between idle and busy states, with the option 
  * of aborting work
  */
-class Worker(runner: Runner) extends Actor with ActorLogging{
+class Worker(runner: Executor) extends Actor with ActorLogging{
 	case class Done()
 	
 	def receive = idle

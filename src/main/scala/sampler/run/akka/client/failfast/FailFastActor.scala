@@ -15,10 +15,9 @@
  * limitations under the License.
  */
 
-package sampler.run.akka.client
 
-import scala.concurrent.Await
-import scala.concurrent.duration.DurationInt
+package sampler.run.akka.client.failfast
+
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -26,28 +25,11 @@ import scala.util.Try
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
-import akka.actor.ActorSystem
 import akka.actor.PoisonPill
 import akka.actor.Props
 import akka.actor.actorRef2Scala
-import akka.pattern.ask
-import akka.util.Timeout
-import sampler.run.ActorJob
-import sampler.run.ActorJobRunner
-
-class FailFastRunner(val system: ActorSystem) extends ActorJobRunner{
-	implicit val timeout = Timeout(5.minutes)
-	import system.dispatcher
-	
-	def apply[R](jobs: Seq[ActorJob[R]]): Seq[Try[R]] = {
-		val ff = system.actorOf(Props[FailFastActor])
-		Await.result((ff ? Batch(jobs)).mapTo[Seq[Try[R]]], timeout.duration)
-	}
-}
-
-case class Batch[R](jobs: Seq[ActorJob[R]]){
-	val size = jobs.size
-}
+import sampler.run.akka.client.AbortAll
+import sampler.run.akka.client.Master
 
 class FailFastActor extends Actor with ActorLogging{
 	val results = collection.mutable.Buffer[Try[Any]]()

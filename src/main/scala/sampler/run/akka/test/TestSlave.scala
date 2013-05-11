@@ -18,17 +18,14 @@
 package sampler.run.akka.test
 
 import sampler.run.UserInitiatedAbortException
-import sampler.run.akka.worker.RunnerFactory
-import sampler.run.akka.worker.NodeApp
-import sampler.run.akka.client.Runner
+import sampler.run.akka.worker.Executor
+import sampler.run.akka.NodeApplication
 
 object TestSlave extends App{
-	val node = new NodeApp(new RunnerFactory{
-		def create = new TestRunner
-	})
+	new NodeApplication(new TestRunner())
 }
 
-class TestRunner extends Runner{
+class TestRunner() extends Executor{
 	def run = PartialFunction[Any, Any]{
 		case request: TestJob => 
 			if(request.i == 3) throw new RuntimeException("Induced exception")
