@@ -25,11 +25,12 @@ import sampler.data.Empirical
 import sampler.run.actor.dispatch.FailFastDispatcher
 import sampler.run.actor.dispatch.Job
 import sampler.run.actor.dispatch.Dispatcher
+import sampler.abc.ABCMeta
 
 class ActorPopulationDispatcher(dispatcher: Dispatcher) extends PopulationBuilder{
-	def run(model: ABCModel)(pop: Empirical[model.Parameters], jobSizes: Seq[Int], tolerance: Double): Seq[Try[model.Population]] = {
+	def run(model: ABCModel)(pop: Empirical[model.Parameters], jobSizes: Seq[Int], tolerance: Double, meta: ABCMeta): Seq[Try[model.Population]] = {
 		val jobs = jobSizes.map{quantity =>
-			ABCJob(pop, quantity, tolerance)
+			ABCJob(pop, quantity, tolerance, meta)
 		}
 		
 		//TODO Is there a way to eliminate this cast? 
@@ -42,4 +43,4 @@ object ActorPopulationDispatcher{
 	def apply(system: ActorSystem) = new ActorPopulationDispatcher(new FailFastDispatcher(system))
 }
 
-case class ABCJob(samplablepopulation: Empirical[_], quantity: Int, tolerance: Double) extends Job[ABCModel#Population]
+case class ABCJob(samplablepopulation: Empirical[_], quantity: Int, tolerance: Double, meta: ABCMeta) extends Job[ABCModel#Population]

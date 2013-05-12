@@ -44,7 +44,7 @@ class NodeApplication(executorFactory: => Executor) extends SLF4JLogging{
 	} else log.info("Binding with hostname in config")
 	ConfigFactory.invalidateCaches()
 	
-	val system = PortFallbackSystem.systemWithPortFallback("ClusterSystem")
+	val system = PortFallbackSystem("ClusterSystem")
 	val rootNodeActor = system.actorOf(Props(new Node(executorFactory)), name="workerroot")
 	log.info("Started "+rootNodeActor)
 }

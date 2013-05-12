@@ -39,7 +39,6 @@ trait ABCModel{
 	
 	val prior: Prior[Parameters]
 	val observations: Observations
-	val meta: ABCMeta
 
 	def samplableModel(p: Parameters, obs: Observations): Samplable[Output]
 

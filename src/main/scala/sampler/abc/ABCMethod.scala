@@ -29,12 +29,12 @@ import sampler.math.Probability
 import sampler.math.Random
 import sampler.abc.population.PopulationBuilder
 
-class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
+class ABCMethod[M <: ABCModel](val model: M, meta: ABCMeta) extends Serializable{
 	import model._
 	val log = LoggerFactory.getLogger(this.getClass)
 	
 	def init: Population = {
-		val numParticles = model.meta.numParticles
+		val numParticles = meta.numParticles
 		(1 to numParticles).par.map(i => Particle(model.prior.sample(), 1.0, Double.MaxValue)).seq
 	}
 	
@@ -43,8 +43,6 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 			pBuilder: PopulationBuilder,
 			tolerance: Double
 	)(implicit r: Random): Option[Population] = {
-		import model.meta
-		
 		// Number of particles to be generated per job?
 		val jobSizes = (1 to meta.numParticles)
 			.grouped(meta.particleChunking)
@@ -54,7 +52,7 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 		// Prepare samplable Parameters from current population
 		val population: Empirical[Parameters] = pop.groupBy(_.value).map{case (k,v) => (k,v.map(_.weight).sum)}.toEmpiricalWeighted
 		
-		val results: Seq[Try[Population]] = pBuilder.run(model)(population, jobSizes, tolerance)
+		val results: Seq[Try[Population]] = pBuilder.run(model)(population, jobSizes, tolerance, meta)
 		
 		//TODO Need to check correct number of results?
 	    if(results.contains(Failure)) None 
@@ -65,8 +63,6 @@ class ABCMethod[M <: ABCModel](val model: M) extends Serializable{
 			pop: Population, 
 			pBuilder: PopulationBuilder
 	)(implicit r: Random): Option[Population] = {
-		import model.meta
-		
 		@tailrec
 		def refine(
 				pop: Population, 

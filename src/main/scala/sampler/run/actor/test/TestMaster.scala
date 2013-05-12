@@ -24,7 +24,7 @@ import sampler.run.actor.dispatch.FailFastDispatcher
 case class TestJob(i: Int) extends Job[String]
 
 object TestMaster extends App{
-	val system = PortFallbackSystem.systemWithPortFallback("ClusterSystem")
+	val system = PortFallbackSystem("ClusterSystem")
 	
 	//Run 100 jobs ...
 	val jobs = (1 to 100).map{i => TestJob(i)}

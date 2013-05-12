@@ -24,12 +24,13 @@ import sampler.run.local.WrappedAborter
 
 class ActorPopulationExecutor(model: ABCModel) extends Executor{
 	def run = PartialFunction[Any, Any]{
-		case ABCJob(pop, quantity, tol) => 
+		case ABCJob(pop, quantity, tol, meta) => 
 			Population(model)(
 					pop.asInstanceOf[Empirical[model.Parameters]], 
 					quantity, 
 					tol, 
-					new WrappedAborter(aborted)
+					new WrappedAborter(aborted),
+					meta
 			)
 	}
 }

@@ -24,13 +24,15 @@ import sampler.data.SerialSampleBuilder
 import sampler.abc.ABCModel
 import sampler.abc.Particle
 import sampler.run.local.Aborter
+import sampler.abc.ABCMeta
 
 object Population {
 	def apply(model: ABCModel)(
 			samplablePop: Empirical[model.Parameters],
 			quantity: Int, 
 			tolerance: Double,
-			aborter: Aborter
+			aborter: Aborter,
+			meta: ABCMeta
 	): model.Population = {
 		import model._
 		@tailrec

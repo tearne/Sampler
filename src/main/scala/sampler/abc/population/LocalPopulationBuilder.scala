@@ -23,11 +23,12 @@ import sampler.data.Empirical
 import sampler.run.local.ParallelCollectionRunner
 import sampler.run.local.Abortable
 import sampler.run.local.LocalRunner
+import sampler.abc.ABCMeta
 
 class LocalPopulationBuilder(runner: LocalRunner) extends PopulationBuilder{
-	def run(model: ABCModel)(pop: Empirical[model.Parameters], jobSizes: Seq[Int], tolerance: Double): Seq[Try[model.Population]] = {
+	def run(model: ABCModel)(pop: Empirical[model.Parameters], jobSizes: Seq[Int], tolerance: Double, meta: ABCMeta): Seq[Try[model.Population]] = {
 		val jobs = jobSizes.map{quantity => Abortable{aborter =>
-		Population(model)(pop, quantity, tolerance, aborter)
+			Population(model)(pop, quantity, tolerance, aborter, meta)
 		}}
 		
 		runner.apply(jobs)

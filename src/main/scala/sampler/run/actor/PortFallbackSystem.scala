@@ -26,7 +26,7 @@ import com.typesafe.config.ConfigFactory
 object PortFallbackSystem {
 	val log = LoggerFactory.getLogger(PortFallbackSystem.this.getClass())
 	
-	def systemWithPortFallback(name: String): AkkaSystem = {
+	def apply(name: String): AkkaSystem = {
 		try{
 			AkkaSystem(name)
 		} catch {

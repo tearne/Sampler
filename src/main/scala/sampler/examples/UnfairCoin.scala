@@ -36,6 +36,7 @@ import sampler.run.actor.NodeApplication
 import sampler.run.actor.PortFallbackSystem
 import sampler.abc.population.ActorPopulationExecutor
 import sampler.abc.population.ActorPopulationDispatcher
+import sampler.abc.population.LocalPopulationBuilder
 import sampler.abc.population.PopulationBuilder
 
 object UnfairCoinApplication extends App 
@@ -47,12 +48,17 @@ object UnfairCoinWorker extends App {
 }
 
 trait UnfairCoinFactory{
-	val abcMethod = new ABCMethod(CoinModel)
+	val meta = new ABCMeta(
+    	reps = 10000,
+		numParticles = 100, 
+		refinements = 10,
+		particleRetries = 100, 
+		particleChunking = 50
+	)
+	val abcMethod = new ABCMethod(CoinModel, meta)
 	
-	val system = PortFallbackSystem.systemWithPortFallback("ClusterSystem")
-	val pBuilder = ActorPopulationDispatcher(system)
-
-	//	val pFactory = new ABCUtil.LocalTasker(SerialRunner())
+	val pBuilder = ActorPopulationDispatcher(PortFallbackSystem("ClusterSystem"))
+//	val pBuilder = LocalPopulationBuilder()
 }
 
 trait UnfairCoin {
@@ -88,13 +94,6 @@ trait CoinModelBase extends ABCModel with Serializable{
   val modelRandom: Random
 
 	val observations = Observations(10,7)
-    val meta = new ABCMeta(
-    	reps = 10000,
-		numParticles = 100, 
-		refinements = 10,
-		particleRetries = 100, 
-		particleChunking = 50
-	)
 	
     case class Parameters(pHeads: Double) extends ParametersBase with Serializable{
       lazy val kernel = Samplable.normal(0,0.5)
