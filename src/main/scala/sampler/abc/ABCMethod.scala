@@ -29,7 +29,7 @@ import sampler.math.Probability
 import sampler.math.Random
 import sampler.abc.population.PopulationBuilder
 
-class ABCMethod[M <: ABCModel](val model: M, meta: ABCMeta) extends Serializable{
+class ABCMethod[M <: ABCModel](val model: M, meta: ABCParameters, implicit val r: Random) extends Serializable{
 	import model._
 	val log = LoggerFactory.getLogger(this.getClass)
 	
@@ -42,7 +42,7 @@ class ABCMethod[M <: ABCModel](val model: M, meta: ABCMeta) extends Serializable
 			pop: Population, 
 			pBuilder: PopulationBuilder,
 			tolerance: Double
-	)(implicit r: Random): Option[Population] = {
+	): Option[Population] = {
 		// Number of particles to be generated per job?
 		val jobSizes = (1 to meta.numParticles)
 			.grouped(meta.particleChunking)
@@ -62,7 +62,7 @@ class ABCMethod[M <: ABCModel](val model: M, meta: ABCMeta) extends Serializable
 	def run(
 			pop: Population, 
 			pBuilder: PopulationBuilder
-	)(implicit r: Random): Option[Population] = {
+	): Option[Population] = {
 		@tailrec
 		def refine(
 				pop: Population, 

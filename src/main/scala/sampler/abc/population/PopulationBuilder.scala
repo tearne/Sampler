@@ -20,13 +20,13 @@ package sampler.abc.population
 import scala.util.Try
 import sampler.abc.ABCModel
 import sampler.data.Empirical
-import sampler.abc.ABCMeta
+import sampler.abc.ABCParameters
 
 trait PopulationBuilder{
 	def run(model: ABCModel)(
 			pop: Empirical[model.Parameters], 
 			jobSizes: Seq[Int], 
 			tolerance: Double,
-			meta: ABCMeta
+			meta: ABCParameters
 	): Seq[Try[model.Population]]
 }

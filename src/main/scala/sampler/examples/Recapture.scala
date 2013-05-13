@@ -18,7 +18,7 @@ package sampler.examples
 
 import sampler.abc.ABCModel
 import sampler.math._
-import sampler.abc.ABCMeta
+import sampler.abc.ABCParameters
 import sampler.data.Samplable
 import sampler.abc.Prior
 import sampler.abc.ABCMethod
@@ -38,15 +38,14 @@ object RecaptureApp extends RecaptureFactory
 	with App
 
 trait RecaptureFactory{
-	val meta = new ABCMeta(
+	val meta = new ABCParameters(
     	reps = 10,
 		numParticles = 200, 
 		refinements = 30,
 		particleRetries = 100, 
 		particleChunking = 10
 	)
-	val abcMethod = new ABCMethod(RecaptureModel, meta)
-	val abcRandom = Random
+	val abcMethod = new ABCMethod(RecaptureModel, meta, Random)
 	val builder = LocalPopulationBuilder()
 }
 
@@ -58,11 +57,10 @@ trait Recapture{
 	 * Population size
 	 */
 	val abcMethod: ABCMethod[RecaptureModel.type]
-	implicit val abcRandom: Random
 	val builder: PopulationBuilder
 
 	val encapPopulation0 = abcMethod.init
-	val meta: ABCMeta
+	val meta: ABCParameters
 	
 	val finalPopulation = abcMethod.run(encapPopulation0, builder).get.map(_.value)//.population
 	
@@ -88,15 +86,13 @@ dev.off()
 }
 
 object RecaptureModel extends RecaptureModelBase {
-  val abcRandom = Random
   val modelRandom = Random
 }
 
 trait RecaptureModelBase extends ABCModel with Serializable{
 	val statistics = StatisticsComponent
 
-  implicit val abcRandom: Random
-  val modelRandom: Random
+  implicit val modelRandom: Random
 	
 	val numberTagged = 50
 	val observations = Observations(220, 35, 86.0/220)
@@ -177,8 +173,8 @@ trait RecaptureModelBase extends ABCModel with Serializable{
 	    }
 	    
 	    def sample = Parameters(
-	    		abcRandom.nextInt(upperLimit-lowerLimit) + lowerLimit,
-	    		abcRandom.nextDouble(0, 1)
+	    		modelRandom.nextInt(upperLimit-lowerLimit) + lowerLimit,
+	    		modelRandom.nextDouble(0, 1)
 	    )
     }
 }

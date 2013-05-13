@@ -24,7 +24,7 @@ import sampler.data.SerialSampleBuilder
 import sampler.abc.ABCModel
 import sampler.abc.Particle
 import sampler.run.local.Aborter
-import sampler.abc.ABCMeta
+import sampler.abc.ABCParameters
 
 object Population {
 	def apply(model: ABCModel)(
@@ -32,7 +32,7 @@ object Population {
 			quantity: Int, 
 			tolerance: Double,
 			aborter: Aborter,
-			meta: ABCMeta
+			meta: ABCParameters
 	): model.Population = {
 		import model._
 		@tailrec

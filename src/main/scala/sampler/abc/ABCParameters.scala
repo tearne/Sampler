@@ -17,7 +17,7 @@
 
 package sampler.abc
 
-case class ABCMeta(
+case class ABCParameters(
 		reps: Int, 
 		numParticles: Int, 
 		tolerance: Double = Double.MaxValue, 

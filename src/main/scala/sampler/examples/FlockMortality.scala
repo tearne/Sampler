@@ -18,7 +18,7 @@ package sampler.examples
 
 import sampler.abc.{ABCModel, ABCMethod}
 import sampler.math.Random
-import sampler.abc.ABCMeta
+import sampler.abc.ABCParameters
 import sampler.abc.Prior
 import sampler.data.Samplable
 import sampler.r.ScriptRunner
@@ -37,15 +37,16 @@ object FlockMortality extends App{
 	val wd = Paths.get("egout","FlockMortality")
 	Files.createDirectories(wd)
 	
-	val meta = new ABCMeta(
+	val abcParams = new ABCParameters(
     	reps = 1,
 		numParticles = 100, 
 		refinements = 50,
 		particleRetries = 100, 
 		particleChunking = 100
 	)
-	val abcMethod = new ABCMethod(FlockMortalityModel, meta)
+	val abcMethod = new ABCMethod(FlockMortalityModel, abcParams, Random)
 	val encapPopulation0 = abcMethod.init
+	
 	implicit val modelRandom = FlockMortalityModel.modelRandom 
 	val finalPopulation = abcMethod.run(encapPopulation0, LocalPopulationBuilder()).get.map(_.value)//.population
 

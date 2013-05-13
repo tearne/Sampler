@@ -19,7 +19,7 @@ package sampler.examples
 
 import java.nio.file.Files
 import java.nio.file.Paths
-import sampler.abc.ABCMeta
+import sampler.abc.ABCParameters
 import sampler.abc.ABCMethod
 import sampler.abc.ABCModel
 import sampler.abc.Prior
@@ -48,14 +48,14 @@ object UnfairCoinWorker extends App {
 }
 
 trait UnfairCoinFactory{
-	val meta = new ABCMeta(
+	val meta = new ABCParameters(
     	reps = 10000,
 		numParticles = 100, 
 		refinements = 10,
 		particleRetries = 100, 
 		particleChunking = 50
 	)
-	val abcMethod = new ABCMethod(CoinModel, meta)
+	val abcMethod = new ABCMethod(CoinModel, meta, Random)
 	
 	val pBuilder = ActorPopulationDispatcher(PortFallbackSystem("ClusterSystem"))
 //	val pBuilder = LocalPopulationBuilder()
@@ -64,8 +64,7 @@ trait UnfairCoinFactory{
 trait UnfairCoin {
 	val pBuilder: PopulationBuilder
 	
-	val abcMethod: ABCMethod[CoinModel.type]
-	implicit val abcRandom = CoinModel.abcRandom
+	implicit val abcMethod: ABCMethod[CoinModel.type]
 
 	val population0 = abcMethod.init
 	
@@ -80,6 +79,7 @@ trait UnfairCoin {
 		Column(headsDensity, "TruePos")
 	)
 	
+	implicit val r = Random
 	QuickPlot.writeDensity(wd, "posterior", Map("data" -> headsDensity.toEmpiricalSeq))
 }
 
@@ -90,8 +90,8 @@ object CoinModel extends CoinModelBase {
 }
 
 trait CoinModelBase extends ABCModel with Serializable{
-  implicit val abcRandom: Random
-  val modelRandom: Random
+	implicit val abcRandom: Random
+  	val modelRandom: Random
 
 	val observations = Observations(10,7)
 	

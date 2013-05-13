@@ -25,10 +25,10 @@ import sampler.data.Empirical
 import sampler.run.actor.dispatch.FailFastDispatcher
 import sampler.run.actor.dispatch.Job
 import sampler.run.actor.dispatch.Dispatcher
-import sampler.abc.ABCMeta
+import sampler.abc.ABCParameters
 
 class ActorPopulationDispatcher(dispatcher: Dispatcher) extends PopulationBuilder{
-	def run(model: ABCModel)(pop: Empirical[model.Parameters], jobSizes: Seq[Int], tolerance: Double, meta: ABCMeta): Seq[Try[model.Population]] = {
+	def run(model: ABCModel)(pop: Empirical[model.Parameters], jobSizes: Seq[Int], tolerance: Double, meta: ABCParameters): Seq[Try[model.Population]] = {
 		val jobs = jobSizes.map{quantity =>
 			ABCJob(pop, quantity, tolerance, meta)
 		}
@@ -43,4 +43,4 @@ object ActorPopulationDispatcher{
 	def apply(system: ActorSystem) = new ActorPopulationDispatcher(new FailFastDispatcher(system))
 }
 
-case class ABCJob(samplablepopulation: Empirical[_], quantity: Int, tolerance: Double, meta: ABCMeta) extends Job[ABCModel#Population]
+case class ABCJob(samplablepopulation: Empirical[_], quantity: Int, tolerance: Double, meta: ABCParameters) extends Job[ABCModel#Population]
