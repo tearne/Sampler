@@ -31,6 +31,7 @@ trait StatisticsComponent{
 		Probability(value)
 	}
 	
+	//TODO take seq of probability and give seq of results
 	def quantile[A](e: Empirical[A], prob: Probability)(implicit f: Fractional[A]): A = {
     import e._
 		import f._
