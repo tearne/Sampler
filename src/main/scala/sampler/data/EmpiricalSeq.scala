@@ -27,15 +27,11 @@ import sampler.math.Probability
  * with few repeated values.
  */
 class EmpiricalSeq[A](val values: IndexedSeq[A])(implicit r: Random) extends Empirical[A]{ self =>
-	def sample() = values(r.nextInt(size))
-	
-	private lazy val size = values.size
-	
-	lazy val supportSize = values.groupBy(identity).keys.size
-	
-	lazy val probabilities = {
-		val sizeAsDouble = size.asInstanceOf[Double]
+	lazy val probabilityTable = {
+		val sizeAsDouble = values.size.asInstanceOf[Double]
 		values.groupBy(identity).map{case (k,v) => (k, Probability(v.size / sizeAsDouble))}
 	}
 	def ++(more: GenTraversableOnce[A]) = new EmpiricalSeq(values ++ more)
+	
+	def toSamplable(implicit r: Random) = Samplable.uniform(values)
 }

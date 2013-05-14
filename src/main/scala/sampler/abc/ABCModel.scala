@@ -21,7 +21,7 @@ import sampler.math.{ Random, StatisticsComponent }
 import sampler.data.Samplable
 
 trait ABCModel{
-  val statistics: StatisticsComponent
+	val statistics: StatisticsComponent
 
 	type Parameters <: ParametersBase
 	protected trait ParametersBase {

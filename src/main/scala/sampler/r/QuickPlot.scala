@@ -40,7 +40,7 @@ object QuickPlot {
     
     val names = data.keys.toSeq
     
-    val probs = (names map(key => data(key).probabilities))
+    val probs = (names map(key => data(key).probabilityTable))
     
     val transformed = probs map (a => transformToDist(a))
     

@@ -37,7 +37,7 @@ class EmpiricalSeqSpec extends Specification{
 	  }
 	  
 	  "give the correct probabilities" in {
-	    val probMap = es1.probabilities
+	    val probMap = es1.probabilityTable
 	    
 	    val tolerance = 1e-4
 	    def equal(p: Probability, expected: Double) = p.value must beCloseTo(expected, tolerance)

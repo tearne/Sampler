@@ -39,6 +39,7 @@ import sampler.data.SerialSampleBuilder
 
 object Breeding extends App{
 	import sampler.examples.Biology._
+	implicit val r = Random
 	
 	//Number of centimorgan per chromosome
 	val species = Species(100,200,300)
@@ -55,39 +56,36 @@ object Breeding extends App{
 			//No traits of interest on third chromosome
 	)
 	
-	def cross (a: RootPlant, b: RootPlant): EmpiricalSeq[Offspring] = {
+	def cross (a: RootPlant, b: RootPlant): Seq[Offspring] = {
 		val sampler = new Samplable[Offspring]{
 			def sample = a.crossAndSelect(b, Nil)
 		}
 		import Empirical._
-		implicit val r = Random
-		SerialSampleBuilder(sampler)(_.size == 1000).toEmpiricalSeq
+		SerialSampleBuilder(sampler)(_.size == 10000)
 	}
 	
-	def backCross (a: Samplable[Offspring], traits: Seq[Trait] = Nil): EmpiricalSeq[Offspring] = {
+	def backCross (a: Samplable[Offspring], traits: Seq[Trait] = Nil): Seq[Offspring] = {
 		val sampler = a.filter(_.isInstanceOf[Successful]).map(a1 =>a1.crossAndSelect(prefVar, traits))
 		import Empirical._
 		implicit val r = Random
-		SerialSampleBuilder(sampler)(_.size == 1000).toEmpiricalSeq
+		SerialSampleBuilder(sampler)(_.size == 10000)
 	}
 	
 	
 	val d1d2_f1   	= cross(donor1, donor2)
-	println(s"size = ${d1d2_f1.values.size}")
+	println(s"size = ${d1d2_f1.size}")
 	
-	val d1d2pV_f1 	= backCross(d1d2_f1, traits)
-	println(s"size = ${d1d2pV_f1.values.size}")
+	val d1d2pV_f1 	= backCross(Samplable.uniform(d1d2_f1), traits)
+	println(s"size = ${d1d2pV_f1.size}")
 
-	val bc1			= backCross(d1d2pV_f1, traits)
-	println(s"size = ${bc1.values.size}")
+	val bc1			= backCross(Samplable.uniform(d1d2pV_f1), traits)
+	println(s"size = ${bc1.size}")
 	
-	//TODO Why need this everywhere??
-	implicit val r = Random
-	val proportionPV = bc1.values.collect{case s: Successful => 
+	val proportionPV = bc1.collect{case s: Successful => 
 		s.countOf(prefVar).toDouble / species.numGenes
 	}.toEmpiricalSeq //TODO why must pass as empirical seq?
 	
-	val probSuccess = 1 - bc1.probabilities(Failure)
+	val probSuccess = 1 - bc1.toEmpiricalSeq.probabilityTable(Failure)
 	println(s"Prob success in last cross $probSuccess")
 	
 	val wd = Paths.get("egout","Breeding")

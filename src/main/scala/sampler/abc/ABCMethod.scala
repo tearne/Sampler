@@ -29,7 +29,7 @@ import sampler.math.Probability
 import sampler.math.Random
 import sampler.abc.population.PopulationBuilder
 
-class ABCMethod[M <: ABCModel](val model: M, meta: ABCParameters, implicit val r: Random) extends Serializable{
+class ABCMethod[M <: ABCModel](val model: M, meta: ABCParameters, implicit val random: Random) extends Serializable{
 	import model._
 	val log = LoggerFactory.getLogger(this.getClass)
 	
@@ -52,7 +52,7 @@ class ABCMethod[M <: ABCModel](val model: M, meta: ABCParameters, implicit val r
 		// Prepare samplable Parameters from current population
 		val population: Empirical[Parameters] = pop.groupBy(_.value).map{case (k,v) => (k,v.map(_.weight).sum)}.toEmpiricalWeighted
 		
-		val results: Seq[Try[Population]] = pBuilder.run(model)(population, jobSizes, tolerance, meta)
+		val results: Seq[Try[Population]] = pBuilder.run(model)(population, jobSizes, tolerance, meta, random)
 		
 		//TODO Need to check correct number of results?
 	    if(results.contains(Failure)) None 

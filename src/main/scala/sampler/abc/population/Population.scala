@@ -25,14 +25,17 @@ import sampler.abc.ABCModel
 import sampler.abc.Particle
 import sampler.run.local.Aborter
 import sampler.abc.ABCParameters
+import sampler.data.Samplable
+import sampler.math.Random
 
 object Population {
 	def apply(model: ABCModel)(
-			samplablePop: Empirical[model.Parameters],
+			prevPopulation: Empirical[model.Parameters],
 			quantity: Int, 
 			tolerance: Double,
 			aborter: Aborter,
-			meta: ABCParameters
+			meta: ABCParameters,
+			random: Random
 	): model.Population = {
 		import model._
 		@tailrec
@@ -50,15 +53,16 @@ object Population {
 				def getWeight(params: Parameters, numPassed: Int): Option[Double] = {
 					val fHat = numPassed.toDouble / meta.reps
 					val numerator = fHat * prior.density(params)
-					val denominator = samplablePop.probabilities.map{case (params0, probability) => 
+					val denominator = prevPopulation.probabilityTable.map{case (params0, probability) => 
 						probability.value * params0.perturbDensity(params)
 					}.sum
 					if(numerator > 0 && denominator > 0) Some(numerator / denominator)
 					else None	
 				}
 				
+				val samplable = prevPopulation.toSamplable(random)
 				val res: Option[Particle[Parameters]] = for{
-					params <- Some(samplablePop.sample().perturb()) if prior.density(params) > 0
+					params <- Some(samplable.sample().perturb()) if prior.density(params) > 0
 					fitScores <- Some(getScores(params))
 					weight <- getWeight(params, fitScores.size) 
 				} yield(Particle(params, weight, fitScores.min))

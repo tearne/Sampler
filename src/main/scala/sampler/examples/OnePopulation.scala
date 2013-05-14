@@ -81,6 +81,7 @@ object OnePopulation extends App with EmpiricalMetricComponent with StatisticsCo
 			.toEmpiricalTable
 	}
 	
+	//TODO this looks a bit imperative
 	val sampleSizeList = ListBuffer[Int]()
 	val confidenceList = ListBuffer[Probability]()
 	
@@ -89,8 +90,8 @@ object OnePopulation extends App with EmpiricalMetricComponent with StatisticsCo
 			.view
 			.map{n => 
 				val eo = empiricalObjective(n)
-				val confidence = eo.probabilities.get(true).getOrElse(Probability.zero)
-				println("Sample size = %d, empirical size = %d, confidence = %s".format(n, eo.counts.size, confidence.toString))
+				val confidence: Probability = eo.probabilityTable.get(true).getOrElse(Probability.zero)
+				println("Sample size = %d, empirical size = %d, confidence = %s".format(n, eo.freqTable.size, confidence.toString))
 				sampleSizeList.+=(n)
 				confidenceList.+=(confidence)
 				(n, confidence)

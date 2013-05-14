@@ -21,8 +21,9 @@ import sampler.abc.ABCModel
 import sampler.data.Empirical
 import sampler.run.actor.worker.Executor
 import sampler.run.local.WrappedAborter
+import sampler.math.Random
 
-class ActorPopulationExecutor(model: ABCModel) extends Executor{
+class ActorPopulationExecutor(model: ABCModel, random: Random) extends Executor{
 	def run = PartialFunction[Any, Any]{
 		case ABCJob(pop, quantity, tol, meta) => 
 			Population(model)(
@@ -30,7 +31,8 @@ class ActorPopulationExecutor(model: ABCModel) extends Executor{
 					quantity, 
 					tol, 
 					new WrappedAborter(aborted),
-					meta
+					meta,
+					random
 			)
 	}
 }

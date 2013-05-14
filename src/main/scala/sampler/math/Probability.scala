@@ -20,11 +20,11 @@ package sampler.math
 import scala.language.implicitConversions
 
 case class Probability(val value: Double){
-  assert(value <= 1 && value >= 0, value + "is not a valid probability")
+	assert(value <= 1 && value >= 0, value + "is not a valid probability")
 }
 
 object Probability{
 	val zero = Probability(0)
 
-  implicit def toDouble(p: Probability): Double = p.value
+	implicit def toDouble(p: Probability): Double = p.value
 }

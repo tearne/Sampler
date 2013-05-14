@@ -19,17 +19,11 @@ package sampler.math
 
 import scala.annotation.tailrec
 
-class AliasTable(origProbs: IndexedSeq[Probability]) extends Serializable{
-    val probabilities = origProbs.map(v => v.value)
-  
-    assert(isEqualOne(probabilities.sum), "Cannot use the alias method if probabilities don't sum to one")
-  
-    private def isEqualOne(value: Double) = if(value > 1 - 1E-8 && value < 1 + 1E-8) true else false
-    
-    val (probability, alias) = construct(probabilities)
+class AliasTable(p: Partition) extends Serializable{
+    val (probability, alias) = construct(p.widths)
 	
     def construct(probs: IndexedSeq[Double]): (Array[Double], Array[Int]) = {
-	  val arraySize = probabilities.size
+	  val arraySize = p.size
 	
 	  val average = 1.0 / arraySize
       
@@ -73,10 +67,10 @@ class AliasTable(origProbs: IndexedSeq[Probability]) extends Serializable{
       val initialProbability = Array.fill[Double](arraySize)(1.0)
 	  val initialAlias = Array.fill[Int](arraySize)(0)
 	  	
-      val small = probabilities.zipWithIndex.filter(_._1 <= average).map(_._2).toArray
-      val large = probabilities.zipWithIndex.filter(_._1 > average).map(_._2).toArray
+      val small = p.widths.zipWithIndex.filter(_._1 <= average).map(_._2).toArray
+      val large = p.widths.zipWithIndex.filter(_._1 > average).map(_._2).toArray
     		
-      loop(small, large, initialProbability, initialAlias, probabilities)
+      loop(small, large, initialProbability, initialAlias,  p.widths)
     }
     
     def next(rand: Random): Int = {

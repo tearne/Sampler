@@ -24,6 +24,8 @@ import scala.collection.GenSeq
 import scala.collection.parallel.ParSeq
 import scala.math.Numeric.DoubleIsFractional
 import sampler.math.Probability
+import sampler.math.Partition
+import sampler.math.AliasTable
 
 /*
  * Anything from which we can draw samples.  E.g. an analytical distribution,
@@ -82,11 +84,11 @@ trait Samplable[+A] extends Serializable{
 		def sample() = f(self.sample()).sample()
 	}
 	
-  def combine[B, C](that: Samplable[B], op: (A, B) => C) = new Samplable[C]{
+	def combine[B, C](that: Samplable[B], op: (A, B) => C) = new Samplable[C]{
 		def sample() = op(self.sample(), that.sample())
 	}
 	
-  def convolve[B >: A](that: Samplable[B])(implicit n: Numeric[B]) = combine(that, n.plus _)
+	def convolve[B >: A](that: Samplable[B])(implicit n: Numeric[B]) = combine(that, n.plus _)
     def crossCorrelate[B >: A](that: Samplable[B])(implicit n: Numeric[B]) = combine(that, n.minus _)
 }
 
@@ -99,12 +101,13 @@ object Samplable{
 		def sample() = (upper - lower) * r.nextDouble()
 	}
 	
-	def uniform[T](items: IndexedSeq[T])(implicit r: Random) = new Samplable[T]{
+	def uniform[T](items: Iterable[T])(implicit r: Random) = new Samplable[T]{
 		val size = items.size
-		def sample() = items(r.nextInt(size))
+		val indexedItems = items.toIndexedSeq
+		def sample() = indexedItems(r.nextInt(size))
 	}
 	
-	def withoutReplacement[T](items: IndexedSeq[T], sampleSize: Int)(implicit r: Random) = new Samplable[List[T]]{
+	def withoutReplacement[T](items: Iterable[T], sampleSize: Int)(implicit r: Random) = new Samplable[List[T]]{
 		def sample() = {
 			@tailrec
 			def takeAnother(acc: List[T], bag: IndexedSeq[T]): List[T] = {
@@ -115,7 +118,7 @@ object Samplable{
 				}
 			}
 				
-			takeAnother(Nil, items)
+			takeAnother(Nil, items.toIndexedSeq)
 		}
 	}
 	
@@ -135,6 +138,12 @@ object Samplable{
 	
 	def coinToss()(implicit r: Random) = new Samplable[Boolean] {
 	  def sample() = r.nextBoolean(Probability(0.5))
+	}
+	
+	def fromPartition[T](items: Iterable[T], p: Partition)(implicit r: Random) = new Samplable[T]{
+		val aliasTable = new AliasTable(p)
+		val indexedItems = items.toIndexedSeq
+		def sample() = indexedItems(aliasTable.next(r))
 	}
 }
 

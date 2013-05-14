@@ -21,49 +21,25 @@ import sampler.math.Random
 import sampler.math.Probability
 import scala.collection.GenTraversableOnce
 import sampler.math.AliasTable
+import sampler.math.Partition
 
 /*
  * Empirical implementation which uses a weight attached to each
  * observation value for sampling.
  */
-class EmpiricalWeighted[A](val weights: Map[A, Double])(implicit r: Random) extends Empirical[A]{
-	//TODO Tidy up the Alias stuff, pushing this stuff away
-	private lazy val (indexedValues, indexedProbabilities) = probabilities.toIndexedSeq.unzip
+class EmpiricalWeighted[A](val weighted: Map[A, Double])(implicit r: Random) extends Empirical[A]{
+	lazy val (values, weights) = weighted.unzip
+	lazy val partition = Partition.fromWeights(weights)
 	
-	private lazy val aliasTable = new AliasTable(indexedProbabilities)
+	lazy val probabilityTable = values.zip(partition.probabilities).toMap
 	
-	def sample() = indexedValues(aliasTable.next(r))
-	
-	lazy val supportSize = weights.size
-	lazy val probabilities = {
-		if(weights.find(_._2 <= 0).isDefined) 
-			throw new IllegalArgumentException{
-				val badValue = weights.find(_._2 <= 0).get
-				"Weight must be strictly positive, found (%s,%f)".format(badValue._1.toString, badValue._2)
-			}
-		val totalWeight = weights.values.sum
-		weights.map{case (k,v) => (k, Probability(v / totalWeight))}
-	}
+	def toSamplable(implicit r: Random) = Samplable.fromPartition(values, partition)
 	
 	// Have not implemented a ++ method since it might be used to add values
 	//which have differently scaled weights (normalised, un-normalised, ...)
 	//If we really want to do this we have access to the original
 	//un-normalised weights table as supplied to the constructor, but the 
 	//user still needs to be careful that the weights are on equal footing.
-	
-	/*
-	 * Throw away weights, producing a table with one observation of every 
-	 * potential value, ie uniform sampling.
-	 */
-	def toEmpiricalTable() = new EmpiricalTable(
-		weights.map{case (k,v) => (k,1)}
-	)
-	
-	/*
-	 * Throw away weights, producing a seq with one observation of every 
-	 * potential value, ie uniform sampling.
-	 */
-	def toEmpiricalSeq() = new EmpiricalSeq(weights.keys.toIndexedSeq)
 	
 	override def canEqual(other: Any): Boolean = other.isInstanceOf[EmpiricalWeighted[_]]
 }

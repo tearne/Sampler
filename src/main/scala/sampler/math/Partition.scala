@@ -15,20 +15,24 @@
  * limitations under the License.
  */
 
-package sampler.abc.population
+package sampler.math
 
-import scala.util.Try
-import sampler.abc.ABCModel
-import sampler.data.Empirical
-import sampler.abc.ABCParameters
-import sampler.math.Random
+case class Partition(widths: IndexedSeq[Double]) {
+	private def isEqualOne(value: Double) = if(value > 1 - 1E-8 && value < 1 + 1E-8) true else false
+	assert(isEqualOne(widths.sum))
+	lazy val size = widths.size
+	lazy val probabilities = widths.map(w => Probability(w))
+}
+object Partition{
+	def fromWeights(weights: Iterable[Double]) = {
+		//TODO use pattern matching here
+		if(weights.find(_ <= 0).isDefined) throw new IllegalArgumentException{
+			val badValue = weights.find(_ <= 0).get
+			s"Weight must be strictly positive, found $badValue"
+		}
+		
+		val totalWeight = weights.sum
 
-trait PopulationBuilder{
-	def run(model: ABCModel)(
-			pop: Empirical[model.Parameters], 
-			jobSizes: Seq[Int], 
-			tolerance: Double,
-			meta: ABCParameters,
-			random: Random
-	): Seq[Try[model.Population]]
+		Partition(weights.map(_ / totalWeight).to[IndexedSeq])
+	}
 }

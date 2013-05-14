@@ -4,13 +4,14 @@ import org.specs2.mutable.Specification
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import org.specs2.mock.Mockito
+import scala.collection.mutable.Queue
 
 @RunWith(classOf[JUnitRunner])
 class AliasTableSpec extends Specification with Mockito {
 
   "Alias method" should {
     
-    val rawProbSeq = IndexedSeq(0.1,0.2,0.3,0.4).map(v => Probability(v))
+    val rawProbSeq = Partition(IndexedSeq(0.1, 0.2, 0.3, 0.4))
   
     val myAlias = new AliasTable(rawProbSeq)
     
@@ -38,12 +39,28 @@ class AliasTableSpec extends Specification with Mockito {
       (alias(3) mustEqual expectedAlias(3))
     }
     
+    "mock test" in {
+    	val r = mock[scala.util.Random]
+    	r.nextDouble() returns 3.0
+    	r.nextDouble() === 3.0
+    }
+    
     "returns the correct index when sampling" in {
-      val r = mock[Random]
-      
-      r.nextInt(4) returns (0,1,2,3)
-      
-      r.nextDouble() returns (0.2, 0.9, 0.5, 0.1)
+    	
+    	//TODO this is a bit excessive, but can't get the mocking to work
+    	val r = new Random{
+    		val ints = Queue(0,1,2,3)
+    		val doubles = Queue(0.2, 0.9, 0.5, 0.1)
+    		override def nextInt(i: Int) = {
+    			assert(i == 4)
+    			ints.dequeue
+    		}
+    		override def nextDouble() = doubles.dequeue
+    	}
+    	
+//    val r = mock[scala.util.Random]
+//    r.nextInt(4).returns(0,1,2,3)
+//    r.nextDouble().returns(0.2, 0.9, 0.5, 0.1)
       
       val sampledResults = Array(myAlias.next(r), myAlias.next(r), myAlias.next(r), myAlias.next(r))
       
@@ -61,10 +78,10 @@ class AliasTableSpec extends Specification with Mockito {
        * http://www.keithschwarz.com/interesting/code/?dir=alias-method
        */
       
-      val moreProbs = IndexedSeq(
-          0.11, 0.05, 0.31, 0.17, 0.08, 0.19, 0.09).map(v => Probability(v))
+      val anotherPartition = Partition(IndexedSeq(
+          0.11, 0.05, 0.31, 0.17, 0.08, 0.19, 0.09))
       
-      val biggerAlias = new AliasTable(moreProbs)
+      val biggerAlias = new AliasTable(anotherPartition)
       
       "probability table is correct" in {
         val probs = biggerAlias.probability
@@ -89,20 +106,22 @@ class AliasTableSpec extends Specification with Mockito {
       }
     }
     
-        "throw an exception" in {
+    //TODO put this in a Parition spec
+    "throw an exception" in {
 	    "if the probabilities don't add to one" in {
-	      val probabilities = IndexedSeq(0.1, 0.2, 0.3, 0.3).map(v => Probability(v))
+	      val partition = Partition(IndexedSeq(0.1, 0.2, 0.3, 0.3))
 	    			
-	      new AliasTable(probabilities) must throwAn[AssertionError]
+	      new AliasTable(partition) must throwAn[AssertionError]
 	    }
 	}
     
+    //TODO put this in a Parition spec
     "not throw an exception" in {
 	    "if the probability sum is not equal to one because of a rounding error" in {
 	      val seventh = 1.0/7.0
 	      val forteenth = 1.0/14.0
 	      
-	      val probabilities = IndexedSeq(seventh, seventh, seventh, seventh, seventh, seventh, forteenth, forteenth).map(v => Probability(v))
+	      val probabilities = Partition(IndexedSeq(seventh, seventh, seventh, seventh, seventh, seventh, forteenth, forteenth))
 	      // Sum = 0.9999999999999998
 	      
 	      new AliasTable(probabilities) must not(throwAn[AssertionError])

@@ -21,40 +21,26 @@ import sampler.math.Random
 import scala.collection.GenTraversableOnce
 import sampler.math.Probability
 import sampler.math.AliasTable
+import sampler.math.Partition
 
 /*
  * Empirical implementation backed by a map which counts occurrences of
  * observation values. Ideal for sampling from discrete distributions 
  * where many repeated observations are expected. 
  */
-class EmpiricalTable[A](val counts: Map[A, Int])(implicit r: Random) extends Empirical[A]{
-	private lazy val (indexedValues, indexedProbabilities) = probabilities.toIndexedSeq.unzip
-
-	private lazy val aliasTable = new AliasTable(indexedProbabilities)
-	
-	def sample() = indexedValues(aliasTable.next(r))
-	
-	lazy val supportSize = counts.size
-	lazy val probabilities = {
-		val sizeAsDouble = counts.values.sum.asInstanceOf[Double]
-		counts.map{case (k,v) => (k,Probability(v/sizeAsDouble))}
-	}
-	
+class EmpiricalTable[A](val freqTable: Map[A, Int])(implicit r: Random) extends Empirical[A]{
 	def ++(more: GenTraversableOnce[A]) = new EmpiricalTable(
-		more.foldLeft(counts){case (acc,elem) => 
+		more.foldLeft(freqTable){case (acc,elem) => 
 			acc.updated(elem, acc.getOrElse(elem, 0) + 1)
 		}
 	)
 	
-	/*
-	 * Throw away weights, producing a seq with one observation of every 
-	 * potential value, ie uniform sampling.
-	 * 
-	 * TODO Q: Are we sure we want to just take keys? 
-	 *         What about duplicating observations as per the counts?
-	 *      A: Currently done this way for consistency with EmpiricalWeighted
-	 */
-	def toEmpiricalSeq() = new EmpiricalSeq(counts.keys.toIndexedSeq)
+	private lazy val (items, counts) = freqTable.unzip
+	private lazy val partition = Partition.fromWeights(counts.map(_.toDouble))
+	
+	lazy val probabilityTable = items.zip(partition.probabilities).toMap
+	
+	def toSamplable(implicit r: Random) = Samplable.fromPartition(items.toIndexedSeq, partition)
 	
 	override def canEqual(other: Any): Boolean = other.isInstanceOf[EmpiricalTable[_]]
 }

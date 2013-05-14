@@ -26,9 +26,16 @@ import sampler.run.actor.dispatch.FailFastDispatcher
 import sampler.run.actor.dispatch.Job
 import sampler.run.actor.dispatch.Dispatcher
 import sampler.abc.ABCParameters
+import sampler.math.Random
 
 class ActorPopulationDispatcher(dispatcher: Dispatcher) extends PopulationBuilder{
-	def run(model: ABCModel)(pop: Empirical[model.Parameters], jobSizes: Seq[Int], tolerance: Double, meta: ABCParameters): Seq[Try[model.Population]] = {
+	def run(model: ABCModel)(
+			pop: Empirical[model.Parameters], 
+			jobSizes: Seq[Int], 
+			tolerance: Double, 
+			meta: ABCParameters,
+			random: Random
+	): Seq[Try[model.Population]] = {
 		val jobs = jobSizes.map{quantity =>
 			ABCJob(pop, quantity, tolerance, meta)
 		}

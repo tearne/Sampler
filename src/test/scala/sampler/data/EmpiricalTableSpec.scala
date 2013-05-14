@@ -50,7 +50,7 @@ class EmpiricalTableSpec extends Specification with Mockito with DataTables{
 		}
 		
 		"calculate probability as relative frequency" in {
-			val map1 = d1.probabilities
+			val map1 = d1.probabilityTable
 			
 			val tolerance = 1e-4
 			def equal(p: Probability, expected: Double) = p.value must beCloseTo(expected, tolerance)
@@ -60,20 +60,21 @@ class EmpiricalTableSpec extends Specification with Mockito with DataTables{
 			equal(map1(6), 0.3333)
 		}
 		
-		"sample uniformly by observation index" in {
-		    var listOfSamples: List[Int] = List()
-		  
-		    for(i <- 0 until 1000)
-		      listOfSamples = listOfSamples.+:(d1.sample)
-		  
-		    (listOfSamples.count(_ ==4) must beBetween(250, 400)) and
-		    (listOfSamples.count(_ ==5) must beBetween(250, 400)) and
-		    (listOfSamples.count(_ ==6) must beBetween(250, 400))
-		}
+		"sample uniformly by observation index" in todo
+//		{
+//		    var listOfSamples: List[Int] = List()
+//		  
+//		    for(i <- 0 until 1000)
+//		      listOfSamples = listOfSamples.+:(d1.sample)
+//		  
+//		    (listOfSamples.count(_ ==4) must beBetween(250, 400)) and
+//		    (listOfSamples.count(_ ==5) must beBetween(250, 400)) and
+//		    (listOfSamples.count(_ ==6) must beBetween(250, 400))
+//		}
 		
 		"have map of counts for each observation" in {
-			(d1.counts mustEqual Map(4 -> 1, 5 -> 1, 6 ->1)) and
-			(d3.counts mustEqual Map(1 -> 1, 2 -> 2, 3 -> 3, 4 -> 1))
+			(d1.freqTable mustEqual Map(4 -> 1, 5 -> 1, 6 ->1)) and
+			(d3.freqTable mustEqual Map(1 -> 1, 2 -> 2, 3 -> 3, 4 -> 1))
 		}
 		
 		"until, filter, map, flatmap, combine, convolve, crossCorrelate should all return samplable" in todo
@@ -144,7 +145,7 @@ class EmpiricalTableSpec extends Specification with Mockito with DataTables{
 		"be augmentable with TraversableOnce of samples" in {
 			val toAdd: TraversableOnce[Int] = List(5,6)
 			
-			d1.++(toAdd).counts mustEqual Map(
+			d1.++(toAdd).freqTable mustEqual Map(
 					4 -> 1, 
 					5 -> 2, 
 					6 -> 2

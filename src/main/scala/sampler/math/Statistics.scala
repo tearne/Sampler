@@ -25,8 +25,8 @@ import sampler.data.Empirical
 trait StatisticsComponent{
 	def rightTail[A](e: Empirical[A], itemInclusive: A)(implicit o: Ordering[A]): Probability = {
     import e._
-		val value = probabilities.keys.toList.sorted(o).dropWhile(i => o.lt(i,itemInclusive)).foldLeft(0.0){
-			case (acc, i) => acc + probabilities(i).value
+		val value = probabilityTable.keys.toList.sorted(o).dropWhile(i => o.lt(i,itemInclusive)).foldLeft(0.0){
+			case (acc, i) => acc + probabilityTable(i).value
 		}
 		Probability(value)
 	}
@@ -45,14 +45,14 @@ trait StatisticsComponent{
 		}
 		
 		val two = one + one
-    val ordered = probabilities.keys.toIndexedSeq.sorted(f)
+    val ordered = probabilityTable.keys.toIndexedSeq.sorted(f)
 		
 		(ordered(lower) + ordered(upper)) / two 
 	}
 	
 	def mean[A](e: Empirical[A])(implicit num: Fractional[A]) = {
 		import num._
-		e.probabilities.foldLeft(0.0){case (acc, (v,p)) => {
+		e.probabilityTable.foldLeft(0.0){case (acc, (v,p)) => {
 			acc + v.toDouble * p.value
 		}}
 	}

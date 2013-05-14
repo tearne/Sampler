@@ -31,26 +31,29 @@ import scala.collection.immutable.Map
 import scala.collection.GenMap
 
 /*
- * A Samplable refinement which is backed by a collections of observations.
- * No variance in [A] since the probabilities Map[A, Probability] can't
- * support it   
+ * Collections of observations, forming empirical distributions.
+ * No variance in [A] since the probabilities Map[A, Probability] 
+ * can't support it 
  */
-trait Empirical[A] extends Samplable[A]{
-	 // The number of _unique_ observations (not overall number of observations)
-	val supportSize: Int
-	
-	 // The probability or relative frequency associated with each observation value 
-	val probabilities: Map[A, Probability]
+trait Empirical[A] extends Serializable{
+	// Relative frequency associated with each observation value 
+	val probabilityTable: Map[A, Probability]
+
+	// Number of _unique_ observations (not overall number of observations)
+	def supportSize: Int = probabilityTable.size
+
+	//Implementation different depending on backing collection
+	def toSamplable(implicit r: Random): Samplable[A]
 	
 	def canEqual(other: Any): Boolean = other.isInstanceOf[Empirical[_]]
 	override def equals(other: Any) = other match {
 		//Implement equality in terms of the probabilities of drawing values
 		case that: Empirical[_] => 
-			(that canEqual this) && (that.probabilities == probabilities)
+			(that canEqual this) && (that.probabilityTable == probabilityTable)
 		case _ => false
 	}
 	
-	override def hashCode() = probabilities.hashCode
+	override def hashCode() = probabilityTable.hashCode
 }
 
 /*
@@ -100,10 +103,10 @@ trait EmpiricalMetricComponent extends StatisticsComponent {
   }
   
   def max[A](a: Empirical[A], b: Empirical[A]): Double = {
-    val indexes = a.probabilities.keySet ++ b.probabilities.keySet
+    val indexes = a.probabilityTable.keySet ++ b.probabilityTable.keySet
     def distAtIndex(i: A) = math.abs(
-        a.probabilities.get(i).map(_.value).getOrElse(0.0) -
-        b.probabilities.get(i).map(_.value).getOrElse(0.0)
+        a.probabilityTable.get(i).map(_.value).getOrElse(0.0) -
+        b.probabilityTable.get(i).map(_.value).getOrElse(0.0)
     )
     indexes.map(distAtIndex(_)).max
   }

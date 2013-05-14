@@ -44,7 +44,7 @@ object UnfairCoinApplication extends App
 	with UnfairCoin
 	
 object UnfairCoinWorker extends App {
-	new NodeApplication(new ActorPopulationExecutor(CoinModel))
+	new NodeApplication(new ActorPopulationExecutor(CoinModel, Random))
 }
 
 trait UnfairCoinFactory{

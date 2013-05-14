@@ -72,7 +72,7 @@ object SampleSize extends App with EmpiricalMetricComponent with StatisticsCompo
 		  	// Sample the model until convergence
 		  	val builder = new ParallelSampleBuilder(chunkSize)
 		  	val dist = builder(model)(terminationCondition _).toEmpiricalTable
-		  	val obsDist = dist.counts.map{case (k,v) => (k.toDouble / sampSize, v)}.toEmpiricalTable
+		  	val obsDist = dist.freqTable.map{case (k,v) => (k.toDouble / sampSize, v)}.toEmpiricalTable
 		  	obsDist
 		}
 		
