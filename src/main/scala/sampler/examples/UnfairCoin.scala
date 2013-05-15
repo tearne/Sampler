@@ -80,7 +80,7 @@ trait UnfairCoin {
 	)
 	
 	implicit val r = Random
-	QuickPlot.writeDensity(wd, "posterior", Map("data" -> headsDensity.toEmpiricalSeq))
+	QuickPlot.writeDensity(wd, "posterior", Map("data" -> headsDensity))
 }
 
 object CoinModel extends CoinModelBase {

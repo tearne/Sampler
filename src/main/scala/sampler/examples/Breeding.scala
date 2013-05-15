@@ -83,7 +83,7 @@ object Breeding extends App{
 	
 	val proportionPV = bc1.collect{case s: Successful => 
 		s.countOf(prefVar).toDouble / species.numGenes
-	}.toEmpiricalSeq //TODO why must pass as empirical seq?
+	}
 	
 	val probSuccess = 1 - bc1.toEmpiricalSeq.probabilityTable(Failure)
 	println(s"Prob success in last cross $probSuccess")

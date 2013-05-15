@@ -21,8 +21,8 @@ class QuickPlotSpec extends Specification {
     	val homePath = Paths.get("", "examples", "r")
     	val fileName = "TwoDists"
     			
-    	val emp1 = IndexedSeq(0.1,0.2,0.2,0.3,0.3,0.3,0.4,0.4,0.5).toEmpiricalSeq
-    	val emp2 = IndexedSeq(0.3,0.4,0.4,0.5,0.5,0.5,0.6,0.6,0.7).toEmpiricalSeq
+    	val emp1 = IndexedSeq(0.1,0.2,0.2,0.3,0.3,0.3,0.4,0.4,0.5)//.toEmpiricalSeq
+    	val emp2 = IndexedSeq(0.3,0.4,0.4,0.5,0.5,0.5,0.6,0.6,0.7)//.toEmpiricalSeq
     	
     	val map = Map("Lower" -> emp1, "Higher" -> emp2)
     	
