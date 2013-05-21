@@ -84,12 +84,12 @@ trait Samplable[+A] extends Serializable{
 		def sample() = f(self.sample()).sample()
 	}
 	
-	def combine[B, C](that: Samplable[B], op: (A, B) => C) = new Samplable[C]{
+	def combine[B, C](that: Samplable[B])(op: (A, B) => C) = new Samplable[C]{
 		def sample() = op(self.sample(), that.sample())
 	}
 	
-	def convolve[B >: A](that: Samplable[B])(implicit n: Numeric[B]) = combine(that, n.plus _)
-    def crossCorrelate[B >: A](that: Samplable[B])(implicit n: Numeric[B]) = combine(that, n.minus _)
+	def convolve[B >: A](that: Samplable[B])(implicit n: Numeric[B]) = combine(that)(n.plus _)
+    def crossCorrelate[B >: A](that: Samplable[B])(implicit n: Numeric[B]) = combine(that)(n.minus _)
 }
 
 object Samplable{
@@ -98,7 +98,11 @@ object Samplable{
 	}
 	
 	def uniform(lower: Double, upper: Double)(implicit r: Random) = new Samplable[Double]{
-		def sample() = (upper - lower) * r.nextDouble()
+		def sample() = (upper - lower) * r.nextDouble() + lower
+	}
+	
+	def uniform(lower: Int, upper: Int)(implicit r: Random) = new Samplable[Int]{
+		def sample() = r.nextInt(upper - lower) + lower
 	}
 	
 	def uniform[T](items: Iterable[T])(implicit r: Random) = new Samplable[T]{
@@ -127,7 +131,7 @@ object Samplable{
 	}
 	
 	def normal(mean:Double, variance: Double)(implicit r: Random) = new Samplable[Double]{
-		val d = new NormalDistribution(0,variance)
+		val d = new NormalDistribution(mean,variance)
 		def sample() = d.sample
 		def density(value: Double) = d.density(value)
 	}

@@ -17,27 +17,17 @@
 
 package sampler.examples
 
-import java.nio.file.Files
-import java.nio.file.Paths
-import sampler.abc.ABCParameters
-import sampler.abc.ABCMethod
-import sampler.abc.ABCModel
-import sampler.abc.Prior
-import sampler.data.Empirical.RichIndexedSeq
+import java.nio.file.{Files, Paths}
+
+import sampler.abc._
+import sampler.abc.population._
+import sampler.data.Empirical._
 import sampler.data.Samplable
-import sampler.data.Types.Column
-import sampler.data.Types.DoubleColumn
+import sampler.data.Types._
 import sampler.io.CSVTableWriter
-import sampler.math.Probability
-import sampler.math.Random
-import sampler.math.StatisticsComponent
+import sampler.math._
 import sampler.r.QuickPlot
-import sampler.run.actor.NodeApplication
-import sampler.run.actor.PortFallbackSystem
-import sampler.abc.population.ActorPopulationExecutor
-import sampler.abc.population.ActorPopulationDispatcher
-import sampler.abc.population.LocalPopulationBuilder
-import sampler.abc.population.PopulationBuilder
+import sampler.run.actor._
 
 object UnfairCoinApplication extends App 
 	with UnfairCoinFactory 
@@ -75,6 +65,8 @@ trait UnfairCoin {
 	
 	val wd = Paths.get("egout", "UnfairCoin")
 	Files.createDirectories(wd)
+	
+	//TODO why writing to a table and using Quickplot?
 	new CSVTableWriter(wd.resolve("results.csv"), true)(
 		Column(headsDensity, "TruePos")
 	)

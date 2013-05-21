@@ -34,6 +34,7 @@ trait ABCModel{
 	
 	type Output <: OutputBase
 	protected trait OutputBase {
+		//TODO it's unclear at this point which obs are real and which come from simulation
 		def distanceTo(observed: Observations): Double
 	}
 	

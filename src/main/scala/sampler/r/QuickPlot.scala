@@ -10,6 +10,7 @@ import sampler.math.Probability
 import sampler.data.EmpiricalTable
 
 object QuickPlot {
+	//TODO add an option for quickly plotting a single data set without bothering with Map
 	def writeDensity(path: Path, fileName: String, data: Map[String, Seq[Double]]) = {
 	    def rScriptBuilder(name: String) = {
 	      val builder = new StringBuilder

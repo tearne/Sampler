@@ -101,7 +101,7 @@ class SamplableSpec extends Specification {
 				def sample(): Int = it.next()
 		    }
 		    
-		    val result = doubler.combine(instance, product)
+		    val result = doubler.combine(instance)(product)
 		    
 		    def append(previous: List[Int]): List[Int] = {
 					if(previous.length == 5) previous
@@ -199,7 +199,7 @@ class SamplableSpec extends Specification {
 			val w: Samplable[S] = s
 			
 			class U
-			val p: Samplable[U] = t.combine(s, (a:T, b:S) => new U)
+			val p: Samplable[U] = t.combine(s)((a:T, b:S) => new U)
 		}
 	}
 	
