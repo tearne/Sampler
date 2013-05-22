@@ -30,7 +30,7 @@ import sampler.math.Random
 
 class ActorPopulationDispatcher(dispatcher: Dispatcher) extends PopulationBuilder{
 	def run(model: ABCModel)(
-			pop: Empirical[model.Parameters], 
+			pop: model.Population, 
 			jobSizes: Seq[Int], 
 			tolerance: Double, 
 			meta: ABCParameters,
@@ -50,4 +50,4 @@ object ActorPopulationDispatcher{
 	def apply(system: ActorSystem) = new ActorPopulationDispatcher(new FailFastDispatcher(system))
 }
 
-case class ABCJob(samplablepopulation: Empirical[_], quantity: Int, tolerance: Double, meta: ABCParameters) extends Job[ABCModel#Population]
+case class ABCJob(population: Seq[_], quantity: Int, tolerance: Double, meta: ABCParameters) extends Job[ABCModel#Population]

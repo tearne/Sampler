@@ -28,7 +28,7 @@ import sampler.math.Random
 
 class LocalPopulationBuilder(runner: LocalRunner) extends PopulationBuilder{
 	def run(model: ABCModel)(
-			pop: Empirical[model.Parameters], 
+			pop: model.Population, 
 			jobSizes: Seq[Int], 
 			tolerance: Double, 
 			meta: ABCParameters,

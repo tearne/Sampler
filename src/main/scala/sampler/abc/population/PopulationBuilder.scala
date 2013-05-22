@@ -25,7 +25,7 @@ import sampler.math.Random
 
 trait PopulationBuilder{
 	def run(model: ABCModel)(
-			pop: Empirical[model.Parameters], 
+			pop: model.Population, 
 			jobSizes: Seq[Int], 
 			tolerance: Double,
 			meta: ABCParameters,

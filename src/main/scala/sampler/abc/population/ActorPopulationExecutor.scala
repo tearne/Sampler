@@ -27,7 +27,7 @@ class ActorPopulationExecutor(model: ABCModel, random: Random) extends Executor{
 	def run = PartialFunction[Any, Any]{
 		case ABCJob(pop, quantity, tol, meta) => 
 			Population(model)(
-					pop.asInstanceOf[Empirical[model.Parameters]], 
+					pop.asInstanceOf[model.Population], 
 					quantity, 
 					tol, 
 					new WrappedAborter(aborted),
