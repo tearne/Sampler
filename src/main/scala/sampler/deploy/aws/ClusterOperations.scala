@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
-package sampler.run.actor.aws
+package sampler.deploy.aws
 
 import scala.sys.process.Process
 import java.nio.file.{Paths, Path, Files}
+import sampler.deploy.SSHCommand
 
 object ClusterOperations extends App{
 
@@ -30,6 +31,7 @@ object ClusterOperations extends App{
 	val payload = Paths.get("target","cluster-kernel")
 	val payloadExe = "cluster-kernel/bin/start sampler.run.cluster.WorkerBootable"
 	
+	val sshCommand = SSHCommand(AWS.keyFile)
 		
 		
 	val s3bucket = s"s3://ot-bucket/"//${payload.getFileName()}"
@@ -69,12 +71,12 @@ object ClusterOperations extends App{
 	
 	def resetInstance(host: String){
 		val resetInstanceCommand = """killall java; rm -r ~/*"""
-		SSHCommand(username, host, resetInstanceCommand)
+		sshCommand.forground(username, host, resetInstanceCommand)
 	}
 	
 	def stopPayload(host: String){
 		val resetInstanceCommand = """killall java"""
-		SSHCommand(username, host, resetInstanceCommand)
+		sshCommand.forground(username, host, resetInstanceCommand)
 	}
 	
 	def installBasics(host: String){
@@ -88,17 +90,17 @@ cd /etc/yum.repos.d
 sudo wget http://s3tools.org/repo/RHEL_6/s3tools.repo
 sudo yum install s3cmd -y
 """
-		SSHCommand(username, host, script)
+		sshCommand.forground(username, host, script)
 	}
 	
 	def doS3download(host: String, s3Path: String){
 		val s3downloadCommand = s"s3cmd sync $s3Path ."
 		println(s3downloadCommand)
-		SSHCommand(username, host, s3downloadCommand)
-		SSHCommand(username, host, "chmod u+x cluster-kernel/bin/start")
+		sshCommand.forground(username, host, s3downloadCommand)
+		sshCommand.forground(username, host, "chmod u+x cluster-kernel/bin/start")
 	}
 	
 	def runPayload(host: String){
-		SSHCommand.background(username, host, payloadExe)
+		sshCommand.background(username, host, payloadExe)
 	}
 }

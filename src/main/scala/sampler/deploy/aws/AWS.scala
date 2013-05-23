@@ -1,4 +1,4 @@
-package sampler.run.actor.aws
+package sampler.deploy.aws
 
 import java.nio.file.Paths
 import com.amazonaws.auth.PropertiesCredentials
