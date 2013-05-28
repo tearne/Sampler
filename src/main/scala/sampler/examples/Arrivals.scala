@@ -182,6 +182,49 @@ dev.off()
 """,
 				wd.resolve("script") //TODO file extension?
 		)
+		
+		
+	//////////////////////////////
+	val reps = 1
+	def getEnergy(s: Staffing): Double = {
+		//Energy is the mean maximum Q size in N runs
+		val samp = new QSize(s, immigrationHallArrivals)
+		Iterator.fill(reps)(samp.sample.max).sum / reps.toDouble
+	}	
+		
+	val start = Staffing.generate(5)
+	val energy = getEnergy(start)
+	println("Here")
+	
+	val steps = 10
+	def temperature(r: Double) = 1000*r //Sort this out
+	def accepted(currentEnergy: Double, proposedEnergy: Double, temp: Double) =
+		if(proposedEnergy < currentEnergy) true
+		else {
+			val p = Probability(math.exp(-(proposedEnergy - currentEnergy)/temp))
+			println("P = "+p)
+			r.nextBoolean(p)
+		}
+	
+	def go(staffing: Staffing, step: Int, energy: Double): Staffing = {
+		println(staffing)
+		if(step == steps) staffing
+		else{
+			val temp = temperature(step.toDouble / steps)
+			val nhbr = staffing.randomNeighbour
+			val enrg = getEnergy(nhbr)
+			if(accepted(energy, enrg, temp)){
+				println("Accepted")
+				go(nhbr, step+1, enrg)
+			} 
+			else {
+				println("Rejected")
+				go(staffing, step+1, energy)
+			}
+		}
+	}
+	
+	go(start, 0, energy)
 }
 
 object ArrivalsUtils{
@@ -247,5 +290,24 @@ object ArrivalsUtils{
 		def numWorkingAt(hr: Int) = {
 			staff.count(_.willBeWorkingAt(hr))
 		}
+		def randomNeighbour = {
+			val r = Random
+			val index = r.nextInt(staff.size)
+			val plusOrMinus = if(r.nextBoolean) 1 else -1
+			val newStartHour = {
+				val hr = (staff(index).startHr + plusOrMinus) % 24
+				if(hr < 0) hr + 24 else hr
+			}
+			println(staff(index).startHr + " ->" + newStartHour)
+			Staffing(staff.updated(index, Staff(newStartHour)))
+		}
+	}
+	object Staffing{
+		implicit val r = Random
+		def generate(numStaff: Int) = {
+			val samplable = Samplable.uniform(0, 24)
+			Staffing(Seq.fill(numStaff)(Staff(samplable.sample)))
+		}
 	}
 }
+

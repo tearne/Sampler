@@ -97,12 +97,12 @@ object Samplable{
 		def sample() = value
 	}
 	
-	def uniform(lower: Double, upper: Double)(implicit r: Random) = new Samplable[Double]{
-		def sample() = (upper - lower) * r.nextDouble() + lower
+	def uniform(lowerInclusive: Double, upperExclusive: Double)(implicit r: Random) = new Samplable[Double]{
+		def sample() = (upperExclusive - lowerInclusive) * r.nextDouble() + lowerInclusive
 	}
 	
-	def uniform(lower: Int, upper: Int)(implicit r: Random) = new Samplable[Int]{
-		def sample() = r.nextInt(upper - lower) + lower
+	def uniform(lowerIncludive: Int, upperExclusive: Int)(implicit r: Random) = new Samplable[Int]{
+		def sample() = r.nextInt(upperExclusive - lowerIncludive) + lowerIncludive
 	}
 	
 	def uniform[T](items: Iterable[T])(implicit r: Random) = new Samplable[T]{
