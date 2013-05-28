@@ -26,9 +26,7 @@ import akka.actor.actorRef2Scala
 import sampler.run.actor.worker.Abort
 import sampler.run.actor.worker.WorkerIdle
 import sampler.run.actor.dispatch.Job
-import sampler.run.actor.worker.Broadcaster
 import scala.language.existentials
-import sampler.run.actor.worker.Broadcast
 
 case class Request(job: Job[_], requestor: ActorRef, jobID: Long)
 case class WorkAvailable()
@@ -57,14 +55,14 @@ class Master extends Actor with ActorLogging {
 			val jobID = jobIDIterator.next
   		  	val newReq = Request(job, requestor, jobID)
   		  	requestQ += newReq 
-  		  	log.info("New job request enqueued, id {}, |Q|={}", jobID, requestQ.size)
+  		  	log.info("New job id {}, |Q|={}", jobID, requestQ.size)
 		case BroadcastWorkAvailable =>
 			if(!requestQ.isEmpty) broadcaster ! Broadcast(WorkAvailable)
 		case WorkerIdle =>
-			log.info("Idle msg from {}.  {} Jobs in Q",sender, requestQ.size)
+			log.debug("Idle msg from {}.  {} Jobs in Q",sender, requestQ.size)
 			val worker = sender
 			if(!requestQ.isEmpty) 
-				context.actorOf(Props[RequestSupervisor]) ! Delegate(requestQ.dequeue, worker)
+				context.actorOf(Props[Supervisor]) ! Delegate(requestQ.dequeue, worker)
 		case AbortAll =>
 			//All children other than the broadcaster are work monitors
 			context.children.filter(_.path.name != broadcasterName).foreach(_ ! Abort)

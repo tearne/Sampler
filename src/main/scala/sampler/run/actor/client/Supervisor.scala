@@ -33,7 +33,7 @@ import sampler.run.actor.worker.WorkConfirmed
 import sampler.run.actor.worker.WorkRejected
 import sampler.run.actor.worker.WorkerIdle
 
-class RequestSupervisor extends Actor with ActorLogging{
+class Supervisor extends Actor with ActorLogging {
 	val confirmationTimeout = 1.second
 	case class ConfirmationReminder()
 	
@@ -43,11 +43,11 @@ class RequestSupervisor extends Actor with ActorLogging{
 	
 	def receive = {
 		case Delegate(request,worker) => 
-			log.info("Delegating request {}", request.jobID)
 			worker ! request
 			import context.dispatcher
 			context.system.scheduler.scheduleOnce(confirmationTimeout, self, ConfirmationReminder)
 			context.become(awaitingConfirmation(worker, request))
+			log.info("Assigned job {} to {}", request.jobID, worker)
 	}
 	
 	def awaitingConfirmation(worker: ActorRef, request: Request): Receive = {
@@ -55,22 +55,22 @@ class RequestSupervisor extends Actor with ActorLogging{
 			worker ! Abort
 			context.stop(self)
 		case WorkConfirmed =>
-			log.info("Work confirmed")
+			log.debug("Work confirmed")
 			context.become(awaitingResults(worker, request)) 
 		case ConfirmationReminder => 
-			log.info("Confirmation reminder")
-			failed(request)
+			log.debug("Confirmation reminder")
+			confirmationFailed(request)
 		//TODO test
 		case MemberRemoved(m) =>
 			if(worker.path.address == m.address) {
-				log.info(s"Worker lost at $m, resubmitting work to master")
-				failed(request)
+				log.warning(s"Worker lost at $m, resubmitting work to master")
+				confirmationFailed(request)
 			}
-		case WorkRejected => failed(request)
+		case WorkRejected => confirmationFailed(request)
 	}
 	
-	private def failed(request: Request){
-		log.info("Failed, resubmitting request")
+	private def confirmationFailed(request: Request){
+		log.warning("Work confirmation failed, resubmitting request")
 		context.parent.tell(request.job, request.requestor)
 		context.stop(self)
 	}
@@ -79,8 +79,8 @@ class RequestSupervisor extends Actor with ActorLogging{
 		val workerPath = Seq("user", "worker")
 		val potentialWorker = context.actorFor(RootActorPath(member.address) / workerPath)
 		if(myWorker == potentialWorker) {
-			log.info("Cluster member lost during calculation")
-			failed(request)
+			log.warning("Cluster member lost during calculation")
+			confirmationFailed(request)
 		}
 	}
 	
@@ -92,7 +92,7 @@ class RequestSupervisor extends Actor with ActorLogging{
 		case result: Try[_] =>
 			request.requestor ! result
 			//TODO better mechanism for asking for new work after job completion 
-			log.info("Job done")
+			log.info("Job {} done", request.jobID)
 			context.parent.tell(WorkerIdle, worker)
 			context.stop(self)
 	}
