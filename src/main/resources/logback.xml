@@ -22,6 +22,7 @@
 	
 	<logger name="sampler.run" level="NULL" additivity="false">
 		<appender-ref ref="SAMPLER_RUN" />
+		<appender-ref ref="STDOUT" />
 	</logger>
 	
 	<root>
