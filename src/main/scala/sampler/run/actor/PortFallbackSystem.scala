@@ -45,7 +45,7 @@ object PortFallbackSystem {
 		def tryPort(i: Int) = {
 			System.setProperty("akka.remote.netty.port", i.toString)
 			ConfigFactory.invalidateCaches()
-			Try(AkkaSystem())
+			Try(AkkaSystem(name))
 		}
 
 		Try(AkkaSystem(name))
