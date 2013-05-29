@@ -27,17 +27,32 @@ object PortFallbackSystem {
 	val log = LoggerFactory.getLogger(PortFallbackSystem.this.getClass())
 	
 	def apply(name: String): AkkaSystem = {
-		try{
-			AkkaSystem(name)
-		} catch {
-			case e: ChannelException =>
-				log.warn("Failed to bind to configured port, falling back to random: "+e.getLocalizedMessage())
-				System.setProperty("akka.remote.netty.port", "0")
-				ConfigFactory.invalidateCaches()
-				AkkaSystem(name)
-			case e: Throwable => 
-				log.error("Unexpected error: "+e.printStackTrace())
-				throw new RuntimeException("Unexpected error on ActorSystem startup", e)
+//		try{
+//			AkkaSystem(name)
+//		} catch {
+//			case e: ChannelException =>
+//				log.warn("Failed to bind to configured port, falling back to random: "+e.getLocalizedMessage())
+//				System.setProperty("akka.remote.netty.port", "0")
+//				ConfigFactory.invalidateCaches()
+//				AkkaSystem(name)
+//			case e: Throwable => 
+//				log.error("Unexpected error: "+e.printStackTrace())
+//				throw new RuntimeException("Unexpected error on ActorSystem startup", e)
+//		}
+		
+		val startPort = ConfigFactory.load.getInt("akka.remote.netty.port")
+		
+		def tryPort(i: Int) = {
+			System.setProperty("akka.remote.netty.port", i.toString)
+			ConfigFactory.invalidateCaches()
+			Try(AkkaSystem())
 		}
+
+		Try(AkkaSystem(name))
+			.orElse(tryPort(startPort + 1))
+			.orElse(tryPort(startPort + 2))
+			.orElse(tryPort(0))
+			.get
+			
 	}
 }
