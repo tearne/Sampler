@@ -31,7 +31,7 @@ import sampler.run.actor.worker.Node
 import sampler.io.SLF4JLogging
 
 class NodeApplication(executorFactory: => Executor) extends SLF4JLogging{
-	if(ConfigFactory.load().getBoolean("cluster.inet-bind")){
+	if(ConfigFactory.load().getBoolean("sampler.node.inet-bind")){
 		Try{
 			java.net.InetAddress.getLocalHost.getHostAddress
 		}match{

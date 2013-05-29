@@ -20,16 +20,19 @@ package sampler.run.actor.worker
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.Props
+import com.typesafe.config.ConfigFactory
 
 //case class Status(numCPU: Int, load: Float, memFree: Float){
 //	override def toString() = f"Status(numCPU=$numCPU, load=$load%.2f, memFree=$memFree%.2f)"
 //}
 
 class Node(runnerFactory: => Executor) extends Actor with ActorLogging{
-	val numCores = Runtime.getRuntime().availableProcessors()
-	(1 to numCores).foreach(i => context.actorOf(Props(new Worker(runnerFactory))))
+	val n = ConfigFactory.load().getInt("sampler.node.workers-per")
+	val numWorkers = if(n <= 0) Runtime.getRuntime().availableProcessors() else n
+
+	(1 to numWorkers).foreach(i => context.actorOf(Props(new Worker(runnerFactory))))
 	
-	log.info(s"Started $numCores workers")
+	log.info(s"Started $numWorkers workers")
 	
 //	val monitor = new JavaSysMon
 	
@@ -43,8 +46,8 @@ class Node(runnerFactory: => Executor) extends Actor with ActorLogging{
 		case StatusRequest => 
 			context.children.foreach{child => 
 				child.forward(StatusRequest)
-				log.info("Forwarded {} from {} to {}", StatusRequest, sender, child)
 			}
-		case m => log.warning("Unexpected message {} from {}",m, sender)
+			log.info("Forwarded {} to {}", StatusRequest, context.children.size)
+		case m => log.error("Unexpected message {} from {}",m, sender)
 	}
 }
