@@ -15,6 +15,10 @@
  * limitations under the License.
  */
 
-package sampler.run.actor.dispatch
+package sampler.run.actor.client.dispatch
 
-trait Job[T]
+import sampler.run.actor.client.dispatch.Job
+
+case class Batch[R](jobs: Seq[Job[R]]){
+	val size = jobs.size
+}

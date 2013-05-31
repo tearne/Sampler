@@ -15,8 +15,23 @@
  * limitations under the License.
  */
 
-package sampler.run.actor.dispatch
+package sampler.run.actor.client.dispatch
 
-case class Batch[R](jobs: Seq[Job[R]]){
-	val size = jobs.size
+import akka.actor.ActorSystem
+import scala.concurrent.duration._
+import akka.util.Timeout
+import scala.util.Try
+import akka.actor.Props
+import scala.concurrent.Await
+import akka.pattern.ask
+
+class FailFastDispatcher(system: ActorSystem) extends Dispatcher{
+	//TODO Configurable timeout
+	implicit val timeout = Timeout(5.minutes)
+	import system.dispatcher
+	
+	def apply[R](jobs: Seq[Job[R]]): Seq[Try[R]] = {
+		val ff = system.actorOf(Props[FailFastActor])
+		Await.result((ff ? Batch(jobs)).mapTo[Seq[Try[R]]], timeout.duration)
+	}
 }

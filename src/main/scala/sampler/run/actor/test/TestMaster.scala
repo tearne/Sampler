@@ -18,8 +18,8 @@
 package sampler.run.actor.test
 
 import sampler.run.actor.PortFallbackSystem
-import sampler.run.actor.dispatch.Job
-import sampler.run.actor.dispatch.FailFastDispatcher
+import sampler.run.actor.client.dispatch.Job
+import sampler.run.actor.client.dispatch.FailFastDispatcher
 
 case class TestJob(i: Int) extends Job[String]
 

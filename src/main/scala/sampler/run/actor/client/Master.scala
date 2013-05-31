@@ -25,7 +25,7 @@ import akka.actor.Props
 import akka.actor.actorRef2Scala
 import sampler.run.actor.worker.Abort
 import sampler.run.actor.worker.WorkerIdle
-import sampler.run.actor.dispatch.Job
+import sampler.run.actor.client.dispatch.Job
 import scala.language.existentials
 
 case class Request(job: Job[_], requestor: ActorRef, jobID: Long)

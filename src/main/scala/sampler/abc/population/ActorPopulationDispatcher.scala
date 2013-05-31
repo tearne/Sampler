@@ -22,11 +22,11 @@ import scala.language.existentials
 import akka.actor.ActorSystem
 import sampler.abc.ABCModel
 import sampler.data.Empirical
-import sampler.run.actor.dispatch.FailFastDispatcher
-import sampler.run.actor.dispatch.Job
-import sampler.run.actor.dispatch.Dispatcher
+import sampler.run.actor.client.dispatch.FailFastDispatcher
 import sampler.abc.ABCParameters
 import sampler.math.Random
+import sampler.run.actor.client.dispatch.Dispatcher
+import sampler.run.actor.client.dispatch.Job
 
 class ActorPopulationDispatcher(dispatcher: Dispatcher) extends PopulationBuilder{
 	def run(model: ABCModel)(
@@ -43,7 +43,9 @@ class ActorPopulationDispatcher(dispatcher: Dispatcher) extends PopulationBuilde
 		//TODO Is there a way to eliminate this cast? 
 		//It's needed since the ABCActorJob[T] type T can't
 		//carry the model as required for model.Population
-		dispatcher(jobs).asInstanceOf[Seq[Try[model.Population]]]
+		val result = dispatcher(jobs).asInstanceOf[Seq[Try[model.Population]]]
+		assert(result.size == jobs.size, "Results set not of expected size.  Check logs for Worker exceptions")
+		result
 	}
 }
 object ActorPopulationDispatcher{

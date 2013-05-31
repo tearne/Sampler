@@ -32,6 +32,8 @@ import sampler.run.actor.worker.Abort
 import sampler.run.actor.worker.WorkConfirmed
 import sampler.run.actor.worker.WorkRejected
 import sampler.run.actor.worker.WorkerIdle
+import scala.util.Failure
+import scala.util.Success
 
 class Supervisor extends Actor with ActorLogging {
 	val confirmationTimeout = 1.second
@@ -85,15 +87,27 @@ class Supervisor extends Actor with ActorLogging {
 	}
 	
 	def awaitingResults(worker: ActorRef, request: Request): Receive = {
-		case MemberRemoved(m) => clusterMemberLost(worker, m, request)
-		case Abort =>
-			worker ! Abort
-			context.stop(self)
-		case result: Try[_] =>
+		def behaviour: Receive = {
+			case MemberRemoved(m) => clusterMemberLost(worker, m, request)
+			case Abort =>
+				worker ! Abort
+				context.stop(self)
+			case Failure(e) => 
+				log.error(e, "Supervisor detected exception from worker")
+				jobDone(Failure(e))
+			case result: Success[_] =>
+				jobDone(result)
+		}
+
+		def jobDone(result: Try[_]) {
 			request.requestor ! result
 			//TODO better mechanism for asking for new work after job completion 
 			log.info("Job {} done", request.jobID)
 			context.parent.tell(WorkerIdle, worker)
 			context.stop(self)
+		}
+		
+		behaviour
 	}
+	
 }

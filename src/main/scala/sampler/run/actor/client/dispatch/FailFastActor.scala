@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.run.actor.dispatch
+package sampler.run.actor.client.dispatch
 
 import scala.util.Failure
 import scala.util.Success

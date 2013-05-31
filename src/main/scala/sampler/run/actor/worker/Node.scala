@@ -47,7 +47,7 @@ class Node(runnerFactory: => Executor) extends Actor with ActorLogging{
 			context.children.foreach{child => 
 				child.forward(StatusRequest)
 			}
-			log.info("Forwarded {} to {}", StatusRequest, context.children.size)
+			log.debug("Forwarded {} to {}", StatusRequest, context.children.size)
 		case m => log.error("Unexpected message {} from {}",m, sender)
 	}
 }

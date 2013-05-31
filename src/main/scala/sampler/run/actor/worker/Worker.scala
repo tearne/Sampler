@@ -24,7 +24,7 @@ import scala.util.Try
 import akka.actor.actorRef2Scala
 import sampler.run.actor.client.WorkAvailable
 import sampler.run.actor.client.Request
-import sampler.run.actor.dispatch.Job
+import sampler.run.actor.client.dispatch.Job
 
 case class Abort()
 case class StatusRequest()
@@ -56,7 +56,7 @@ class Worker(runner: Executor) extends Actor with ActorLogging{
 		case StatusRequest => sender ! WorkerIdle
 		case WorkAvailable => sender ! WorkerIdle
 		case request: Request =>
-			log.info("Got request "+request.job)
+			log.debug("Got request "+request.job)
 			doWork(request.job)
 	}
 	
