@@ -17,8 +17,6 @@
 
 package sampler.run.actor.client.dispatch
 
-import sampler.run.actor.client.dispatch.Job
-
 case class Batch[R](jobs: Seq[Job[R]]){
 	val size = jobs.size
 }
