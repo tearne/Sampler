@@ -22,7 +22,7 @@ import akka.actor.ActorRef
 import scala.concurrent.duration._
 import scala.util.Try
 import akka.cluster.Cluster
-import akka.cluster.ClusterEvent.MemberRemoved
+import akka.cluster.ClusterEvent.UnreachableMember
 import akka.actor.RootActorPath
 import akka.cluster.Member
 import akka.actor.ActorLogging
@@ -40,7 +40,7 @@ class Supervisor extends Actor with ActorLogging {
 	case class ConfirmationReminder()
 	
 	val cluster = Cluster(context.system)
-  	override def preStart(): Unit = cluster.subscribe(self, classOf[MemberRemoved])
+  	override def preStart(): Unit = cluster.subscribe(self, classOf[UnreachableMember])
 	override def postStop(): Unit = cluster.unsubscribe(self)
 	
 	def receive = {
@@ -63,7 +63,7 @@ class Supervisor extends Actor with ActorLogging {
 			log.debug("Confirmation reminder")
 			confirmationFailed(request)
 		//TODO test
-		case MemberRemoved(m) =>
+		case UnreachableMember(m) =>
 			if(worker.path.address == m.address) {
 				log.warning(s"Worker lost at $m, resubmitting work to master")
 				confirmationFailed(request)

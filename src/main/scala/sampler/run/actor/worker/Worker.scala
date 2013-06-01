@@ -25,6 +25,9 @@ import akka.actor.actorRef2Scala
 import sampler.run.actor.client.WorkAvailable
 import sampler.run.actor.client.Request
 import sampler.run.actor.client.dispatch.Job
+import akka.cluster.Cluster
+import akka.cluster.ClusterEvent
+import akka.actor.ActorRef
 
 case class Abort()
 case class StatusRequest()
@@ -50,6 +53,10 @@ case class WorkRejected()
 class Worker(runner: Executor) extends Actor with ActorLogging{
 	case class Done()
 	
+	val cluster = Cluster(context.system)
+	override def preStart(): Unit = cluster.subscribe(self, classOf[ClusterEvent.UnreachableMember])
+	override def postStop(): Unit = cluster.unsubscribe(self)
+	
 	def receive = idle
 	
 	def idle: Receive = {
@@ -63,7 +70,7 @@ class Worker(runner: Executor) extends Actor with ActorLogging{
 	def doWork(job: Job[_]){
 		val sndr = sender
 		val me = self
-		context.become(busy)
+		context.become(busy(sndr))
 		import context._
 		Future{
 			val result = Try(runner(job))
@@ -73,18 +80,22 @@ class Worker(runner: Executor) extends Actor with ActorLogging{
 		sndr ! WorkConfirmed
 	}
 	
-	def busy: Receive = {
+	def busy(requestor: ActorRef): Receive = {
+		case ClusterEvent.UnreachableMember(m) =>
+			if(requestor.path.address == m.address) {
+				log.warning(s"Detected requester unreachable "+m.address)
+				self ! Abort
+			}
 		case StatusRequest => sender ! WorkerBusy
 		case Abort => 
 			log.info("Aborting")
 			runner.abort
-			//TODO how do we know that it's actually aborted?
-			context.become(idle)
+			//Let the aborted future complete, then status will become idle
 		case Done => 
 			log.info("Becoming idle")
 			context.become(idle)
 		case Request => log.warning("Received request when busy, ignoring")
 		case WorkAvailable => //Ignore
-		case msg => log.warning("unknown msg "+msg.toString)
+		case msg => log.warning("Unexpected msg: "+msg.toString)
 	}
 }
