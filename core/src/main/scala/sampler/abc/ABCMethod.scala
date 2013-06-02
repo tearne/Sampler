@@ -54,8 +54,8 @@ class ABCMethod[M <: ABCModel](val model: M, meta: ABCParameters, implicit val r
 		
 		val results: Seq[Try[Population]] = pBuilder.run(model)(pop, jobSizes, tolerance, meta, random)
 		
-		//TODO Need to check correct number of results?
-	    if(results.contains(Failure)) None 
+		val exceptions = results.collect{case Failure(e) => e}
+		if(exceptions.size > 0) throw new ABCException(s"${exceptions.size} exception(s) thrown in ${pBuilder.getClass()}, first below.", exceptions.head)
 	    else Some(results.collect{case Success(s) => s}.flatten)
 	}
 		

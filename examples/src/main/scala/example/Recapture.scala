@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package sampler.examples
+package sampler.example
 
 import sampler.abc.ABCModel
 import sampler.math._
@@ -50,7 +50,7 @@ trait RecaptureFactory{
 }
 
 trait Recapture{
-	val wd = Paths.get("egout","recapture")
+	val wd = Paths.get("results","recapture")
 	Files.createDirectories(wd)
 
 	/*

@@ -13,7 +13,7 @@
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-package sampler.examples
+package sampler.example
 
 import collection.immutable.Queue
 import sampler.data.Samplable
@@ -30,7 +30,7 @@ import sampler.r.ScriptRunner
 object Arrivals extends App{
 	import ArrivalsUtils._
 	
-	val wd = Paths.get("egout", "Arrivals")
+	val wd = Paths.get("results", "Arrivals")
 	Files.createDirectories(wd)
 	
 	val timetable = {

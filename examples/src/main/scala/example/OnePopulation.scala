@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.examples
+package sampler.example
 
 import sampler.data.Empirical._
 import sampler.math._
@@ -40,7 +40,7 @@ object OnePopulation extends App with EmpiricalMetricComponent with StatisticsCo
 	
 	val start = System.currentTimeMillis
 	
-	val wd = Paths.get("egout","onePopulation")
+	val wd = Paths.get("results","onePopulation")
 	Files.createDirectories(wd)
 	
 	//Domain parameters

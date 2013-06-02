@@ -2,18 +2,32 @@ import sbt._
 import Keys._
 import sbtassembly.Plugin._
 import AssemblyKeys._
+import com.typesafe.sbteclipse.plugin.EclipsePlugin.EclipseKeys
 
 object SamplerBuild extends Build{
 	val buildOrganization 	= "ahvla"
-	val buildVersion 		= "0.0.9"
+	val buildVersion 	= "0.0.9"
 	val buildScalaVersion	= "2.10.1"
 	
 	lazy val root = Project(
-		id = "Sampler",
+		id = "sampler",
 		base = file("."),
+		settings = buildSettings,
+		aggregate = Seq(core, examples)
+	) 
+	
+	lazy val core = Project(
+		id = "sampler-core",
+		base = file("core"),
 		settings = buildSettings ++ assySettings
 	)
-		
+	
+	lazy val examples = Project(
+		id = "sampler-examples",
+		base = file("examples"),
+		settings = buildSettings
+	) dependsOn core
+	
 	val assySettings = assemblySettings ++ Seq(
 		test in assembly := {},
 		mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
@@ -26,7 +40,7 @@ object SamplerBuild extends Build{
 		organization := buildOrganization,
 		version		 := buildVersion,
 		scalaVersion := buildScalaVersion,
-		
+
 		retrieveManaged	:= false,
 		
 		resolvers ++= Seq(
@@ -49,5 +63,9 @@ object SamplerBuild extends Build{
 			"com.amazonaws" % "aws-java-sdk" % "1.4.0.1",
 			"javasysmon" % "javasysmon" % "0.3.3" from "http://cloud.github.com/downloads/jezhumble/javasysmon/javasysmon-0.3.3.jar"
 		)
+	)
+
+	override lazy val settings = super.settings :+ (
+		EclipseKeys.skipParents := false		
 	)
 }

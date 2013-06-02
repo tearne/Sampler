@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.examples
+package sampler.example
 
 import java.nio.file.{Files, Paths}
 
@@ -63,7 +63,7 @@ trait UnfairCoin {
 
 	val headsDensity = finalPopulation.get.map(_.pHeads)
 	
-	val wd = Paths.get("egout", "UnfairCoin")
+	val wd = Paths.get("results", "UnfairCoin")
 	Files.createDirectories(wd)
 	
 	//TODO why writing to a table and using Quickplot?

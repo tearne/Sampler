@@ -6,11 +6,11 @@
 *.class
 *.log
 
-egout/
+results/
 bin/
 
 # sbt specific
-dist/*
+dist/
 target/
 lib/
 lib_managed/

@@ -13,7 +13,7 @@
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-package sampler.examples
+package sampler.example
 
 import scala.annotation.tailrec
 import sampler.data.Samplable
@@ -38,7 +38,7 @@ import sampler.data.SerialSampleBuilder
  */
 
 object Breeding extends App{
-	import sampler.examples.Biology._
+	import sampler.example.Biology._
 	implicit val r = Random
 	
 	//Number of centimorgan per chromosome
@@ -88,7 +88,7 @@ object Breeding extends App{
 	val probSuccess = 1 - bc1.toEmpiricalSeq.probabilityTable(Failure)
 	println(s"Prob success in last cross $probSuccess")
 	
-	val wd = Paths.get("egout","Breeding")
+	val wd = Paths.get("results","Breeding")
 	Files.createDirectories(wd)
 	QuickPlot.writeDensity(
 		wd,

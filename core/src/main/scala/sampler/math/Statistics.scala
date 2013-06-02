@@ -33,7 +33,9 @@ trait StatisticsComponent{
 	
 	//TODO take seq of probability and give seq of results
 	def quantile[A](e: Empirical[A], prob: Probability)(implicit f: Fractional[A]): A = {
-    import e._
+		//TODO exception/assertion that there are more than 0 / 1 items to enable
+		// this to run without IndexOutOfBoundsException
+		import e._
 		import f._
 		val (lower, upper) = {
 			val raw = prob.value * supportSize - 1
@@ -45,7 +47,9 @@ trait StatisticsComponent{
 		}
 		
 		val two = one + one
-    val ordered = probabilityTable.keys.toIndexedSeq.sorted(f)
+		val ordered = probabilityTable.keys.toIndexedSeq.sorted(f)
+		
+		println(ordered)
 		
 		(ordered(lower) + ordered(upper)) / two 
 	}

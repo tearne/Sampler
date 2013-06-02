@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package sampler.examples
+package sampler.example
 
 import sampler.data._
 import sampler.data.Empirical._
@@ -36,7 +36,7 @@ object SampleSize extends App with EmpiricalMetricComponent with StatisticsCompo
 	val convergenceTolerance = 0.01
 	implicit val r = Random
 
-	val wd = Paths.get("egout","sampleSize")
+	val wd = Paths.get("results","sampleSize")
 	Files.createDirectories(wd)
 	
 	def numPositivesDistribution(numPositive: Int, populationSize: Int, sampleSize: Int): Samplable[Int] = {
