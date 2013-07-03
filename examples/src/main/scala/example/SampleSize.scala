@@ -26,38 +26,26 @@ import sampler.io.CSVTableWriter
 import sampler.r.ScriptRunner
 import java.nio.file.{Paths, Files}
 import sampler.math._
+import sampler.math.StatisticsComponent
+import sampler.optim.BinarySearch
 
-object SampleSize extends App with EmpiricalMetricComponent with StatisticsComponent{
+/*
+ * Produce a graph with possible prevalence on the x-axis, and
+ * the number of samples required to be 95% confident of being 
+ * within 0.1 of the true prevalence when the sampling.
+ */
+object SampleSize extends App with SampleSizeSupport{
 	//Domain parameters
 	val populationSize = 100
 	val sampleSize = 35
 	
+	//Meta parameters
 	val chunkSize = 2000
-	val convergenceTolerance = 0.01
+	val convergenceTolerance = 0.01	
 	implicit val r = Random
 
 	val wd = Paths.get("results","sampleSize")
 	Files.createDirectories(wd)
-	
-	def numPositivesDistribution(numPositive: Int, populationSize: Int, sampleSize: Int): Samplable[Int] = {
-		val population = (1 to populationSize).map(_ <= numPositive)
-		val model = Samplable.withoutReplacement(population, sampleSize)// Start with base model
-				.map(_.count(identity))// / sampleSize.toDouble)		// Transform to model of sample prevalance
-		model
-	}
-	
-	def terminationCondition(soFar: GenSeq[Int]) = {
-		val distance = max(
-			soFar.take(soFar.size - chunkSize).toEmpiricalTable, 
-			soFar.toEmpiricalTable
-		)
-		  
-		(distance < convergenceTolerance) || (soFar.size > 1e16)
-	}
-	
-	//
-	// Now how many samples to be 95% confident in hitting true prev 
-	//
 	
 	val confidence = Probability(0.95)
 	val precision = 0.1
@@ -67,7 +55,7 @@ object SampleSize extends App with EmpiricalMetricComponent with StatisticsCompo
 		println(s"Working on $truNumPos")
 		
 		def samplingDistribution(trueNumPos: Int, popSize: Int, sampSize: Int) = {
-			val model = numPositivesDistribution(trueNumPos, popSize, sampSize)
+			val model = numPositivesDist(trueNumPos, popSize, sampSize)
 			
 		  	// Sample the model until convergence
 		  	val builder = new ParallelSampleBuilder(chunkSize)
@@ -76,23 +64,36 @@ object SampleSize extends App with EmpiricalMetricComponent with StatisticsCompo
 		  	obsDist
 		}
 		
-		val reqSampleSize = (1 to biggestPossibleSample)
-			.view
-			.map{sampleSize =>
-				//println("trying "+sampleSize)
-				val stats = StatisticsComponent
+		val sampleSizeRange = 1 to biggestPossibleSample
+		val acceptabilityCriterion = (sampleSize: Int) => {
 				val sampDist = samplingDistribution(truNumPos, populationSize, sampleSize)
-				val lowerTail = stats.quantile(sampDist, Probability(0.025))
-				val upperTail = stats.quantile(sampDist, Probability(0.975))
+				val lowerTail = quantile(sampDist, Probability(0.925))
+				val upperTail = quantile(sampDist, Probability(0.975))
 				val truePrev = truNumPos.toDouble / populationSize
 				val lowerAcceptibleError = truePrev - precision
 				val upperAcceptibleError = truePrev + precision
 				//println(s"$lowerAcceptibleError, $lowerTail, $upperTail, $upperAcceptibleError")
-				val acceptibleConfidence = lowerAcceptibleError <= lowerTail && upperTail <= upperAcceptibleError 
-				(sampleSize, acceptibleConfidence)
-			}
-			.find(_._2)
-			.get._1
+				val isAcceptible = lowerAcceptibleError <= lowerTail && upperTail <= upperAcceptibleError
+				isAcceptible
+		}
+		val reqSampleSize = BinarySearch.firstPassing(acceptabilityCriterion)(sampleSizeRange).get
+		
+//		val reqSampleSize = (1 to biggestPossibleSample)
+//			.view
+//			.map{sampleSize =>
+//				//println("trying "+sampleSize)
+//				val sampDist = samplingDistribution(truNumPos, populationSize, sampleSize)
+//				val lowerTail = quantile(sampDist, Probability(0.925))
+//				val upperTail = quantile(sampDist, Probability(0.975))
+//				val truePrev = truNumPos.toDouble / populationSize
+//				val lowerAcceptibleError = truePrev - precision
+//				val upperAcceptibleError = truePrev + precision
+//				//println(s"$lowerAcceptibleError, $lowerTail, $upperTail, $upperAcceptibleError")
+//				val isAcceptible = lowerAcceptibleError <= lowerTail && upperTail <= upperAcceptibleError 
+//				(sampleSize, isAcceptible)
+//			}
+//			.find(_._2)
+//			.get._1
 		
 		println(s"Sample size is $reqSampleSize")
 		reqSampleSize
@@ -142,4 +143,33 @@ dev.off()
 """
 		
 		ScriptRunner(sampleSizeScript, wd.resolve("sampleSizeScript.r"))
+}
+
+trait SampleSizeSupport extends StatisticsComponent{
+	val chunkSize: Int
+	val convergenceTolerance: Double
+	implicit val r: Random
+	
+	def numPositivesDist(
+			numPositive: Int, 
+			populationSize: Int, 
+			sampleSize: Int
+	): Samplable[Int] = {
+		val population = (1 to populationSize).map(_ <= numPositive)
+		Samplable
+			.withoutReplacement(population, sampleSize)
+			.map(_.count(identity))
+	}
+	
+	def terminationCondition(soFar: GenSeq[Int]) = {
+		if(soFar.size <= chunkSize) false
+		else{
+			val distance = maxDistance(
+				soFar.take(soFar.size - chunkSize).toEmpiricalTable, 
+				soFar.toEmpiricalTable
+			)
+			  
+			(distance < convergenceTolerance) || (soFar.size > 1e16)
+		}
+	}
 }
