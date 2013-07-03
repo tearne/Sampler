@@ -49,7 +49,7 @@ trait StatisticsComponent{
 		val two = one + one
 		val ordered = probabilityTable.keys.toIndexedSeq.sorted(f)
 		
-		println(ordered)
+		//println(ordered)
 		
 		(ordered(lower) + ordered(upper)) / two 
 	}
@@ -60,6 +60,19 @@ trait StatisticsComponent{
 			acc + v.toDouble * p.value
 		}}
 	}
+	
+	def meanDistance[A: Fractional](a: Empirical[A], b: Empirical[A]) = {
+		math.abs(mean(a)-mean(b))
+	}
+  
+	def maxDistance[A](a: Empirical[A], b: Empirical[A]): Double = {
+		val indexes = a.probabilityTable.keySet ++ b.probabilityTable.keySet
+		def distAtIndex(i: A) = math.abs(
+			a.probabilityTable.get(i).map(_.value).getOrElse(0.0) -
+			b.probabilityTable.get(i).map(_.value).getOrElse(0.0)
+		)
+		indexes.map(distAtIndex(_)).max
+  }
 }
 
 object StatisticsComponent extends StatisticsComponent with Serializable

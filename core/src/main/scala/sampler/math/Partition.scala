@@ -19,7 +19,7 @@ package sampler.math
 
 case class Partition(widths: IndexedSeq[Double]) {
 	private def isEqualOne(value: Double) = if(value > 1 - 1E-8 && value < 1 + 1E-8) true else false
-	assert(isEqualOne(widths.sum))
+	assert(isEqualOne(widths.sum), s"Expected probabilies to sum to 1, but got ${widths.sum}")
 	lazy val size = widths.size
 	lazy val probabilities = widths.map(w => Probability(w))
 }

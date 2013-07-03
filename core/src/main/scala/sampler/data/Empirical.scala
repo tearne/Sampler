@@ -91,24 +91,3 @@ object Empirical{
 	}
 }
 
-/*
- *  Measuring the distance between pairs of Empirical
- */
-//TODO test
-
-trait EmpiricalMetricComponent extends StatisticsComponent {
-		
-  def absoluteMean[A: Fractional](a: Empirical[A], b: Empirical[A]) = {
-    math.abs(mean(a)-mean(b))
-  }
-  
-  def max[A](a: Empirical[A], b: Empirical[A]): Double = {
-    val indexes = a.probabilityTable.keySet ++ b.probabilityTable.keySet
-    def distAtIndex(i: A) = math.abs(
-        a.probabilityTable.get(i).map(_.value).getOrElse(0.0) -
-        b.probabilityTable.get(i).map(_.value).getOrElse(0.0)
-    )
-    indexes.map(distAtIndex(_)).max
-  }
-}
-

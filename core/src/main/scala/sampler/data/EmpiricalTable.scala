@@ -29,6 +29,9 @@ import sampler.math.Partition
  * where many repeated observations are expected. 
  */
 class EmpiricalTable[A](val freqTable: Map[A, Int])(implicit r: Random) extends Empirical[A]{
+	//TODO test this, and the same in the other Empiricals too
+	assert(freqTable.size > 0, "Cannot create empirical from collection of size zero")
+	
 	def ++(more: GenTraversableOnce[A]) = new EmpiricalTable(
 		more.foldLeft(freqTable){case (acc,elem) => 
 			acc.updated(elem, acc.getOrElse(elem, 0) + 1)
