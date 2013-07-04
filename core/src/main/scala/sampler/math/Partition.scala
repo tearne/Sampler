@@ -26,6 +26,8 @@ case class Partition(widths: IndexedSeq[Double]) {
 object Partition{
 	def fromWeights(weights: Iterable[Double]) = {
 		//TODO use pattern matching here
+		//TODO allow zeros in the weights, provided it's not going to cause massive issues in the Alias table sampling
+		//TODO this exception doesn't seem to supply a message when thrown
 		if(weights.find(_ <= 0).isDefined) throw new IllegalArgumentException{
 			val badValue = weights.find(_ <= 0).get
 			s"Weight must be strictly positive, found $badValue"
