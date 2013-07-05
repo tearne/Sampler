@@ -17,8 +17,6 @@
 
 package sampler.math
 
-import scala.language.implicitConversions
-
 case class Probability(val value: Double){
 	assert(value <= 1 && value >= 0, value + "is not a valid probability")
 }
