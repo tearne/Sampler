@@ -40,6 +40,9 @@ class PartitionSpec extends Specification{
 		}
 		
 		"produce correct probability map when created fromWeights" in {
+		  
+		  // TODO: change to indexed seq when Partition code changed
+		  
 		  val s = Iterable(1.0, 2, 3, 4)
 		  val p = Partition.fromWeights(s).probabilities
 		  
@@ -47,6 +50,12 @@ class PartitionSpec extends Specification{
 		  (p(1) mustEqual Probability(0.2)) and
 		  (p(2) mustEqual Probability(0.3)) and
 		  (p(3) mustEqual Probability(0.4))
+		}
+		
+		"Show an error message when weight < 0 given" in {
+		  val s = Iterable(1.0, -2, 3, 4)
+		  
+		  Partition.fromWeights(s) must throwAn[IllegalArgumentException](message = "Weight must be strictly positive, found -2.0")
 		}
 	}
 }
