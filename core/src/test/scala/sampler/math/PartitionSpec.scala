@@ -33,7 +33,7 @@ class PartitionSpec extends Specification{
 		}
 		
 		"have the create length when created using fromWeights" in {
-		  val s = Iterable(1.0, 2, 3, 4)
+		  val s = IndexedSeq(1.0, 2, 3, 4)
 		  val p = Partition.fromWeights(s)
 		  
 		  p.size mustEqual 4
@@ -43,7 +43,7 @@ class PartitionSpec extends Specification{
 		  
 		  // TODO: change to indexed seq when Partition code changed
 		  
-		  val s = Iterable(1.0, 2, 3, 4)
+		  val s = IndexedSeq(1.0, 2, 3, 4)
 		  val p = Partition.fromWeights(s).probabilities
 		  
 		  (p(0) mustEqual Probability(0.1)) and
@@ -53,7 +53,7 @@ class PartitionSpec extends Specification{
 		}
 		
 		"Show an error message when weight < 0 given" in {
-		  val s = Iterable(1.0, -2, 3, 4)
+		  val s = IndexedSeq(1.0, -2, 3, 4)
 		  
 		  Partition.fromWeights(s) must throwAn[IllegalArgumentException](message = "Weight must be strictly positive, found -2.0")
 		}
