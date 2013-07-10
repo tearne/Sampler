@@ -19,7 +19,7 @@ class PartitionSpec extends Specification{
 		
 		"contain the exact widths used as input" in {
 			val s = IndexedSeq(0.1, 0.2, 0.3, 0.4)
-			Partition(s).widths mustEqual s
+			Partition(s).values mustEqual s
 		}
 		
 		"produce a correct probability map when requested" in {
