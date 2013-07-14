@@ -29,7 +29,7 @@ import sampler.math.Partition
  */
 class EmpiricalWeighted[A](val weighted: Map[A, Double])(implicit r: Random) extends Empirical[A]{
 	lazy val (values, weights) = weighted.unzip
-	lazy val partition = Partition.fromWeights(weights)
+	lazy val partition = Partition.fromWeights(weights.toIndexedSeq)
 	
 	lazy val probabilityTable = values.zip(partition.probabilities).toMap
 	

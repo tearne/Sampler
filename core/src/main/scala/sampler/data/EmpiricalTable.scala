@@ -39,7 +39,7 @@ class EmpiricalTable[A](val freqTable: Map[A, Int])(implicit r: Random) extends 
 	)
 	
 	private lazy val (items, counts) = freqTable.unzip
-	private lazy val partition = Partition.fromWeights(counts.map(_.toDouble))
+	private lazy val partition = Partition.fromWeights(counts.map(_.toDouble).toIndexedSeq)
 	
 	lazy val probabilityTable = items.zip(partition.probabilities).toMap
 	

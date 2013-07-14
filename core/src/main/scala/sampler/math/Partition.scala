@@ -17,24 +17,17 @@
 
 package sampler.math
 
-case class Partition(widths: IndexedSeq[Double]) {
+case class Partition(values: IndexedSeq[Probability]) {
 	private def isEqualOne(value: Double) = if(value > 1 - 1E-8 && value < 1 + 1E-8) true else false
-	assert(isEqualOne(widths.sum), s"Expected probabilies to sum to 1, but got ${widths.sum}")
-	lazy val size = widths.size
-	lazy val probabilities = widths.map(w => Probability(w))
+	assert(isEqualOne(values.map(_.value).sum), s"Expected probabilies to sum to 1, but got ${values.map(_.value).sum}")
+	lazy val size = values.size
+	lazy val probabilities = values.map(w => Probability(w))
 }
+
 object Partition{
-	def fromWeights(weights: Iterable[Double]) = {
-		//TODO use pattern matching here
-		//TODO allow zeros in the weights, provided it's not going to cause massive issues in the Alias table sampling
-		//TODO this exception doesn't seem to supply a message when thrown
-		if(weights.find(_ <= 0).isDefined) throw new IllegalArgumentException{
-			val badValue = weights.find(_ <= 0).get
-			s"Weight must be strictly positive, found $badValue"
-		}
-		
+	def fromWeights(weights: IndexedSeq[Double]) = {
 		val totalWeight = weights.sum
 
-		Partition(weights.map(_ / totalWeight).to[IndexedSeq])
+		Partition(weights.map(_ / totalWeight).to[IndexedSeq].map(Probability(_)))
 	}
 }
