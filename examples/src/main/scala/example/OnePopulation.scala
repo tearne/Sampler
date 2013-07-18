@@ -30,7 +30,7 @@ import sampler.data.ParallelSampleBuilder
 import scala.collection.GenSeq
 import sampler.math.Random
 
-object OnePopulation extends App{//} with StatisticsComponent {
+object OnePopulation extends App with StatisticsComponent {
 	/*
 	 * In a population of a given size, and sampling with replacement,
 	 * how many samples should be taken to be % confident of observing

@@ -19,6 +19,8 @@ package sampler.data
 
 import sampler.math.Probability
 
+// TODO: Refactor into column class?
+
 object Types {
 	case class Header[T](val name: String)(implicit val cType: ColumnType[T])  
 	case class Column[T](val values: Seq[T], val name: String)(implicit val cType: ColumnType[T]){
