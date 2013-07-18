@@ -17,6 +17,9 @@
 
 package sampler.math
 
+import scala.language.implicitConversions
+import scala.math.Numeric.DoubleIsFractional
+
 case class Probability(val value: Double){
 	assert(value <= 1 && value >= 0, value + "is not a valid probability")
 }
@@ -25,4 +28,18 @@ object Probability{
 	val zero = Probability(0)
 
 	implicit def toDouble(p: Probability): Double = p.value
+	
+	implicit object ProbabilityIsFractional extends Fractional[Probability]{
+		def compare(x: Probability, y: Probability): Int = DoubleIsFractional.compare(x, y)
+		def plus(x: Probability, y: Probability): Probability = Probability(x + y)
+		def minus(x: Probability, y: Probability): Probability = Probability(x - y)
+		def times(x: Probability, y: Probability): Probability = Probability(x * y)
+		def negate(x: Probability): Probability = Probability(-x)
+		def fromInt(x: Int): Probability = Probability(x)
+		def toInt(x: Probability): Int = x.toInt
+		def toLong(x: Probability): Long = x.toLong
+		def toFloat(x: Probability): Float = x.toFloat
+		def toDouble(x: Probability): Double = x
+		def div(x: Probability, y: Probability): Probability = Probability(x / y)
+	}
 }
