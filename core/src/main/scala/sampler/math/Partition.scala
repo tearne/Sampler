@@ -17,15 +17,34 @@
 
 package sampler.math
 
+/** Contains a set of probabilities which sum to one
+ * 
+ * Class takes an argument of a collection of probabilities in the form of an IndexedSeq.
+ * The total of all probabilities in the collection should sum to one.
+ * The primary use of a Partition is to be the argument provided to the AliasTable.
+ * 
+ * @constructor create a new Partition from a sequence of probabilities
+ * @param probabilities the probabilities used to form the Partition
+ */
+
 case class Partition(val probabilities: IndexedSeq[Probability]) {
+  
+  /* ensures the sum of the probabilities equals 1 */
 	private def isEqualOne(value: Double) = if(value > 1 - 1E-8 && value < 1 + 1E-8) true else false
+	
 	assert(isEqualOne(probabilities.map(_.value).sum), s"Expected probabilies to sum to 1, but got ${probabilities.map(_.value).sum}")
+	
+  /** the number of probabilties in the Partition */
 	lazy val size = probabilities.size
-	//TODO what was this meant to do?
-//	lazy val probabilities = values.map(w => Probability(w))
 }
 
+/** Factory for Partition instances */
 object Partition{
+  
+  /** Creates Partition from collection of values 
+   *  
+   *  @param weights a sequence of values which are normalised to form a new Partition
+   *  */
 	def fromWeights(weights: IndexedSeq[Double]) = {
 		val totalWeight = weights.sum
 
