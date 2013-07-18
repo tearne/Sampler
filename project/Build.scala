@@ -51,6 +51,7 @@ object SamplerBuild extends Build{
 		
 		libraryDependencies ++= Seq(
 			"junit" % "junit" % "4.8" % "test->default",
+			"org.scalatest" % "scalatest_2.10" % "2.0.M5b" % "test",
 			"org.specs2" %% "specs2" % "1.13" % "test",
 			"org.mockito" % "mockito-all" % "1.9.0" %"test->default",
 			"com.typesafe" % "config" % "0.4.1",
