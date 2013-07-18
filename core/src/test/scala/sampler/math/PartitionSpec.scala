@@ -19,13 +19,14 @@ class PartitionSpec extends Specification{
 		}
 		
 		"be of length four when successfully created" in {
+			//TODO factor out common setup
 			val s = IndexedSeq(0.1, 0.2, 0.3, 0.4).map(Probability(_))
 			Partition(s).size mustEqual 4
 		}
 		
 		"contain the exact values used as input" in {
 			val s = IndexedSeq(0.1, 0.2, 0.3, 0.4).map(Probability(_))
-			Partition(s).values mustEqual s
+			Partition(s).probabilities mustEqual s
 		}
 		
 		"produce a correct probability map when requested" in {

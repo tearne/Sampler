@@ -17,11 +17,12 @@
 
 package sampler.math
 
-case class Partition(values: IndexedSeq[Probability]) {
+case class Partition(val probabilities: IndexedSeq[Probability]) {
 	private def isEqualOne(value: Double) = if(value > 1 - 1E-8 && value < 1 + 1E-8) true else false
-	assert(isEqualOne(values.map(_.value).sum), s"Expected probabilies to sum to 1, but got ${values.map(_.value).sum}")
-	lazy val size = values.size
-	lazy val probabilities = values.map(w => Probability(w))
+	assert(isEqualOne(probabilities.map(_.value).sum), s"Expected probabilies to sum to 1, but got ${probabilities.map(_.value).sum}")
+	lazy val size = probabilities.size
+	//TODO what was this meant to do?
+//	lazy val probabilities = values.map(w => Probability(w))
 }
 
 object Partition{

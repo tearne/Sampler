@@ -27,19 +27,20 @@ case class Probability(val value: Double){
 object Probability{
 	val zero = Probability(0)
 
+//	implicit def toProbability(p: Double): Probability = Probability(p.value)
 	implicit def toDouble(p: Probability): Double = p.value
 	
 	implicit object ProbabilityIsFractional extends Fractional[Probability]{
-		def compare(x: Probability, y: Probability): Int = DoubleIsFractional.compare(x, y)
-		def plus(x: Probability, y: Probability): Probability = Probability(x + y)
-		def minus(x: Probability, y: Probability): Probability = Probability(x - y)
-		def times(x: Probability, y: Probability): Probability = Probability(x * y)
-		def negate(x: Probability): Probability = Probability(-x)
+		def compare(x: Probability, y: Probability): Int = DoubleIsFractional.compare(x.value, y.value)
+		def plus(x: Probability, y: Probability): Probability = Probability(x.value + y.value)
+		def minus(x: Probability, y: Probability): Probability = Probability(x.value - y.value)
+		def times(x: Probability, y: Probability): Probability = Probability(x.value * y.value)
+		def negate(x: Probability): Probability = Probability(-x.value)
 		def fromInt(x: Int): Probability = Probability(x)
-		def toInt(x: Probability): Int = x.toInt
-		def toLong(x: Probability): Long = x.toLong
-		def toFloat(x: Probability): Float = x.toFloat
-		def toDouble(x: Probability): Double = x
-		def div(x: Probability, y: Probability): Probability = Probability(x / y)
+		def toInt(x: Probability): Int = x.value.toInt
+		def toLong(x: Probability): Long = x.value.toLong
+		def toFloat(x: Probability): Float = x.value.toFloat
+		def toDouble(x: Probability): Double = x.value
+		def div(x: Probability, y: Probability): Probability = Probability(x.value / y.value)
 	}
 }

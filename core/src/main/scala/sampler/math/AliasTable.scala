@@ -20,7 +20,7 @@ package sampler.math
 import scala.annotation.tailrec
 
 class AliasTable(p: Partition) extends Serializable{
-    val (probability, alias) = construct(p.values.map(_.value))
+    val (probability, alias) = construct(p.probabilities.map(_.value))
 	
     def construct(probs: IndexedSeq[Double]): (Array[Double], Array[Int]) = {
 	  val arraySize = p.size
@@ -67,10 +67,10 @@ class AliasTable(p: Partition) extends Serializable{
       val initialProbability = Array.fill[Double](arraySize)(1.0)
 	  val initialAlias = Array.fill[Int](arraySize)(0)
 	  	
-      val small = p.values.zipWithIndex.filter(_._1 < average).map(_._2).toArray
-      val large = p.values.zipWithIndex.filter(_._1 >= average).map(_._2).toArray
+      val small = p.probabilities.zipWithIndex.filter(_._1 < average).map(_._2).toArray
+      val large = p.probabilities.zipWithIndex.filter(_._1 >= average).map(_._2).toArray
       
-      loop(small, large, initialProbability, initialAlias,  p.values.map(_.value))
+      loop(small, large, initialProbability, initialAlias,  p.probabilities.map(_.value))
     }
     
     def next(rand: Random): Int = {
