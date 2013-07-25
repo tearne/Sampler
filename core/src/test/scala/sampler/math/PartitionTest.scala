@@ -9,7 +9,7 @@ class PartitionTest extends AssertionsForJUnit {
 
   var seq: IndexedSeq[Probability] = _
   
-  @Before def 	initialise(){
+  @Before def initialise(){
     seq = IndexedSeq(0.1, 0.2, 0.3, 0.4).map(Probability(_))
   }
   
