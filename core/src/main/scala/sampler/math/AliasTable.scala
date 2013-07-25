@@ -19,6 +19,14 @@ package sampler.math
 
 import scala.annotation.tailrec
 
+/** Generates an Alias Table for sampling from a discrete probability distribution.
+ *  
+ *  An implementation of the Alias Method algorithm for efficient sampling from discrete probability distributions.
+ *  
+ *  @constructor Generates a new Alias table
+ *  @param p The [[sampler.math.Partition]] containing the probabilities to be drawn from
+ */
+
 class AliasTable(p: Partition) extends Serializable{
     val (probability, alias) = construct(p.probabilities.map(_.value))
 	
@@ -73,6 +81,7 @@ class AliasTable(p: Partition) extends Serializable{
       loop(small, large, initialProbability, initialAlias,  p.probabilities.map(_.value))
     }
     
+    /** Return a random value drawn from the distribution */
     def next(rand: Random): Int = {
       val column = rand.nextInt(probability.size)
       
