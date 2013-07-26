@@ -32,26 +32,33 @@ trait StatisticsComponent{
 	}
 	
 	//TODO take seq of probability and give seq of results
+	//TODO this doesn't work properly (for repeated values)
 	def quantile[A](e: Empirical[A], prob: Probability)(implicit f: Fractional[A]): A = {
 		//TODO exception/assertion that there are more than 0 / 1 items to enable
 		// this to run without IndexOutOfBoundsException
 		import e._
-		import f._
-		val (lower, upper) = {
-			val raw = prob.value * supportSize - 1
-			val idx = scala.math.ceil(raw).toInt
-			if(idx <= 0) (0,0)
-			else if(raw != math.floor(raw)) (idx, idx)
-			else if(idx == supportSize - 1) (idx, idx)
-			else (idx, idx + 1)
-		}
+//		import f._
+//		val (lower, upper) = {
+//			val raw = prob.value * supportSize - 1
+//			val idx = scala.math.ceil(raw).toInt
+//			if(idx <= 0) (0,0)
+//			else if(raw != math.floor(raw)) (idx, idx)
+//			else if(idx == supportSize - 1) (idx, idx)
+//			else (idx, idx + 1)
+//		}
+//		
+//		val two = one + one
+//		val ordered = probabilityTable.keys.toIndexedSeq.sorted(f)
+//		
+//		(ordered(lower) + ordered(upper)) / two
+//		
+		//TODO the above doesn't work for collections with repeated values
+		val probabilities = e.probabilityTable
 		
-		val two = one + one
-		val ordered = probabilityTable.keys.toIndexedSeq.sorted(f)
-		
-		//println(ordered)
-		
-		(ordered(lower) + ordered(upper)) / two 
+		val ordered = probabilities.keys.toIndexedSeq.sorted
+		val cumulativeProbability = ordered.map(value => probabilities(value).value).scanLeft(0.0)(_ + _).tail
+		val index = cumulativeProbability.zipWithIndex.find(_._1 >= prob.value).get._2
+		ordered(index)
 	}
 	
 	def mean[A](e: Empirical[A])(implicit num: Fractional[A]) = {

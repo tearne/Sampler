@@ -35,6 +35,42 @@ class StasisticComponentTest extends AssertionsForJUnit with StatisticsComponent
     mean(empWeight) should be(2.5 plusOrMinus tolerance)
   }
   
+//  @Test def calculatesEmpiricalSeqQuantile {
+//    val empSeq = IndexedSeq[Double](1,2,3,4,5).toEmpiricalSeq
+//    
+//    print(s"${quantile(empSeq, Probability(0))}, ")
+//    print(s"${quantile(empSeq, Probability(0.25))}, ")
+//    print(s"${quantile(empSeq, Probability(0.5))}, ")
+//    print(s"${quantile(empSeq, Probability(0.75))}, ")
+//    print(s"${quantile(empSeq, Probability(1.0))}\n")
+//  }
+//  
+//  @Test def calculatesEmpiricalTableQuantile {
+//	val empTable = IndexedSeq[Double](1,2,3,4,5).toEmpiricalTable
+//			  
+//	print(s"${quantile(empTable, Probability(0))}, ")
+//	print(s"${quantile(empTable, Probability(0.25))}, ")
+//	print(s"${quantile(empTable, Probability(0.5))}, ")
+//	print(s"${quantile(empTable, Probability(0.75))}, ")
+//	print(s"${quantile(empTable, Probability(1.0))}\n")
+//  }
+  
+  @Test def calculatesEmpiricalWeightQuantile {
+    val empWeight = Map[Double, Double](
+		(1, 0.2),
+		(2, 0.2),
+		(2, 0.2),
+		(3, 0.2),
+		(4, 0.2)
+      ).toEmpiricalWeighted
+			  
+	print(s"${quantile(empWeight, Probability(0))}, ")
+	print(s"${quantile(empWeight, Probability(0.25))}, ")
+	print(s"${quantile(empWeight, Probability(0.5))}, ")
+	print(s"${quantile(empWeight, Probability(0.75))}, ")
+	print(s"${quantile(empWeight, Probability(1.0))}")
+  }
+  
   @Test def calcualatesAbsoluteDifferenceMetric {
     val instance1 = IndexedSeq[Double](1,2,3).toEmpiricalSeq // mean 2
 	val instance2 = IndexedSeq[Double](4,5,6).toEmpiricalSeq // mean 5
