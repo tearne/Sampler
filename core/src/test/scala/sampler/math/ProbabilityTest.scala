@@ -4,7 +4,6 @@ import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Assert._
 import org.junit.Before
 import org.junit.Test
-//import org.scalatest.FlatSpec
 import org.scalatest.matchers.ShouldMatchers
 
 class ProbabilityTest extends AssertionsForJUnit with ShouldMatchers{

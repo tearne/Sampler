@@ -17,6 +17,8 @@
 
 package sampler.math
 
+/** Additional random drawing functionality required within the package */
+
 trait Random extends scala.util.Random{
   def nextDouble(min: Double, max: Double): Double = 
     (max - min) * nextDouble() + min
@@ -24,5 +26,6 @@ trait Random extends scala.util.Random{
   def nextBoolean(p: Probability): Boolean = math.random < p.value
 }
 
+/** Instance of Random trait */
 object Random extends Random with Serializable
 
