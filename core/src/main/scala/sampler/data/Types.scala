@@ -19,7 +19,7 @@ package sampler.data
 
 import sampler.math.Probability
 
-// TODO: Refactor into column class?
+// TODO: Refactor into column class? Don't like the fact that it's hidden in Types.scala
 
 object Types {
 	case class Header[T](val name: String)(implicit val cType: ColumnType[T])  
