@@ -56,13 +56,13 @@ object Probability{
 	/** Implicit conversions for [[sampler.math.Probability]] instances
 	 *  
 	 *  {{{
-	 *  val frac = implicitly[Fractional[Probability]]
+	 *  import sampler.math.Probability.ProbabilityIsFractional
 	 *  
 	 *  val p1 = Probability(0.1)
 	 *  val p2 = Probability(0.2)
 	 *  
-	 *  frac.compare(p1, p2)
-	 *  frac.plus(p1, p2)
+	 *  ProbabilityIsFractional.compare(p1, p2)
+	 *  ProbabilityIsFractional.plus(p1, p2)
 	 *  }}}
 	 */
 	implicit object ProbabilityIsFractional extends Fractional[Probability]{
