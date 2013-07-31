@@ -26,7 +26,7 @@ import sampler.math.Probability
  * collecting observations from continuous distributions or distributions 
  * with few repeated values.
  */
-class EmpiricalSeq[A](val values: IndexedSeq[A])(implicit r: Random) extends Empirical[A]{ self =>
+class EmpiricalSeq[A](val values: IndexedSeq[A]) extends Empirical[A]{ self =>
 	lazy val probabilityTable = {
 		val sizeAsDouble = values.size.asInstanceOf[Double]
 		values.groupBy(identity).map{case (k,v) => (k, Probability(v.size / sizeAsDouble))}

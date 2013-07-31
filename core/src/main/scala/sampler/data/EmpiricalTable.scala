@@ -28,7 +28,7 @@ import sampler.math.Partition
  * observation values. Ideal for sampling from discrete distributions 
  * where many repeated observations are expected. 
  */
-class EmpiricalTable[A](val freqTable: Map[A, Int])(implicit r: Random) extends Empirical[A]{
+class EmpiricalTable[A](val freqTable: Map[A, Int]) extends Empirical[A]{
 	//TODO test this, and the same in the other Empiricals too
 	assert(freqTable.size > 0, "Cannot create empirical from collection of size zero")
 	
