@@ -21,17 +21,39 @@ import sampler.math.Random
 import scala.collection.GenTraversableOnce
 import sampler.math.Probability
 
-/*
- * Empirical implementation which is backed by an IndexedSeq.  Ideal for
- * collecting observations from continuous distributions or distributions 
+/** Empirical implementation which is backed by an IndexedSeq.
+ * 
+ * Ideal for collecting observations from continuous distributions or distributions 
  * with few repeated values.
+ * 
+ * @constructor Creates a new EmpiricalSeq 
+ * @param values The observations used to construct the distribution
  */
 class EmpiricalSeq[A](val values: IndexedSeq[A])(implicit r: Random) extends Empirical[A]{ self =>
-	lazy val probabilityTable = {
+  
+  /** A map from each observation to the probability of seeing that value */
+    lazy val probabilityTable = {
 		val sizeAsDouble = values.size.asInstanceOf[Double]
 		values.groupBy(identity).map{case (k,v) => (k, Probability(v.size / sizeAsDouble))}
 	}
-	def ++(more: GenTraversableOnce[A]) = new EmpiricalSeq(values ++ more)
 	
+    /** Returns a new Empirical containing all the observations in this instance plus those in the
+     *  more instance
+     *  
+     *  {{{
+     *  val empSeq = new EmpiricalSeq(IndexedSeq(1,2,3,4))
+     *  val more = IndexedSeq(5,6,7,8)
+     *  
+     *  empSeq ++ more
+     *  }}}
+     *  
+     *  @param more the observations to append
+     *  @return a new empirical containing all observations of this Empirical plus the observations in more
+     */
+    def ++(more: GenTraversableOnce[A]) = new EmpiricalSeq(values ++ more)
+	
+    /** Creates a new [[sampler.data.Samplable]] from the distribution
+     *  
+     *  @return [[sampler.data.Samplable]] object */
 	def toSamplable(implicit r: Random) = Samplable.uniform(values)
 }

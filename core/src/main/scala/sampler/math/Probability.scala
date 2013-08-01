@@ -54,7 +54,6 @@ object Probability{
 	implicit def toDouble(p: Probability): Double = p.value
 	
 	/** Implicit conversions for [[sampler.math.Probability]] instances
-	 *  
 	 *  {{{
 	 *  import sampler.math.Probability.ProbabilityIsFractional
 	 *  
@@ -64,6 +63,8 @@ object Probability{
 	 *  ProbabilityIsFractional.compare(p1, p2)
 	 *  ProbabilityIsFractional.plus(p1, p2)
 	 *  }}}
+	 *  
+	 *  Other text
 	 */
 	implicit object ProbabilityIsFractional extends Fractional[Probability]{
 		def compare(x: Probability, y: Probability): Int = DoubleIsFractional.compare(x.value, y.value)
