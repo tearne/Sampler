@@ -53,4 +53,6 @@ class EmpiricalSeq[A](val values: IndexedSeq[A]) extends Empirical[A]{ self =>
      *  
      *  @return [[sampler.data.Samplable]] object */
 	def toSamplable(implicit r: Random) = Samplable.uniform(values)
+	
+	override def canEqual(other: Any): Boolean = other.isInstanceOf[EmpiricalSeq[_]]
 }

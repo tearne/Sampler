@@ -18,6 +18,11 @@ class EmpiricalTableTest extends AssertionsForJUnit with ShouldMatchers {
   
   @Before def initialise {
     implicit val r = Random
+    
+    //	--d1--		--d2--		---d3---
+	//					6		    3
+	//				  5,6		  2,3
+	//	4,5,6		4,5,6		1,2,3,4
     d1 = IndexedSeq(4, 5, 6).toEmpiricalTable
 	d2 = IndexedSeq(4, 5,5, 6,6,6).toEmpiricalTable
 	d3 = IndexedSeq(1, 2,2, 3,3,3, 4).toEmpiricalTable
@@ -56,6 +61,10 @@ class EmpiricalTableTest extends AssertionsForJUnit with ShouldMatchers {
   
   @Test def overridesHashCodeAndEquals {
     val d1a = IndexedSeq(4,5,6).toEmpiricalTable
+    val empSeq = IndexedSeq(1,2,3).toEmpiricalSeq
+    
+    assert(d1.canEqual(d2))
+    assertFalse(d1.canEqual(empSeq))
     
     assert(d1.equals(d1a))
     assert(d1.hashCode === d1a.hashCode)
