@@ -86,7 +86,7 @@ trait Empirical[A] extends Serializable{
  */
 
 object Empirical{
-	implicit class RichIndexedSeq[A](genSeq: GenSeq[A])(implicit r: Random) {
+	implicit class RichIndexedSeq[A](genSeq: GenSeq[A]) {
 		val indSeq = genSeq.toIndexedSeq
 		def toEmpiricalSeq = new EmpiricalSeq[A](indSeq)
 		def toEmpiricalTable = new EmpiricalTable[A](
@@ -94,21 +94,21 @@ object Empirical{
 		)
 	}
 	
-	implicit class RichMapInt[A](table: GenMap[A,Int])(implicit r: Random) {
+	implicit class RichMapInt[A](table: GenMap[A,Int]) {
 		def toEmpiricalTable = {
 			if(table.values.find(_ <= 0).isDefined) throw new UnsupportedOperationException("Cannot convert to EmpiricalTable, non-positive counts found")
 			else new EmpiricalTable[A](table.seq.toMap)
 		}
 	}
 	
-	implicit class RichMapDouble[A](table: GenMap[A,Double])(implicit r: Random) {
+	implicit class RichMapDouble[A](table: GenMap[A,Double]) {
 		def toEmpiricalWeighted = {
 			if(table.values.find(_ <= 0).isDefined) throw new UnsupportedOperationException("Cannot convert to EmpiricalWeighted, non-positive weights found")
 			else new EmpiricalWeighted[A](table.seq.toMap)
 		}
 	}
 	
-	implicit class RichMapProbability[A](table: Map[A, Probability])(implicit r: Random) {
+	implicit class RichMapProbability[A](table: Map[A, Probability]) {
 		def toEmpiricalWeighted = new EmpiricalWeighted[A](table.map{case (k,v) => (k,v.value)})
 	}
 }

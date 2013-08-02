@@ -27,7 +27,7 @@ import sampler.math.Partition
  * Empirical implementation which uses a weight attached to each
  * observation value for sampling.
  */
-class EmpiricalWeighted[A](val weighted: Map[A, Double])(implicit r: Random) extends Empirical[A]{
+class EmpiricalWeighted[A](val weighted: Map[A, Double]) extends Empirical[A]{
 	lazy val (values, weights) = weighted.unzip
 	lazy val partition = Partition.fromWeights(weights.toIndexedSeq)
 	

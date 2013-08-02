@@ -25,11 +25,8 @@ import sampler.math.Probability
  * 
  * Ideal for collecting observations from continuous distributions or distributions 
  * with few repeated values.
- * 
- * @constructor Creates a new EmpiricalSeq 
- * @param values The observations used to construct the distribution
  */
-class EmpiricalSeq[A](val values: IndexedSeq[A])(implicit r: Random) extends Empirical[A]{ self =>
+class EmpiricalSeq[A](val values: IndexedSeq[A]) extends Empirical[A]{ self =>
   
   /** A map from each observation to the probability of seeing that value */
     lazy val probabilityTable = {
