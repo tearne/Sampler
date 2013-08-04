@@ -54,8 +54,18 @@ class ABCMethod[M <: ABCModel](val model: M, meta: ABCParameters, implicit val r
 		
 		val results: Seq[Try[Population]] = pBuilder.run(model)(pop, jobSizes, tolerance, meta, random)
 		
+		val failures = results.collect{
+			case Failure(e: RefinementAbortedException) => Right(e)
+			case Failure(e) => Left(e)
+		}
+		
+		failures.collectFirst{case Left(e) => throw e}			
+		
 		val exceptions = results.collect{case Failure(e) => e}
-		if(exceptions.size > 0) throw new ABCException(s"${exceptions.size} exception(s) thrown in ${pBuilder.getClass()}, first below.", exceptions.head)
+		if(failures.size > 0) {
+			log.warn("{} exception(s) thrown building population.  First: {}", failures.size, failures(0))
+			None
+		}
 	    else Some(results.collect{case Success(s) => s}.flatten)
 	}
 		

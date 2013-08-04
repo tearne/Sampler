@@ -21,10 +21,8 @@ import scala.annotation.tailrec
 import sampler.data.Empirical._
 import sampler.run.UserInitiatedAbortException
 import sampler.data.SerialSampleBuilder
-import sampler.abc.ABCModel
-import sampler.abc.Particle
+import sampler.abc._
 import sampler.run.local.Aborter
-import sampler.abc.ABCParameters
 import sampler.data.Samplable
 import sampler.math.Random
 import sampler.data.EmpiricalWeighted
@@ -47,7 +45,7 @@ object Population {
 		@tailrec
 		def nextParticle(failures: Int = 0): Particle[Parameters] = {
 			if(aborter.isAborted) throw new UserInitiatedAbortException("Abort flag was set")
-			else if(failures >= meta.particleRetries) throw new UserInitiatedAbortException(s"Aborted after the maximum of $failures trials")
+			else if(failures >= meta.particleRetries) throw new RefinementAbortedException(s"Aborted after the maximum of $failures trials")
 			else{
 				def getScores(params: Parameters): IndexedSeq[Double] = {
 					val modelWithMetric = samplableModel(params, observations).map(_.distanceTo(observations))
