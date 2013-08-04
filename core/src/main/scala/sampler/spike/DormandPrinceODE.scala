@@ -41,11 +41,12 @@ object DormandPrinceODE extends App{
 	
 	val parameters = Parameters(0.5,0.4,0.3,0.2,0.1,0.6,-3)
 	val dp853 = new DormandPrince853Integrator(1.0e-8, 100.0, 1.0e-10, 1.0e-10)
+	
 	val ode = new SEIRD(parameters)
 	val init = Array[Double](1999, 1, 0, 0, 0 )
 	var out = Array[Double](0,0,0,0,0)
 
 	dp853.addStepHandler(stepNormaliser)
 	dp853.integrate(ode, 0.0, init, 20, out)
-	out.foreach(println)
+//	out.foreach(println)
 }

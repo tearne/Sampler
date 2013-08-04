@@ -30,23 +30,39 @@ import sampler.math.StatisticsComponent
 import scala.collection.immutable.Map
 import scala.collection.GenMap
 
-/*
- * Collections of observations, forming empirical distributions.
- * No variance in [A] since the probabilities Map[A, Probability] 
- * can't support it 
+/** Empirical distribution of a collection of observations
+ *  
+ *  Collections of observations, forming empirical distributions.
+ *  No variance in [A] since the probabilities Map[A, Probability] 
+ *  can't support it 
  */
 trait Empirical[A] extends Serializable{
-	// Relative frequency associated with each observation value 
+  
+	/** Relative frequency associated with each observation value */
 	val probabilityTable: Map[A, Probability]
 
-	// Number of _unique_ observations (not overall number of observations)
+	/** The number of observations
+	 *  
+	 *  @return Number of unique observations (not overall number of observations) */
 	def supportSize: Int = probabilityTable.size
 
-	//Implementation different depending on backing collection
+	/** Creates a new [[sampler.data.Samplable]] object created from this distribution.
+	 *  The implementation differs depending on backing collection
+	 *  
+	 *  @return [[sampler.data.Samplable]] object
+	 */
 	def toSamplable(implicit r: Random): Samplable[A]
 	
-	def canEqual(other: Any): Boolean = other.isInstanceOf[Empirical[_]]
-	override def equals(other: Any) = other match {
+	/** Tests whether this instance is of the same type as another, and thus has the potential to be equal
+	 *  
+	 *  @return true if this and that are of the same type
+	 */
+	def canEqual(that: Any): Boolean = that.isInstanceOf[Empirical[_]]
+	
+	/** Tests whether this instance is equal to another
+	 *  
+	 *  @return true if two this and that are equal */
+	override def equals(that: Any) = that match {
 		//Implement equality in terms of the probabilities of drawing values
 		case that: Empirical[_] => 
 			(that canEqual this) && (that.probabilityTable == probabilityTable)
@@ -63,6 +79,12 @@ trait Empirical[A] extends Serializable{
  * 
  * Is there a better way to achieve the same thing? 
  */
+
+/** Factory for creating Empirical instances
+ *  
+ *  Allows Empiricals to be created from standard collections
+ */
+
 object Empirical{
 	implicit class RichIndexedSeq[A](genSeq: GenSeq[A]) {
 		val indSeq = genSeq.toIndexedSeq
