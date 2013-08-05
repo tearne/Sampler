@@ -92,7 +92,13 @@ class ABCMethod[M <: ABCModel](val model: M, meta: ABCParameters, implicit val r
 						//Next tolerance is the median of the previous best for each particle
 						val fit = newPop.map(_.bestFit)
 						val medianTolerance = model.statistics.quantile(newPop.map(_.bestFit).toEmpiricalSeq, Probability(0.5))
-						refine(newPop, numAttempts - 1, medianTolerance, currentTolerance)
+						val newTolerance = 
+							if(medianTolerance == 0) {
+								log.warn("Median tolerance from last generation evaluated to 0, half the previous tolerance will be used instead.")
+								currentTolerance / 2
+							}
+							else medianTolerance
+						refine(newPop, numAttempts - 1, newTolerance, currentTolerance)
 				}
 			}
 		}
