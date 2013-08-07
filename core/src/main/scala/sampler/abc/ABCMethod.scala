@@ -54,8 +54,18 @@ class ABCMethod[M <: ABCModel](val model: M, meta: ABCParameters, implicit val r
 		
 		val results: Seq[Try[Population]] = pBuilder.run(model)(pop, jobSizes, tolerance, meta, random)
 		
+		val failures = results.collect{
+			case Failure(e: RefinementAbortedException) => Right(e)
+			case Failure(e) => Left(e)
+		}
+		
+		failures.collectFirst{case Left(e) => throw e}			
+		
 		val exceptions = results.collect{case Failure(e) => e}
-		if(exceptions.size > 0) throw new ABCException(s"${exceptions.size} exception(s) thrown in ${pBuilder.getClass()}, first below.", exceptions.head)
+		if(failures.size > 0) {
+			log.warn("{} exception(s) thrown building population.  First: {}", failures.size, failures(0))
+			None
+		}
 	    else Some(results.collect{case Success(s) => s}.flatten)
 	}
 		
@@ -82,7 +92,13 @@ class ABCMethod[M <: ABCModel](val model: M, meta: ABCParameters, implicit val r
 						//Next tolerance is the median of the previous best for each particle
 						val fit = newPop.map(_.bestFit)
 						val medianTolerance = model.statistics.quantile(newPop.map(_.bestFit).toEmpiricalSeq, Probability(0.5))
-						refine(newPop, numAttempts - 1, medianTolerance, currentTolerance)
+						val newTolerance = 
+							if(medianTolerance == 0) {
+								log.warn("Median tolerance from last generation evaluated to 0, half the previous tolerance will be used instead.")
+								currentTolerance / 2
+							}
+							else medianTolerance
+						refine(newPop, numAttempts - 1, newTolerance, currentTolerance)
 				}
 			}
 		}

@@ -33,17 +33,15 @@ import sampler.run.local.Aborter
 import sampler.abc.population.LocalPopulationBuilder
 import sampler.abc.population.PopulationBuilder
 
-object RecaptureApp extends RecaptureFactory 
-	with Recapture 
-	with App
+object RecaptureApp extends RecaptureFactory with Recapture with App
 
 trait RecaptureFactory{
 	val meta = new ABCParameters(
-    	reps = 10,
+    	reps = 20,
 		numParticles = 200, 
 		refinements = 30,
 		particleRetries = 100, 
-		particleChunking = 10
+		particleChunking = 200
 	)
 	val abcMethod = new ABCMethod(RecaptureModel, meta, Random)
 	val builder = LocalPopulationBuilder()
@@ -71,7 +69,7 @@ trait Recapture{
 	
 	val rScript = 
 s"""
-lapply(c("ggplot2", "reshape", "deSolve"), require, character.only=T)
+lapply(c("ggplot2", "reshape"), require, character.only=T)
 
 recapture = read.csv("recapture.csv")
 
@@ -82,7 +80,7 @@ ggplot(subset(recapture, select="prev"), aes(x=prev)) + geom_density()
 dev.off()
 """
 
-//	ScriptRunner.apply(rScript, wd.resolve("script.r"))
+	ScriptRunner.apply(rScript, wd.resolve("script.r"))
 }
 
 object RecaptureModel extends RecaptureModelBase {

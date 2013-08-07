@@ -6,7 +6,7 @@ import com.typesafe.sbteclipse.plugin.EclipsePlugin.EclipseKeys
 
 object SamplerBuild extends Build{
 	val buildOrganization 	= "ahvla"
-	val buildVersion 	= "0.0.11"
+	val buildVersion 	= "0.0.12"
 	val buildScalaVersion	= "2.10.1"
 	
 	lazy val root = Project(
@@ -19,7 +19,7 @@ object SamplerBuild extends Build{
 	lazy val core = Project(
 		id = "sampler-core",
 		base = file("core"),
-		settings = buildSettings ++ assySettings
+		settings = buildSettings ++ assySettings ++ packageSettings
 	)
 	
 	lazy val examples = Project(
@@ -34,6 +34,18 @@ object SamplerBuild extends Build{
 			case "application.conf" => MergeStrategy.discard
 			case x => old(x)
 		}}
+	)
+	
+	lazy val packageSettings = Seq(
+		mappings in (Compile,packageBin) ~= { (ms: Seq[(File, String)]) =>
+			ms filter { case (file, toPath) =>
+				if(toPath.contains(".xml")){
+					println("=== excluding: "+toPath)
+					false
+				}
+				else true
+			}
+		}
 	)
 	
 	lazy val buildSettings = Defaults.defaultSettings ++ Seq(
