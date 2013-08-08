@@ -27,6 +27,12 @@ import sampler.math.Probability
 import sampler.math.Partition
 import sampler.math.AliasTable
 
+//TODO Samplable.continually[A](elem: ⇒ A): Samplable[A] , like Iterator.continually.  Can
+// then get rid of diracDelta too.
+
+//TODO flatten on samplable
+
+
 /*
  * Anything from which we can draw samples.  E.g. an analytical distribution,
  * or bootstrapping from a data set of observations
