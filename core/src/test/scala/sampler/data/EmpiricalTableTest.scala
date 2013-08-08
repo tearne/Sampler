@@ -63,12 +63,4 @@ class EmpiricalTableTest extends AssertionsForJUnit with ShouldMatchers {
     assertFalse(d1.equals(d2))
     assertFalse(d1.hashCode equals d2.hashCode)
   }
-  
-  @Test def cannotBeEqualToEmpiricalWeighted {
-    val instance1a = IndexedSeq(4, 5).toEmpiricalTable
-	val instance1b = Map(4->0.5,5->0.5).toEmpiricalWeighted
-	
-	assertFalse(instance1a.canEqual(instance1b))
-	assertFalse(instance1a equals instance1b)
-  }
 }

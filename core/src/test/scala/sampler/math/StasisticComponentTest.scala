@@ -34,17 +34,6 @@ class StasisticComponentTest extends AssertionsForJUnit with StatisticsComponent
     mean(empTable) should be(2.5 plusOrMinus tolerance)
   }
 
-  @Test def calculatesEmpiricalWeightedMean {
-    val empWeight = Map[Double, Double](
-		(1, 0.25),
-		(2, 0.25),
-		(3, 0.25),
-		(4, 0.25)
-      ).toEmpiricalWeighted
-
-    mean(empWeight) should be(2.5 plusOrMinus tolerance)
-  }
-  
   @Test def quantileSmallExampleEmpiricalSeq {
     val empSeq = IndexedSeq[Double](1,2,3,4).toEmpiricalSeq
     
@@ -91,40 +80,6 @@ class StasisticComponentTest extends AssertionsForJUnit with StatisticsComponent
 	assert(quantile(empTable, Probability(0.25)) === 5.0)
 	assert(quantile(empTable, Probability(0.5)) === 11.0)
 	assert(quantile(empTable, Probability(0.75)) === 17.0)
-  }
-  
-  @Test def quantileEmpiricalWeightSmallExample {
-    val empWeight = Map[Double, Double](
-		(1, 0.2),
-		(2, 0.4),
-		(3, 0.2),
-		(4, 0.2)
-      ).toEmpiricalWeighted
-	
-    assert(quantile(empWeight, Probability(0.25)) === 2.0)
-    assert(quantile(empWeight, Probability(0.5)) === 2.0)
-    assert(quantile(empWeight, Probability(0.75)) === 3.0)
-  }
-  
-  @Test def quantileEmpiricalWeightTwelvePrimes {
-	  val empWeight = Map[Double, Double](
-		(2, 0.1),
-		(3, 0.1),
-		(5, 0.1),
-		(7, 0.1),
-		(11, 0.1),
-		(13, 0.1),
-		(17, 0.1),
-		(19, 0.1),
-		(23, 0.1),
-		(27, 0.1),
-		(31, 0.1),
-		(37, 0.1)
-	  ).toEmpiricalWeighted
-			  
-	assert(quantile(empWeight, Probability(0.25)) === 5.0)
-	assert(quantile(empWeight, Probability(0.5)) === 13.0)
-	assert(quantile(empWeight, Probability(0.75)) === 23.0)
   }
   
   @Test def quantileAcceptSeqOfLengthOne {
