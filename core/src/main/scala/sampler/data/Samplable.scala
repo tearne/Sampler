@@ -42,22 +42,6 @@ trait Samplable[+A] extends Serializable{
 		
 	def sample(): A
 	
-	/*
-	 * Note:
-	 * 
-	 * Calling the methods below will always return a Samplable, not necessarily 
-	 * the same type as the original implementation.  This is because it's 
-	 * unclear how, for example, how a backing collection within an Emprical 
-	 * should be transformed after an 'until' operation which requires a sequence 
-	 * of specific values in a row; every possible observation would form too
-	 * large a set.  
-	 * 
-	 * Furthermore, it's difficult to see how to set up a uniform builder 
-	 * signature for all implementation classes.  E.g. some implementors may use
-	 * tables of counts, weights, or just seq of values whic would need 
-	 * transforming.
-	 */
-	
 	def until(condition: IndexedSeq[A] => Boolean) = new Samplable[IndexedSeq[A]]{
 		def sample() = {
 			@tailrec
