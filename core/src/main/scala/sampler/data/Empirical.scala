@@ -43,6 +43,11 @@ trait Empirical[A] extends Serializable{
 
 	/** The number of observations
 	 *  
+	 *  @return Number of observations, including repetitions */
+	val size: Int
+	
+	/** The size of the distribution's support
+	 *  
 	 *  @return Number of unique observations (not overall number of observations) */
 	def supportSize: Int = probabilityTable.size
 
