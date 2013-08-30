@@ -18,19 +18,8 @@ import sampler.math.Probability
 object SampleSizeUncertainty extends App{
 	implicit val random = Random
 	
-	/** Generate some fake performance data.  In general this may be generated externally
-	 *  and loaded, for example using the [[sampler.io.ChainReader]].
-	 */
-	val testPerformanceDistribution = 
-		Samplable.normal(0.7, 0.3)
-			.filter(x => x > 0 && x < 1)
-			.until(_.size == 1e5) 
-			.sample						//TODO Samplable.flatten to replace some of this?
-			.toEmpiricalSeq
-			.toSamplable
+	def calcSampleSize(testPerformanceDistribution: Samplable[Double], requiredSensitivity: Probability) = {
 	
-	val requiredSensitivity = Probability(0.95)
-			
 	/** Transform the samples into a probability of detection given a sample size */
 	def testingApproachSamplable(numSamples: Int): Samplable[Boolean] = {
 		testPerformanceDistribution.map{se => 
@@ -64,7 +53,29 @@ object SampleSizeUncertainty extends App{
 		else loop(currentSampleSize + 1)
 	}	
 	
-	val result = loop()
+	loop()
+	}
 	
-	println(s"$result samples are required to achieve Se = $requiredSensitivity")
+	val requiredSensitivity = Probability(0.95)
+		
+	/** Generate some fake performance data.  In general this may be generated externally
+	 *  and loaded, for example using the [[sampler.io.ChainReader]].
+	 */
+	val distributionWithVariance = 
+		Samplable.normal(0.7, 0.3)
+			.filter(x => x > 0 && x < 1)
+			.until(_.size == 1e5) 
+			.sample						//TODO Samplable.flatten to replace some of this?
+			.toEmpiricalSeq
+			.toSamplable
+	
+	val distributionWithoutVariance = Samplable.diracDelta(0.7)
+			
+	println("Calculating sample size when test has mean sensitivity 0.7, with variance 0.3")
+	val result1 = calcSampleSize(distributionWithVariance, requiredSensitivity)
+	println(s"$result1 samples are required to achieve Se = $requiredSensitivity\n")
+	
+	println("Calculating sample size when test has mean sensitivity 0.7, no variance")
+	val result2 = calcSampleSize(distributionWithoutVariance, requiredSensitivity)
+	println(s"$result2 samples are required to achieve Se = $requiredSensitivity")
 }
