@@ -1,4 +1,0 @@
-DustCage	1	5000
-DustNonCage	5001	10000
-FaecesCage	10001	15000
-FaecesNonCage	15001	20000

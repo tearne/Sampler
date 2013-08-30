@@ -43,6 +43,11 @@ trait Empirical[A] extends Serializable{
 
 	/** The number of observations
 	 *  
+	 *  @return Number of observations, including repetitions */
+	val size: Int
+	
+	/** The size of the distribution's support
+	 *  
 	 *  @return Number of unique observations (not overall number of observations) */
 	def supportSize: Int = probabilityTable.size
 
@@ -99,17 +104,6 @@ object Empirical{
 			if(table.values.find(_ <= 0).isDefined) throw new UnsupportedOperationException("Cannot convert to EmpiricalTable, non-positive counts found")
 			else new EmpiricalTable[A](table.seq.toMap)
 		}
-	}
-	
-	implicit class RichMapDouble[A](table: GenMap[A,Double]) {
-		def toEmpiricalWeighted = {
-			if(table.values.find(_ <= 0).isDefined) throw new UnsupportedOperationException("Cannot convert to EmpiricalWeighted, non-positive weights found")
-			else new EmpiricalWeighted[A](table.seq.toMap)
-		}
-	}
-	
-	implicit class RichMapProbability[A](table: Map[A, Probability]) {
-		def toEmpiricalWeighted = new EmpiricalWeighted[A](table.map{case (k,v) => (k,v.value)})
 	}
 }
 

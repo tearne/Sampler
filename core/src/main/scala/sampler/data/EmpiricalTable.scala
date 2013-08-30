@@ -42,8 +42,9 @@ class EmpiricalTable[A](val freqTable: Map[A, Int]) extends Empirical[A]{
 	private lazy val partition = Partition.fromWeights(counts.map(_.toDouble).toIndexedSeq)
 	
 	lazy val probabilityTable = items.zip(partition.probabilities).toMap
+	lazy val size = freqTable.values.sum
 	
-	def toSamplable(implicit r: Random) = Samplable.fromPartition(items.toIndexedSeq, partition)
+	def toSamplable(implicit r: Random): Samplable[A] = Samplable.fromPartition(items.toIndexedSeq, partition)
 	
 	override def canEqual(other: Any): Boolean = other.isInstanceOf[EmpiricalTable[_]]
 }

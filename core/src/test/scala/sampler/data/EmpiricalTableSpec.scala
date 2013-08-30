@@ -162,14 +162,5 @@ class EmpiricalTableSpec extends Specification with Mockito with DataTables{
 			(instance1a.hashCode mustEqual instance1b.hashCode) and
 			(instance1a.hashCode mustNotEqual instance2.hashCode)
 		}
-		
-		"must not be equal to an Empirical weighted" in {
-			val instance1a = IndexedSeq(4, 5).toEmpiricalTable
-			val instance1b = Map(4->0.5,5->0.5).toEmpiricalWeighted
-			
-			instance1a mustNotEqual instance1b
-		}
-		
-
 	}
 }

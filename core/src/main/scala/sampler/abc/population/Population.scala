@@ -25,7 +25,8 @@ import sampler.abc._
 import sampler.run.local.Aborter
 import sampler.data.Samplable
 import sampler.math.Random
-import sampler.data.EmpiricalWeighted
+import scala.collection.immutable.ListMap
+import sampler.math.Partition
 
 object Population {
 	def apply(model: ABCModel)(
@@ -39,8 +40,9 @@ object Population {
 		import model._
 		implicit val r = random
 		
-		val empiricalPopulation: EmpiricalWeighted[Parameters] = prevPopulation.groupBy(_.value).map{case (k,v) => (k,v.map(_.weight).sum)}.toEmpiricalWeighted
-		val samplablePopulation = empiricalPopulation.toSamplable
+		val weightsTable = prevPopulation.groupBy(_.value).map{case (k,v) => (k, v.map(_.weight).sum)}.toIndexedSeq
+		val (parameters, weights) = weightsTable.unzip
+		val samplablePopulation = Samplable.fromPartition(parameters, Partition.fromWeights(weights))
 		
 		@tailrec
 		def nextParticle(failures: Int = 0): Particle[Parameters] = {
@@ -57,8 +59,8 @@ object Population {
 				def getWeight(params: Parameters, numPassed: Int): Option[Double] = {
 					val fHat = numPassed.toDouble / meta.reps
 					val numerator = fHat * prior.density(params)
-					val denominator = empiricalPopulation.probabilityTable.map{case (params0, probability) => 
-						probability.value * params0.perturbDensity(params)
+					val denominator = weightsTable.map{case (params0, weight) => 
+						weight * params0.perturbDensity(params)
 					}.sum
 					if(numerator > 0 && denominator > 0) Some(numerator / denominator)
 					else None	

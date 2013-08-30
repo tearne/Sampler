@@ -17,12 +17,16 @@ class EmpiricalSeqTest extends AssertionsForJUnit with ShouldMatchers {
   @Before def initialise {
 	r = Random
 
-	val seq1 = IndexedSeq(1,2,3,4)
+	val seq1 = IndexedSeq(1,1,2,2,3,3,4,4)
   
 	es = seq1.toEmpiricalSeq
   }
   
-  @Test def empiricalSeqHasTheCorrectSize {
+  @Test def numObservations {
+    assert(es.size === 8)
+  }
+  
+  @Test def supportSize {
     assert(es.supportSize === 4)
   }
   
@@ -36,10 +40,11 @@ class EmpiricalSeqTest extends AssertionsForJUnit with ShouldMatchers {
   }
   
   @Test def empiricalSeqCanBeAddedTo {
-    val es2 = es.++(IndexedSeq(5,6,7,8))
+    val es2 = es.++(IndexedSeq(5,5,6,6,7,7,8,8))
     val probs = es2.probabilityTable 
     
     assert(es2.supportSize === 8)
+    assert(es2.size === 16)
     probs(1).value should be (0.125 plusOrMinus tolerance)
     probs(5).value should be (0.125 plusOrMinus tolerance)
   }

@@ -27,6 +27,12 @@ import sampler.math.Probability
 import sampler.math.Partition
 import sampler.math.AliasTable
 
+//TODO Samplable.continually[A](elem: ⇒ A): Samplable[A] , like Iterator.continually.  Can
+// then get rid of diracDelta too.
+
+//TODO flatten on samplable
+
+
 /*
  * Anything from which we can draw samples.  E.g. an analytical distribution,
  * or bootstrapping from a data set of observations
@@ -35,22 +41,6 @@ trait Samplable[+A] extends Serializable{
 	self =>
 		
 	def sample(): A
-	
-	/*
-	 * Note:
-	 * 
-	 * Calling the methods below will always return a Samplable, not necessarily 
-	 * the same type as the original implementation.  This is because it's 
-	 * unclear how, for example, how a backing collection within an Emprical 
-	 * should be transformed after an 'until' operation which requires a sequence 
-	 * of specific values in a row; every possible observation would form too
-	 * large a set.  
-	 * 
-	 * Furthermore, it's difficult to see how to set up a uniform builder 
-	 * signature for all implementation classes.  E.g. some implementors may use
-	 * tables of counts, weights, or just seq of values whic would need 
-	 * transforming.
-	 */
 	
 	def until(condition: IndexedSeq[A] => Boolean) = new Samplable[IndexedSeq[A]]{
 		def sample() = {

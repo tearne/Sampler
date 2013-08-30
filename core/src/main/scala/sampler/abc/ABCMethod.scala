@@ -24,7 +24,6 @@ import scala.util.Try
 import org.slf4j.LoggerFactory
 import sampler.data.Empirical
 import sampler.data.Empirical.RichIndexedSeq
-import sampler.data.Empirical.RichMapDouble
 import sampler.math.Probability
 import sampler.math.Random
 import sampler.abc.population.PopulationBuilder
@@ -48,9 +47,6 @@ class ABCMethod[M <: ABCModel](val model: M, meta: ABCParameters, implicit val r
 			.grouped(meta.particleChunking)
 			.map(_.size).toList
 		log.info(s"Tolerance = $tolerance, Job sizes = $jobSizes")
-		
-		// Prepare samplable Parameters from current population
-		val population: Empirical[Parameters] = pop.groupBy(_.value).map{case (k,v) => (k,v.map(_.weight).sum)}.toEmpiricalWeighted
 		
 		val results: Seq[Try[Population]] = pBuilder.run(model)(pop, jobSizes, tolerance, meta, random)
 		

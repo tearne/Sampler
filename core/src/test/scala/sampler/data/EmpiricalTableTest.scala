@@ -34,6 +34,12 @@ class EmpiricalTableTest extends AssertionsForJUnit with ShouldMatchers {
     assert(d3.size === 7)
   }
   
+  @Test def numObservations {
+  	assert(d1.size === 3)
+    assert(d2.size === 6)
+    assert(d3.size === 7)
+  }
+  
   @Test def knowsTheSupportSize {
     assert(d1.supportSize === 3)
     assert(d2.supportSize === 3)
