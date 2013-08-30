@@ -69,7 +69,7 @@ object SampleSizeUncertainty extends App{
 			.toEmpiricalSeq
 			.toSamplable
 	
-	val distributionWithoutVariance = Samplable.diracDelta(0.7)
+	val distributionWithoutVariance = Samplable.continually(0.7)
 			
 	println("Calculating sample size when test has mean sensitivity 0.7, with variance 0.3")
 	val result1 = calcSampleSize(distributionWithVariance, requiredSensitivity)
