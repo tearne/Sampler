@@ -28,6 +28,12 @@ object SamplerBuild extends Build{
 		settings = buildSettings
 	) dependsOn core
 	
+	lazy val spike = Project(
+		id = "sampler-spike",
+		base = file("spike"),
+		settings = buildSettings
+	) dependsOn core
+	
 	val assySettings = assemblySettings ++ Seq(
 		test in assembly := {},
 		mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
