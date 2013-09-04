@@ -23,27 +23,43 @@ import sampler.math.Probability
 import sampler.math.AliasTable
 import sampler.math.Partition
 
-/*
- * Empirical implementation backed by a map which counts occurrences of
- * observation values. Ideal for sampling from discrete distributions 
- * where many repeated observations are expected. 
+/** Empirical implementation which is backed by a Map which counts occurences of observations.
+ * 
+ * Ideal for sampling from discrete distributions where many repeated observations are expected
  */
 class EmpiricalTable[A](val freqTable: Map[A, Int]) extends Empirical[A]{
-	//TODO test this, and the same in the other Empiricals too
 	assert(freqTable.size > 0, "Cannot create empirical from collection of size zero")
 	
+	lazy val size = freqTable.values.sum
+	
+	private lazy val (items, counts) = freqTable.unzip
+	private lazy val partition = Partition.fromWeights(counts.map(_.toDouble).toIndexedSeq)
+	
+	/** A map from each observation to the probability of seeing that value */
+	lazy val probabilityTable = items.zip(partition.probabilities).toMap
+	
+	/**Returns a new Empirical containing a combined oberseration map of the observations
+	 * in this instance and those in the more instance
+	 * 
+	 * {{{
+	 * val empTable = new EmpiricalTable(IndexedSeq(1,2,3)
+	 * val more = IndexedSeq(3)
+	 * 
+	 * empTable ++ more
+	 * }}}
+	 * 
+	 * @param more the observations to append
+	 * @return new Empirical containing combined observations
+	 */
 	def ++(more: GenTraversableOnce[A]) = new EmpiricalTable(
 		more.foldLeft(freqTable){case (acc,elem) => 
 			acc.updated(elem, acc.getOrElse(elem, 0) + 1)
 		}
 	)
 	
-	private lazy val (items, counts) = freqTable.unzip
-	private lazy val partition = Partition.fromWeights(counts.map(_.toDouble).toIndexedSeq)
-	
-	lazy val probabilityTable = items.zip(partition.probabilities).toMap
-	lazy val size = freqTable.values.sum
-	
+	/** Creates a new [[sampler.data.Samplable]] from the Empirical Table
+     *  
+     *  @return [[sampler.data.Samplable]] object */
 	def toSamplable(implicit r: Random): Samplable[A] = Samplable.fromPartition(items.toIndexedSeq, partition)
 	
 	override def canEqual(other: Any): Boolean = other.isInstanceOf[EmpiricalTable[_]]
