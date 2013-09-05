@@ -3,14 +3,19 @@ package sampler.data
 import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Before
 import org.junit.Test
+import sampler.math.Probability
+import sampler.math.Random
+import org.scalatest.matchers.ShouldMatchers
 
-class SamplableTest extends AssertionsForJUnit {
+class SamplableTest extends AssertionsForJUnit with ShouldMatchers {
 
   var instance: Samplable[Int] = _
   var instance2: Samplable[Int] = _
   var alwaysOne: Samplable[Int] = _
+  implicit var random: Random = _
   
   @Before def initialise {
+    random = Random
     
     instance = new Samplable[Int] {
 	  val it = List(0,1,2,3,4,5,6,7,8,9).iterator
@@ -113,44 +118,52 @@ class SamplableTest extends AssertionsForJUnit {
 				
 	assert(sampleList === Seq(-1,0,1,2,3))
   }
-//  
+  
+//  @Test def Continually {}
+
+//  @Test def doubleUniform {}
+//  @Test def intUnifor {}
+//  @Test def iterableUniform {}
+//  @Test def withoutReplacement {}
+//  @Test def binaryPopulation {}
+//  @Test def normal {}
+  
+  @Test def bernouliTrialWithProbabilityOne {
+    val model = Samplable.bernouliTrial(Probability(1))
+    
+    val result = (1 to 10).map(_ => model.sample)
+    
+    assert(result.count(_ == true) === 10)
+  }
+  
+  @Test def bernoiliTrialWithProbabilityZero {
+    val model = Samplable.bernouliTrial(Probability(0))
+    
+    val result = (1 to 10).map(_ => model.sample)
+    
+    assert(result.count(_ == true) === 0)
+  }
+
+  @Test def bernouliTrialWith80PercentProbability {
+    val model = Samplable.bernouliTrial(Probability(0.8))
+		    
+	val result = (1 to 1000).map(_ => model.sample)
+		    
+	result.count(_ == true) should be (800 plusOrMinus 50)
+  }
+  
+  @Test def coinTossIsFair {
+    val model = Samplable.coinToss
+		  
+    val result = (1 to 100).map(_ => model.sample)
+		  
+	result.count(_ == true) should be (50 plusOrMinus 10)
+  }
+  
+//  @Test def fromPartition {}
+  
+  
 //	"Samplable" should {
-//		"have a Bernoilli trial object" in {
-//		  import sampler.data.Empirical._
-//		  import sampler.math.Probability
-//
-//		  "that consistently returns true when probability equals one" in {
-//		    val model = Samplable.bernouliTrial(Probability(1))
-//		    
-//		    val result = (1 to 10).map(_ => model.sample)
-//		    
-//		    result.count(_ == true) mustEqual 10
-//		  }
-//		  
-//		  "that consistently returns false when probability equals zero" in {
-//		    val model = Samplable.bernouliTrial(Probability(0))
-//		    
-//		    val result = (1 to 10).map(_ => model.sample)
-//		    
-//		    result.count(_ == true) mustEqual 0
-//		  }
-//		  
-//		  "that returns results in the correct proportion given supplied probabilities" in {
-//		    val model = Samplable.bernouliTrial(Probability(0.8))
-//		    
-//		    val result = (1 to 1000).map(_ => model.sample)
-//		    
-//		    result.count(_ == true) must beBetween(750, 850)
-//		  }
-//		}
-//		
-//		"have a (fair) coin object which can be tossed / sampled" in {
-//		  val model = Samplable.coinToss
-//		  
-//		  val result = (1 to 100).map(_ => model.sample)
-//		  
-//		  result.count(_ == true) must beBetween(40, 60)
-//		}
 //		
 //		//Covariance and contravariance tests (for compilation only)
 //		object PlayingWithVariance{
@@ -179,25 +192,5 @@ class SamplableTest extends AssertionsForJUnit {
 //			class U
 //			val p: Samplable[U] = t.combine(s)((a:T, b:S) => new U)
 //		}
-//	}
-//	
-//	trait createInstance extends Scope {
-//		val instance = new Samplable[Int] {
-//			val it = List(0,1,2,3,4,5,6,7,8,9).iterator
-//			
-//			def sample(): Int = it.next()
-//		}
-//	}
-//	
-//	trait createTwoInstance extends Scope {
-//	  val instance1 = new Samplable[Int] {
-//		val it = List(1,1,1,1,1).iterator
-//		def sample(): Int = it.next()
-//	  }
-//		    
-//	  val instance2 = new Samplable[Int] {
-//		val it = List(5,6,7,8,9).iterator
-//		def sample(): Int = it.next()
-//	  }
 //	}
 }
