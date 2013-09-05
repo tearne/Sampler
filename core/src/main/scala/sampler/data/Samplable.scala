@@ -75,7 +75,8 @@ trait Samplable[+A] extends Serializable{
 	}
 	
 	def convolve[B >: A](that: Samplable[B])(implicit n: Numeric[B]) = combine(that)(n.plus _)
-    def crossCorrelate[B >: A](that: Samplable[B])(implicit n: Numeric[B]) = combine(that)(n.minus _)
+    
+	def crossCorrelate[B >: A](that: Samplable[B])(implicit n: Numeric[B]) = combine(that)(n.minus _)
 }
 
 object Samplable{
