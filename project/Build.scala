@@ -6,7 +6,7 @@ import com.typesafe.sbteclipse.plugin.EclipsePlugin.EclipseKeys
 
 object SamplerBuild extends Build{
 	val buildOrganization 	= "ahvla"
-	val buildVersion 	= "0.0.14"
+	val buildVersion 	= "0.0.16"
 	val buildScalaVersion	= "2.10.1"
 	
 	lazy val root = Project(
@@ -25,6 +25,12 @@ object SamplerBuild extends Build{
 	lazy val examples = Project(
 		id = "sampler-examples",
 		base = file("examples"),
+		settings = buildSettings
+	) dependsOn core
+	
+	lazy val spike = Project(
+		id = "sampler-spike",
+		base = file("spike"),
 		settings = buildSettings
 	) dependsOn core
 	

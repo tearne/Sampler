@@ -177,7 +177,8 @@ class SamplableSpec extends Specification {
 		//Covariance and contravariance tests (for compilation only)
 		object PlayingWithVariance{
 			class Random2 extends Random {   // Should this be being used somewhere?
-				def nextThingey() = 12
+				def nextDouble() = 0.4
+				def nextInt(n: Int) = n-1
 			}
 
 			class T
