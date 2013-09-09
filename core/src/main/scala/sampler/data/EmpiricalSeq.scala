@@ -28,13 +28,13 @@ import sampler.math.Probability
  */
 class EmpiricalSeq[A](val values: IndexedSeq[A]) extends Empirical[A]{ self =>
   
+    lazy val size = values.size
+  
     /** A map from each observation to the probability of seeing that value */
     lazy val probabilityTable = {
 		val sizeAsDouble = values.size.asInstanceOf[Double]
 		values.groupBy(identity).map{case (k,v) => (k, Probability(v.size / sizeAsDouble))}
 	}
-    
-    lazy val size = values.size
 	
     /** Returns a new Empirical containing all the observations in this instance plus those in the
      *  more instance
@@ -57,4 +57,6 @@ class EmpiricalSeq[A](val values: IndexedSeq[A]) extends Empirical[A]{ self =>
 	def toSamplable(implicit r: Random): Samplable[A] = Samplable.uniform(values)
 	//TODO ask MS why the return type was necessary to allow mocking to work (Crosser.distribution.PlantEmpiricalTest)
 	//TODO do the same on the other Empiricals
+
+	override def canEqual(other: Any): Boolean = other.isInstanceOf[EmpiricalSeq[_]]
 }

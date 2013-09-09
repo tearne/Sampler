@@ -27,11 +27,7 @@ import sampler.math.Probability
 import sampler.math.Partition
 import sampler.math.AliasTable
 
-//TODO Samplable.continually[A](elem: ⇒ A): Samplable[A] , like Iterator.continually.  Can
-// then get rid of diracDelta too.
-
 //TODO flatten on samplable
-
 
 /*
  * Anything from which we can draw samples.  E.g. an analytical distribution,
@@ -79,11 +75,12 @@ trait Samplable[+A] extends Serializable{
 	}
 	
 	def convolve[B >: A](that: Samplable[B])(implicit n: Numeric[B]) = combine(that)(n.plus _)
-    def crossCorrelate[B >: A](that: Samplable[B])(implicit n: Numeric[B]) = combine(that)(n.minus _)
+    
+	def crossCorrelate[B >: A](that: Samplable[B])(implicit n: Numeric[B]) = combine(that)(n.minus _)
 }
 
 object Samplable{
-	def diracDelta[T](value: T) = new Samplable[T]{
+	def continually[T](value: T) = new Samplable[T]{
 		def sample() = value
 	}
 	

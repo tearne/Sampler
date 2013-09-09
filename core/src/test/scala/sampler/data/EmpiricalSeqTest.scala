@@ -49,11 +49,14 @@ class EmpiricalSeqTest extends AssertionsForJUnit with ShouldMatchers {
     probs(5).value should be (0.125 plusOrMinus tolerance)
   }
   
-  @Test def empiricalSeqCanEqual {
+  @Test def empiricalSeqCanEqualAnotherEmpSeqOnly {
 	val es2 = es.++(IndexedSeq(5,6,7,8))
+	val et = IndexedSeq(1,2,3,4).toEmpiricalTable
     
 	assert(es.canEqual(es2))
 	assertFalse(es.equals(es2))
+
+	assertFalse(es.canEqual(et))
   }
   
   @Test def empiricalSeqIsEqual {
