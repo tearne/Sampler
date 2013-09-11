@@ -29,15 +29,22 @@ import sampler.math.AliasTable
 
 //TODO flatten on samplable
 
-/*
- * Anything from which we can draw samples.  E.g. an analytical distribution,
- * or bootstrapping from a data set of observations
+/** Trait for objects from which we can draw samples
+ * 
+ *  Can be used for analytical distributions or bootstrapping from a data set of observations, among other things
  */
 trait Samplable[+A] extends Serializable{ 
 	self =>
-		
+	
+	/** Returns a single element of the underlying collection
+	 * 
+	 *  @return Sampled value */
 	def sample(): A
 	
+	/** Samples from the underlying collection until a condition is met, returns an indexed 
+	 *  sequence containing all sampled values inclusive of the sample when the condition was met
+	 *  
+	 *  @return Sequence of sampled values */ 
 	def until(condition: IndexedSeq[A] => Boolean) = new Samplable[IndexedSeq[A]]{
 		def sample() = {
 			@tailrec
@@ -49,6 +56,12 @@ trait Samplable[+A] extends Serializable{
 		}
 	}
 	
+	/** Creates a new [[sampler.data.Samplable]] object containing only values which match the predicate 
+	 *  given in the method argument
+	 *  
+	 *  @param predicate The condition to apply to each element
+	 *  @return A new [[sampler.data.Samplable]] resulting from applying the predicate function to select specific elements of this object and collecting the results
+	 */
 	def filter(predicate: A => Boolean) = new Samplable[A]{
 		def sample() = {
 			@tailrec
@@ -62,6 +75,12 @@ trait Samplable[+A] extends Serializable{
 		}
 	}
 	
+	/** Builds a new [[sampler.data.Samplable]] by applying a function to all values of the underlying collection
+	 *  
+	 *  @tparam B the element type of the returned object
+	 *  @param f the function to apply to each element
+	 *  @return a new [[sampler.data.Samplable]] resulting from applying the given function f to each element of this object and collecting the results. 
+	 */
 	def map[B](f: A => B) = new Samplable[B]{
 		def sample() = f(self.sample())
 	}
