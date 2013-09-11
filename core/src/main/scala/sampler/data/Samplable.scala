@@ -92,13 +92,12 @@ object Samplable{
 		def sample() = r.nextInt(upperExclusive - lowerIncludive) + lowerIncludive
 	}
 	
-	def uniform[T](items: Iterable[T])(implicit r: Random) = new Samplable[T]{
+	def uniform[T](items: IndexedSeq[T])(implicit r: Random) = new Samplable[T]{
 		val size = items.size
-		val indexedItems = items.toIndexedSeq
-		def sample() = indexedItems(r.nextInt(size))
+		def sample() = items(r.nextInt(size))
 	}
 	
-	def withoutReplacement[T](items: Iterable[T], sampleSize: Int)(implicit r: Random) = new Samplable[List[T]]{
+	def withoutReplacement[T](items: IndexedSeq[T], sampleSize: Int)(implicit r: Random) = new Samplable[List[T]]{
 		def sample() = {
 			@tailrec
 			def takeAnother(acc: List[T], bag: IndexedSeq[T]): List[T] = {
@@ -109,7 +108,7 @@ object Samplable{
 				}
 			}
 				
-			takeAnother(Nil, items.toIndexedSeq)
+			takeAnother(Nil, items)
 		}
 	}
 	
@@ -117,8 +116,8 @@ object Samplable{
 		def sample() = r.nextInt(size) < numInfected
 	}
 	
-	def normal(mean:Double, variance: Double)(implicit r: Random) = new Samplable[Double]{
-		val d = new NormalDistribution(mean,variance)
+	def normal(mean:Double, sd: Double)(implicit r: Random) = new Samplable[Double]{
+		val d = new NormalDistribution(mean,sd)
 		def sample() = d.sample
 		def density(value: Double) = d.density(value)
 	}
@@ -131,10 +130,9 @@ object Samplable{
 	  def sample() = r.nextBoolean(Probability(0.5))
 	}
 	
-	def fromPartition[T](items: Iterable[T], p: Partition)(implicit r: Random) = new Samplable[T]{
+	def fromPartition[T](items: IndexedSeq[T], p: Partition)(implicit r: Random) = new Samplable[T]{
 		val aliasTable = new AliasTable(p)
-		val indexedItems = items.toIndexedSeq
-		def sample() = indexedItems(aliasTable.next(r))
+		def sample() = items(aliasTable.next(r))
 	}
 }
 

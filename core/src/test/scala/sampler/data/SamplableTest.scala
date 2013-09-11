@@ -6,6 +6,7 @@ import org.junit.Test
 import sampler.math.Probability
 import sampler.math.Random
 import org.scalatest.matchers.ShouldMatchers
+import sampler.math.Partition
 
 class SamplableTest extends AssertionsForJUnit with ShouldMatchers {
 
@@ -119,14 +120,108 @@ class SamplableTest extends AssertionsForJUnit with ShouldMatchers {
 	assert(sampleList === Seq(-1,0,1,2,3))
   }
   
-//  @Test def Continually {}
+  @Test def continuallyAlwaysGivesSameResult {
+    val model1 = Samplable.continually(1)
+    val model2 = Samplable.continually(2)
+    
+    val r1 = (1 to 10).map(_ => model1.sample)
+    val r2 = (1 to 10).map(_ => model2.sample)
+    
+    assert(r1.sum === 10)
+    assert(r2.sum === 20)
+  }
+  
+  @Test def uniformDistributionWithDoubleParameters {
+    val model = Samplable.uniform(0.5, 1.5)
+    
+    val results = (1 to 10000).map(_ => model.sample)
+    
+    assert(results.count(_ >= 0.4) === 10000)
+    results.count(_ >= 1.4) should be (1000 plusOrMinus 200)
+    results.count(_ <= 0.6) should be (1000 plusOrMinus 200)
+  }
 
-//  @Test def doubleUniform {}
-//  @Test def intUnifor {}
-//  @Test def iterableUniform {}
-//  @Test def withoutReplacement {}
-//  @Test def binaryPopulation {}
-//  @Test def normal {}
+  @Test def uniformDistributionWithIntParameters {
+    val model = Samplable.uniform(1, 11)		//excludes 11
+    
+    val results = (1 to 10000).map(_ => model.sample)
+    
+    results.count(_ == 1) should be (1000 plusOrMinus 200)
+    results.count(_ == 2) should be (1000 plusOrMinus 200)
+    results.count(_ == 3) should be (1000 plusOrMinus 200)
+    results.count(_ == 4) should be (1000 plusOrMinus 200)
+    results.count(_ == 5) should be (1000 plusOrMinus 200)
+    results.count(_ == 6) should be (1000 plusOrMinus 200)
+    results.count(_ == 7) should be (1000 plusOrMinus 200)
+    results.count(_ == 8) should be (1000 plusOrMinus 200)
+    results.count(_ == 9) should be (1000 plusOrMinus 200)
+    results.count(_ == 10) should be (1000 plusOrMinus 200)
+  }
+
+  @Test def iterableUniform {
+    val items = IndexedSeq(2,4,6,8)
+    
+    val model = Samplable.uniform(items)
+    
+    val results = (1 to 2000).map(_ => model.sample)
+    
+    results.count(_ == 2) should be (500 plusOrMinus 100)
+    results.count(_ == 4) should be (500 plusOrMinus 100)
+    results.count(_ == 6) should be (500 plusOrMinus 100)
+  }
+
+  @Test def withoutReplacementNeverSamplesSameObjectTwice {
+    val items = IndexedSeq(2,4,6,8)
+    
+    val model = Samplable.withoutReplacement(items, 2)
+    
+    def theSame(l: List[Int]) = if(l(0)	== l(1)) true else false
+    
+    val results = (1 to 100).map(_ => model.sample)
+    
+    assert(results.count(theSame(_) == true) === 0)
+  }
+  
+  @Test def withoutReplacementDrawsWithEqualProbability {
+    val it = IndexedSeq(2,4,6,8)
+    
+    val model = Samplable.withoutReplacement(it, 2)
+    
+    val results = (1 to 1000).map(_ => model.sample)
+    
+    results.count(_.contains(2)) should be (500 plusOrMinus 100)
+    results.count(_.contains(4)) should be (500 plusOrMinus 100)
+    results.count(_.contains(6)) should be (500 plusOrMinus 100)
+  }
+  
+  @Test def sampleInfectedFromBinaryPopulation {
+    val model = Samplable.binaryPopulation(5, 100)
+    
+    val results = (1 to 10000).map(_ => model.sample)
+    
+    results.count(_ == true) should be (500 plusOrMinus 100)
+  }
+  
+  @Test def normalDistributionRegeneratesParameters {
+    val definedMean = 5.0
+    val definedSD = 1.5
+    val model = Samplable.normal(definedMean, definedSD)
+    
+    val samples = (1 to 10000).map(_ => model.sample)
+    
+    val sampledMean = samples.sum / 10000
+    
+    def squaredDiff(d: Double) = {
+      val sd = d - sampledMean
+      sd*sd
+    }
+    
+    val variance = (samples.map(s => squaredDiff(s))).sum/10000
+    val sampledSD = Math.sqrt(variance)
+    
+    sampledMean should be (definedMean plusOrMinus 0.05)
+    sampledSD should be (definedSD plusOrMinus 0.05)
+  }
   
   @Test def bernouliTrialWithProbabilityOne {
     val model = Samplable.bernouliTrial(Probability(1))
@@ -155,42 +250,22 @@ class SamplableTest extends AssertionsForJUnit with ShouldMatchers {
   @Test def coinTossIsFair {
     val model = Samplable.coinToss
 		  
-    val result = (1 to 100).map(_ => model.sample)
+    val result = (1 to 1000).map(_ => model.sample)
 		  
-	result.count(_ == true) should be (50 plusOrMinus 10)
+	result.count(_ == true) should be (500 plusOrMinus 50)
   }
   
-//  @Test def fromPartition {}
-  
-  
-//	"Samplable" should {
-//		
-//		//Covariance and contravariance tests (for compilation only)
-//		object PlayingWithVariance{
-//			class Random2 extends Random {   // Should this be being used somewhere?
-//				def nextThingey() = 12
-//			}
-//
-//			class T
-//			class S extends T
-//			val isT: T = new S
-//			
-//			val t = new Samplable[T]{
-//				def sample() = new T
-//			}
-//			val s = new Samplable[S]{
-//				def sample() = new S
-//			}
-//			
-//			val res1 = t.sample()
-//			val res2 = s.sample()
-//			val res3 = s.sample()
-//			
-//			val u: Samplable[T] = s
-//			val w: Samplable[S] = s
-//			
-//			class U
-//			val p: Samplable[U] = t.combine(s)((a:T, b:S) => new U)
-//		}
-//	}
+  @Test def samplesFromItemsBasedOnPartitionProbabilities {
+    val seq = IndexedSeq(1,2,3,4)
+    val partition = new Partition(IndexedSeq(0.1,0.2,0.3,0.4).map(Probability(_)))
+    
+    val model = Samplable.fromPartition(seq, partition)
+    
+    val result = (1 to 1000).map(_ => model.sample)
+    
+    result.count(_ == 1) should be (100 plusOrMinus 50)
+    result.count(_ == 2) should be (200 plusOrMinus 50)
+    result.count(_ == 3) should be (300 plusOrMinus 50)
+    result.count(_ == 4) should be (400 plusOrMinus 50)
+  }
 }
