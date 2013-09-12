@@ -25,36 +25,8 @@ import java.nio.file.Files
 import java.nio.file.FileAlreadyExistsException
 import scala.Array.canBuildFrom
 
-trait TableReader{
-	def get[T](params: Header[T]): Column[T]
-}
 trait TableWriter{
 	def apply(columns: Column[_]*): Unit
-}
-
-class CSVTableReader(path: Path) extends TableReader{
-	val source = Source.fromFile(path.toString())
-					.getLines()
-					.map(_.replace("\"",""))
-					.map(_.split(",").map(_.trim))
-					.toIterable
-	
-	def get[T](header: Header[T]): Column[T] = {
-		val it = source.iterator
-		val headers = it.next()
-		
-		val columnIdx = headers.indexWhere(_ == header.name) match{
-			case i: Int if i<0 => throw new UnsupportedOperationException("Header not found, TODO: improve exception")
-			case i => i 
-		}
-		
-		try {
-			val values = it.map(row => header.cType(row(columnIdx))).toIndexedSeq
-			new Column(values, header.name)(header.cType)
-		} catch {
-			case nfe: NumberFormatException => throw new TableReaderException("Could not parse data for column " + header.name)
-		}
-	}
 }
 
 class CSVTableWriter(path: Path, overwrite: Boolean = false) extends TableWriter{
