@@ -268,4 +268,13 @@ class SamplableTest extends AssertionsForJUnit with ShouldMatchers {
     result.count(_ == 3) should be (300 plusOrMinus 50)
     result.count(_ == 4) should be (400 plusOrMinus 50)
   }
+  
+  @Test def errorWhenPartitionLengthDoesntMatchSequenceLength {
+    val seq = IndexedSeq(1,2,3,4)
+    val partition = new Partition(IndexedSeq(0.25,0.25,0.5).map(Probability(_)))
+    
+    intercept[AssertionError] {
+      val model = Samplable.fromPartition(seq, partition)
+    }
+  }
 }
