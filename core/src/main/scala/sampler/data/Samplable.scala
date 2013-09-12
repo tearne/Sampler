@@ -136,20 +136,20 @@ object Samplable{
 	 *  provides samples as double values between the supplied lower inclusive and upper 
 	 *  exclusive values
 	 *  
-	 *  @param lowerInclusive the lower bound of the distribution (inclusive)
-	 *  @param upperExclusive the upper bound of the distribution (exclusive) */
-	def uniform(lowerInclusive: Double, upperExclusive: Double)(implicit r: Random) = new Samplable[Double]{
-		def sample() = (upperExclusive - lowerInclusive) * r.nextDouble() + lowerInclusive
+	 *  @param lower the lower bound of the distribution (inclusive)
+	 *  @param upper the upper bound of the distribution (exclusive) */
+	def uniform(lower: Double, upper: Double)(implicit r: Random) = new Samplable[Double]{
+		def sample() = (upper - lower) * r.nextDouble() + lower
 	}
 	
 	/** Builds a new [[sampler.data.Samplable]] which represents a Uniform distribution, 
 	 *  provides samples as integer values between the supplied lower inclusive and upper 
 	 *  exclusive values
 	 *  
-	 *  @param lowerInclusive the lower bound of the distribution (inclusive)
-	 *  @param upperExclusive the upper bound of the distribution (exclusive) */
-	def uniform(lowerInclusive: Int, upperExclusive: Int)(implicit r: Random) = new Samplable[Int]{
-		def sample() = r.nextInt(upperExclusive - lowerInclusive) + lowerInclusive
+	 *  @param lower the lower bound of the distribution (inclusive)
+	 *  @param upper the upper bound of the distribution (exclusive) */
+	def uniform(lower: Int, upper: Int)(implicit r: Random) = new Samplable[Int]{
+		def sample() = r.nextInt(upper - lower) + lower
 	}
 	
 	/** Builds a new [[sampler.data.Samplable]] which allows sampling from a finite sequence 
@@ -240,30 +240,4 @@ object Samplable{
 	  val aliasTable = new AliasTable(p)
 	  def sample() = items(aliasTable.next(r))
 	}
-}
-
-trait SampleBuilder{
-	def apply[T](samplable: Samplable[T])(condition: GenSeq[T] => Boolean): GenSeq[T]
-}
-
-object SerialSampleBuilder extends SampleBuilder with Serializable{
-	def apply[T](samplable: Samplable[T])(condition: GenSeq[T] => Boolean) = 
-		samplable.until(condition).sample()
-}
-
-class ParallelSampleBuilder(chunkSize: Int) extends SampleBuilder{
-	def apply[T](samplable: Samplable[T])(condition: GenSeq[T] => Boolean) = {
-		def takeMore(previous: ParSeq[T]): ParSeq[T] = {
-			if(condition(previous)) previous
-			else takeMore(
-					previous ++ (1 to chunkSize).par.map(i => samplable.sample)
-			)
-		}
-		val kickstart = (1 to chunkSize).par.map(i => samplable.sample)
-		takeMore(kickstart)
-	}
-}
-
-trait SampleBuilderComponent{
-	val builder: SampleBuilder
 }
