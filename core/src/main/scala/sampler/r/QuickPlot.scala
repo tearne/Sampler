@@ -2,8 +2,8 @@ package sampler.r
 
 import sampler.data.Empirical
 import java.nio.file.Paths
-import sampler.io.CSVTableWriter
-import sampler.data.Types.Column
+import sampler.io.table.CSVTableWriter
+import sampler.io.table.Types.Column
 import java.nio.file.Path
 import sampler.data.EmpiricalSeq
 import sampler.math.Probability

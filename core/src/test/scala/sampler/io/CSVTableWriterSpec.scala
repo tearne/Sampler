@@ -22,7 +22,7 @@ import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import java.nio.file.Paths
 import java.io.File
-import sampler.data.Types._
+import sampler.io.table.Types._
 import org.specs2.specification.Scope
 import java.nio.file.Files
 import org.specs2.mutable.Before
@@ -30,6 +30,8 @@ import org.specs2.mutable.After
 import scala.io.Source
 import sampler.math.Probability
 import java.nio.file.FileAlreadyExistsException
+import sampler.io.table.TableWriterException
+import sampler.io.table.CSVTableWriter
 
 @RunWith(classOf[JUnitRunner])
 class CSVTableWriterSpec extends Specification{

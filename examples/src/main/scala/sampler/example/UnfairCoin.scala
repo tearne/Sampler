@@ -23,8 +23,8 @@ import sampler.abc._
 import sampler.abc.population._
 import sampler.data.Empirical._
 import sampler.data.Samplable
-import sampler.data.Types._
-import sampler.io.CSVTableWriter
+import sampler.io.table.Types._
+import sampler.io.table.CSVTableWriter
 import sampler.math._
 import sampler.r.QuickPlot
 import sampler.run.actor._

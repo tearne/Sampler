@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.data
+package sampler.io.table
 
 import sampler.math.Probability
 

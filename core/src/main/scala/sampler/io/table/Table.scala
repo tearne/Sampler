@@ -15,21 +15,15 @@
  * limitations under the License.
  */
 
-package sampler.io
+package sampler.io.table
 
 import java.nio.file.Path
-import sampler.data.Types._
-import java.io.FileOutputStream
-import java.io.PrintStream
+import sampler.io.table.Types._
 import scala.io.Source
-import java.io.FileNotFoundException
-import scala.reflect.Manifest
-import scala.collection.immutable.WrappedString
 import java.io.FileWriter
-import scala.util.matching.Regex
-import java.io.File
 import java.nio.file.Files
 import java.nio.file.FileAlreadyExistsException
+import scala.Array.canBuildFrom
 
 trait TableReader{
 	def get[T](params: Header[T]): Column[T]

@@ -20,9 +20,9 @@ import sampler.data._
 import sampler.data.Empirical._
 import sampler.math.Random
 import scala.collection.GenSeq
-import sampler.data.Types.Column
+import sampler.io.table.Types.Column
 import scala.annotation.tailrec
-import sampler.io.CSVTableWriter
+import sampler.io.table.CSVTableWriter
 import sampler.r.ScriptRunner
 import java.nio.file.{Paths, Files}
 import sampler.math._

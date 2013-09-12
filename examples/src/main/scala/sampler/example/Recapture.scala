@@ -23,8 +23,8 @@ import sampler.data.Samplable
 import sampler.abc.Prior
 import sampler.abc.ABCMethod
 import java.nio.file.{Paths, Files}
-import sampler.data.Types.Column
-import sampler.io.CSVTableWriter
+import sampler.io.table.Types.Column
+import sampler.io.table.CSVTableWriter
 import sampler.r.ScriptRunner
 import org.apache.commons.math3.distribution.BetaDistribution
 import sampler.run.local.LocalRunner
