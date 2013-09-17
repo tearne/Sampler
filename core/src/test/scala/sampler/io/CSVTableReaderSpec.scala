@@ -103,7 +103,7 @@ class CSVTableReaderSpec extends Specification{
 	}
 	
 	trait fileSetup extends Scope {
-		val testPath = Paths.get("testData")
+		val testPath = Paths.get("src", "test", "resources", "data")
 		val filePath = testPath.resolve("testTable.csv")
 		val instance = new CSVTableReader(filePath)
 	}
