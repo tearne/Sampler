@@ -1,7 +1,6 @@
 package sampler.r.anova
 
-import sampler.io.table.Types.Column
-import sampler.io.table.Types.Factor
+import sampler.io.table._
 
 class ScriptBuilder {
 

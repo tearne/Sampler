@@ -7,7 +7,7 @@ import org.specs2.mock.Mockito
 import sampler.r.ScriptRunner
 import sampler.io.table.CSVTableWriter
 import java.nio.file.Paths
-import sampler.io.table.Types.Column
+import sampler.io.table.Column
 import sampler.io.table.CSVTableReader
 
 @RunWith(classOf[JUnitRunner])

@@ -7,11 +7,11 @@ import java.nio.file.Paths
 import java.nio.file.Files
 import java.io.File
 import org.specs2.specification.Scope
-import sampler.io.table.Types._
 import sampler.math.Probability
 import java.io.FileNotFoundException
 import sampler.io.table.TableReaderException
 import sampler.io.table.CSVTableReader
+import sampler.io.table._
 
 @RunWith(classOf[JUnitRunner])
 class CSVTableReaderSpec extends Specification{

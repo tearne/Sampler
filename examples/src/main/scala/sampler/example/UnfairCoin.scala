@@ -18,16 +18,15 @@
 package sampler.example
 
 import java.nio.file.{Files, Paths}
-
 import sampler.abc._
 import sampler.abc.population._
 import sampler.data.Empirical._
 import sampler.data.Samplable
-import sampler.io.table.Types._
 import sampler.io.table.CSVTableWriter
 import sampler.math._
 import sampler.r.QuickPlot
 import sampler.run.actor._
+import sampler.io.table.Column
 
 object UnfairCoinApplication extends App 
 	with UnfairCoinFactory 

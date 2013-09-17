@@ -7,7 +7,7 @@ import java.io.PrintStream
 import java.io.File
 import scala.collection.mutable.HashMap
 import com.typesafe.config.ConfigFactory
-import sampler.io.table.Types._
+import sampler.io.table._
 import sampler.r.ScriptRunner
 import sampler.io.table.CSVTableWriter
 
