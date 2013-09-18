@@ -17,4 +17,10 @@
 
 package sampler.io.table
 
+/** Case class to hold a header for a column of data
+ *  
+ *  Used to allow extraction of data from .csv files in [[sampler.io.table.CSVTableReader]]
+ *  
+ *  @param name The name of data required
+ */
 case class Header[T](val name: String)(implicit val cType: ColumnType[T])

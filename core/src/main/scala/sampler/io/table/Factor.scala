@@ -17,6 +17,7 @@
 
 package sampler.io.table
 
+/** Case class for Factors, used as a specific implementation of String */
 case class Factor(name: String){
 	override def toString() = name
 }

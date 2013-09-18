@@ -17,8 +17,17 @@
 
 package sampler.io.table
 
+/** Stores a single columns worth of data as a Seq of type T
+ *  
+ *  @param values The data values to be stored in the class
+ *  @param name An identifier for the data
+ */
 case class Column[T](val values: Seq[T], val name: String)(implicit val cType: ColumnType[T]){
-	def toStringColumn(): Column[String] = Column(values.map(v => cType.toString(v)), name)
+  /** Converts the data of type T to String
+   * 
+   *  @return Column of type String, containing the original sequence of type T, mapped to strings
+   */
+  def toStringColumn(): Column[String] = Column(values.map(v => cType.toString(v)), name)
 }
 
 abstract class ColumnType[T: Manifest]{ 
