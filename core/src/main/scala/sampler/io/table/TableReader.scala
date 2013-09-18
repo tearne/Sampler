@@ -18,19 +18,30 @@
 package sampler.io.table
 
 import java.nio.file.Path
-import sampler.io.table.Types._
 import scala.io.Source
 import java.io.FileWriter
 import java.nio.file.Files
 import java.nio.file.FileAlreadyExistsException
 import scala.Array.canBuildFrom
 
+/** Trait for objects which can read data from files */
 trait TableReader{
-	def get[T](params: Header[T]): Column[T]
+  /** Creates a new [[sampler.io.table.Column]] of type T containing the data
+   *  associated with the requested [[sampler.io.table.Header]] 
+   *  
+   *  @param params Header determining which section of the target file is to be read in
+   *  @return Column containing the data
+   */
+  def get[T](params: Header[T]): Column[T]
 }
 
+/** Implementation of [[sampler.io.table.TableReader]] for reading in data from .csv files
+ *  
+ *  @constructor Create a new CSVTableReader to read in the file given by the path parameter
+ *  @param path Path pointing to the file of interest
+ */
 class CSVTableReader(path: Path) extends TableReader{
-	val source = Source.fromFile(path.toString())
+	private val source = Source.fromFile(path.toString())
 					.getLines()
 					.map(_.replace("\"",""))
 					.map(_.split(",").map(_.trim))

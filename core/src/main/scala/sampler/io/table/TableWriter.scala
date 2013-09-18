@@ -18,17 +18,27 @@
 package sampler.io.table
 
 import java.nio.file.Path
-import sampler.io.table.Types._
 import scala.io.Source
 import java.io.FileWriter
 import java.nio.file.Files
 import java.nio.file.FileAlreadyExistsException
 import scala.Array.canBuildFrom
 
+/** Trait for objects which can write data to files */
 trait TableWriter{
+  /** Writes columns to a file 
+   *  
+   *  @param columns The columns of data to be written, supplied as varargs
+   */
 	def apply(columns: Column[_]*): Unit
 }
 
+/** Implementation of [[sampler.io.table.TableWriter]] for writing data to .csv files
+ *  
+ *  @constructor Create a new CSVTableWriter to write to the file given by the path parameter
+ *  @param path Path pointing to the file of interest
+ *  @param overwrite True if existing files at the specified path are to be overwritten
+ */
 class CSVTableWriter(path: Path, overwrite: Boolean = false) extends TableWriter{
 	def apply(columns: Column[_]*){
 		

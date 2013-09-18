@@ -1,6 +1,5 @@
 package sampler.io
 
-import sampler.io.table.Types._
 import sampler.math.Probability
 
 package object table {
