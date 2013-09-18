@@ -4,6 +4,7 @@ import sampler.math.Probability
 
 package object table {
 
+  // TODO PackageObject doesn't show clearly in ScalaDoc - consider necessity
   	implicit val IntColumn: ColumnType[Int] = new ColumnType[Int] { def apply(s: String) = s.toInt }
 	implicit val DoubleColumn: ColumnType[Double] = new ColumnType[Double] { def apply(s: String) = s.toDouble }
 	implicit val BooleanColumn: ColumnType[Boolean] = new ColumnType[Boolean] { def apply(s: String) = s.toBoolean }

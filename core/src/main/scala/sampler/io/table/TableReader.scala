@@ -24,6 +24,8 @@ import java.nio.file.Files
 import java.nio.file.FileAlreadyExistsException
 import scala.Array.canBuildFrom
 
+//TODO simplify - remove trait
+
 /** Trait for objects which can read data from files */
 trait TableReader{
   /** Creates a new [[sampler.io.table.Column]] of type T containing the data
