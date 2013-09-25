@@ -18,19 +18,25 @@ object SamplerBuild extends Build{
 	
 	lazy val core = Project(
 		id = "sampler-core",
-		base = file("core"),
+		base = file("sampler-core"),
 		settings = buildSettings ++ assySettings ++ packageSettings
 	)
 	
 	lazy val examples = Project(
 		id = "sampler-examples",
-		base = file("examples"),
+		base = file("sampler-examples"),
 		settings = buildSettings
 	) dependsOn core
 	
 	lazy val spike = Project(
 		id = "sampler-spike",
-		base = file("spike"),
+		base = file("sampler-spike"),
+		settings = buildSettings
+	) dependsOn core
+	
+	lazy val cluster = Project(
+		id = "sampler-cluster",
+		base = file("sampler-cluster"),
 		settings = buildSettings
 	) dependsOn core
 	
@@ -59,6 +65,8 @@ object SamplerBuild extends Build{
 		version		 := buildVersion,
 		scalaVersion := buildScalaVersion,
 
+		scalacOptions ++= Seq("-deprecation", "-feature"),
+		
 		retrieveManaged	:= false,
 		
 		resolvers ++= Seq(
@@ -85,5 +93,5 @@ object SamplerBuild extends Build{
 
 	override lazy val settings = super.settings :+ (
 		EclipseKeys.skipParents := false		
-	)
+	)		
 }
