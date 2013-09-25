@@ -6,8 +6,8 @@ import com.typesafe.sbteclipse.plugin.EclipsePlugin.EclipseKeys
 
 object SamplerBuild extends Build{
 	val buildOrganization 	= "ahvla"
-	val buildVersion 	= "0.0.16"
-	val buildScalaVersion	= "2.10.1"
+	val buildVersion 	= "0.0.17"
+	val buildScalaVersion	= "2.10.2"
 	
 	lazy val root = Project(
 		id = "sampler",
@@ -45,7 +45,7 @@ object SamplerBuild extends Build{
 	lazy val packageSettings = Seq(
 		mappings in (Compile,packageBin) ~= { (ms: Seq[(File, String)]) =>
 			ms filter { case (file, toPath) =>
-				if(toPath.contains(".xml")){
+				if(toPath.contains(".xml") || toPath.contains(".config")){
 					println("=== excluding: "+toPath)
 					false
 				}
@@ -79,8 +79,7 @@ object SamplerBuild extends Build{
 			"com.typesafe.akka" %% "akka-slf4j" % "2.1.4", 
 			"org.apache.commons" % "commons-math3" % "3.0",
 			"ch.qos.logback" % "logback-classic" % "1.0.12",
-			"com.amazonaws" % "aws-java-sdk" % "1.4.0.1",
-			"javasysmon" % "javasysmon" % "0.3.3" from "http://cloud.github.com/downloads/jezhumble/javasysmon/javasysmon-0.3.3.jar"
+			"com.amazonaws" % "aws-java-sdk" % "1.4.0.1"
 		)
 	)
 
