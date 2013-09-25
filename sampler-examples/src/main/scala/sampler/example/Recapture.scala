@@ -27,9 +27,9 @@ import sampler.io.table.Column
 import sampler.io.table.CSVTableWriter
 import sampler.r.ScriptRunner
 import org.apache.commons.math3.distribution.BetaDistribution
-import sampler.run.local.LocalRunner
-import sampler.run.local.SerialRunner
-import sampler.run.local.Aborter
+//import sampler.run.Runner
+import sampler.run.SerialRunner
+import sampler.run.Aborter
 import sampler.abc.population.LocalPopulationBuilder
 import sampler.abc.population.PopulationBuilder
 

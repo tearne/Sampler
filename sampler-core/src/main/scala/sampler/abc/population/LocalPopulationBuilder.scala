@@ -20,13 +20,13 @@ package sampler.abc.population
 import scala.util.Try
 import sampler.abc.ABCModel
 import sampler.data.Empirical
-import sampler.run.local.ParallelCollectionRunner
-import sampler.run.local.Abortable
-import sampler.run.local.LocalRunner
+import sampler.run.ParallelCollectionRunner
+import sampler.run.Abortable
+import sampler.run.Runner
 import sampler.abc.ABCParameters
 import sampler.math.Random
 
-class LocalPopulationBuilder(runner: LocalRunner) extends PopulationBuilder{
+class LocalPopulationBuilder(runner: Runner) extends PopulationBuilder{
 	def run(model: ABCModel)(
 			pop: model.Population, 
 			jobSizes: Seq[Int], 

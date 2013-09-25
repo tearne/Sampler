@@ -19,14 +19,23 @@ package sampler.abc.population
 
 import scala.annotation.tailrec
 import sampler.data.Empirical._
-import sampler.run.UserInitiatedAbortException
+import sampler.run.DetectedAbortionException
 import sampler.data.SerialSampleBuilder
 import sampler.abc._
-import sampler.run.local.Aborter
+import sampler.run.Aborter
 import sampler.data.Samplable
 import sampler.math.Random
 import scala.collection.immutable.ListMap
 import sampler.math.Partition
+
+/*
+ *  Builds a new population by applying ABC sampling and weighting based 
+ *  on the previous population.  Note that the size of the outgoing 
+ *  population need not be the same as the incoming.  This is used when
+ *  load of discovering particles is spread across different threads.
+ *  
+ *  This is the object used by 
+ */
 
 object Population {
 	def apply(model: ABCModel)(
@@ -46,7 +55,7 @@ object Population {
 		
 		@tailrec
 		def nextParticle(failures: Int = 0): Particle[Parameters] = {
-			if(aborter.isAborted) throw new UserInitiatedAbortException("Abort flag was set")
+			if(aborter.isAborted) throw new DetectedAbortionException("Abort flag was set")
 			else if(failures >= meta.particleRetries) throw new RefinementAbortedException(s"Aborted after the maximum of $failures trials")
 			else{
 				def getScores(params: Parameters): IndexedSeq[Double] = {
