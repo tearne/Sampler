@@ -73,7 +73,7 @@ class Worker(runner: Executor) extends Actor with ActorLogging{
 		context.become(busy(sndr))
 		import context._
 		Future{
-			val result = Try(runner(job))
+			val result = Try(runner.apply(job))
 			me ! Done
 			sndr ! result
 		}

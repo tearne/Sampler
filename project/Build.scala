@@ -26,7 +26,7 @@ object SamplerBuild extends Build{
 		id = "sampler-examples",
 		base = file("sampler-examples"),
 		settings = buildSettings
-	) dependsOn core
+	) dependsOn(core, cluster)
 	
 	lazy val spike = Project(
 		id = "sampler-spike",

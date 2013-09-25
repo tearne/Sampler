@@ -20,7 +20,7 @@ package sampler.abc.population
 import scala.util.Try
 import sampler.abc.ABCModel
 import sampler.data.Empirical
-import sampler.run.ParallelCollectionRunner
+import sampler.run.ParallelRunner
 import sampler.run.Abortable
 import sampler.run.Runner
 import sampler.abc.ABCParameters
@@ -35,12 +35,12 @@ class LocalPopulationBuilder(runner: Runner) extends PopulationBuilder{
 			random: Random
 		): Seq[Try[model.Population]] = {
 		val jobs = jobSizes.map{quantity => Abortable{aborter =>
-			Population(model)(pop, quantity, tolerance, aborter, meta, random)
+			PopulationBuilder(model)(pop, quantity, tolerance, aborter, meta, random)
 		}}
 		
 		runner.apply(jobs)
 	}
 }
 object LocalPopulationBuilder{
-	def apply() = new LocalPopulationBuilder(ParallelCollectionRunner())
+	def apply() = new LocalPopulationBuilder(ParallelRunner())
 }

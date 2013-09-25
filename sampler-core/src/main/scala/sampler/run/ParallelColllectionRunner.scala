@@ -19,17 +19,17 @@ package sampler.run
 
 import scala.util.Try
 
-class ParallelCollectionRunner(aborter: Aborter) extends Runner{
+class ParallelRunner(aborter: Aborter) extends Runner{
 	def apply[T](jobs: Seq[Abortable[T]]): Seq[Try[T]] = {
 		jobs.par.map(job => Try(job.run(aborter))).seq
 	}
 }
-object ParallelCollectionRunner{
-	def apply[T](jobs: Seq[Abortable[T]]) = new ParallelCollectionRunner(Aborter())(jobs)
-	def apply[T]() = new ParallelCollectionRunner(Aborter())
+object ParallelRunner{
+	def apply[T](jobs: Seq[Abortable[T]]) = new ParallelRunner(Aborter())(jobs)
+	def apply[T]() = new ParallelRunner(Aborter())
 }
 
-object ParallelCollectionRunnerTest extends App{
+object ParallelRunnerTest extends App{
 	// Make a bunch of jobs one of which will trigger an abort
 	val jobs = (1 to 10).map{id => Abortable[Double](aborter => {
 		println(s"Start job $id")
@@ -50,5 +50,5 @@ object ParallelCollectionRunnerTest extends App{
 	val aborter = Aborter()
 	
 	// Run the jobs
-	ParallelCollectionRunner(jobs).foreach(println)
+	ParallelRunner(jobs).foreach(println)
 }

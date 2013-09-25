@@ -26,7 +26,7 @@ object TestSlave extends App{
 }
 
 class TestRunner() extends Executor{
-	def run = PartialFunction[Any, Any]{
+	def apply = PartialFunction[Any, Any]{
 		case request: TestJob => 
 			if(request.i == 3) throw new RuntimeException("Induced exception")
 			(1 to 10000000).foreach{j => {

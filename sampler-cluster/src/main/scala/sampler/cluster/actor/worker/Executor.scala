@@ -20,16 +20,10 @@ package sampler.cluster.actor.worker
 import java.util.concurrent.atomic.AtomicBoolean
 
 trait Executor{
-	def run: PartialFunction[Any, Any]
+	def apply: PartialFunction[Any, Any]
 
-	var aborted: AtomicBoolean = _
+	val aborted: AtomicBoolean = new AtomicBoolean(false)
 
 	def abort() {aborted.set(true)}
 	def isAborted = aborted.get
-	
-	def apply(payload: Any) = {
-		//TODO Check not running
-		aborted = new AtomicBoolean(false)
-		run(payload)
-	}
 }

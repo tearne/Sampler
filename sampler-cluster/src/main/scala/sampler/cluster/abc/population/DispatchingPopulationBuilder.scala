@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.abc.population
+package sampler.cluster.abc.population
 
 import scala.util.Try
 import scala.language.existentials
@@ -27,8 +27,9 @@ import sampler.math.Random
 import sampler.cluster.actor.client.dispatch.Dispatcher
 import sampler.cluster.actor.client.dispatch.FailFastDispatcher
 import sampler.cluster.actor.client.dispatch.Job
+import sampler.abc.population.PopulationBuilder
 
-class ActorPopulationDispatcher(dispatcher: Dispatcher) extends PopulationBuilder{
+class DispatchingPopulationBuilder(dispatcher: Dispatcher) extends PopulationBuilder{
 	def run(model: ABCModel)(
 			pop: model.Population, 
 			jobSizes: Seq[Int], 
@@ -48,8 +49,8 @@ class ActorPopulationDispatcher(dispatcher: Dispatcher) extends PopulationBuilde
 		result
 	}
 }
-object ActorPopulationDispatcher{
-	def apply(system: ActorSystem) = new ActorPopulationDispatcher(new FailFastDispatcher(system))
+object DispatchingPopulationBuilder{
+	def apply(system: ActorSystem) = new DispatchingPopulationBuilder(new FailFastDispatcher(system))
 }
 
 case class ABCJob(population: Seq[_], quantity: Int, tolerance: Double, meta: ABCParameters) extends Job[ABCModel#Population]

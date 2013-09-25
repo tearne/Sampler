@@ -26,14 +26,18 @@ import sampler.io.table.CSVTableWriter
 import sampler.math._
 import sampler.r.QuickPlot
 import sampler.io.table.Column
+import sampler.cluster.actor.NodeApplication
+import sampler.cluster.abc.population.PopulationExecutor
+import sampler.cluster.abc.population.DispatchingPopulationBuilder
+import sampler.cluster.actor.PortFallbackSystem
 
 object UnfairCoinApplication extends App 
 	with UnfairCoinFactory 
 	with UnfairCoin
 	
-//object UnfairCoinWorker extends App {
-//	new NodeApplication(new ActorPopulationExecutor(CoinModel, Random))
-//}
+object UnfairCoinWorker extends App {
+	new NodeApplication(new PopulationExecutor(CoinModel, Random))
+}
 
 trait UnfairCoinFactory{
 	val meta = new ABCParameters(
@@ -45,8 +49,8 @@ trait UnfairCoinFactory{
 	)
 	val abcMethod = new ABCMethod(CoinModel, meta, Random)
 	
-//	val pBuilder = ActorPopulationDispatcher(PortFallbackSystem("ClusterSystem"))
-	val pBuilder = LocalPopulationBuilder()
+	val pBuilder = DispatchingPopulationBuilder(PortFallbackSystem("ClusterSystem"))
+//	val pBuilder = LocalPopulationBuilder()
 }
 
 trait UnfairCoin {

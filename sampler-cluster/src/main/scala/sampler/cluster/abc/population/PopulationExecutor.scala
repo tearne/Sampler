@@ -15,21 +15,22 @@
  * limitations under the License.
  */
 
-package sampler.abc.population
+package sampler.cluster.abc.population
 
 import sampler.abc.ABCModel
 import sampler.data.Empirical
 import sampler.math.Random
 import sampler.cluster.actor.worker.Executor
 import sampler.run.WrappedAborter
+import sampler.abc.population.PopulationBuilder
 
-class ActorPopulationExecutor(model: ABCModel, random: Random) extends Executor{
-	def run = PartialFunction[Any, Any]{
+class PopulationExecutor(model: ABCModel, random: Random) extends Executor {
+	def apply = PartialFunction[Any, Any]{
 		case ABCJob(pop, quantity, tol, meta) => 
-			Population(model)(
+			PopulationBuilder(model)(
 					pop.asInstanceOf[model.Population], 
 					quantity, 
-					tol, 
+					tol,
 					new WrappedAborter(aborted),
 					meta,
 					random
