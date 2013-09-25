@@ -1,3 +1,4 @@
+package sampler.cluster.deploy;
 ///*
 // * Copyright (c) 2012 Crown Copyright 
 // *                    Animal Health and Veterinary Laboratories Agency

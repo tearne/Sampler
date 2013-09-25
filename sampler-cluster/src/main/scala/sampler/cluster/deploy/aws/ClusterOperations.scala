@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package sampler.deploy.aws
+package sampler.cluster.deploy.aws
 
 import scala.sys.process.Process
 import java.nio.file.{Paths, Path, Files}
-import sampler.deploy.SSHCommand
+import sampler.cluster.deploy.SSHCommand
 
 object ClusterOperations extends App{
 
