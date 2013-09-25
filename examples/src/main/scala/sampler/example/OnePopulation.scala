@@ -21,9 +21,9 @@ import sampler.data.Empirical._
 import sampler.math._
 import sampler.data.Samplable
 import scala.collection.mutable.ListBuffer
-import sampler.io.CSVTableWriter
+import sampler.io.table.CSVTableWriter
 import java.nio.file.{Files,Paths}
-import sampler.data.Types.Column
+import sampler.io.table.Column
 import scala.collection.parallel.ParSeq
 import sampler.math.StatisticsComponent
 import sampler.data.ParallelSampleBuilder

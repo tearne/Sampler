@@ -56,19 +56,19 @@ object Breeding extends App{
 			//No traits of interest on third chromosome
 	)
 	
-	def cross (a: RootPlant, b: RootPlant): Seq[Offspring] = {
+	def cross (a: RootPlant, b: RootPlant): IndexedSeq[Offspring] = {
 		val sampler = new Samplable[Offspring]{
 			def sample = a.crossAndSelect(b, Nil)
 		}
 		import Empirical._
-		SerialSampleBuilder(sampler)(_.size == 10000)
+		SerialSampleBuilder(sampler)(_.size == 10000).toIndexedSeq
 	}
 	
-	def backCross (a: Samplable[Offspring], traits: Seq[Trait] = Nil): Seq[Offspring] = {
+	def backCross (a: Samplable[Offspring], traits: Seq[Trait] = Nil): IndexedSeq[Offspring] = {
 		val sampler = a.filter(_.isInstanceOf[Successful]).map(a1 =>a1.crossAndSelect(prefVar, traits))
 		import Empirical._
 		implicit val r = Random
-		SerialSampleBuilder(sampler)(_.size == 10000)
+		SerialSampleBuilder(sampler)(_.size == 10000).toIndexedSeq
 	}
 	
 	

@@ -15,54 +15,30 @@
  * limitations under the License.
  */
 
-package sampler.io
+package sampler.io.table
 
 import java.nio.file.Path
-import sampler.data.Types._
-import java.io.FileOutputStream
-import java.io.PrintStream
 import scala.io.Source
-import java.io.FileNotFoundException
-import scala.reflect.Manifest
-import scala.collection.immutable.WrappedString
 import java.io.FileWriter
-import scala.util.matching.Regex
-import java.io.File
 import java.nio.file.Files
 import java.nio.file.FileAlreadyExistsException
+import scala.Array.canBuildFrom
 
-trait TableReader{
-	def get[T](params: Header[T]): Column[T]
-}
+/** Trait for objects which can write data to files */
 trait TableWriter{
+  /** Writes columns to a file 
+   *  
+   *  @param columns The columns of data to be written, supplied as varargs
+   */
 	def apply(columns: Column[_]*): Unit
 }
 
-class CSVTableReader(path: Path) extends TableReader{
-	val source = Source.fromFile(path.toString())
-					.getLines()
-					.map(_.replace("\"",""))
-					.map(_.split(",").map(_.trim))
-					.toIterable
-	
-	def get[T](header: Header[T]): Column[T] = {
-		val it = source.iterator
-		val headers = it.next()
-		
-		val columnIdx = headers.indexWhere(_ == header.name) match{
-			case i: Int if i<0 => throw new UnsupportedOperationException("Header not found, TODO: improve exception")
-			case i => i 
-		}
-		
-		try {
-			val values = it.map(row => header.cType(row(columnIdx))).toIndexedSeq
-			new Column(values, header.name)(header.cType)
-		} catch {
-			case nfe: NumberFormatException => throw new TableReaderException("Could not parse data for column " + header.name)
-		}
-	}
-}
-
+/** Implementation of [[sampler.io.table.TableWriter]] for writing data to .csv files
+ *  
+ *  @constructor Create a new CSVTableWriter to write to the file given by the path parameter
+ *  @param path Path pointing to the file of interest
+ *  @param overwrite True if existing files at the specified path are to be overwritten
+ */
 class CSVTableWriter(path: Path, overwrite: Boolean = false) extends TableWriter{
 	def apply(columns: Column[_]*){
 		

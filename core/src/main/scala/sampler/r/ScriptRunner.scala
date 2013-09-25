@@ -6,6 +6,10 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import scala.io.Source
 
+// TODO exceptions if R not installed or exits irregularly
+// ScriptTarget is confusing - change
+// Should QuickPlot be in companion object
+
 class ScriptRunner {
 	def apply(script: String, scriptTarget: Path){
 		val writer = new FileWriter(scriptTarget.toFile)
