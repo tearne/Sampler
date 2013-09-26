@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.deploy
+package sampler.cluster.deploy
 
 import scala.sys.process.{Process, ProcessBuilder}
 import sampler.deploy.aws.AWS

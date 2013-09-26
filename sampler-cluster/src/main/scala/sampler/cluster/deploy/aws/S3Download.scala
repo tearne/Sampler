@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.deploy.aws
+package sampler.cluster.deploy.aws
 
 import scala.collection.JavaConversions._
 import java.nio.file.{Paths,Files}
