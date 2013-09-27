@@ -24,6 +24,7 @@ import scala.io.Source
 object CSVFile {
 	lazy val newLine = System.getProperty("line.separator")
 		
+	// TODO read only one column from header
 	def read[T](file: Path, parser: String => T, header: Seq[String]): Iterator[T] = read(file, parser, Some(header))	
 	def read[T](file: Path, parser: String => T, header: Option[Seq[String]]): Iterator[T] = {
 		val lines = Source.fromFile(file.toFile()).getLines
@@ -33,6 +34,7 @@ object CSVFile {
 		lines.map(l => parser(l))
 	}
 	
+	// TODO change append and overwrite 
 	def write(file: Path, data: Iterator[String], append: Boolean = false, overwrite: Boolean = false, header: Seq[String] = Seq.empty) {
 		assert(!(append && overwrite), "Can't both append and overwrite")
 		

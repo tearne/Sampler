@@ -2,14 +2,32 @@ package sampler.r
 
 import sampler.data.Empirical
 import java.nio.file.Paths
-import sampler.io.table.CSVTableWriter
-import sampler.io.table.Column
 import java.nio.file.Path
 import sampler.data.EmpiricalSeq
 import sampler.math.Probability
 import sampler.data.EmpiricalTable
+import sampler.io.CSVFile
 
 object QuickPlot {
+  
+  case class NamedDistribution(dist: Seq[Double], name: String)
+  case class NamedDiscrete(dist: Seq[Int], name: String)
+  
+  implicit class RichDistribution(val dist: Seq[Double]) {
+    def named(name: String) = NamedDistribution(dist, name)
+  }
+  
+  implicit class RichDiscrete(val dist: Seq[Int]) {
+    def named(name: String) = NamedDiscrete(dist, name)
+  }
+  
+  object NamedImplicit {
+    import scala.language.implicitConversions
+    implicit def Seq2NamedDistribution(dist: Seq[Double]) = NamedDistribution(dist, "na"+sampler.math.Random.nextInt(1000))
+    implicit def Seq2NamedDiscrete(dist: Seq[Int]) = NamedDiscrete(dist, "")
+  }
+  
+  import sampler.r.QuickPlot.NamedImplicit._
   
   private def buildScript(fileName: String, lines: String*) = {
     val builder = new StringBuilder
@@ -25,35 +43,36 @@ object QuickPlot {
 	builder.toString
   }
   
-  def writeSingleDensity(path: Path, fileName: String, data: Seq[Double]) = {
-    val column = Column(data, "value")
-	    
-	val writer  = new CSVTableWriter(path.resolve(fileName + ".csv"), true)
-	writer.apply(column)
-	    
+  def writeDensity(path: Path, fileName: String, data: NamedDistribution*) = {
+	val header = Seq("variable", "value")
+    
+	val a = data.head
+	
+	def melted(data: Seq[NamedDistribution]) = {
+	  
+	  def melt(toMelt: NamedDistribution) = {
+		toMelt.dist.map(a.name + ", " + _)
+	  }
+		
+	  val melted = data.map(melt(_)).flatten
+				
+	  melted.toIterator
+	}
+	
+	CSVFile.write(path.resolve(fileName+".csv"), melted(data), false, true, header)
+	  
 	val line1 = "data <- read.csv(\"" + fileName + ".csv\")\n"
-	val line2 = "ggplot(melt(data), aes(x=value)) + geom_density()\n"
+	val line2 = "ggplot(data, aes(x=value, colour=variable)) + geom_density()\n"
 	    
 	val rScript = buildScript(fileName.toString, line1, line2)
 	    
 	ScriptRunner(rScript, path.resolve(fileName))
   }
   
-  def writeDensity(path: Path, fileName: String, data: Map[String, Seq[Double]]) = {
-	val columns = data.map{case (name, values) => new Column(values, name)}.toSeq
-	    
-	val writer  = new CSVTableWriter(path.resolve(fileName + ".csv"), true)
-	writer.apply(columns:_*)
-	    
-	val line1 = "data <- read.csv(\"" + fileName + ".csv\")\n"
-	val line2 = "melted = melt(data)\n"
-	val line3 = "ggplot(melted, aes(x=value, colour=variable)) + geom_density()\n"
-	    
-	val rScript = buildScript(fileName.toString, line1, line2, line3)
-	    
-	ScriptRunner(rScript, path.resolve(fileName))
+  def writeDiscrete(path: Path, fileName: String, data: NamedDiscrete*) = {
+    
   }
-	
+  
   //TODO add an option for quickly plotting a single data set without bothering with Map
 	
 	//TODO
