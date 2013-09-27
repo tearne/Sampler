@@ -1,18 +1,13 @@
-package sampler.io
+package sampler.columnbasedtable
 
 import org.scalatest.junit.AssertionsForJUnit
 import org.scalatest.matchers.ShouldMatchers
 import org.junit.Before
 import org.junit.After
 import java.nio.file.Paths
-import sampler.io.table.CSVTableReader
 import java.nio.file.Path
 import org.junit.Test
 import java.io.FileNotFoundException
-import sampler.io.table.Header
-import sampler.io.table.TableReaderException
-import sampler.io.table.Column
-import sampler.io.table.Factor
 import sampler.math.Probability
 
 class CSVTableReaderTest extends AssertionsForJUnit with ShouldMatchers {

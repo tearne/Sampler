@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.io.table
+package sampler.columnbasedtable
 
 /** Stores a single columns worth of data as a Seq of type T
  *  

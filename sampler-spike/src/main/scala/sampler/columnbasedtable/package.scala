@@ -1,8 +1,8 @@
-package sampler.io
+package sampler
 
 import sampler.math.Probability
 
-package object table {
+package object columnbasedtable {
 
   // TODO PackageObject doesn't show clearly in ScalaDoc - consider necessity
   	implicit val IntColumn: ColumnType[Int] = new ColumnType[Int] { def apply(s: String) = s.toInt }

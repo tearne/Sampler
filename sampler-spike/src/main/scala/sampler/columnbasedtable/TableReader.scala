@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.io.table
+package sampler.columnbasedtable
 
 import java.nio.file.Path
 import scala.io.Source
