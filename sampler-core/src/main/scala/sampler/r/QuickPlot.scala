@@ -7,6 +7,7 @@ import sampler.data.EmpiricalSeq
 import sampler.math.Probability
 import sampler.data.EmpiricalTable
 import sampler.io.CSVFile
+import scala.language.implicitConversions
 
 object QuickPlot {
   
@@ -14,22 +15,16 @@ object QuickPlot {
   case class NamedDiscrete[T: Integral](dist: Seq[T], name: String)
   
   implicit class RichDistribution[T: Fractional](val dist: Seq[T]) {
-    def named(name: String) = NamedDistribution(dist, name)
+    def continuousVariable(name: String) = NamedDistribution(dist, name)
   }
   
   implicit class RichDiscrete[T: Integral](val dist: Seq[T]) {
-    def named(name: String) = NamedDiscrete(dist, name)
+    def discreteVariable(name: String) = NamedDiscrete(dist, name)
   }
   
-  //TODO something nicer like "Untitled-0", "Untitled-1", ... ?
-  object NamedImplicit {
-    import scala.language.implicitConversions
-    implicit def Seq2NamedDistribution(dist: Seq[Double]) = NamedDistribution(dist, "na"+sampler.math.Random.nextInt(1000))
-    implicit def Seq2NamedDiscrete(dist: Seq[Int]) = NamedDiscrete(dist, "")
-  }
-  
-  import sampler.r.QuickPlot.NamedImplicit._
-  
+  implicit def Seq2NamedDistribution(dist: Seq[Double]) = NamedDistribution(dist, "na"+sampler.math.Random.nextInt(1000))
+  implicit def Seq2NamedDiscrete(dist: Seq[Int]) = NamedDiscrete(dist, "")
+
   private def buildScript(fileName: String, lines: String*) = {
     val builder = new StringBuilder
     builder.append("require(ggplot2)\n")

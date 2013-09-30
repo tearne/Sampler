@@ -22,9 +22,9 @@ import sampler.math.Random
 import sampler.data.Empirical._
 import sampler.math.StatisticsComponent
 import sampler.r.QuickPlot
+import sampler.r.QuickPlot._
 import java.nio.file.Paths
 import java.nio.file.Files
-//import scala.util.{Try, Success, Failure}
 import sampler.data.Empirical
 import sampler.data.EmpiricalSeq
 import sampler.data.SerialSampleBuilder
@@ -93,7 +93,7 @@ object Breeding extends App{
 	QuickPlot.writeDensity(
 		wd,
 		"Proportion",
-		Map("PrefVar" -> proportionPV)
+		proportionPV.continuousVariable("PrefVar")
 	)
 }
 

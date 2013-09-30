@@ -35,6 +35,7 @@ object CSVFile {
 	}
 	
 	// TODO change append and overwrite 
+	// TODO Bug when overwriting with fewer lines
 	def write(file: Path, data: Traversable[String], append: Boolean = false, overwrite: Boolean = false, header: Seq[String] = Seq.empty) {
 		assert(!(append && overwrite), "Can't both append and overwrite")
 		

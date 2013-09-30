@@ -22,10 +22,8 @@ import sampler.abc._
 import sampler.abc.population._
 import sampler.data.Empirical._
 import sampler.data.Samplable
-import sampler.io.table.CSVTableWriter
 import sampler.math._
-import sampler.r.QuickPlot
-import sampler.io.table.Column
+import sampler.r.QuickPlot._
 import sampler.cluster.actor.NodeApplication
 import sampler.cluster.abc.population.PopulationExecutor
 import sampler.cluster.abc.population.DispatchingPopulationBuilder
@@ -49,8 +47,8 @@ trait UnfairCoinFactory{
 	)
 	val abcMethod = new ABCMethod(CoinModel, meta, Random)
 	
-	val pBuilder = DispatchingPopulationBuilder(PortFallbackSystem("ClusterSystem"))
-//	val pBuilder = LocalPopulationBuilder()
+//	val pBuilder = DispatchingPopulationBuilder(PortFallbackSystem("ClusterSystem"))
+	val pBuilder = LocalPopulationBuilder()
 }
 
 trait UnfairCoin {
@@ -68,13 +66,11 @@ trait UnfairCoin {
 	val wd = Paths.get("results", "UnfairCoin")
 	Files.createDirectories(wd)
 	
-	//TODO why writing to a table and using Quickplot?
-	new CSVTableWriter(wd.resolve("results.csv"), true)(
-		Column(headsDensity, "TruePos")
+	writeDensity(
+			wd, 
+			"posterior", 
+			headsDensity.continuousVariable("P[Heads]")
 	)
-	
-	implicit val r = Random
-	QuickPlot.writeDensity(wd, "posterior", Map("data" -> headsDensity))
 }
 
 object CoinModel extends CoinModelBase {

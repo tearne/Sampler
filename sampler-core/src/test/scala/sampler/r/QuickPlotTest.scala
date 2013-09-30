@@ -11,8 +11,7 @@ import org.scalatest.matchers.ShouldMatchers
 import org.junit.Before
 import org.junit.Test
 import java.nio.file.Path
-import sampler.r.QuickPlot.NamedImplicit._
-import sampler.r.QuickPlot.RichDistribution
+import sampler.r.QuickPlot._
 
 class QuickPlotSpec extends AssertionsForJUnit with ShouldMatchers {
   
@@ -47,7 +46,7 @@ class QuickPlotSpec extends AssertionsForJUnit with ShouldMatchers {
       
     val seq = IndexedSeq(0.1,0.2,0.2,0.3,0.3,0.3,0.4,0.4,0.5)
     
-    QuickPlot.writeDensity(path, fileName, seq.named("Doubles"))
+    QuickPlot.writeDensity(path, fileName, seq.continuousVariable("Doubles"))
     
     val writtenScript = Source.fromFile(new File(path.resolve(fileName).toString)).mkString
       

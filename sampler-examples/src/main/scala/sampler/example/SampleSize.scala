@@ -20,9 +20,8 @@ import sampler.data._
 import sampler.data.Empirical._
 import sampler.math.Random
 import scala.collection.GenSeq
-import sampler.io.table.Column
+import sampler.io.CSVFile
 import scala.annotation.tailrec
-import sampler.io.table.CSVTableWriter
 import sampler.r.ScriptRunner
 import java.nio.file.{Paths, Files}
 import sampler.math._
@@ -117,11 +116,16 @@ object SampleSize extends App with SampleSizeSupport{
 	
 	val possibleTruePositives = 1 to 99
 	
-	new CSVTableWriter(wd.resolve("sampleSizes.csv"), true)(
-		Column(possibleTruePositives, "TruePos"),
-		Column(possibleTruePositives.map(simulatedSampleSize), "Sampled"),
-		Column(possibleTruePositives.map(binomialSampleSize), "Binomial"),
-		Column(possibleTruePositives.map(hypergeometricSampleSize), "Hyperg")
+	CSVFile.write(
+			wd.resolve("sampleSizes.csv"),
+			possibleTruePositives.map{ptp => 	//This is a bit nasty
+				ptp + "," + 					//as if column based was better
+				simulatedSampleSize(ptp) + "," +
+				binomialSampleSize(ptp) + "," +
+				hypergeometricSampleSize(ptp)
+			},
+			header = "TruePos, Sampled, Binomial, Hyperg".split(','),
+			overwrite = true
 	)
 	
 	val sampleSizeScript = """
