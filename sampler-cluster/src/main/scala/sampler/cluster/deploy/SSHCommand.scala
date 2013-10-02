@@ -18,7 +18,7 @@
 package sampler.cluster.deploy
 
 import scala.sys.process.{Process, ProcessBuilder}
-import sampler.deploy.aws.AWS
+import sampler.cluster.deploy.aws.AWS
 import java.nio.file.Path
 
 class SSHCommand(keyFile: Option[Path] = None) {

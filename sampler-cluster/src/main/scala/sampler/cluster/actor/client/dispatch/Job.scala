@@ -17,4 +17,7 @@
 
 package sampler.cluster.actor.client.dispatch
 
+/*
+ * Just a marker to aid pattern matching
+ */
 trait Job[T]

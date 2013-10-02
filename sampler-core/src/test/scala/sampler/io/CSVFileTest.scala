@@ -76,8 +76,8 @@ class CSVFileTest extends AssertionsForJUnit with ShouldMatchers {
 4 ,Dea ,False
 """
   	try{
-  		CSVFile.write(filePath, testData1.lines, header = testHeader)
-  		CSVFile.write(filePath, testData2.lines, append = true, header = testHeader)
+  		CSVFile.write(filePath, testData1.lines.toIterable, header = testHeader)
+  		CSVFile.write(filePath, testData2.lines.toIterable, append = true, header = testHeader)
   	}
   	
   	val lines = Source.fromFile(filePath.toFile()).getLines.toIndexedSeq
@@ -100,10 +100,10 @@ class CSVFileTest extends AssertionsForJUnit with ShouldMatchers {
 2 ,Bee ,True
 """
   		
-  	CSVFile.write(filePath, testData.lines, header = testHeader)
+  	CSVFile.write(filePath, testData.lines.toIterable, header = testHeader)
   	
   	intercept[AssertionError]{
-  		CSVFile.write(filePath, testData.lines)
+  		CSVFile.write(filePath, testData.lines.toIterable)
   	}
   	
   	Files.delete(filePath)
@@ -116,10 +116,10 @@ class CSVFileTest extends AssertionsForJUnit with ShouldMatchers {
 """1,Ayeeee,False
 2 ,Bee ,True
 """
-  	CSVFile.write(filePath, testData1.lines, header = testHeader)
+  	CSVFile.write(filePath, testData1.lines.toIterable, header = testHeader)
   	
   	intercept[AssertionError]{
-  		CSVFile.write(filePath, Iterator("line1", "line2"), append = true, header = Seq("OneBigColumn"))
+  		CSVFile.write(filePath, Iterable("line1", "line2"), append = true, header = Seq("OneBigColumn"))
   	}
   	
   	Files.delete(filePath)

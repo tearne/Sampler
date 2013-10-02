@@ -17,30 +17,25 @@
 
 package sampler.cluster.actor
 
-import akka.actor.{ActorSystem => AkkaSystem}
+import akka.actor.ActorSystem
+import scala.concurrent.duration._
+import akka.util.Timeout
 import scala.util.Try
-import org.slf4j.LoggerFactory
-import com.typesafe.config.ConfigFactory
-import akka.actor.{ActorSystem => AkkaSystem}
-import akka.actor.{ActorSystem => AkkaSystem}
+import akka.actor.Props
+import akka.pattern.ask
+import scala.concurrent.Await
+import sampler.cluster.actor.client.dispatch.Dispatcher
+import sampler.cluster.actor.client.dispatch.FailFastActor
+import sampler.cluster.actor.client.dispatch.Job
+import sampler.cluster.actor.client.dispatch.Batch
 
-object PortFallbackSystem {
-	val log = LoggerFactory.getLogger(PortFallbackSystem.this.getClass())
+class FailFastDispatcher(system: ActorSystem) extends Dispatcher{
+	//TODO Configurable timeout
+	implicit val timeout = Timeout(5.minutes)
+	import system.dispatcher
 	
-	def apply(name: String): AkkaSystem = {
-		val startPort = ConfigFactory.load.getInt("akka.remote.netty.port")
-		
-		def tryPort(i: Int) = {
-			System.setProperty("akka.remote.netty.port", i.toString)
-			ConfigFactory.invalidateCaches()
-			Try(AkkaSystem(name))
-		}
-
-		Try(AkkaSystem(name))
-			.orElse(tryPort(startPort + 1))
-			.orElse(tryPort(startPort + 2))
-			.orElse(tryPort(0))
-			.get
-			
+	def apply[R](jobs: Seq[Job[R]]): Seq[Try[R]] = {
+		val ff = system.actorOf(Props[FailFastActor])
+		Await.result((ff ? Batch(jobs)).mapTo[Seq[Try[R]]], timeout.duration)
 	}
 }

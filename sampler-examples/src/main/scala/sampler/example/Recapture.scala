@@ -23,8 +23,7 @@ import sampler.data.Samplable
 import sampler.abc.Prior
 import sampler.abc.ABCMethod
 import java.nio.file.{Paths, Files}
-import sampler.io.table.Column
-import sampler.io.table.CSVTableWriter
+import sampler.io.CSVFile
 import sampler.r.ScriptRunner
 import org.apache.commons.math3.distribution.BetaDistribution
 //import sampler.run.Runner
@@ -62,9 +61,11 @@ trait Recapture{
 	
 	val finalPopulation = abcMethod.run(encapPopulation0, builder).get.map(_.value)//.population
 	
-	new CSVTableWriter(wd.resolve("recapture.csv"), overwrite = true).apply(
-		Column(finalPopulation.map(_.populationSize), "popSize"),
-		Column(finalPopulation.map(_.prevalence), "prev")
+	CSVFile.write(
+			wd.resolve("recapture.csv"), 
+			finalPopulation.map{param => s"${param.populationSize},${param.prevalence}"},
+			overwrite = true,
+			header = "popSize, prev".split(",")
 	)
 	
 	val rScript = 

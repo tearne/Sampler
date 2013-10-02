@@ -15,23 +15,10 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor.client.dispatch
+package sampler.io
 
-import akka.actor.ActorSystem
-import scala.concurrent.duration._
-import akka.util.Timeout
-import scala.util.Try
-import akka.actor.Props
-import scala.concurrent.Await
-import akka.pattern.ask
+import org.slf4j.LoggerFactory
 
-class FailFastDispatcher(system: ActorSystem) extends Dispatcher{
-	//TODO Configurable timeout
-	implicit val timeout = Timeout(5.minutes)
-	import system.dispatcher
-	
-	def apply[R](jobs: Seq[Job[R]]): Seq[Try[R]] = {
-		val ff = system.actorOf(Props[FailFastActor])
-		Await.result((ff ? Batch(jobs)).mapTo[Seq[Try[R]]], timeout.duration)
-	}
+trait Logging{
+	lazy val log = LoggerFactory.getLogger(getClass)
 }

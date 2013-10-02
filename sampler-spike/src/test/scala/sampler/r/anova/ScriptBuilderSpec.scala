@@ -3,7 +3,8 @@ package sampler.r.anova
 import org.specs2.mutable.Specification
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-import sampler.io.table._
+import sampler.columnbasedtable.Column
+import sampler.columnbasedtable.Factor
 
 //TODO If specific to Anova then put alongside Anova tests in dedicated package
 

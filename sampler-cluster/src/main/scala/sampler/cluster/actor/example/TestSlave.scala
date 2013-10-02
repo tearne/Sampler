@@ -15,20 +15,30 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor.test
+package sampler.cluster.actor.example
 
 import sampler.cluster.actor.worker.Executor
-import sampler.cluster.actor.NodeApplication
+import sampler.cluster.actor.ClusterNode
 import sampler.run.DetectedAbortionException
+import sampler.io.Logging
 
 object TestSlave extends App{
-	new NodeApplication(new TestRunner())
+	/*
+	 * Don't forget:
+	 * To run this you need to have 
+	 * src/main/resources/application.conf
+	 * on the class path
+	 */
+	new ClusterNode(new MyExecutor())
 }
 
-class TestRunner() extends Executor{
-	def apply = PartialFunction[Any, Any]{
+class MyExecutor() extends Executor with Logging {
+	def apply = {
 		case request: TestJob => 
-			if(request.i == 3) throw new RuntimeException("Induced exception")
+			if(request.i == 3) {
+				throw new RuntimeException("Induced exception")
+				log.error("OMG!  Going down!")
+			}
 			(1 to 10000000).foreach{j => {
 				if(isAborted) throw new DetectedAbortionException
 				math.sqrt(j.toDouble)

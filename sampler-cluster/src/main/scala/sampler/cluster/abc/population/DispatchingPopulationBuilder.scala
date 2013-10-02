@@ -25,7 +25,7 @@ import sampler.data.Empirical
 import sampler.abc.ABCParameters
 import sampler.math.Random
 import sampler.cluster.actor.client.dispatch.Dispatcher
-import sampler.cluster.actor.client.dispatch.FailFastDispatcher
+import sampler.cluster.actor.FailFastDispatcher
 import sampler.cluster.actor.client.dispatch.Job
 import sampler.abc.population.PopulationBuilder
 

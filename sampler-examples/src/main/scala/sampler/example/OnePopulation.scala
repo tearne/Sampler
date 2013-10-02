@@ -21,9 +21,8 @@ import sampler.data.Empirical._
 import sampler.math._
 import sampler.data.Samplable
 import scala.collection.mutable.ListBuffer
-import sampler.io.table.CSVTableWriter
+import sampler.io.CSVFile
 import java.nio.file.{Files,Paths}
-import sampler.io.table.Column
 import scala.collection.parallel.ParSeq
 import sampler.math.StatisticsComponent
 import sampler.data.ParallelSampleBuilder
@@ -99,9 +98,11 @@ object OnePopulation extends App with StatisticsComponent {
 			.get._1
 	}
 	
-	new CSVTableWriter(wd.resolve("OnePopulation.csv"))(
-		Column(sampleSizeList.toList, "SampleSize"),
-		Column(confidenceList.toList, "Confidence")
+	CSVFile.write(
+			wd.resolve("OnePopulation.csv"), 
+			sampleSizeList.toList zip confidenceList map{case (s,c) => s"$s,Sc"}, 
+			overwrite = true, 
+			header = "SampleSize, Confidence".split(",")
 	)
 	
 	

@@ -4,19 +4,18 @@ import org.scalatest.junit.AssertionsForJUnit
 import org.scalatest.matchers.ShouldMatchers
 import org.junit.Before
 import java.nio.file.Paths
-import sampler.io.table.CSVTableWriter
 import java.io.File
 import org.junit.After
 import java.nio.file.Files
 import java.nio.file.Path
-import sampler.io.table.CSVTableWriter
 import org.junit.Test
-import sampler.io.table.Column
 import scala.io.Source
 import java.nio.file.FileAlreadyExistsException
-import sampler.io.table.TableWriterException
-import sampler.io.table.Factor
 import sampler.math.Probability
+import sampler.columnbasedtable.CSVTableWriter
+import sampler.columnbasedtable.Column
+import sampler.columnbasedtable.Factor
+import sampler.columnbasedtable.TableWriterException
 
 class CSVTableWriterTest extends AssertionsForJUnit with ShouldMatchers {
   
