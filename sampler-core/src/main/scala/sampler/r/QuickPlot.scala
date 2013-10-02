@@ -48,7 +48,7 @@ object QuickPlot {
 //	  def melt(toMelt: NamedDistribution[T]) = {
 //		toMelt.dist.map(a.name + ", " + _)
 //	  }
-//		
+//			
 	  data.flatMap{case NamedDistribution(dist, name) => dist.map{name + "," + _.toDouble}}
 	}
 	
