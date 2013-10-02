@@ -42,13 +42,8 @@ object QuickPlot {
   def writeDensity[T: Fractional](path: Path, fileName: String, data: NamedDistribution[T]*) = {
 	val header = Seq("variable", "value")
     import Numeric.Implicits._
-	val a = data.head
 	
 	def melted(data: Seq[NamedDistribution[T]]) = {
-//	  def melt(toMelt: NamedDistribution[T]) = {
-//		toMelt.dist.map(a.name + ", " + _)
-//	  }
-//			
 	  data.flatMap{case NamedDistribution(dist, name) => dist.map{name + "," + _.toDouble}}
 	}
 	
@@ -63,7 +58,20 @@ object QuickPlot {
   }
   
   def writeDiscrete[T: Integral](path: Path, fileName: String, data: NamedDiscrete[T]*) = {
+    val header = Seq("variable", "value")
     
+    def melted(data: Seq[NamedDiscrete[T]]) = {
+	  data.flatMap{case NamedDiscrete(dist, name) => dist.map{name + "," + _}}
+	}
+    
+    CSVFile.write(path.resolve(fileName+".csv"), melted(data), false, true, header)
+
+    val line1 = "data <- read.csv(\"" + fileName + ".csv\")\n"
+    val line2 = "ggplot(data, aes(x=value, fill = variable)) + geom_bar()\n"
+
+    val rScript = buildScript(fileName.toString, line1, line2)
+	    
+	ScriptRunner(rScript, path.resolve(fileName))
   }
   
   //TODO add an option for quickly plotting a single data set without bothering with Map

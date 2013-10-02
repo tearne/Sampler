@@ -20,6 +20,8 @@ class QuickPlotTest extends AssertionsForJUnit with ShouldMatchers {
   
   // TODO consider mocking of script runner
   
+  // TODO should QuickPlot delete everything other than the pdf?
+  
   // TODO tests need to check output better
   
   @Before def initialise {
@@ -29,20 +31,8 @@ class QuickPlotTest extends AssertionsForJUnit with ShouldMatchers {
 
   def linesTheSame(i: String, j: String) = assert(i === j)
   
-  @Test def writesSingleDiscreteWithName {
-    
-  }
-  
-  @Test def writesSingleDiscreteWithoutName {
-    
-  }
-  
-  @Test def writesMultipleDiscretes {
-    
-  }
-  
   private def densityScript(name: String): Array[String] = {
-    val expectedScript =
+	val script =
 """setwd("/home/user/workspace/Sampler/sampler-core/src/test/resources/data")
 require(ggplot2)
 require(reshape)
@@ -50,9 +40,67 @@ pdf("""" + name + """.pdf", width=8.27, height=5.83)
 data <- read.csv("""" + name + """.csv")
 ggplot(data, aes(x=value, colour=variable)) + geom_density()
 dev.off()"""
+				  
+	script.split("\n")
+  }
+  
+  private def discreteScript(name: String): Array[String] = {
+    val script =
+"""setwd("/home/user/workspace/Sampler/sampler-core/src/test/resources/data")
+require(ggplot2)
+require(reshape)
+pdf("""" + name + """.pdf", width=8.27, height=5.83)
+data <- read.csv("""" + name + """.csv")
+ggplot(data, aes(x=value, fill = variable)) + geom_bar()
+dev.off()"""
       
-    val expectedLines = expectedScript.split("\n")
-    expectedLines
+    script.split("\n")
+  }
+  
+  @Test def writesSingleDiscreteWithName {
+	val fileName = "namedDisc"
+			  
+	val seq = IndexedSeq(1,2,2,3,3,3,4,4,5)
+			  
+	QuickPlot.writeDiscrete(path, fileName, seq.discreteVariable("Integers"))
+	
+	val writtenLines = Source.fromFile(new File(path.resolve(fileName).toString)).mkString.split("\n")
+    val expectedLines = discreteScript(fileName)
+    
+    deleteRfiles(fileName)
+
+    (0 until expectedLines.length).foreach(i => linesTheSame(writtenLines(i), expectedLines(i)))
+  }
+  
+  @Test def writesSingleDiscreteWithoutName {
+	val fileName = "unnamedDisc"
+			  
+	val seq = IndexedSeq(1,2,2,3,3,3,4,4,5)
+			  
+	QuickPlot.writeDiscrete(path, fileName, seq)
+	
+	val writtenLines = Source.fromFile(new File(path.resolve(fileName).toString)).mkString.split("\n")
+    val expectedLines = discreteScript(fileName)
+    
+    deleteRfiles(fileName)
+
+    (0 until expectedLines.length).foreach(i => linesTheSame(writtenLines(i), expectedLines(i)))
+  }
+  
+  @Test def writesMultipleDiscretes {
+	val fileName = "twoDisc"
+			  
+	val seq1 = IndexedSeq(1,2,2,3,3,3,4,4,5)
+	val seq2 = IndexedSeq(3,4,4,5,5,5,6,6,7)
+			  
+	QuickPlot.writeDiscrete(path, fileName, seq1.discreteVariable("s1"), seq2.discreteVariable("s2"))
+	
+	val writtenLines = Source.fromFile(new File(path.resolve(fileName).toString)).mkString.split("\n")
+    val expectedLines = discreteScript(fileName)
+    
+//    deleteRfiles(fileName)
+
+    (0 until expectedLines.length).foreach(i => linesTheSame(writtenLines(i), expectedLines(i)))	  
   }
   
   @Test def writesSingleDistributionWithName {
@@ -86,6 +134,8 @@ dev.off()"""
     (0 until expectedLines.length).foreach(i => linesTheSame(writtenLines(i), expectedLines(i)))
   }
   
+  
+  // TODO not quite right
   @Test def writesMultipleDistributions {
     val fileName = "TwoDists"
     			
