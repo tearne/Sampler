@@ -17,6 +17,6 @@
 
 package sampler.cluster.actor.client.dispatch
 
-case class Batch[R](jobs: Seq[Job[R]]){
+case class Batch[J](jobs: Seq[J]){
 	val size = jobs.size
 }

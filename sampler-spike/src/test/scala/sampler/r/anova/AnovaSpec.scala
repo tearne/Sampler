@@ -5,10 +5,9 @@ import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import org.specs2.mock.Mockito
 import sampler.r.ScriptRunner
-import sampler.io.table.CSVTableWriter
 import java.nio.file.Paths
-import sampler.io.table.Column
-import sampler.io.table.CSVTableReader
+import sampler.columnbasedtable.CSVTableWriter
+import sampler.columnbasedtable.Column
 
 @RunWith(classOf[JUnitRunner])
 class AnovaSpec extends Specification with Mockito {

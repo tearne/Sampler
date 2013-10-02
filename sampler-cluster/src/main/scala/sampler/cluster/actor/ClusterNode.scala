@@ -15,25 +15,23 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor.test
+package sampler.cluster.actor
 
-import sampler.cluster.actor.PortFallbackSystem
-import sampler.cluster.actor.client.dispatch.Job
-import sampler.cluster.actor.client.dispatch.FailFastDispatcher
+import akka.actor.Actor
+import akka.actor.ActorLogging
+import akka.actor.Props
+import org.slf4j.LoggerFactory
+import com.typesafe.config.ConfigFactory
+import scala.util.Try
+import scala.util.{Success, Failure}
+import sampler.io.Logging
+import sampler.cluster.actor.worker.Executor
+import sampler.cluster.actor.worker.Node
+import sampler.io.Logging
+import sampler.cluster.actor.util.HostnameSetup
 
-case class TestJob(i: Int) extends Job[String]
-
-object TestMaster extends App{
+class ClusterNode(executorFactory: => Executor) extends HostnameSetup with Logging{
 	val system = PortFallbackSystem("ClusterSystem")
-	
-	//Run 100 jobs ...
-	val jobs = (1 to 100).map{i => TestJob(i)}
-	
-	// ... but one of them failed, causing the rest to abort
-	val result = new FailFastDispatcher(system).apply(jobs)
-	
-	println("*********************")
-	println("Result is ..."+result)
-	println("*********************")
-	
+	val rootNodeActor = system.actorOf(Props(new Node(executorFactory)), name="workerroot")
+	log.info("Started "+rootNodeActor)
 }

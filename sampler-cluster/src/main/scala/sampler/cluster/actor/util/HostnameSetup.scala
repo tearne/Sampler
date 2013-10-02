@@ -15,20 +15,15 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor
+package sampler.cluster.actor.util
 
-import akka.actor.Actor
-import akka.actor.ActorLogging
-import akka.actor.Props
-import org.slf4j.LoggerFactory
 import com.typesafe.config.ConfigFactory
-import scala.util.Try
-import scala.util.{Success, Failure}
-import sampler.io.SLF4JLogging
-import sampler.cluster.actor.worker.Executor
-import sampler.cluster.actor.worker.Node
+import scala.util.{Try, Success, Failure}
+import sampler.io.Logging
 
-class NodeApplication(executorFactory: => Executor) extends SLF4JLogging{
+trait HostnameSetup {
+	this: Logging =>
+	
 	if(ConfigFactory.load().getBoolean("sampler.node.inet-bind")){
 		Try{
 			java.net.InetAddress.getLocalHost.getHostAddress
@@ -41,8 +36,4 @@ class NodeApplication(executorFactory: => Executor) extends SLF4JLogging{
 		}
 	} else log.info("Binding with hostname in config")
 	ConfigFactory.invalidateCaches()
-	
-	val system = PortFallbackSystem("ClusterSystem")
-	val rootNodeActor = system.actorOf(Props(new Node(executorFactory)), name="workerroot")
-	log.info("Started "+rootNodeActor)
 }

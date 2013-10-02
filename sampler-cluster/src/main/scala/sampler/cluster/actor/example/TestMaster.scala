@@ -15,10 +15,24 @@
  * limitations under the License.
  */
 
-package sampler.io
+package sampler.cluster.actor.example
 
-import org.slf4j.LoggerFactory
+import sampler.cluster.actor.client.dispatch.Job
+import sampler.cluster.actor.{FailFastDispatcher,PortFallbackSystem}
 
-trait SLF4JLogging{
-	lazy val log = LoggerFactory.getLogger(getClass)
+case class TestJob(i: Int) extends Job[String]
+
+object TestMaster extends App{
+	val system = PortFallbackSystem("ClusterSystem")
+	
+	//Run 100 jobs ...
+	val jobs = (1 to 100).map{i => TestJob(i)}
+	
+	// ... but one of them will fail, causing the rest to abort
+	val result = new FailFastDispatcher(system).apply(jobs)
+	
+	println("*********************")
+	println("Result is ..."+result)
+	println("*********************")
+	
 }

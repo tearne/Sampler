@@ -24,7 +24,7 @@ import sampler.data.Empirical._
 import sampler.data.Samplable
 import sampler.math._
 import sampler.r.QuickPlot._
-import sampler.cluster.actor.NodeApplication
+import sampler.cluster.actor.ClusterNode
 import sampler.cluster.abc.population.PopulationExecutor
 import sampler.cluster.abc.population.DispatchingPopulationBuilder
 import sampler.cluster.actor.PortFallbackSystem
@@ -34,7 +34,7 @@ object UnfairCoinApplication extends App
 	with UnfairCoin
 	
 object UnfairCoinWorker extends App {
-	new NodeApplication(new PopulationExecutor(CoinModel, Random))
+	new ClusterNode(new PopulationExecutor(CoinModel, Random))
 }
 
 trait UnfairCoinFactory{
