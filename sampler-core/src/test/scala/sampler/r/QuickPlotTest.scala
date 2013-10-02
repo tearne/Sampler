@@ -27,7 +27,7 @@ class QuickPlotTest extends AssertionsForJUnit with ShouldMatchers {
     path = Paths.get("src", "test", "resources", "data")
   }
 
-  def linesTheSame(i: String, j: String) = i === j
+  def linesTheSame(i: String, j: String) = assert(i === j)
   
   @Test def writesSingleDiscreteWithName {
     
@@ -41,6 +41,20 @@ class QuickPlotTest extends AssertionsForJUnit with ShouldMatchers {
     
   }
   
+  private def densityScript(name: String): Array[String] = {
+    val expectedScript =
+"""setwd("/home/user/workspace/Sampler/sampler-core/src/test/resources/data")
+require(ggplot2)
+require(reshape)
+pdf("""" + name + """.pdf", width=8.27, height=5.83)
+data <- read.csv("""" + name + """.csv")
+ggplot(data, aes(x=value, colour=variable)) + geom_density()
+dev.off()"""
+      
+    val expectedLines = expectedScript.split("\n")
+    expectedLines
+  }
+  
   @Test def writesSingleDistributionWithName {
     val fileName = "namedDist"
       
@@ -48,19 +62,8 @@ class QuickPlotTest extends AssertionsForJUnit with ShouldMatchers {
     
     QuickPlot.writeDensity(path, fileName, seq.continuousVariable("Doubles"))
     
-    val writtenScript = Source.fromFile(new File(path.resolve(fileName).toString)).mkString
-      
-    val expectedScript =
-"""setwd("/home/user/workspace/Sampler/sampler-core/src/test/resources/data")
-require(ggplot2)
-require(reshape)
-pdf("distribution.pdf", width=8.27, height=5.83)
-data <- read.csv("distribution.csv")
-ggplot(data, aes(x=value, colour=variable)) + geom_density()
-dev.off()"""
-      
-    val writtenLines = writtenScript.split("\n")
-    val expectedLines = expectedScript.split("\n")
+    val writtenLines = Source.fromFile(new File(path.resolve(fileName).toString)).mkString.split("\n")
+    val expectedLines = densityScript(fileName)
     
     deleteRfiles(fileName)
 
@@ -74,19 +77,9 @@ dev.off()"""
     
     QuickPlot.writeDensity(path, fileName, seq)
     
-    val writtenScript = Source.fromFile(new File(path.resolve(fileName).toString)).mkString
+    val writtenLines = Source.fromFile(new File(path.resolve(fileName).toString)).mkString.split("\n")
       
-    val expectedScript =
-"""setwd("/home/user/workspace/Sampler/sampler-core/src/test/resources/data")
-require(ggplot2)
-require(reshape)
-pdf("distribution.pdf", width=8.27, height=5.83)
-data <- read.csv("distribution.csv")
-ggplot(data, aes(x=value, colour=variable)) + geom_density()
-dev.off()"""
-      
-    val writtenLines = writtenScript.split("\n")
-    val expectedLines = expectedScript.split("\n")
+    val expectedLines = densityScript(fileName)
     
     deleteRfiles(fileName)
 
@@ -101,19 +94,9 @@ dev.off()"""
     	
     QuickPlot.writeDensity(path, fileName, seq1.continuousVariable("s1"), seq2.continuousVariable("s2"))
     	
-    val writtenScript = Source.fromFile(new File(path.resolve(fileName).toString)).mkString
+    val writtenLines = Source.fromFile(new File(path.resolve(fileName).toString)).mkString.split("\n")
       
-    val expectedScript =
-"""setwd("/home/user/workspace/Sampler/sampler-core/src/test/resources/data")
-require(ggplot2)
-require(reshape)
-pdf("TwoDists.pdf", width=8.27, height=5.83)
-data <- read.csv("TwoDists.csv")
-ggplot(melt(data), aes(x=value, colour=variable)) + geom_density()
-dev.off()"""
-      
-    val writtenLines = writtenScript.split("\n")
-    val expectedLines = expectedScript.split("\n")
+    val expectedLines = densityScript(fileName)
         
     deleteRfiles(fileName)
 
