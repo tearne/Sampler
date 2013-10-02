@@ -11,8 +11,7 @@ import org.scalatest.matchers.ShouldMatchers
 import org.junit.Before
 import org.junit.Test
 import java.nio.file.Path
-import sampler.r.QuickPlot.NamedImplicit._
-import sampler.r.QuickPlot.RichDistribution
+import sampler.r.QuickPlot._
 
 class QuickPlotSpec extends AssertionsForJUnit with ShouldMatchers {
   
@@ -47,7 +46,7 @@ class QuickPlotSpec extends AssertionsForJUnit with ShouldMatchers {
       
     val seq = IndexedSeq(0.1,0.2,0.2,0.3,0.3,0.3,0.4,0.4,0.5)
     
-    QuickPlot.writeDensity(path, fileName, seq.named("Doubles"))
+    QuickPlot.writeDensity(path, fileName, seq.continuousVariable("Doubles"))
     
     val writtenScript = Source.fromFile(new File(path.resolve(fileName).toString)).mkString
       
@@ -95,30 +94,30 @@ dev.off()"""
   }
   
   @Test def writesMultipleDistributions {
-//    val fileName = "TwoDists"
-//    			
-//    val seq1 = IndexedSeq(0.1,0.2,0.2,0.3,0.3,0.3,0.4,0.4,0.5)
-//    val seq2 = IndexedSeq(0.3,0.4,0.4,0.5,0.5,0.5,0.6,0.6,0.7)
-//    	
-//    QuickPlot.writeDensity(path, fileName, seq1.named("s1"), seq2.named("s2"))
-//    	
-//    val writtenScript = Source.fromFile(new File(path.resolve(fileName).toString)).mkString
-//      
-//    val expectedScript =
-//"""setwd("/home/user/workspace/Sampler/sampler-core/src/test/resources/data")
-//require(ggplot2)
-//require(reshape)
-//pdf("TwoDists.pdf", width=8.27, height=5.83)
-//data <- read.csv("TwoDists.csv")
-//ggplot(melt(data), aes(x=value, colour=variable)) + geom_density()
-//dev.off()"""
-//      
-//    val writtenLines = writtenScript.split("\n")
-//    val expectedLines = expectedScript.split("\n")
-//        
-////    deleteRfiles(fileName)
-//
-//     (0 until expectedLines.length).foreach(i => linesTheSame(writtenLines(i), expectedLines(i)))
+    val fileName = "TwoDists"
+    			
+    val seq1 = IndexedSeq(0.1,0.2,0.2,0.3,0.3,0.3,0.4,0.4,0.5)
+    val seq2 = IndexedSeq(0.3,0.4,0.4,0.5,0.5,0.5,0.6,0.6,0.7)
+    	
+    QuickPlot.writeDensity(path, fileName, seq1.continuousVariable("s1"), seq2.continuousVariable("s2"))
+    	
+    val writtenScript = Source.fromFile(new File(path.resolve(fileName).toString)).mkString
+      
+    val expectedScript =
+"""setwd("/home/user/workspace/Sampler/sampler-core/src/test/resources/data")
+require(ggplot2)
+require(reshape)
+pdf("TwoDists.pdf", width=8.27, height=5.83)
+data <- read.csv("TwoDists.csv")
+ggplot(melt(data), aes(x=value, colour=variable)) + geom_density()
+dev.off()"""
+      
+    val writtenLines = writtenScript.split("\n")
+    val expectedLines = expectedScript.split("\n")
+        
+    deleteRfiles(fileName)
+
+     (0 until expectedLines.length).foreach(i => linesTheSame(writtenLines(i), expectedLines(i)))
   }
   
 //  @Test def writeOneDist {
