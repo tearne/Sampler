@@ -11,19 +11,42 @@ import scala.language.implicitConversions
 
 object QuickPlot {
   
+  /** Allows a sequence of continuous data to be associated with a name, for use when plotting 
+   *  
+   *  @param dist Sequence of continuous data
+   *  @param name Name describing the data
+   */
   case class NamedDistribution[T: Fractional](dist: Seq[T], name: String)
+
+  /** Allows a sequence of discrete data to be associated with a name, for use when plotting
+  *  
+  *  @param dist Sequence of discrete data
+  *  @param name Name describing the data
+  */
   case class NamedDiscrete[T: Integral](dist: Seq[T], name: String)
   
+  /** Implicit conversion from Sequence to NamedDistribution */
   implicit class RichDistribution[T: Fractional](val dist: Seq[T]) {
+    /** Creates a new NamedDistribution with the given data and name
+     *  
+     *  @param name The name associated with the sequence of data
+     *  @return a new NamedDistribution with the supplied data and name
+     */
     def continuousVariable(name: String) = NamedDistribution(dist, name)
   }
   
+  /** Implicit conversion from Sequence to NamedDiscrete */
   implicit class RichDiscrete[T: Integral](val dist: Seq[T]) {
+	/** Creates a new NamedDiscrete with the given data and name
+	 *  
+	 *  @param name The name associated with the sequence of data
+	 *  @return a new NamedDiscrete with the supplied data and name
+	 */
     def discreteVariable(name: String) = NamedDiscrete(dist, name)
   }
   
   implicit def Seq2NamedDistribution(dist: Seq[Double]) = NamedDistribution(dist, "na"+sampler.math.Random.nextInt(1000))
-  implicit def Seq2NamedDiscrete(dist: Seq[Int]) = NamedDiscrete(dist, "")
+  implicit def Seq2NamedDiscrete(dist: Seq[Int]) = NamedDiscrete(dist, "na"+sampler.math.Random.nextInt(1000))
 
   private def buildScript(fileName: String, lines: String*) = {
     val builder = new StringBuilder
@@ -39,6 +62,13 @@ object QuickPlot {
 	builder.toString
   }
   
+  /** Produces and writes to disk a pdf density plot showing smooth density estimates for 
+   *  one or more sets of data
+   *  
+   *  @param path The location where the file should be stored
+   *  @param fileName The required file name of the pdf plot
+   *  @param data The data set(s) to be plotted
+   */
   def writeDensity[T: Fractional](path: Path, fileName: String, data: NamedDistribution[T]*) = {
 	val header = Seq("variable", "value")
     import Numeric.Implicits._
@@ -57,6 +87,12 @@ object QuickPlot {
 	ScriptRunner(rScript, path.resolve(fileName))
   }
   
+  /** Produces and writes to disk a pdf bar char for one or more sets of data
+   *  
+   *  @param path The location where the file should be stored
+   *  @param fileName The required file name of the pdf plot
+   *  @param data The data set(s) to be plotted
+   */
   def writeDiscrete[T: Integral](path: Path, fileName: String, data: NamedDiscrete[T]*) = {
     val header = Seq("variable", "value")
     
@@ -67,34 +103,10 @@ object QuickPlot {
     CSVFile.write(path.resolve(fileName+".csv"), melted(data), false, true, header)
 
     val line1 = "data <- read.csv(\"" + fileName + ".csv\")\n"
-    val line2 = "ggplot(data, aes(x=value, fill = variable)) + geom_bar()\n"
+    val line2 = "ggplot(data, aes(x=value, fill = variable)) + geom_bar(position=\"dodge\")\n"
 
     val rScript = buildScript(fileName.toString, line1, line2)
 	    
 	ScriptRunner(rScript, path.resolve(fileName))
   }
-  
-  //TODO add an option for quickly plotting a single data set without bothering with Map
-	
-	//TODO
-	//Consider making quickPlot able to plot from either
-	// a) sequences (implemented above), and
-	// b) EmpiricalTable/EmpiricalWeighted.
-	//
-	//Not sure if the latter is necessary.  It's
-	//a bit more complicated, but AG had a method which 
-	//seemed to work, based on the below
-    
-	/*
-	def expand(key: Double, repeats: Int) = {
-        (1 to repeats).map(a => key).toList
-      }
-      
-    def transformToDist(map: Map[Double, Probability]) = {
-        val min = map.map(pair => pair._2.value).toList.min
-        val normalised = map.map(pair => pair._1 -> (pair._2.value / min).round.toInt)
-        normalised.flatMap(k => expand(k._1, k._2)).toSeq
-    }
-    */
 }
-
