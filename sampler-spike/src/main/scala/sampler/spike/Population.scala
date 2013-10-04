@@ -28,52 +28,47 @@ case class TablePopulation[T](counts: Map[T, Int])(implicit val r: Random) exten
   }
   
   def remove(num: Int = 1) = {
-    val reverse = counts.toList.map{case (a,b) => (b,a)}
-    
-    def doSampling(pop: List[(Int, T)]) = {
-      
-      def sampleOne(currentPop: List[(Int, T)]) = {
-    	def findIndex(list: List[Int], index: Int, selection: Int): Int	= {
-    	  if(selection <= list(index)) index
-    	  else findIndex(list, index+1, selection)
-    	}
-    	
-    	val currentSize = currentPop.map(_._1).sum
-    	
-    	val randIndx = r.nextInt(currentSize)
-
-    	val selectedIndex = findIndex(reverse.map(_._1), 0, randIndx)
-    				  
-    	val selection = currentPop(selectedIndex)._2
-    				  
-    	val toPatch = {
-    	  val newCount = currentPop(selectedIndex)._1 - 1
-    	  if(newCount == 0) List()
-    	  else List((newCount, currentPop(selectedIndex)._2))
-    	}
-    	
-    	val newCounts = currentPop.patch(selectedIndex, toPatch, 1)
-    	(selection, newCounts)
+    def sampleOne(currentPop: List[(Int, T)]) = {
+      def findIndex(list: List[Int], index: Int, selection: Int): Int	= {
+        val runningSum = list.take(index+1).sum
+        if(selection <= runningSum) index
+    	else findIndex(list, index+1, selection)
       }
+      val currentSize = currentPop.map(_._1).sum
+    	
+      val randIndx = r.nextInt(currentSize)
       
-      def buildSamples(l: List[T], interimPop: List[(Int, T)]): (List[T], List[(Int,T)]) = {
-        if(l.size == num) (l, interimPop)
-        else {
-          val nextSample = sampleOne(interimPop)
-          val samples = l.:+(nextSample._1)
-          buildSamples(samples, nextSample._2)
-        }
+      val selectedIndex = findIndex(currentPop.map(_._1), 0, randIndx)
+    				  
+      val selection = currentPop(selectedIndex)._2
+    				  
+      val toPatch = {
+        val newCount = currentPop(selectedIndex)._1 - 1
+    	if(newCount == 0) List()
+    	else List((newCount, currentPop(selectedIndex)._2))
       }
+    	
+      val newCounts = currentPop.patch(selectedIndex, toPatch, 1)
+      (selection, newCounts)
+    }
       
-      val result = buildSamples(List(), pop)
-      
-      val selectedPop = TablePopulation(reMap(result._1))
-      val remainingPop = TablePopulation(result._2.map{case (b,a) => (a,b)}.toMap)
-      
-      (selectedPop, remainingPop)
+    def buildSamples(l: List[T], interimPop: List[(Int, T)]): (List[T], List[(Int,T)]) = {
+      if(l.size == num) (l, interimPop)
+      else {
+        val nextSample = sampleOne(interimPop)
+        val samples = l.:+(nextSample._1)
+        buildSamples(samples, nextSample._2)
+      }
     }
     
-    doSampling(reverse)
+    val reverse = counts.toList.map{case (a,b) => (b,a)}
+    
+    val result = buildSamples(List(), reverse)
+      
+    val selectedPop = TablePopulation(reMap(result._1))
+    val remainingPop = TablePopulation(result._2.map{case (b,a) => (a,b)}.toMap)
+      
+    (selectedPop, remainingPop)
   }
   
   def +(pop: Population[T]) = ???

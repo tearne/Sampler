@@ -6,6 +6,7 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito._
 import org.mockito.Mockito
+import org.mockito.Matchers._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.matchers.ShouldMatchers
 
@@ -43,9 +44,7 @@ class PopulationTest extends AssertionsForJUnit with MockitoSugar with ShouldMat
   
   @Test
   def samplesWithoutReplacement {
-    when(r.nextInt(10)).thenReturn(2)
-    when(r.nextInt(9)).thenReturn(2)
-    when(r.nextInt(8)).thenReturn(1)
+    when(r.nextInt(anyInt)).thenReturn(2,2,1)
     
 	val p = new TablePopulation(Map("A" -> 1, "B" -> 9))
     
@@ -60,29 +59,16 @@ class PopulationTest extends AssertionsForJUnit with MockitoSugar with ShouldMat
     assert(remainder.getOrElse("B", 0) === 7)
   }
   
-//  @Test
-//  def returnsRemainingMapWithoutReplacement {
-//    when(r.nextInt(10)).thenReturn(1,1,1)
-//    
-//	val p = new Population(Map("A" -> 1, "B" -> 9))
-//    
-//    val remaining = p.sampleWithoutReplacement(3)._2
-//    
-//    assert(remaining.getOrElse("A", 0) === 0)
-//    assert(remaining.getOrElse("B", 0) === 7)
-//  }
-//  
-//  @Test
-//  def neverReplacesWhenSamplingWithReplacement {
-//    implicit val random = Random
-//    val p = new Population(Map("A" -> 1, "B" -> 9))(random)
-//    
-//    (1 to 100).map{a =>
-//      val samples = p.sampleWithoutReplacement(10)._1
-//      
-//      assert(samples.getOrElse("A", 1) === 1)
-//    }
-//  }
+  @Test
+  def neverReplacesWhenSamplingWithReplacement {
+    implicit val random = Random
+    val p = new TablePopulation(Map("A" -> 1, "B" -> 9))(random)
+    
+    val populations = p.remove(10)
+    val samples = populations._1.toMap
+    
+    assert(samples.getOrElse("A", 1) === 1)
+  }
 //  
 //  @Test
 //  def samplesWithReplacement {
