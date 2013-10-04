@@ -43,7 +43,9 @@ class PopulationTest extends AssertionsForJUnit with MockitoSugar with ShouldMat
   
   @Test
   def samplesWithoutReplacement {
-    when(r.nextInt(10)).thenReturn(2,2,1)
+    when(r.nextInt(10)).thenReturn(2)
+    when(r.nextInt(9)).thenReturn(2)
+    when(r.nextInt(8)).thenReturn(1)
     
 	val p = new TablePopulation(Map("A" -> 1, "B" -> 9))
     

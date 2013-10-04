@@ -32,30 +32,45 @@ case class TablePopulation[T](counts: Map[T, Int])(implicit val r: Random) exten
     
     def doSampling(pop: List[(Int, T)]) = {
       
-      def sampleOne(accSamples: List[T], currentPop: List[(Int, T)]) = {
+      def sampleOne(currentPop: List[(Int, T)]) = {
     	def findIndex(list: List[Int], index: Int, selection: Int): Int	= {
     	  if(selection <= list(index)) index
     	  else findIndex(list, index+1, selection)
     	}
-    		  
-    	val selectedIndex = findIndex(reverse.map(_._1), 0, r.nextInt(size))
+    	
+    	val currentSize = currentPop.map(_._1).sum
+    	
+    	val randIndx = r.nextInt(currentSize)
+
+    	val selectedIndex = findIndex(reverse.map(_._1), 0, randIndx)
     				  
-    	val selection = List(reverse(selectedIndex)._2)
+    	val selection = currentPop(selectedIndex)._2
     				  
     	val toPatch = {
-    	  val newCount = reverse(selectedIndex)._1 - 1
+    	  val newCount = currentPop(selectedIndex)._1 - 1
     	  if(newCount == 0) List()
-    	  else List((newCount, reverse(selectedIndex)._2))
+    	  else List((newCount, currentPop(selectedIndex)._2))
     	}
-    		  
-    	val newCounts = reverse.patch(selectedIndex, toPatch, 1)
-    				  
-    	val newMap = (newCounts.map{case (b,a) => (a,b)}).toMap
-    				  
-    	(TablePopulation(reMap(selection)), TablePopulation(newMap))
+    	
+    	val newCounts = currentPop.patch(selectedIndex, toPatch, 1)
+    	(selection, newCounts)
       }
       
-      sampleOne(List(), pop)
+      def buildSamples(l: List[T], interimPop: List[(Int, T)]): (List[T], List[(Int,T)]) = {
+        if(l.size == num) (l, interimPop)
+        else {
+          val nextSample = sampleOne(interimPop)
+          val samples = l.:+(nextSample._1)
+          buildSamples(samples, nextSample._2)
+        }
+      }
+      
+      val result = buildSamples(List(), pop)
+      
+      val selectedPop = TablePopulation(reMap(result._1))
+      val remainingPop = TablePopulation(result._2.map{case (b,a) => (a,b)}.toMap)
+      
+      (selectedPop, remainingPop)
     }
     
     doSampling(reverse)
