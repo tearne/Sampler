@@ -16,7 +16,7 @@ import sampler.math.Random
 
 trait Population[T]{
   def remove(num: Int): (Population[T], Population[T])
-  def +(pop: Population[T]): Unit
+//  def +(pop: Population[T])
   def size: Int
 }
 
@@ -28,17 +28,19 @@ case class TablePopulation[T](counts: Map[T, Int])(implicit val r: Random) exten
   }
   
   def remove(num: Int = 1) = {
+    
+    assert(num <= size && num > 0, s"cannot sample ${num} elements")
+    
     def sampleOne(currentPop: List[(Int, T)]) = {
       def findIndex(list: List[Int], index: Int, selection: Int): Int	= {
         val runningSum = list.take(index+1).sum
         if(selection <= runningSum) index
     	else findIndex(list, index+1, selection)
       }
-      val currentSize = currentPop.map(_._1).sum
-    	
-      val randIndx = r.nextInt(currentSize)
       
-      val selectedIndex = findIndex(currentPop.map(_._1), 0, randIndx)
+      val counts = currentPop.map(_._1)
+    	
+      val selectedIndex = findIndex(counts, 0, r.nextInt(counts.sum))
     				  
       val selection = currentPop(selectedIndex)._2
     				  
@@ -71,7 +73,15 @@ case class TablePopulation[T](counts: Map[T, Int])(implicit val r: Random) exten
     (selectedPop, remainingPop)
   }
   
-  def +(pop: Population[T]) = ???
+  def +(pop: TablePopulation[T]) = {
+    val thatMap = pop.toMap
+    
+    val theSet = counts.map(_._1).++(thatMap.map(_._1).toSet)
+    
+    val newMap = theSet.map(a => a -> (counts.getOrElse(a, 0) + thatMap.getOrElse(a, 0))).toMap
+    
+    new TablePopulation(newMap)
+  }
   
   def size = counts.values.sum
   
@@ -79,52 +89,30 @@ case class TablePopulation[T](counts: Map[T, Int])(implicit val r: Random) exten
 }
 
 //T: Characteristics(mood: MoodEnum, age: Double, infected: Date))
-case class SetPopulation[T](individuals: Seq[T]) extends Population[T]{
+case class SetPopulation[T](individuals: IndexedSeq[T])(implicit val r: Random) extends Population[T]{
   //...
-  def remove(num: Int): (Population[T], Population[T]) = ???
-  def +(pop: Population[T]): Unit = ???
-  def size: Int = ???
+  def remove(num: Int) = {
+
+    assert(num <= size && num > 0, s"cannot sample ${num} elements")
+    
+	@tailrec
+    def takeAnother(acc: IndexedSeq[T], bag: IndexedSeq[T]): IndexedSeq[T] = {
+	  if(acc.size == num) acc
+	  else{ 
+		val item = bag(r.nextInt(bag.size))
+		takeAnother(item +: acc, bag diff IndexedSeq(item))
+	  }
+	}
+	
+	val selected = takeAnother(IndexedSeq(), individuals.toIndexedSeq)
+	val remaining = (individuals diff selected)
+	
+	(SetPopulation(selected), SetPopulation(remaining))
+  }
+  
+  def +(pop: Population[T]) = ???
+  
+  def size: Int = individuals.size
+  
+  def values = individuals
 }
-
-
-//class Population[T](pop: Map[T, Int])(implicit r: Random) {
-//	
-//  private def expand(s: T, i: Int) = (1 to i).map(_ => s)
-//  
-//  private lazy val flatPop = pop.flatMap(x => expand(x._1,x._2)).toIndexedSeq
-//  
-//  private lazy val popSize = flatPop.size
-//  
-//  private def checkSize(size: Int) = {
-//	  assert(size>0, "Cannot sample 0 or less objects")
-//	  assert(size<=popSize, "Cannot sample more elements than there are in the population")
-//  }
-//  
-//  private def reMap(l: List[T]) = {
-//    l.distinct.map(a => (a -> l.count(_ == a))).toMap
-//  }
-//  
-//  def sampleWithoutReplacement(sampleSize: Int) = {
-//    checkSize(sampleSize)
-//    
-//	@tailrec
-//    def takeAnother(acc: List[T], bag: IndexedSeq[T]): List[T] = {
-//	  if(acc.size == sampleSize) acc
-//	  else{ 
-//		val item = bag(r.nextInt(bag.size))
-//		takeAnother(item +: acc, bag diff List(item))
-//	  }
-//	}
-//	
-//	val selected = takeAnother(Nil, flatPop)
-//	val remaining = (flatPop diff selected).toList
-//	
-//	(reMap(selected), reMap(remaining))
-//  }
-//  
-//  def sampleWithReplacement(sampleSize: Int) = {
-//    checkSize(sampleSize) //TODO
-//    
-//    reMap((1 to sampleSize).map(_ => flatPop(r.nextInt(popSize))).toList)
-//  }
-//}
