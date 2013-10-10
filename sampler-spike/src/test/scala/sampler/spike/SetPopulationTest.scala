@@ -70,4 +70,27 @@ class SetPopulationTest extends AssertionsForJUnit with MockitoSugar with Should
     	p.remove(-1)
     }
   }
+  
+  @Test
+  def addsSetPopulationsTogether1 {
+    val p = new SetPopulation(IndexedSeq("A", "B", "B", "B", "B", "B", "B", "B", "B", "B"))
+    val p2 = new SetPopulation(IndexedSeq("A", "B", "B", "B", "B", "B", "B", "B", "B", "B"))
+    
+    val p3 = p + p2
+    
+    assert(p3.values.count(_ == "A") === 2)
+    assert(p3.values.count(_ == "B") === 18)
+  }
+  
+  @Test
+  def addsSetPopulationsTogether2 {
+	  val p = new SetPopulation(IndexedSeq("A", "B", "B", "B", "B", "B", "B", "B", "B", "B"))
+	  val p2 = new SetPopulation(IndexedSeq("A", "B", "C", "C", "C", "C", "C"))
+	  
+	  val p3 = p + p2
+	  
+	  assert(p3.values.count(_ == "A") === 2)
+	  assert(p3.values.count(_ == "B") === 10)
+	  assert(p3.values.count(_ == "C") === 5)
+  }
 }

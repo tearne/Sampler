@@ -88,10 +88,10 @@ class PopulationTest extends AssertionsForJUnit with MockitoSugar with ShouldMat
     val p = new TablePopulation(Map("A" -> 1, "B" -> 9))
     val p2 = new TablePopulation(Map("A" -> 1, "B" -> 1))
     
-    val newPop = p + p2
-    val counts = newPop.toMap
+    val p3 = p + p2
+    val counts = p3.toMap
     
-    assert(newPop.size === 12)
+    assert(p3.size === 12)
     assert(counts.getOrElse("A", 0) === 2)
     assert(counts.getOrElse("B", 0) === 10)
   }
@@ -101,10 +101,10 @@ class PopulationTest extends AssertionsForJUnit with MockitoSugar with ShouldMat
 	  val p = new TablePopulation(Map("A" -> 1, "B" -> 9))
 	  val p2 = new TablePopulation(Map("B" -> 1, "C" -> 5))
 	  
-	  val newPop = p + p2
-	  val counts = newPop.toMap
+	  val p3 = p + p2
+	  val counts = p3.toMap
 	  
-	  assert(newPop.size === 16)
+	  assert(p3.size === 16)
 	  assert(counts.getOrElse("A", 0) === 1)
 	  assert(counts.getOrElse("B", 0) === 10)
 	  assert(counts.getOrElse("C", 0) === 5)

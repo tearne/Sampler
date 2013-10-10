@@ -12,11 +12,10 @@ import sampler.math.Random
  * between populations
  */
 
-// ANOTHER OBJECT TO TOP UP? (helper method in companion object)
+// TODO: Think about creating another object to top up (helper method in companion object)
 
 trait Population[T]{
   def remove(num: Int): (Population[T], Population[T])
-//  def +(pop: Population[T])
   def size: Int
 }
 
@@ -104,13 +103,15 @@ case class SetPopulation[T](individuals: IndexedSeq[T])(implicit val r: Random) 
 	  }
 	}
 	
-	val selected = takeAnother(IndexedSeq(), individuals.toIndexedSeq)
+	val selected = takeAnother(IndexedSeq(), individuals)
 	val remaining = (individuals diff selected)
 	
 	(SetPopulation(selected), SetPopulation(remaining))
   }
   
-  def +(pop: Population[T]) = ???
+  def +(pop: SetPopulation[T]) = {
+    new SetPopulation(individuals ++ pop.values)
+  }
   
   def size: Int = individuals.size
   
