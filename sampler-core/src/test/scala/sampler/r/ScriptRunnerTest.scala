@@ -25,6 +25,15 @@ class ScriptRunnerTest extends AssertionsForJUnit {
 	}
 	
 	@Test
+	def doesntPrintOut {
+	  val script =
+"""
+a <- c(2,4,6)
+a
+"""
+	}
+	
+	@Test
 	def runsSleepCommand {
 	  val startTime = System.nanoTime
 	  ScriptRunner("Sys.sleep(1)", scriptPath)

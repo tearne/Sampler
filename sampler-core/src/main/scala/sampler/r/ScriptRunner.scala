@@ -6,52 +6,27 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import scala.io.Source
 
-// TODO exceptions if R not installed or exits irregularly
-// ScriptTarget is confusing - change
-// Should QuickPlot be in companion object
+// Should QuickPlot be in companion object?
 
 class ScriptRunner {
-	def apply(script: String, scriptTarget: Path){
-		val writer = new FileWriter(scriptTarget.toFile)
-		val parentPath = scriptTarget.toAbsolutePath.getParent.toFile
+	def apply(script: String, scriptPath: Path){
+		val writer = new FileWriter(scriptPath.toFile)
+		val parentPath = scriptPath.toAbsolutePath.getParent.toFile
 		
-		writer.write(
-			"setwd(\""+parentPath+"\")\n" + script
-		)
+		val fullScript = new StringBuilder()
+		
+		fullScript.append("setwd(\""+parentPath+"\")\n")
+		fullScript.append("myFunction <- function() {\n")
+		fullScript.append(script + "\n")
+		fullScript.append("}\ninvisible(suppressMessages(myFunction()))")
+		
+		writer.write(fullScript.toString)
 		writer.close
 		
-		val builder = new StringBuilder()
-		builder.append("R CMD BATCH --slave ")
-		builder.append(scriptTarget.getFileName().toFile)
+		import scala.sys.process._
+		val processOutcome = Seq("/usr/bin/Rscript", scriptPath.toString()).!
 		
-		val proc = Runtime.getRuntime().exec(builder.toString, null, parentPath)
-		proc.waitFor()
-		
-		val rOutFile = scriptTarget.getFileName().toString() + ".Rout"
-		
-		var outPath = scriptTarget.getParent().resolve(rOutFile)
-
-		val source = Source.fromFile(outPath.toString).mkString.split("\n")
-		
-		source.map{
-			case a if(a.startsWith("Error")) => throw new ScriptRunnerException("An error has occured whilst running the R script")
-			case _ =>
-		}
-		
-		val stdInput = new BufferedReader(new 
-				InputStreamReader(proc.getInputStream())
-		)
-
-        val stdError = new BufferedReader(new 
-        		InputStreamReader(proc.getErrorStream())
-        )
-
-		//TODO Logging rather than println-ing
-        System.out.println("std out:");
-        Source.fromInputStream(proc.getInputStream()).getLines.foreach(println)
-
-        System.out.println("std err:");
-        Source.fromInputStream(proc.getErrorStream()).getLines.foreach(println)
+		if(processOutcome != 0) throw new ScriptRunnerException("An error has occured whilst running the R script")
 	}
 }
 

@@ -8,18 +8,20 @@ import org.junit.Test
 import java.nio.file.Files
 import scala.io.Source
 import java.io.File
+import org.junit.After
 
 class FailingFileTest extends AssertionsForJUnit {
 
   var path: Path = _
+  var fileName: Path = _
   
   @Before def initialise {
     path = Paths.get("src", "test", "resources", "data")
+    fileName = path.resolve("failing.csv")
   }
  
   @Test
   def failingFileWriting {
-    val fileName = path.resolve("failing.csv")
     
     Files.deleteIfExists(fileName)
     
@@ -38,5 +40,10 @@ class FailingFileTest extends AssertionsForJUnit {
     assert(writtenLines(1).toInt === 1)
     assert(writtenLines(2).toInt === 2)
     assert(writtenLines.length === 3)
+  }
+  
+  @After
+  def tearDown {
+    Files.deleteIfExists(fileName)
   }
 }
