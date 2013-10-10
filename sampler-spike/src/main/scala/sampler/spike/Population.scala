@@ -1,31 +1,60 @@
+/*
+ * Copyright (c) 2012 Crown Copyright 
+ *                    Animal Health and Veterinary Laboratories Agency
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package sampler.spike
 
 import scala.annotation.tailrec
 import sampler.math.Random
 
-/*
- * There are two kinds of population
- * 1) Tables of counts of similar entity
- * 2) Set of entity, which may all have different state
- * 
- * We want a way to move individuals or their representation
- * between populations
- */
-
 // TODO: Think about creating another object to top up (helper method in companion object)
 
+/** Trait to create a representation of a population
+ *  
+ *  Implementations of this trait can determine how the members of the population
+ *  are stored and accessed giving users the ability to choose the most appropriate
+ *  structure for their specific task
+ */
 trait Population[T]{
   def remove(num: Int): (Population[T], Population[T])
+
+    /** The number of individuals within the population 
+     *  
+     *  @return the size of the population
+     *  */
   def size: Int
 }
 
-// T: Spotted (black, white)
+/** An implementation of Population where the population structure is stored
+ *  in a map of individuals of a specific category to a count of the number of times
+ *  those individuals are represented in the population
+ *  
+ *  @param counts Map of population members of type T to a count of the number of members in the population
+ */
 case class TablePopulation[T](counts: Map[T, Int])(implicit val r: Random) extends Population[T]{
-  //...
+
   private def reMap(l: List[T]) = {
     l.distinct.map(a => (a -> l.count(_ == a))).toMap
   }
   
+  /** Remove a number of individuals from the population, without replacement
+   *  
+   *  @param num The number of members to be removed
+   *  @return A tuple to TablePopulation objects, the first containing the individuals sampled the second the remaining population
+   */
   def remove(num: Int = 1) = {
     
     assert(num <= size && num > 0, s"cannot sample ${num} elements")
@@ -72,6 +101,11 @@ case class TablePopulation[T](counts: Map[T, Int])(implicit val r: Random) exten
     (selectedPop, remainingPop)
   }
   
+  /** Adds a table population to the current one to produce a combined object
+   *  
+   *  @param pop The population to be added
+   *  @return A combined population containing all the individuals from both the current object and those in pop
+   */
   def +(pop: TablePopulation[T]) = {
     val thatMap = pop.toMap
     
@@ -84,13 +118,26 @@ case class TablePopulation[T](counts: Map[T, Int])(implicit val r: Random) exten
   
   def size = counts.values.sum
   
+  /** Returns the map of individual character traits to the count of that individual in the population
+   *  
+   *  @return Map of member type to count
+   */
   def toMap = counts
 }
 
-//T: Characteristics(mood: MoodEnum, age: Double, infected: Date))
+/** An implementation of Population where the population structure is stored
+ *  as a sequence of each individual member of that population
+ *  
+ *  @param individuals A sequence containing all the members of the population
+ */
 case class SetPopulation[T](individuals: IndexedSeq[T])(implicit val r: Random) extends Population[T]{
-  //...
-  def remove(num: Int) = {
+  
+  /** Remove a number of individuals from the population, without replacement
+   *  
+   *  @param num The number of members to be removed
+   *  @return A tuple to TablePopulation objects, the first containing the individuals sampled the second the remaining population
+   */
+  def remove(num: Int = 1) = {
 
     assert(num <= size && num > 0, s"cannot sample ${num} elements")
     
@@ -109,11 +156,20 @@ case class SetPopulation[T](individuals: IndexedSeq[T])(implicit val r: Random) 
 	(SetPopulation(selected), SetPopulation(remaining))
   }
   
+  /** Adds a set population to the current one to produce a combined object
+   *  
+   *  @param pop The population to be added
+   *  @return A combined population containing all the individuals from both the current object and those in pop
+   */
   def +(pop: SetPopulation[T]) = {
     new SetPopulation(individuals ++ pop.values)
   }
   
   def size: Int = individuals.size
   
+  /** Returns a set containing all the members of the population
+   *  
+   *  @return set containing the whole population
+   */
   def values = individuals
 }
