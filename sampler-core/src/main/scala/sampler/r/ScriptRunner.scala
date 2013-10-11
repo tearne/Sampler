@@ -8,7 +8,14 @@ import scala.io.Source
 
 // Should QuickPlot be in companion object?
 
+/** A class to allow the running of an R script from within the Scala environment*/
 class ScriptRunner {
+	/** Writes and R script to the location defined by path. Executes the script using 
+	 *  the Rscript shell script
+	 * 	
+	 *  @param script The R script to be executed
+	 *  @param scriptPath The path to where the script should be written, including filename
+	 */
 	def apply(script: String, scriptPath: Path){
 		val writer = new FileWriter(scriptPath.toFile)
 		val parentPath = scriptPath.toAbsolutePath.getParent.toFile
@@ -30,6 +37,7 @@ class ScriptRunner {
 	}
 }
 
+/** Companion object to allow running of an R script*/
 object ScriptRunner{
 	lazy val instance = new ScriptRunner
 	def apply(script: String, scriptTarget: Path) = instance(script, scriptTarget) 
