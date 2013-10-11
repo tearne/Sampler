@@ -87,7 +87,8 @@ object SamplerBuild extends Build{
 			"com.typesafe.akka" %% "akka-slf4j" % "2.1.4", 
 			"org.apache.commons" % "commons-math3" % "3.0",
 			"ch.qos.logback" % "logback-classic" % "1.0.12",
-			"com.amazonaws" % "aws-java-sdk" % "1.4.0.1"
+			"com.amazonaws" % "aws-java-sdk" % "1.4.0.1",
+			"org.scalaz" %% "scalaz-core" % "7.0.3"
 		)
 	)
 
