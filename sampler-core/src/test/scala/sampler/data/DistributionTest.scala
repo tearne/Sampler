@@ -202,27 +202,6 @@ class DistributionTest extends AssertionsForJUnit with ShouldMatchers {
     results.count(_ == true) should be (500 plusOrMinus 100)
   }
   
-//  @Test def normalDistributionRegeneratesParameters {
-//    val definedMean = 5.0
-//    val definedSD = 1.5
-//    val model = Distribution.normal(definedMean, definedSD)
-//    
-//    val samples = (1 to 10000).map(_ => model.sample)
-//    
-//    val sampledMean = samples.sum / 10000
-//    
-//    def squaredDiff(d: Double) = {
-//      val sd = d - sampledMean
-//      sd*sd
-//    }
-//    
-//    val variance = (samples.map(s => squaredDiff(s))).sum/10000
-//    val sampledSD = Math.sqrt(variance)
-//    
-//    sampledMean should be (definedMean plusOrMinus 0.05)
-//    sampledSD should be (definedSD plusOrMinus 0.05)
-//  }
-  
   @Test def bernouliTrialWithProbabilityOne {
     val model = Distribution.bernouliTrial(Probability(1))
     

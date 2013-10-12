@@ -124,8 +124,10 @@ trait Distribution[+A] extends Serializable{
 }
 
 object Distribution{
-	
-	//TODO Test
+	/** Builds a new [[sampler.data.Distribution]] which delegates sampling to the 
+	 *  call-by-name arg.
+	 * 
+	 * @param function supplying the sampled value */
 	def apply[T](f: => T) = new Distribution[T]{
 		def sample() = f
 	}
@@ -207,19 +209,7 @@ object Distribution{
 	def binaryPopulation(numInfected: Int, size: Int)(implicit r: Random) = new Distribution[Boolean]{
 		def sample() = r.nextInt(size) < numInfected
 	}
-	
-	//Some more general way to elevate dists to Distributions
-//	/** Builds a new [[sampler.data.Distribution]] which samples from a Normal distribution
-//	 *  
-//	 *  @param mean the mean of the distribution 
-//	 *  @param sd the Standard Deviation of the distribution
-//	 *  */
-//	def normal(mean:Double, sd: Double)(implicit r: Random) = new Distribution[Double]{
-//		val d = new NormalDistribution(mean,sd)
-//		def sample() = d.sample
-//		def density(value: Double) = d.density(value)
-//	}
-	
+
 	/** Builds a new [[sampler.data.Distribution]] which represents a Bernouli distribution.
 	 *  
 	 *  @param probSuccess the probability of success when sampling from this object */
