@@ -61,15 +61,31 @@ object Test extends App{
 	object Blue extends Colour { override def toString = "Blue"}
 	
 	implicit val r = Random
+	val reps = 10000000
+	val startBag = Map(Red -> 300, Green -> 200, Blue -> 100)
+	val n = 1
+	
 	
 	var start = System.currentTimeMillis()
 	
-	(1 to 1000000).foreach{i => 
-		val full = Map(Red -> 30, Green -> 20, Blue -> 10)
-		val (remaining, selected) = draw(5)(full)
+	(1 to reps).foreach{i => 
+		val population = TablePopulation(startBag)
+		val (remaining, selected) = population.remove(n)
 	}
 	
 	var end = System.currentTimeMillis()
+		
+	println(f"Core scala approach took ${(end-start)/1000.0}%2.2f")
+	
+	
+	start = System.currentTimeMillis()
+	
+	(1 to reps).foreach{i => 
+		val full = startBag
+		val (remaining, selected) = draw(n)(full)
+	}
+	
+	end = System.currentTimeMillis()
 		
 	println(f"State monad approach took ${(end-start)/1000.0}%2.2f")
 	
@@ -79,16 +95,7 @@ object Test extends App{
 	
 	
 	
-	start = System.currentTimeMillis()
-	
-	(1 to 1000000).foreach{i => 
-		val population = TablePopulation(Map(Red -> 30, Green -> 20, Blue -> 10))
-		val (remaining, selected) = population.remove(5)
-	}
-	
-	end = System.currentTimeMillis()
-		
-	println(f"Core scala approach took ${(end-start)/1000.0}%2.2f")
+
 	
 	
 	
