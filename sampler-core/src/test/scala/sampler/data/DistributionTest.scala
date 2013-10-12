@@ -8,36 +8,36 @@ import sampler.math.Random
 import org.scalatest.matchers.ShouldMatchers
 import sampler.math.Partition
 
-class SamplableTest extends AssertionsForJUnit with ShouldMatchers {
+class DistributionTest extends AssertionsForJUnit with ShouldMatchers {
 
-  var instance: Samplable[Int] = _
-  var instance2: Samplable[Int] = _
-  var alwaysOne: Samplable[Int] = _
+  var instance: Distribution[Int] = _
+  var instance2: Distribution[Int] = _
+  var alwaysOne: Distribution[Int] = _
   implicit var random: Random = _
   
   @Before def initialise {
     random = Random
     
-    instance = new Samplable[Int] {
+    instance = new Distribution[Int] {
 	  val it = List(0,1,2,3,4,5,6,7,8,9).iterator
 			
 	  def sample(): Int = it.next()
 	}
     
-    instance2 = new Samplable[Int] {
+    instance2 = new Distribution[Int] {
       val it = List(0,1,2,3,4,5,6,7,8,9).iterator
       
       def sample(): Int = it.next()
     }
     
-    alwaysOne = new Samplable[Int] {
+    alwaysOne = new Distribution[Int] {
       def sample = 1
     }
   }
   
-  def append(previous: Seq[Int], s: Samplable[Int], requiredLength: Int): Seq[Int] = {
+  def append(previous: Seq[Int], d: Distribution[Int], requiredLength: Int): Seq[Int] = {
     if(previous.length == requiredLength) previous
-	else append(previous.:+(s.sample()), s, requiredLength)
+	else append(previous.:+(d.sample()), d, requiredLength)
   }
   
   @Test def samplesValuesInOrder {
@@ -94,7 +94,7 @@ class SamplableTest extends AssertionsForJUnit with ShouldMatchers {
     // TODO
   }
   
-  @Test def combinedTwoSamplablesWithProduct {
+  @Test def combinedTwoDistributionsWithProduct {
     def product(a: Int, b: Int) = a*b
 		    
     val result = instance.combine(instance2)(product)
@@ -104,7 +104,7 @@ class SamplableTest extends AssertionsForJUnit with ShouldMatchers {
 	assert(sampleList === Seq(0,1,4,9,16))
   }
   
-  @Test def addTwoSamplablesWithConvolvle {
+  @Test def addTwoDistributionsWithConvolvle {
     val result = instance.convolve(alwaysOne)
 	
     val sampleList = append(Seq(), result, 5)
@@ -112,7 +112,7 @@ class SamplableTest extends AssertionsForJUnit with ShouldMatchers {
 	assert(sampleList === Seq(1,2,3,4,5))
   }
   
-  @Test def subtractSamplableWithCrossCorrelate {
+  @Test def subtractDistributionWithCrossCorrelate {
     val result = instance.crossCorrelate(alwaysOne)
 		    
 	val sampleList = append(Seq(), result, 5)
@@ -121,8 +121,8 @@ class SamplableTest extends AssertionsForJUnit with ShouldMatchers {
   }
   
   @Test def continuallyAlwaysGivesSameResult {
-    val model1 = Samplable.continually(1)
-    val model2 = Samplable.continually(2)
+    val model1 = Distribution.continually(1)
+    val model2 = Distribution.continually(2)
     
     val r1 = (1 to 10).map(_ => model1.sample)
     val r2 = (1 to 10).map(_ => model2.sample)
@@ -132,7 +132,7 @@ class SamplableTest extends AssertionsForJUnit with ShouldMatchers {
   }
   
   @Test def uniformDistributionWithDoubleParameters {
-    val model = Samplable.uniform(0.5, 1.5)
+    val model = Distribution.uniform(0.5, 1.5)
     
     val results = (1 to 10000).map(_ => model.sample)
     
@@ -142,7 +142,7 @@ class SamplableTest extends AssertionsForJUnit with ShouldMatchers {
   }
 
   @Test def uniformDistributionWithIntParameters {
-    val model = Samplable.uniform(1, 11)		//excludes 11
+    val model = Distribution.uniform(1, 11)		//excludes 11
     
     val results = (1 to 10000).map(_ => model.sample)
     
@@ -161,7 +161,7 @@ class SamplableTest extends AssertionsForJUnit with ShouldMatchers {
   @Test def iterableUniform {
     val items = IndexedSeq(2,4,6,8)
     
-    val model = Samplable.uniform(items)
+    val model = Distribution.uniform(items)
     
     val results = (1 to 2000).map(_ => model.sample)
     
@@ -173,7 +173,7 @@ class SamplableTest extends AssertionsForJUnit with ShouldMatchers {
   @Test def withoutReplacementNeverSamplesSameObjectTwice {
     val items = IndexedSeq(2,4,6,8)
     
-    val model = Samplable.withoutReplacement(items, 2)
+    val model = Distribution.withoutReplacement(items, 2)
     
     def theSame(l: List[Int]) = if(l(0)	== l(1)) true else false
     
@@ -185,7 +185,7 @@ class SamplableTest extends AssertionsForJUnit with ShouldMatchers {
   @Test def withoutReplacementDrawsWithEqualProbability {
     val it = IndexedSeq(2,4,6,8)
     
-    val model = Samplable.withoutReplacement(it, 2)
+    val model = Distribution.withoutReplacement(it, 2)
     
     val results = (1 to 1000).map(_ => model.sample)
     
@@ -195,36 +195,36 @@ class SamplableTest extends AssertionsForJUnit with ShouldMatchers {
   }
   
   @Test def sampleInfectedFromBinaryPopulation {
-    val model = Samplable.binaryPopulation(5, 100)
+    val model = Distribution.binaryPopulation(5, 100)
     
     val results = (1 to 10000).map(_ => model.sample)
     
     results.count(_ == true) should be (500 plusOrMinus 100)
   }
   
-  @Test def normalDistributionRegeneratesParameters {
-    val definedMean = 5.0
-    val definedSD = 1.5
-    val model = Samplable.normal(definedMean, definedSD)
-    
-    val samples = (1 to 10000).map(_ => model.sample)
-    
-    val sampledMean = samples.sum / 10000
-    
-    def squaredDiff(d: Double) = {
-      val sd = d - sampledMean
-      sd*sd
-    }
-    
-    val variance = (samples.map(s => squaredDiff(s))).sum/10000
-    val sampledSD = Math.sqrt(variance)
-    
-    sampledMean should be (definedMean plusOrMinus 0.05)
-    sampledSD should be (definedSD plusOrMinus 0.05)
-  }
+//  @Test def normalDistributionRegeneratesParameters {
+//    val definedMean = 5.0
+//    val definedSD = 1.5
+//    val model = Distribution.normal(definedMean, definedSD)
+//    
+//    val samples = (1 to 10000).map(_ => model.sample)
+//    
+//    val sampledMean = samples.sum / 10000
+//    
+//    def squaredDiff(d: Double) = {
+//      val sd = d - sampledMean
+//      sd*sd
+//    }
+//    
+//    val variance = (samples.map(s => squaredDiff(s))).sum/10000
+//    val sampledSD = Math.sqrt(variance)
+//    
+//    sampledMean should be (definedMean plusOrMinus 0.05)
+//    sampledSD should be (definedSD plusOrMinus 0.05)
+//  }
   
   @Test def bernouliTrialWithProbabilityOne {
-    val model = Samplable.bernouliTrial(Probability(1))
+    val model = Distribution.bernouliTrial(Probability(1))
     
     val result = (1 to 10).map(_ => model.sample)
     
@@ -232,7 +232,7 @@ class SamplableTest extends AssertionsForJUnit with ShouldMatchers {
   }
   
   @Test def bernoiliTrialWithProbabilityZero {
-    val model = Samplable.bernouliTrial(Probability(0))
+    val model = Distribution.bernouliTrial(Probability(0))
     
     val result = (1 to 10).map(_ => model.sample)
     
@@ -240,7 +240,7 @@ class SamplableTest extends AssertionsForJUnit with ShouldMatchers {
   }
 
   @Test def bernouliTrialWith80PercentProbability {
-    val model = Samplable.bernouliTrial(Probability(0.8))
+    val model = Distribution.bernouliTrial(Probability(0.8))
 		    
 	val result = (1 to 1000).map(_ => model.sample)
 		    
@@ -248,7 +248,7 @@ class SamplableTest extends AssertionsForJUnit with ShouldMatchers {
   }
   
   @Test def coinTossIsFair {
-    val model = Samplable.coinToss
+    val model = Distribution.coinToss
 		  
     val result = (1 to 1000).map(_ => model.sample)
 		  
@@ -259,7 +259,7 @@ class SamplableTest extends AssertionsForJUnit with ShouldMatchers {
     val seq = IndexedSeq(1,2,3,4)
     val partition = new Partition(IndexedSeq(0.1,0.2,0.3,0.4).map(Probability(_)))
     
-    val model = Samplable.fromPartition(seq, partition)
+    val model = Distribution.fromPartition(seq, partition)
     
     val result = (1 to 1000).map(_ => model.sample)
     
@@ -274,7 +274,7 @@ class SamplableTest extends AssertionsForJUnit with ShouldMatchers {
     val partition = new Partition(IndexedSeq(0.25,0.25,0.5).map(Probability(_)))
     
     intercept[AssertionError] {
-      val model = Samplable.fromPartition(seq, partition)
+      val model = Distribution.fromPartition(seq, partition)
     }
   }
 }

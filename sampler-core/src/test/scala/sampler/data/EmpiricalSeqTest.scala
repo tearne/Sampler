@@ -1,12 +1,13 @@
 package sampler.data
 
+import sampler.Implicits._
 import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Assert._
 import org.junit.Before
 import org.junit.Test
 import org.scalatest.matchers.ShouldMatchers
 import sampler.math.Random
-import sampler.data.Empirical._
+import sampler._
 
 class EmpiricalSeqTest extends AssertionsForJUnit with ShouldMatchers {
 

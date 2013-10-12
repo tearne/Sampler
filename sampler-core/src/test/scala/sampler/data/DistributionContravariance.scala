@@ -2,7 +2,7 @@ package sampler.data
 
 import sampler.math.Random
 
-class SamplableContravariance {
+class DistributiContravariance {
   
   // If this code compiles it is working TODO may need moving
   
@@ -18,11 +18,11 @@ class SamplableContravariance {
 	
 	val isT: T = new S
 			
-	val t = new Samplable[T]{
+	val t = new Distribution[T]{
 	  def sample() = new T
 	}
 	
-	val s = new Samplable[S]{
+	val s = new Distribution[S]{
 	  def sample() = new S
 	}
 			
@@ -30,10 +30,10 @@ class SamplableContravariance {
 	val res2 = s.sample()
 	val res3 = s.sample()
 			
-	val u: Samplable[T] = s
-	val w: Samplable[S] = s
+	val u: Distribution[T] = s
+	val w: Distribution[S] = s
 			
 	class U
-	val p: Samplable[U] = t.combine(s)((a:T, b:S) => new U)
+	val p: Distribution[U] = t.combine(s)((a:T, b:S) => new U)
   }
 }

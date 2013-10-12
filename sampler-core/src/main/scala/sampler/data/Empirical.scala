@@ -51,12 +51,12 @@ trait Empirical[A] extends Serializable{
 	 *  @return Number of unique observations (not overall number of observations) */
 	def supportSize: Int = probabilityTable.size
 
-	/** Creates a new [[sampler.data.Samplable]] object created from this distribution.
+	/** Creates a new [[sampler.data.Distribution]] object created from this distribution.
 	 *  The implementation differs depending on backing collection
 	 *  
-	 *  @return [[sampler.data.Samplable]] object
+	 *  @return [[sampler.data.Distribution]] object
 	 */
-	def toSamplable(implicit r: Random): Samplable[A]
+	def toDistribution(implicit r: Random): Distribution[A]
 	
 	/** Tests whether this instance is of the same type as another, and thus has the potential to be equal
 	 *  
@@ -89,8 +89,7 @@ trait Empirical[A] extends Serializable{
  *  
  *  Allows Empiricals to be created from standard collections
  */
-
-object Empirical{
+trait ToEmpirical {
 	implicit class RichIndexedSeq[A](genSeq: GenSeq[A]) {
 		val indSeq = genSeq.toIndexedSeq
 		def toEmpiricalSeq = new EmpiricalSeq[A](indSeq)

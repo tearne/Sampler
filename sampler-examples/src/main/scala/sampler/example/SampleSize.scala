@@ -17,7 +17,7 @@
 package sampler.example
 
 import sampler.data._
-import sampler.data.Empirical._
+import sampler.Implicits._
 import sampler.math.Random
 import scala.collection.GenSeq
 import sampler.io.CSVFile
@@ -57,7 +57,7 @@ object SampleSize extends App with SampleSizeSupport{
 			val model = numPositivesDist(trueNumPos, popSize, sampSize)
 			
 		  	// Sample the model until convergence
-		  	val builder = new ParallelSampleBuilder(chunkSize)
+		  	val builder = new ParallelSampler(chunkSize)
 		  	val dist = builder(model)(terminationCondition _).toEmpiricalTable
 		  	val obsDist = dist.freqTable.map{case (k,v) => (k.toDouble / sampSize, v)}.toEmpiricalTable
 		  	obsDist
@@ -158,9 +158,9 @@ trait SampleSizeSupport extends StatisticsComponent{
 			numPositive: Int, 
 			populationSize: Int, 
 			sampleSize: Int
-	): Samplable[Int] = {
+	): Distribution[Int] = {
 		val population = (1 to populationSize).map(_ <= numPositive)
-		Samplable
+		Distribution
 			.withoutReplacement(population, sampleSize)
 			.map(_.count(identity))
 	}

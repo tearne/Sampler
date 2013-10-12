@@ -23,7 +23,7 @@ import scala.util.Success
 import scala.util.Try
 import org.slf4j.LoggerFactory
 import sampler.data.Empirical
-import sampler.data.Empirical.RichIndexedSeq
+import sampler.Implicits._
 import sampler.math.Probability
 import sampler.math.Random
 import sampler.abc.population.PopulationBuilder

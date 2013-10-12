@@ -17,17 +17,17 @@
 
 package sampler.example
 
-import sampler.data.Empirical._
-import sampler.math._
-import sampler.data.Samplable
+import sampler.Implicits._
+import sampler.data.Distribution
 import scala.collection.mutable.ListBuffer
 import sampler.io.CSVFile
 import java.nio.file.{Files,Paths}
 import scala.collection.parallel.ParSeq
 import sampler.math.StatisticsComponent
-import sampler.data.ParallelSampleBuilder
+import sampler.data.ParallelSampler
 import scala.collection.GenSeq
 import sampler.math.Random
+import sampler.math.Probability
 
 object OnePopulation extends App with StatisticsComponent {
 	/*
@@ -58,7 +58,7 @@ object OnePopulation extends App with StatisticsComponent {
 		
 	def empiricalObjective(numSampled: Int) = {
 		val model = 
-			Samplable.withoutReplacement(population, numSampled)	// Start with base model
+			Distribution.withoutReplacement(population, numSampled)	// Start with base model
 			.map(_.count(identity) / numSampled.toDouble)			// Transform to model of sample prevalance
 		
 		def isWithinTolerance(samplePrev: Double) = math.abs(samplePrev - truePrevalence) < precision	
@@ -73,7 +73,7 @@ object OnePopulation extends App with StatisticsComponent {
 		}
 		
 		// Sample the model until convergence
-		val builder = new ParallelSampleBuilder(chunkSize)
+		val builder = new ParallelSampler(chunkSize)
 		builder(model)(terminationCondition _)
 			.map(isWithinTolerance _)		// Transform samples to in/out of tolerance
 			.toEmpiricalTable

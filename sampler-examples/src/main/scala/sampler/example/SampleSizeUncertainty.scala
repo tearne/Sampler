@@ -1,12 +1,13 @@
 package sampler.example
 
-import sampler.data.Samplable
+import sampler.data.Distribution
 import sampler.math.Random
 import scala.collection.GenSeq
 import sampler.math.StatisticsComponent
-import sampler.data.Empirical._
-import sampler.data.ParallelSampleBuilder
+import sampler.Implicits._
+import sampler.data.ParallelSampler
 import sampler.math.Probability
+import org.apache.commons.math3.distribution.NormalDistribution
 
 /** Given an imperfect test characterised by empirical data, how many samples should be taken to
  *  achieve a certain sensitivity of the approach?
@@ -18,10 +19,10 @@ import sampler.math.Probability
 object SampleSizeUncertainty extends App{
 	implicit val random = Random
 	
-	def calcSampleSize(testPerformanceDistribution: Samplable[Double], requiredSensitivity: Probability) = {
+	def calcSampleSize(testPerformanceDistribution: Distribution[Double], requiredSensitivity: Probability) = {
 	
 	/** Transform the samples into a probability of detection given a sample size */
-	def testingApproachSamplable(numSamples: Int): Samplable[Boolean] = {
+	def testingApproachDistribution(numSamples: Int): Distribution[Boolean] = {
 		testPerformanceDistribution.map{se => 
 			random.nextDouble() < 1 - math.pow((1 - se), numSamples) 
 		}
@@ -29,7 +30,7 @@ object SampleSizeUncertainty extends App{
 	
 	/** Determine the smallest sample size which provides the desired sensitivity */
 	def loop(currentSampleSize: Int = 1): Int = {
-		val model = testingApproachSamplable(currentSampleSize)
+		val model = testingApproachDistribution(currentSampleSize)
 		
 		val se = {
 			val chunkSize = 1e4.toInt
@@ -43,7 +44,7 @@ object SampleSizeUncertainty extends App{
 		    	(distance < 1e-5) || (soFar.size > 1e8)
 			}
 			
-			val dist = new ParallelSampleBuilder(chunkSize)(model)(stopCondition).toEmpiricalTable
+			val dist = new ParallelSampler(chunkSize)(model)(stopCondition).toEmpiricalTable
 			dist.probabilityTable(true)
 		}
 		
@@ -61,15 +62,16 @@ object SampleSizeUncertainty extends App{
 	/** Generate some fake performance data.  In general this may be generated externally
 	 *  and loaded, for example using the [[sampler.io.ChainReader]].
 	 */
+	val normal = new NormalDistribution(0.7,0.9)
 	val distributionWithVariance = 
-		Samplable.normal(0.7, 0.3)
+		Distribution(normal.sample)
 			.filter(x => x > 0 && x < 1)
 			.until(_.size == 1e5) 
-			.sample						//TODO Samplable.flatten to replace some of this?
+			.sample						//TODO Distribution.flatten to replace some of this?
 			.toEmpiricalSeq
-			.toSamplable
+			.toDistribution
 	
-	val distributionWithoutVariance = Samplable.continually(0.7)
+	val distributionWithoutVariance = Distribution.continually(0.7)
 			
 	println("Calculating sample size when test has mean sensitivity 0.7, with variance 0.3")
 	val result1 = calcSampleSize(distributionWithVariance, requiredSensitivity)

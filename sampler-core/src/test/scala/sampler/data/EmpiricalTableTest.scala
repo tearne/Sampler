@@ -6,7 +6,7 @@ import org.junit.Before
 import org.junit.Test
 import org.scalatest.matchers.ShouldMatchers
 import sampler.math.Random
-import sampler.data.Empirical._
+import sampler.Implicits._
 
 class EmpiricalTableTest extends AssertionsForJUnit with ShouldMatchers {
 

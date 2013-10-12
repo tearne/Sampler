@@ -3,7 +3,7 @@ package sampler.spike
 import sampler.math.Random
 import sampler.math.StatisticsComponent
 import sampler.data.Empirical
-import sampler.data.Samplable
+import sampler.data.Distribution
 import sampler.math.StatisticsComponent
 
 class EmpiricalProduct[A](val emps: IndexedSeq[Empirical[A]]) extends StatisticsComponent {
@@ -15,8 +15,8 @@ class EmpiricalProduct[A](val emps: IndexedSeq[Empirical[A]]) extends Statistics
   
   lazy val size = product(1, emps.map(_.size))
   
-  def toSamplable(implicit r: Random) = new Samplable[IndexedSeq[A]]{
-    val samps = emps.map(_.toSamplable)
+  def toDistribution(implicit r: Random) = new Distribution[IndexedSeq[A]]{
+    val samps = emps.map(_.toDistribution)
     
     def sample = samps.map(_.sample)
   }

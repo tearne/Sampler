@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2012-13 Crown Copyright 
- *                       Animal Health and Veterinary Laboratories Agency
+ * Copyright (c) 2012 Crown Copyright 
+ *                    Animal Health and Veterinary Laboratories Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
-package sampler.abc
+package sampler
 
-import sampler.data.Distribution
+import sampler.data.ToEmpirical
+import sampler.r.ToNamedSeq
 
-trait Prior[A] extends Distribution[A]{
-	def density(value: A): Double
-}
+object Implicits 
+	extends ToEmpirical
+	with ToNamedSeq

@@ -19,18 +19,18 @@ package sampler.example
 import sampler.abc.ABCModel
 import sampler.math._
 import sampler.abc.ABCParameters
-import sampler.data.Samplable
+import sampler.data.Distribution
 import sampler.abc.Prior
 import sampler.abc.ABCMethod
 import java.nio.file.{Paths, Files}
 import sampler.io.CSVFile
 import sampler.r.ScriptRunner
 import org.apache.commons.math3.distribution.BetaDistribution
-//import sampler.run.Runner
 import sampler.run.SerialRunner
 import sampler.run.Aborter
 import sampler.abc.population.LocalPopulationBuilder
 import sampler.abc.population.PopulationBuilder
+import org.apache.commons.math3.distribution.NormalDistribution
 
 object RecaptureApp extends RecaptureFactory with Recapture with App
 
@@ -100,8 +100,8 @@ trait RecaptureModelBase extends ABCModel with Serializable{
 	val sp = new BetaDistribution(42, 1.8)
 	
     case class Parameters(populationSize: Int, prevalence: Double) extends ParametersBase with Serializable{
-      val kernel = Samplable.normal(0, 0.1)
-	  val threeDie = Samplable.uniform(IndexedSeq(-1,0,0,0,1))
+      val normal = new NormalDistribution(0, 0.1)
+	  val threeDie = Distribution.uniform(IndexedSeq(-1,0,0,0,1))
       private def threeDensity(v: Int) = v match{
       	case -1 => 1.0 / 5
       	case 1 => 1.0 / 5
@@ -111,11 +111,11 @@ trait RecaptureModelBase extends ABCModel with Serializable{
 		
       def perturb = Parameters(
       	populationSize + threeDie.sample,
-      	kernel.sample + prevalence
+      	normal.sample + prevalence
       )
       def perturbDensity(that: Parameters) = 
       	threeDensity(populationSize - that.populationSize) *
-      	kernel.density(prevalence - that.prevalence)
+      	normal.density(prevalence - that.prevalence)
     }
 
     case class Observations(numSampled: Int, numRecaptured: Int, prevalence: Double) extends ObservationsBase with Serializable
@@ -131,8 +131,8 @@ trait RecaptureModelBase extends ABCModel with Serializable{
     
 
     case class AnimalState(tagged: Boolean, infected: Boolean)
-    def samplableModel(p: Parameters, obs: Observations) = {
-		def numTaggedDistribution(numTagged: Int, populationSize: Int, sampleSize: Int): Samplable[Output] = {
+    def modelDistribution(p: Parameters, obs: Observations) = {
+		def numTaggedDistribution(numTagged: Int, populationSize: Int, sampleSize: Int): Distribution[Output] = {
     	  val population = (1 to populationSize).map(index => 
     	  	AnimalState(index <= numTagged, modelRandom.nextBoolean(Probability(p.prevalence)))
     	  )
@@ -144,7 +144,7 @@ trait RecaptureModelBase extends ABCModel with Serializable{
     	  	testResults.count(identity)
     	  }
     	  
-    	  val model = Samplable.withoutReplacement(population, sampleSize) // TODO is the the random source for the model or the 
+    	  val model = Distribution.withoutReplacement(population, sampleSize) // TODO is the the random source for the model or the 
                                                                          // meta-model? If the model then be explicit about (animalRandom)
     		.map{sampledStates =>
 			  Output(Observations(

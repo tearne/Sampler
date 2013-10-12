@@ -3,7 +3,7 @@ package sampler.spike
 import org.scalatest.junit.AssertionsForJUnit
 import org.scalatest.matchers.ShouldMatchers
 import org.junit.Test
-import sampler.data.Empirical._
+import sampler.Implicits._
 import sampler.math.StatisticsComponent
 import org.junit.Before
 import sampler.data.EmpiricalSeq

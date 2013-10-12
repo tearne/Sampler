@@ -4,7 +4,7 @@ import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Assert._
 import org.junit.Before
 import org.junit.Test
-import sampler.data.Empirical._
+import sampler.Implicits._
 import org.scalatest.matchers.ShouldMatchers
 
 class StasisticComponentTest extends AssertionsForJUnit with StatisticsComponent with ShouldMatchers {

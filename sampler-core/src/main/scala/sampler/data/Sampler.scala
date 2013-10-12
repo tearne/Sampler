@@ -20,28 +20,28 @@ package sampler.data
 import scala.collection.GenSeq
 import scala.collection.parallel.ParSeq
 
-trait SampleBuilder{
-	def apply[T](samplable: Samplable[T])(condition: GenSeq[T] => Boolean): GenSeq[T]
+trait Sampler{
+	def apply[T](distribution: Distribution[T])(condition: GenSeq[T] => Boolean): GenSeq[T]
 }
 
-object SerialSampleBuilder extends SampleBuilder with Serializable{
-	def apply[T](samplable: Samplable[T])(condition: GenSeq[T] => Boolean) = 
-		samplable.until(condition).sample()
+object SerialSampler extends Sampler with Serializable{
+	def apply[T](distribution: Distribution[T])(condition: GenSeq[T] => Boolean) = 
+		distribution.until(condition).sample()
 }
 
-class ParallelSampleBuilder(chunkSize: Int) extends SampleBuilder{
-	def apply[T](samplable: Samplable[T])(condition: GenSeq[T] => Boolean) = {
+class ParallelSampler(chunkSize: Int) extends Sampler{
+	def apply[T](distribution: Distribution[T])(condition: GenSeq[T] => Boolean) = {
 		def takeMore(previous: ParSeq[T]): ParSeq[T] = {
 			if(condition(previous)) previous
 			else takeMore(
-					previous ++ (1 to chunkSize).par.map(i => samplable.sample)
+					previous ++ (1 to chunkSize).par.map(i => distribution.sample)
 			)
 		}
-		val kickstart = (1 to chunkSize).par.map(i => samplable.sample)
+		val kickstart = (1 to chunkSize).par.map(i => distribution.sample)
 		takeMore(kickstart)
 	}
 }
 
-trait SampleBuilderComponent{
-	val builder: SampleBuilder
-}
+//trait SampleBuilderComponent{
+//	val builder: Sampler
+//}

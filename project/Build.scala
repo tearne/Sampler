@@ -6,7 +6,7 @@ import com.typesafe.sbteclipse.plugin.EclipsePlugin.EclipseKeys
 
 object SamplerBuild extends Build{
 	val buildOrganization 	= "ahvla"
-	val buildVersion 	= "0.0.17"
+	val buildVersion 	= "0.0.18"
 	val buildScalaVersion	= "2.10.2"
 	
 	lazy val root = Project(
@@ -25,19 +25,38 @@ object SamplerBuild extends Build{
 	lazy val examples = Project(
 		id = "sampler-examples",
 		base = file("sampler-examples"),
-		settings = buildSettings
+		settings = buildSettings ++ Seq(
+			libraryDependencies ++= Seq(
+				"org.apache.commons" % "commons-math3" % "3.0"
+			)
+		)
 	) dependsOn(core, cluster)
 	
 	lazy val spike = Project(
 		id = "sampler-spike",
 		base = file("sampler-spike"),
-		settings = buildSettings
+		settings = buildSettings ++ Seq(
+			libraryDependencies ++= Seq(
+				"com.typesafe" % "config" % "0.4.1",
+				"org.apache.commons" % "commons-math3" % "3.0"
+			)
+		)
 	) dependsOn core
 	
 	lazy val cluster = Project(
 		id = "sampler-cluster",
 		base = file("sampler-cluster"),
-		settings = buildSettings
+		settings = buildSettings ++ Seq(
+			libraryDependencies ++= Seq(
+				"com.typesafe" % "config" % "0.4.1",
+				"com.typesafe.akka" %% "akka-actor" % "2.1.4", 
+				"com.typesafe.akka" %% "akka-remote" % "2.1.4",
+				"com.typesafe.akka" %% "akka-cluster-experimental" % "2.1.4",
+				"com.typesafe.akka" %% "akka-slf4j" % "2.1.4", 
+				"org.apache.commons" % "commons-math3" % "3.0",
+				"com.amazonaws" % "aws-java-sdk" % "1.4.0.1"	
+			)
+		)
 	) dependsOn core
 	
 	val assySettings = assemblySettings ++ Seq(
@@ -80,14 +99,7 @@ object SamplerBuild extends Build{
 			"org.scalatest" % "scalatest_2.10" % "2.0.M5b" % "test",
 			"org.specs2" %% "specs2" % "1.13" % "test",
 			"org.mockito" % "mockito-all" % "1.9.0" %"test->default",
-			"com.typesafe" % "config" % "0.4.1",
-			"com.typesafe.akka" %% "akka-actor" % "2.1.4", 
-			"com.typesafe.akka" %% "akka-remote" % "2.1.4",
-			"com.typesafe.akka" %% "akka-cluster-experimental" % "2.1.4",
-			"com.typesafe.akka" %% "akka-slf4j" % "2.1.4", 
-			"org.apache.commons" % "commons-math3" % "3.0",
 			"ch.qos.logback" % "logback-classic" % "1.0.12",
-			"com.amazonaws" % "aws-java-sdk" % "1.4.0.1",
 			"org.scalaz" %% "scalaz-core" % "7.0.3"
 		)
 	)

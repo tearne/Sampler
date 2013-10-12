@@ -15,20 +15,15 @@
 
 package sampler.example
 
+import sampler.Implicits._
 import scala.annotation.tailrec
-import sampler.data.Samplable
-import sampler.math.Probability
-import sampler.math.Random
-import sampler.data.Empirical._
-import sampler.math.StatisticsComponent
-import sampler.r.QuickPlot
-import sampler.r.QuickPlot._
 import java.nio.file.Paths
 import java.nio.file.Files
-import sampler.data.Empirical
-import sampler.data.EmpiricalSeq
-import sampler.data.SerialSampleBuilder
-
+import sampler.math.Random
+import sampler.data.Distribution
+import sampler.data.SerialSampler
+import sampler.r.QuickPlot
+import sampler.math.Probability
 
 /*
  * Given a breeding hierarchy where donor traits are to be 
@@ -57,28 +52,28 @@ object Breeding extends App{
 	)
 	
 	def cross (a: RootPlant, b: RootPlant): IndexedSeq[Offspring] = {
-		val sampler = new Samplable[Offspring]{
+		val sampler = new Distribution[Offspring]{
 			def sample = a.crossAndSelect(b, Nil)
 		}
-		import Empirical._
-		SerialSampleBuilder(sampler)(_.size == 10000).toIndexedSeq
+		import sampler._
+		SerialSampler(sampler)(_.size == 10000).toIndexedSeq
 	}
 	
-	def backCross (a: Samplable[Offspring], traits: Seq[Trait] = Nil): IndexedSeq[Offspring] = {
+	def backCross (a: Distribution[Offspring], traits: Seq[Trait] = Nil): IndexedSeq[Offspring] = {
 		val sampler = a.filter(_.isInstanceOf[Successful]).map(a1 =>a1.crossAndSelect(prefVar, traits))
-		import Empirical._
+		import sampler._
 		implicit val r = Random
-		SerialSampleBuilder(sampler)(_.size == 10000).toIndexedSeq
+		SerialSampler(sampler)(_.size == 10000).toIndexedSeq
 	}
 	
 	
 	val d1d2_f1   	= cross(donor1, donor2)
 	println(s"size = ${d1d2_f1.size}")
 	
-	val d1d2pV_f1 	= backCross(Samplable.uniform(d1d2_f1), traits)
+	val d1d2pV_f1 	= backCross(Distribution.uniform(d1d2_f1), traits)
 	println(s"size = ${d1d2pV_f1.size}")
 
-	val bc1			= backCross(Samplable.uniform(d1d2pV_f1), traits)
+	val bc1			= backCross(Distribution.uniform(d1d2pV_f1), traits)
 	println(s"size = ${bc1.size}")
 	
 	val proportionPV = bc1.collect{case s: Successful => 
@@ -93,7 +88,7 @@ object Breeding extends App{
 	QuickPlot.writeDensity(
 		wd,
 		"Proportion",
-		proportionPV.continuousVariable("PrefVar")
+		proportionPV.continuous("PrefVar")
 	)
 }
 
@@ -139,8 +134,8 @@ object Biology{
 		val species: Species
 		def geneAt(l: Locus): RootPlant
 		
-		private def recombinationModel = Samplable.bernouliTrial(Probability(0.1))
-		private def coin = Samplable.coinToss
+		private def recombinationModel = Distribution.bernouliTrial(Probability(0.1))
+		private def coin = Distribution.coinToss
 		
 		def crossAndSelect(that: Plant, traits: Seq[Trait]): Offspring = {
 			assert(this.species == that.species)
@@ -194,7 +189,7 @@ object Biology{
 		def geneAt(l: Locus) = throw new RuntimeException("TODO, this is ugly")
 	}
 
-	implicit class RootPlantAsSamplable(p: RootPlant) extends Samplable[RootPlant]{
+	implicit class RootPlantAsDistribution(p: RootPlant) extends Distribution[RootPlant]{
 		def sample() = p
 	}
 	

@@ -6,7 +6,6 @@ import java.io.FileOutputStream
 import java.io.PrintStream
 import java.io.File
 import scala.collection.mutable.HashMap
-import com.typesafe.config.ConfigFactory
 import sampler.r.ScriptRunner
 import sampler.columnbasedtable.CSVTableWriter
 import sampler.columnbasedtable.Column

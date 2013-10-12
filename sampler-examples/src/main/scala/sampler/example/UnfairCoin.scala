@@ -20,14 +20,15 @@ package sampler.example
 import java.nio.file.{Files, Paths}
 import sampler.abc._
 import sampler.abc.population._
-import sampler.data.Empirical._
-import sampler.data.Samplable
+import sampler.Implicits._
+import sampler.data.Distribution
 import sampler.math._
 import sampler.r.QuickPlot._
 import sampler.cluster.actor.ClusterNode
 import sampler.cluster.abc.population.PopulationExecutor
 import sampler.cluster.abc.population.DispatchingPopulationBuilder
 import sampler.cluster.actor.PortFallbackSystem
+import org.apache.commons.math3.distribution.NormalDistribution
 
 object UnfairCoinApplication extends App 
 	with UnfairCoinFactory 
@@ -69,7 +70,7 @@ trait UnfairCoin {
 	writeDensity(
 			wd, 
 			"posterior", 
-			headsDensity.continuousVariable("P[Heads]")
+			headsDensity.continuous("P[Heads]")
 	)
 }
 
@@ -86,10 +87,9 @@ trait CoinModelBase extends ABCModel with Serializable{
 	val observations = Observations(10,7)
 	
     case class Parameters(pHeads: Double) extends ParametersBase with Serializable{
-      lazy val kernel = Samplable.normal(0,0.5)
-      
-      def perturb() = Parameters(pHeads + kernel.sample())
-      def perturbDensity(that: Parameters) = kernel.density(pHeads - that.pHeads)
+	  val normal = new NormalDistribution(0,0.5)
+      def perturb() = Parameters(pHeads + normal.sample)
+      def perturbDensity(that: Parameters) = normal.density(pHeads - that.pHeads)
     }
 
     case class Observations(numTrials: Int, numHeads: Int) extends ObservationsBase with Serializable{
@@ -104,7 +104,7 @@ trait CoinModelBase extends ABCModel with Serializable{
       }
     }
     
-    def samplableModel(p: Parameters, obs: Observations) = new Samplable[Output] with Serializable{
+    def modelDistribution(p: Parameters, obs: Observations) = new Distribution[Output] with Serializable{
       val r = modelRandom
       override def sample() = {
         def coinToss() = r.nextBoolean(Probability(p.pHeads))

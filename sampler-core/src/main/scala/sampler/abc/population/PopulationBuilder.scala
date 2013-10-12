@@ -23,13 +23,13 @@ import sampler.data.Empirical
 import sampler.abc.ABCParameters
 import sampler.math.Random
 import sampler.run.Aborter
-import sampler.data.Samplable
+import sampler.data.Distribution
 import sampler.abc.Particle
 import sampler.math.Partition
 import sampler.run.DetectedAbortionException
 import sampler.abc.RefinementAbortedException
 import scala.annotation.tailrec
-import sampler.data.SerialSampleBuilder
+import sampler.data.SerialSampler
 
 trait PopulationBuilder{
 	/*
@@ -67,7 +67,7 @@ object PopulationBuilder{
 		
 		val weightsTable = prevPopulation.groupBy(_.value).map{case (k,v) => (k, v.map(_.weight).sum)}.toIndexedSeq
 		val (parameters, weights) = weightsTable.unzip
-		val samplablePopulation = Samplable.fromPartition(parameters, Partition.fromWeights(weights))
+		val samplablePopulation = Distribution.fromPartition(parameters, Partition.fromWeights(weights))
 		
 		@tailrec
 		def nextParticle(failures: Int = 0): Particle[Parameters] = {
@@ -75,8 +75,8 @@ object PopulationBuilder{
 			else if(failures >= meta.particleRetries) throw new RefinementAbortedException(s"Aborted after the maximum of $failures trials")
 			else{
 				def getScores(params: Parameters): IndexedSeq[Double] = {
-					val modelWithMetric = samplableModel(params, observations).map(_.distanceTo(observations))
-					val modelWithScores = SerialSampleBuilder(modelWithMetric)(_.size == meta.reps)
+					val modelWithMetric = modelDistribution(params, observations).map(_.distanceTo(observations))
+					val modelWithScores = SerialSampler(modelWithMetric)(_.size == meta.reps)
 						.filter(_ <= tolerance)
 					modelWithScores
 				}
