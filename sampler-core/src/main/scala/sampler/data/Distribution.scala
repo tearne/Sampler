@@ -124,6 +124,10 @@ trait Distribution[+A] extends Serializable{
 }
 
 object Distribution{
+	
+	//TODO: Miles: Apply calls by name, continually uses the value.  Not sure it's
+	// very clear.  Perhaps different naming?
+	
 	/** Builds a new [[sampler.data.Distribution]] which delegates sampling to the 
 	 *  call-by-name arg.
 	 * 

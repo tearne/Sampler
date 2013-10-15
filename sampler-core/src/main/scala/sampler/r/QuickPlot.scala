@@ -10,44 +10,6 @@ import sampler.io.CSVFile
 import scala.language.implicitConversions
 
 object QuickPlot {
-  
-//  /** Allows a sequence of continuous data to be associated with a name, for use when plotting 
-//   *  
-//   *  @param dist Sequence of continuous data
-//   *  @param name Name describing the data
-//   */
-//  case class NamedDistribution[T: Fractional](dist: Seq[T], name: String)
-//
-//  /** Allows a sequence of discrete data to be associated with a name, for use when plotting
-//  *  
-//  *  @param dist Sequence of discrete data
-//  *  @param name Name describing the data
-//  */
-//  case class NamedDiscrete[T: Integral](dist: Seq[T], name: String)
-//  
-//  /** Implicit conversion from Sequence to NamedDistribution */
-//  implicit class RichDistribution[T: Fractional](val dist: Seq[T]) {
-//    /** Creates a new NamedDistribution with the given data and name
-//     *  
-//     *  @param name The name associated with the sequence of data
-//     *  @return a new NamedDistribution with the supplied data and name
-//     */
-//    def continuousVariable(name: String) = NamedDistribution(dist, name)
-//  }
-//  
-//  /** Implicit conversion from Sequence to NamedDiscrete */
-//  implicit class RichDiscrete[T: Integral](val dist: Seq[T]) {
-//	/** Creates a new NamedDiscrete with the given data and name
-//	 *  
-//	 *  @param name The name associated with the sequence of data
-//	 *  @return a new NamedDiscrete with the supplied data and name
-//	 */
-//    def discreteVariable(name: String) = NamedDiscrete(dist, name)
-//  }
-//  
-//  implicit def Seq2NamedDistribution(dist: Seq[Double]) = NamedDistribution(dist, "na"+sampler.math.Random.nextInt(1000))
-//  implicit def Seq2NamedDiscrete(dist: Seq[Int]) = NamedDiscrete(dist, "na"+sampler.math.Random.nextInt(1000))
-
   private def buildScript(fileName: String, lines: String*) = {
     val builder = new StringBuilder
     builder.append("require(ggplot2)\n")

@@ -41,7 +41,3 @@ class ParallelSampler(chunkSize: Int) extends Sampler{
 		takeMore(kickstart)
 	}
 }
-
-//trait SampleBuilderComponent{
-//	val builder: Sampler
-//}
