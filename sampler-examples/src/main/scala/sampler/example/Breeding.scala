@@ -15,26 +15,27 @@
 
 package sampler.example
 
-import sampler.Implicits._
-import scala.annotation.tailrec
-import java.nio.file.Paths
 import java.nio.file.Files
-import sampler.math.Random
+import java.nio.file.Paths
+
+import scala.annotation.tailrec
+
+import sampler.Implicits._
 import sampler.data.Distribution
 import sampler.data.SerialSampler
-import sampler.r.QuickPlot
 import sampler.math.Probability
+import sampler.math.Random
+import sampler.r.QuickPlot
 
 /*
  * Given a breeding hierarchy where donor traits are to be 
  * introduced (heterozygously) into a preferred variety, what 
- * proportion (distribution) of preferred variety is present 
- * in the final plant?
+ * is the distribution of proportion of preferred variety is 
+ * present in the final plant?
  */
 
 object Breeding extends App{
-	import sampler.example.Biology._
-	implicit val r = Random
+	import Biology._
 	
 	//Number of centimorgan per chromosome
 	val species = Species(100,200,300)
@@ -45,50 +46,42 @@ object Breeding extends App{
 	
 	//Traits which will be selected for
 	val traits = Seq(
-			Trait(0,30, donor1, species),
+			Trait(0,30, donor1, species),	//First Chromosome, 31st cM
 			Trait(1,60, donor2, species),
 			Trait(1,120, donor1, species)
-			//No traits of interest on third chromosome
+			//Nothing on third chromosome
 	)
 	
 	def cross (a: RootPlant, b: RootPlant): IndexedSeq[Offspring] = {
-		val sampler = new Distribution[Offspring]{
-			def sample = a.crossAndSelect(b, Nil)
-		}
-		import sampler._
-		SerialSampler(sampler)(_.size == 10000).toIndexedSeq
+		SerialSampler(
+			Distribution[Offspring](a.crossAndSelect(b, Nil))
+		)(_.size == 10000).toIndexedSeq
 	}
 	
 	def backCross (a: Distribution[Offspring], traits: Seq[Trait] = Nil): IndexedSeq[Offspring] = {
-		val sampler = a.filter(_.isInstanceOf[Successful]).map(a1 =>a1.crossAndSelect(prefVar, traits))
-		import sampler._
-		implicit val r = Random
-		SerialSampler(sampler)(_.size == 10000).toIndexedSeq
+		SerialSampler(
+			a.filter(_.isInstanceOf[Successful]).map(a1 =>a1.crossAndSelect(prefVar, traits))
+		)(_.size == 10000).toIndexedSeq
 	}
 	
 	
-	val d1d2_f1   	= cross(donor1, donor2)
-	println(s"size = ${d1d2_f1.size}")
-	
-	val d1d2pV_f1 	= backCross(Distribution.uniform(d1d2_f1), traits)
-	println(s"size = ${d1d2pV_f1.size}")
+	val d1d2_f1   	= cross(donor1, donor2)								//Cross without selection
+	val d1d2pV_f1 	= backCross(Distribution.uniform(d1d2_f1), traits)	//Back cross with selection
+	val bc1			= backCross(Distribution.uniform(d1d2pV_f1), traits)//Back cross with selection
 
-	val bc1			= backCross(Distribution.uniform(d1d2pV_f1), traits)
-	println(s"size = ${bc1.size}")
-	
 	val proportionPV = bc1.collect{case s: Successful => 
 		s.countOf(prefVar).toDouble / species.numGenes
 	}
 	
 	val probSuccess = 1 - bc1.toEmpiricalSeq.probabilityTable(Failure)
-	println(s"Prob success in last cross $probSuccess")
+	println(s"Probability of sekectuib success in final cross $probSuccess")
 	
 	val wd = Paths.get("results","Breeding")
 	Files.createDirectories(wd)
 	QuickPlot.writeDensity(
 		wd,
 		"Proportion",
-		proportionPV.continuous("PrefVar")
+		proportionPV.continuous("Proportion PV in plant")
 	)
 }
 
@@ -106,7 +99,8 @@ object Biology{
 		val nextCM = if(cM  == chromosomeLengths(chromosome) - 1) None else Some(cM + 1)
 	}
 
-	case class Trait(chromosome: Int, cM: Int, gene: RootPlant, species: Species) //Always assume heterozygous for now
+	//Always assume heterozygous selection
+	case class Trait(chromosome: Int, cM: Int, gene: RootPlant, species: Species)
 	
 	case class Chromatid(genes: Seq[RootPlant]){
 		val size = genes.size
