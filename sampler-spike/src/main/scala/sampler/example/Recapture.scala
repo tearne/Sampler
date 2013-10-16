@@ -26,8 +26,6 @@ import java.nio.file.{Paths, Files}
 import sampler.io.CSVFile
 import sampler.r.ScriptRunner
 import org.apache.commons.math3.distribution.BetaDistribution
-import sampler.run.SerialRunner
-import sampler.run.Aborter
 import sampler.abc.population.LocalPopulationBuilder
 import sampler.abc.population.PopulationBuilder
 import org.apache.commons.math3.distribution.NormalDistribution

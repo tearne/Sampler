@@ -17,15 +17,14 @@ package sampler.example
 
 import java.nio.file.Files
 import java.nio.file.Paths
-
 import scala.annotation.tailrec
-
 import sampler.Implicits._
 import sampler.data.Distribution
 import sampler.data.SerialSampler
 import sampler.math.Probability
 import sampler.math.Random
 import sampler.r.QuickPlot
+import sampler.math.Probability.toDouble
 
 /*
  * Given a breeding hierarchy where donor traits are to be 
@@ -66,7 +65,7 @@ object Breeding extends App{
 	
 	
 	val d1d2_f1   	= cross(donor1, donor2)								//Cross without selection
-	val d1d2pV_f1 	= backCross(Distribution.uniform(d1d2_f1), traits)	//Back cross with selection
+	val d1d2pV_f1 	= backCross(Distribution.uniform(d1d2_f1)(r), traits)	//Back cross with selection
 	val bc1			= backCross(Distribution.uniform(d1d2pV_f1), traits)//Back cross with selection
 
 	val proportionPV = bc1.collect{case s: Successful => 

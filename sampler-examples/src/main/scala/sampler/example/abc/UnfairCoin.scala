@@ -15,20 +15,27 @@
  * limitations under the License.
  */
 
-package sampler.example
+package sampler.example.abc
 
-import java.nio.file.{Files, Paths}
-import sampler.abc._
-import sampler.abc.population._
-import sampler.Implicits._
-import sampler.data.Distribution
-import sampler.math._
-import sampler.r.QuickPlot._
-import sampler.cluster.actor.ClusterNode
-import sampler.cluster.abc.population.PopulationExecutor
-import sampler.cluster.abc.population.DispatchingPopulationBuilder
-import sampler.cluster.actor.PortFallbackSystem
+import java.nio.file.Files
+import java.nio.file.Paths
+
 import org.apache.commons.math3.distribution.NormalDistribution
+
+import sampler.Implicits.RichFractionalSeq
+import sampler.abc.ABCMethod
+import sampler.abc.ABCModel
+import sampler.abc.ABCParameters
+import sampler.abc.Prior
+import sampler.abc.population.LocalPopulationBuilder
+import sampler.abc.population.PopulationBuilder
+import sampler.cluster.abc.population.PopulationExecutor
+import sampler.cluster.actor.ClusterNode
+import sampler.data.Distribution
+import sampler.math.Probability
+import sampler.math.Random
+import sampler.math.StatisticsComponent
+import sampler.r.QuickPlot.writeDensity
 
 object UnfairCoinApplication extends App 
 	with UnfairCoinFactory 

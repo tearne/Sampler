@@ -18,23 +18,25 @@
 package sampler.example
 
 import sampler.Implicits._
-import sampler.data.Distribution
-import scala.collection.mutable.ListBuffer
-import sampler.io.CSVFile
-import java.nio.file.{Files,Paths}
-import scala.collection.parallel.ParSeq
-import sampler.math.StatisticsComponent
-import sampler.data.ParallelSampler
+import java.nio.file.Files
+import java.nio.file.Paths
 import scala.collection.GenSeq
-import sampler.math.Random
+import scala.collection.mutable.ListBuffer
+import sampler.data.Distribution
+import sampler.data.ParallelSampler
+import sampler.io.CSVFile
 import sampler.math.Probability
+import sampler.math.Probability.toDouble
+import sampler.math.Random
+import sampler.math.StatisticsComponent
+
+/*
+ * In a population of a given size, and sampling with replacement,
+ * how many samples should be taken to be % confident of observing
+ * the correct population prevalence (within specific precision)?
+ */
 
 object OnePopulation extends App with StatisticsComponent {
-	/*
-	 * In a population of a given size, and sampling with replacement,
-	 * how many samples should be taken to be % confident of observing
-	 * the correct population prevalence (within specific precision)?
-	 */
 	
 	val start = System.currentTimeMillis
 	

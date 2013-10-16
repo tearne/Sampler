@@ -14,31 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package sampler.example
+package sampler.example.abc
+
+import java.nio.file.Files
+import java.nio.file.Paths
+
+import scala.Array.canBuildFrom
+import scala.collection.mutable.Buffer
+
+import org.apache.commons.math3.distribution.NormalDistribution
+import org.apache.commons.math3.ode.FirstOrderDifferentialEquations
+import org.apache.commons.math3.ode.nonstiff.DormandPrince853Integrator
+import org.apache.commons.math3.ode.sampling.FixedStepHandler
+import org.apache.commons.math3.ode.sampling.StepNormalizer
 
 import sampler.Implicits._
-import sampler.abc.{ABCModel, ABCMethod}
-import sampler.math.Random
+import sampler.abc.ABCMethod
+import sampler.abc.ABCModel
 import sampler.abc.ABCParameters
 import sampler.abc.Prior
-import sampler.data.Samplable
-import sampler.r.ScriptRunner
-import sampler.math.Probability
-import java.nio.file.{Paths, Files}
-import sampler.math.StatisticsComponent
 import sampler.abc.population.LocalPopulationBuilder
-import org.apache.commons.math3.distribution.NormalDistribution
 import sampler.data.Distribution
-import sampler.r.QuickPlot
 import sampler.io.CSVFile
-import org.apache.commons.math3.ode.FirstOrderDifferentialEquations
-import scala.collection.mutable.Buffer
-import org.apache.commons.math3.ode.sampling.{FixedStepHandler,StepNormalizer}
-import org.apache.commons.math3.ode.nonstiff.DormandPrince853Integrator
+import sampler.math.Probability
+import sampler.math.Random
+import sampler.math.StatisticsComponent
+import sampler.r.ScriptRunner
 
 object FlockMortality extends App{
 	import FlockMortalityModel._
-	val wd = Paths.get("results","FlockMortality")
+	val wd = Paths.get("results").resolve("FlockMortality")
 	Files.createDirectories(wd)
 	
 	val abcParams = new ABCParameters(
