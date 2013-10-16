@@ -20,7 +20,7 @@ class EmpiricalSeqTest extends AssertionsForJUnit with ShouldMatchers {
 
 	val seq1 = IndexedSeq(1,1,2,2,3,3,4,4)
   
-	es = seq1.toEmpiricalSeq
+	es = seq1.toEmpirical
   }
   
   @Test def numObservations {
@@ -52,7 +52,7 @@ class EmpiricalSeqTest extends AssertionsForJUnit with ShouldMatchers {
   
   @Test def empiricalSeqCanEqualAnotherEmpSeqOnly {
 	val es2 = es.++(IndexedSeq(5,6,7,8))
-	val et = IndexedSeq(1,2,3,4).toEmpiricalTable
+	val et = Map(1 -> 1,2 -> 1,3 -> 1,4 -> 1).toEmpirical
     
 	assert(es.canEqual(es2))
 	assertFalse(es.equals(es2))
@@ -61,7 +61,7 @@ class EmpiricalSeqTest extends AssertionsForJUnit with ShouldMatchers {
   }
   
   @Test def empiricalSeqIsEqual {
-    val es2 = IndexedSeq(1,2,3,4).toEmpiricalSeq
+    val es2 = IndexedSeq(1,2,3,4).toEmpirical
     
     assert(es.equals(es2))
   }
