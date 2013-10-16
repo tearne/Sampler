@@ -23,9 +23,9 @@ class EmpiricalTableTest extends AssertionsForJUnit with ShouldMatchers {
 	//					6		    3
 	//				  5,6		  2,3
 	//	4,5,6		4,5,6		1,2,3,4
-    d1 = Map(4 -> 1, 5 -> 1, 6 -> 1).toEmpirical
-	d2 = Map(4 -> 1, 5 -> 2, 6 -> 3).toEmpirical
-	d3 = Map(1 -> 1, 2 -> 2, 3 -> 3, 4 -> 1).toEmpirical
+    d1 = IndexedSeq(4, 5, 6).toEmpiricalTable
+	d2 = IndexedSeq(4, 5,5, 6,6,6).toEmpiricalTable
+	d3 = IndexedSeq(1, 2,2, 3,3,3, 4).toEmpiricalTable
   }
   
   @Test def numObservations {
@@ -66,8 +66,8 @@ class EmpiricalTableTest extends AssertionsForJUnit with ShouldMatchers {
   }
   
   @Test def overridesHashCodeAndEquals {
-    val d1a = Map(4 -> 1, 5 -> 1, 6 -> 1).toEmpirical
-    val empSeq = IndexedSeq(1,2,3).toEmpirical
+    val d1a = IndexedSeq(4,5,6).toEmpiricalTable
+    val empSeq = IndexedSeq(1,2,3).toEmpiricalSeq
 
     assert(d1.canEqual(d2))
     assertFalse(d1.canEqual(empSeq))

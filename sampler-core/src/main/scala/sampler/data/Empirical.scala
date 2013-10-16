@@ -92,11 +92,14 @@ trait Empirical[A] extends Serializable{
 trait ToEmpirical {
 	implicit class RichIndexedSeq[A](genSeq: GenSeq[A]) {
 		val indSeq = genSeq.toIndexedSeq
-		def toEmpirical = new EmpiricalSeq[A](indSeq)
+		def toEmpiricalSeq = new EmpiricalSeq[A](indSeq)
+		def toEmpiricalTable = new EmpiricalTable[A](
+			indSeq.groupBy(identity).map{case (k,v) => k -> v.size}
+		)
 	}
 	
 	implicit class RichMapInt[A](table: GenMap[A,Int]) {
-		def toEmpirical = {
+		def toEmpiricalTable = {
 			if(table.values.find(_ <= 0).isDefined) throw new UnsupportedOperationException("Cannot convert to EmpiricalTable, non-positive counts found")
 			else new EmpiricalTable[A](table.seq.toMap)
 		}
