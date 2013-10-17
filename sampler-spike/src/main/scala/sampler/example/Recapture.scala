@@ -62,7 +62,6 @@ trait Recapture{
 	CSVFile.write(
 			wd.resolve("recapture.csv"), 
 			finalPopulation.map{param => s"${param.populationSize},${param.prevalence}"},
-			overwrite = true,
 			header = "popSize, prev".split(",")
 	)
 	

@@ -69,7 +69,6 @@ object FlockMortality extends App{
 	CSVFile.write(
 			wd.resolve("obseravtions.csv"), 
 			observations.dailyEggs.zip(observations.dailyEggs).map{case (e,d) => s"$e,$d"}, 
-			overwrite = true, 
 			header = Seq("Eggs", "Dead")
 	)
 	
@@ -77,7 +76,6 @@ object FlockMortality extends App{
 	CSVFile.write(
 			wd.resolve(csvName),
 			finalPopulation.map{_.toCSV},
-			overwrite = true,
 			header = Parameters.header
 	)
 	
@@ -116,7 +114,6 @@ object FlockMortality extends App{
 	CSVFile.write(
 			wd.resolve("fitted.csv"),
 			fittedData.map(_.toCSV),
-			overwrite = true,
 			header = Fitted.header
 	)
 	

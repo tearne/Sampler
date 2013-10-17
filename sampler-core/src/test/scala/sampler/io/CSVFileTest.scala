@@ -28,6 +28,7 @@ import java.io.FileNotFoundException
 import sampler.math.Probability
 import java.nio.file.Files
 import scala.io.Source
+import java.nio.file.StandardOpenOption
 
 class CSVFileTest extends AssertionsForJUnit with ShouldMatchers {
   val dir = Paths.get("src", "test", "resources", "data")
@@ -44,6 +45,18 @@ class CSVFileTest extends AssertionsForJUnit with ShouldMatchers {
   				toks(4).toDouble
   		)
   	}
+  }
+  
+  val file = dir.resolve("CSVFileTest.csv")
+  
+  @Before
+  def before {
+  	if(Files.exists(file)) Files.delete(file)
+  }
+  
+  @After
+  def tearDown {
+    Files.deleteIfExists(file)
   }
   
   @Test def readWithHeader {
@@ -63,8 +76,6 @@ class CSVFileTest extends AssertionsForJUnit with ShouldMatchers {
   }
   
   @Test def writingAndAppendingWithHeader {
-  	val filePath = dir.resolve("writingAndAppendingWithHeader.csv")
-  	if(Files.exists(filePath)) Files.delete(filePath)
   	val testHeader = Seq("Int", "String", "Boolean")
   	val testData1 = 
 """1,Ayeeee,False
@@ -76,12 +87,11 @@ class CSVFileTest extends AssertionsForJUnit with ShouldMatchers {
 4 ,Dea ,False
 """
   	try{
-  		CSVFile.write(filePath, testData1.lines.toIterable, header = testHeader)
-  		CSVFile.write(filePath, testData2.lines.toIterable, append = true, header = testHeader)
+  		CSVFile.write(file, testData1.lines.toIterable, testHeader)
+  		CSVFile.write(file, testData2.lines.toIterable, testHeader, StandardOpenOption.APPEND)
   	}
   	
-  	val lines = Source.fromFile(filePath.toFile()).getLines.toIndexedSeq
-  	Files.delete(filePath)
+  	val lines = Source.fromFile(file.toFile()).getLines.toIndexedSeq
   	
   	assert(lines(0) === "Int,String,Boolean")
   	assert(lines(1) === "1,Ayeeee,False")
@@ -91,37 +101,32 @@ class CSVFileTest extends AssertionsForJUnit with ShouldMatchers {
   	assert(lines.size === 5)
   }
   
-  @Test def exceptionIfFileExistsAndNoAppendOrOverwrite {
-  	val filePath = dir.resolve("exceptionIfFileExistsAndNoAppendOrOverwrite.csv")
-  	if(Files.exists(filePath)) Files.delete(filePath)
-  	val testHeader = Seq("Int", "String", "Boolean")
-  	val testData = 
-"""1,Ayeeee,False
-2 ,Bee ,True
-"""
-  		
-  	CSVFile.write(filePath, testData.lines.toIterable, header = testHeader)
-  	
-  	intercept[AssertionError]{
-  		CSVFile.write(filePath, testData.lines.toIterable)
-  	}
-  	
-  	Files.delete(filePath)
-  }
-  
   @Test def exceptionIfWriteWithNonMatchingHeader {
-  	val filePath = dir.resolve("exceptionIfWriteWithNonMatchingHeader.csv")
   	val testHeader = Seq("Int", "String", "Boolean")
   	val testData1 = 
 """1,Ayeeee,False
 2 ,Bee ,True
 """
-  	CSVFile.write(filePath, testData1.lines.toIterable, header = testHeader)
+  	CSVFile.write(file, testData1.lines.toIterable, header = testHeader)
   	
   	intercept[AssertionError]{
-  		CSVFile.write(filePath, Iterable("line1", "line2"), append = true, header = Seq("OneBigColumn"))
+  		CSVFile.write(file, Iterable("line1", "line2"), Seq("OneBigColumn"), StandardOpenOption.APPEND)
   	}
-  	
-  	Files.delete(filePath)
+  }
+  
+  @Test def overwritWithFewerLinesRemovesAllPreviousLines {
+  	val header = Seq("Numbers")
+    val data1 = Seq("1","2","3")
+    val data2 = Seq("1","2")
+      
+    CSVFile.write(file, data1, header)
+    CSVFile.write(file, data2, header)
+
+    val writtenLines = Source.fromFile(file.toFile).getLines.toIndexedSeq
+    
+    assert(writtenLines(0) === "Numbers")
+    assert(writtenLines(1).toInt === 1)
+    assert(writtenLines(2).toInt === 2)
+    assert(writtenLines.length === 3)
   }
 }

@@ -20,6 +20,8 @@ package sampler.io
 import java.nio.file.{Path, Files, StandardOpenOption}
 import java.nio.charset.Charset
 import scala.io.Source
+import java.nio.file.OpenOption
+import java.nio.file.StandardOpenOption._
 
 object CSVFile {
 	lazy val newLine = System.getProperty("line.separator")
@@ -34,36 +36,27 @@ object CSVFile {
 		lines.map(l => parser(l))
 	}
 	
-	// TODO change append and overwrite 
-	// TODO Bug when overwriting with fewer lines
-	def write(file: Path, data: Traversable[String], append: Boolean = false, overwrite: Boolean = false, header: Seq[String] = Seq.empty) {
-		assert(!(append && overwrite), "Can't both append and overwrite")
+	def write(file: Path, data: Traversable[String], header: Seq[String], options: OpenOption*) {
+		assert(!(options.contains(APPEND) && options.contains(TRUNCATE_EXISTING)), "Can't both append and overwrite")
 		
-		val lines = if(append){
+		val lines = if(options.contains(APPEND)){
 			if(!header.isEmpty) {
 				checkHeader(header, Source.fromFile(file.toFile()).getLines.next)
 			}
 			data			
-		} else if(overwrite){
+		} else if(options.contains(TRUNCATE_EXISTING)){
 			Iterator(header.reduce(_ + "," + _)) ++ data
 		} else {
-			assert(!Files.exists(file), "File exists but no overwrite or append option set")
 			if(header.isEmpty) data
 			else Iterator(header.reduce(_ + "," + _)) ++ data
 		}
 		
-		
-//		if(append && !header.isEmpty) checkHeader(header, Source.fromFile(file.toFile()).getLines.next)
-//		val toWrite = 
-//			if(append) data
-//			else if(!header.isEmpty) Iterator(header.reduce(_ + "," + _)) ++ data
-//			else data
-			
 		val writer = Files.newBufferedWriter(
 				file, 
 				Charset.defaultCharset(), 
-				if(append) StandardOpenOption.APPEND else StandardOpenOption.CREATE
+				options:_*
 		)
+		
 		lines.foreach{line =>
 			writer.append(line)
 			writer.newLine()
