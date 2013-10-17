@@ -23,9 +23,7 @@ class ScriptRunner {
 		val fullScript = new StringBuilder()
 		
 		fullScript.append("setwd(\""+parentPath+"\")\n")
-		fullScript.append("myFunction <- function() {\n")
 		fullScript.append(script + "\n")
-		fullScript.append("}\ninvisible(suppressMessages(myFunction()))")
 		
 		writer.write(fullScript.toString)
 		writer.close
