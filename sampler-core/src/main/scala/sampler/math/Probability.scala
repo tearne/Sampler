@@ -45,11 +45,13 @@ case class Probability(val value: Double){
 }
 
 /** Factory for creating a probability of zero */
-object Probability{
+object Probability extends ProbabilityImplicits{
     
     /** Instance with a value of 0.0 */
 	val zero = Probability(0)
+}
 
+trait ProbabilityImplicits{
 	/** Implicit conversion of value to a Double */
 	implicit def toDouble(p: Probability): Double = p.value
 	

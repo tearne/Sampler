@@ -19,8 +19,10 @@ package sampler
 
 import sampler.data.{ToEmpirical, ToSamplable}
 import sampler.r.ToNamedSeq
+import sampler.math.ProbabilityImplicits
 
 object Implicits 
 	extends ToEmpirical
 	with ToSamplable
 	with ToNamedSeq
+	with ProbabilityImplicits
