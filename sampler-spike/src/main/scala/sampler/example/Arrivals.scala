@@ -189,7 +189,6 @@ object Arrivals extends App{
 	CSVFile.write(
 		outPath, 
 		longFormatResults.map(_.toCSV), 
-		overwrite = true, 
 		header = Seq("Sim", "Hour", "QSize")
 	)
 	

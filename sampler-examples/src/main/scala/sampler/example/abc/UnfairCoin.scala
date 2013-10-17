@@ -33,7 +33,6 @@ import sampler.data.Distribution
 import sampler.math.Probability
 import sampler.math.Random
 import sampler.r.QuickPlot.writeDensity
-import sampler.math.Statistics
 import sampler.math.StatisticsComponent
 
 object UnfairCoinApplication extends App 

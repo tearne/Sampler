@@ -39,7 +39,7 @@ object QuickPlot {
 	  data.flatMap{case NamedSeqFractional(dist, name) => dist.map{name + "," + _.toDouble}}
 	}
 	
-	CSVFile.write(path.resolve(fileName+".csv"), melted(data), false, true, header)
+	CSVFile.write(path.resolve(fileName+".csv"), melted(data), header)
 	  
 	val line1 = "data <- read.csv(\"" + fileName + ".csv\")\n"
 	val line2 = "ggplot(data, aes(x=value, colour=variable)) + geom_density()\n"
@@ -62,7 +62,7 @@ object QuickPlot {
 	  data.flatMap{case NamedSeqIntegral(dist, name) => dist.map{name + "," + _}}
 	}
     
-    CSVFile.write(path.resolve(fileName+".csv"), melted(data), false, true, header)
+    CSVFile.write(path.resolve(fileName+".csv"), melted(data), header)
 
     val line1 = "data <- read.csv(\"" + fileName + ".csv\")\n"
     val line2 = "ggplot(data, aes(x=value, fill = variable)) + geom_bar(position=\"dodge\")\n"

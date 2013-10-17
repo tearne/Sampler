@@ -103,7 +103,6 @@ object OnePopulation extends App with StatisticsComponent {
 	CSVFile.write(
 			wd.resolve("OnePopulation.csv"), 
 			sampleSizeList.toList zip confidenceList map{case (s,c) => s"$s,Sc"}, 
-			overwrite = true, 
 			header = "SampleSize, Confidence".split(",")
 	)
 	
