@@ -112,5 +112,5 @@ trait StatisticsComponent{
   }
 }
 
-object StatisticsComponent extends StatisticsComponent with Serializable
+object Statistics extends StatisticsComponent with Serializable
 

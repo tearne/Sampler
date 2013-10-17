@@ -18,16 +18,13 @@ package sampler.example.abc
 
 import java.nio.file.Files
 import java.nio.file.Paths
-
 import scala.Array.canBuildFrom
 import scala.collection.mutable.Buffer
-
 import org.apache.commons.math3.distribution.NormalDistribution
 import org.apache.commons.math3.ode.FirstOrderDifferentialEquations
 import org.apache.commons.math3.ode.nonstiff.DormandPrince853Integrator
 import org.apache.commons.math3.ode.sampling.FixedStepHandler
 import org.apache.commons.math3.ode.sampling.StepNormalizer
-
 import sampler.Implicits._
 import sampler.abc.ABCMethod
 import sampler.abc.ABCModel
@@ -38,8 +35,8 @@ import sampler.data.Distribution
 import sampler.io.CSVFile
 import sampler.math.Probability
 import sampler.math.Random
-import sampler.math.StatisticsComponent
 import sampler.r.ScriptRunner
+import sampler.math.StatisticsComponent
 
 object FlockMortality extends App{
 	import FlockMortalityModel._
@@ -86,14 +83,13 @@ object FlockMortality extends App{
 	
 	//Get median fit data
 	val half = Probability(0.5)
-	val stats = StatisticsComponent
-	val medBeta = stats.quantile(finalPopulation.map(_.beta).toEmpiricalSeq, half)
-	val medEta = stats.quantile(finalPopulation.map(_.eta).toEmpiricalSeq, half)
-	val medGamma = stats.quantile(finalPopulation.map(_.gamma).toEmpiricalSeq, half)
-	val medDelta = stats.quantile(finalPopulation.map(_.delta).toEmpiricalSeq, half)
-	val medSigma = stats.quantile(finalPopulation.map(_.sigma).toEmpiricalSeq, half)
-	val medSigma2 = stats.quantile(finalPopulation.map(_.sigma2).toEmpiricalSeq, half)
-	val medOffset = stats.quantile(finalPopulation.map(_.offset).map(_.toDouble).toEmpiricalTable, half).toInt
+	val medBeta = quantile(finalPopulation.map(_.beta).toEmpiricalSeq, half)
+	val medEta = quantile(finalPopulation.map(_.eta).toEmpiricalSeq, half)
+	val medGamma = quantile(finalPopulation.map(_.gamma).toEmpiricalSeq, half)
+	val medDelta = quantile(finalPopulation.map(_.delta).toEmpiricalSeq, half)
+	val medSigma = quantile(finalPopulation.map(_.sigma).toEmpiricalSeq, half)
+	val medSigma2 = quantile(finalPopulation.map(_.sigma2).toEmpiricalSeq, half)
+	val medOffset = quantile(finalPopulation.map(_.offset).map(_.toDouble).toEmpiricalTable, half).toInt
 	
 	val medParams = Parameters(medBeta, medEta, medGamma, medDelta, medSigma, medSigma2, medOffset)
 	val fitted = modelDistribution(medParams, observations).sample
@@ -153,10 +149,10 @@ dev.off()
 	
 }
 
-object FlockMortalityModel extends ABCModel{
-	val statistics = StatisticsComponent
+object FlockMortalityModel extends ABCModel with StatisticsComponent{
 	implicit val abcRandom = Random
 	val modelRandom = Random
+	val statistics = sampler.math.Statistics
 	
 	val observations = Observations(
 		dailyEggs = List(2200,2578,2654,2167,2210,2444,2182,2152,2208,2100,1644,1872,1092,1236,1116,1200,1025,1172,1096,1122),

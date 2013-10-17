@@ -10,7 +10,7 @@ import sampler.data.ParallelSampler
 import sampler.math.Probability
 import sampler.math.Probability.toDouble
 import sampler.math.Random
-import sampler.math.StatisticsComponent
+import sampler.math.Statistics.maxDistance
 
 /* 
  *  Given an imperfect test characterised by empirical data, how many samples should be taken to
@@ -39,7 +39,7 @@ object SampleSizeUncertainty extends App{
 				val chunkSize = 1e4.toInt
 				def stopCondition(soFar: GenSeq[Boolean]) = {
 					//TODO make simple metrics like this available off the shelf?
-					val distance = StatisticsComponent.maxDistance(
+					val distance = maxDistance(
 				    	    soFar.toEmpiricalTable, 
 				    	    soFar.take(soFar.size - (chunkSize-1)).toEmpiricalTable	// TODO confirm -1 change
 			    	)

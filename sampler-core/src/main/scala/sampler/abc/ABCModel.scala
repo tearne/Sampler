@@ -21,8 +21,6 @@ import sampler.math.{ Random, StatisticsComponent }
 import sampler.data.Distribution
 
 trait ABCModel{
-	val statistics: StatisticsComponent
-
 	type Parameters <: ParametersBase
 	protected trait ParametersBase {
 		def perturb(): Parameters

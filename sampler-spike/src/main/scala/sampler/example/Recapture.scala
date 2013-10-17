@@ -82,13 +82,11 @@ dev.off()
 	ScriptRunner.apply(rScript, wd.resolve("script.r"))
 }
 
-object RecaptureModel extends RecaptureModelBase {
+object RecaptureModel extends RecaptureModelBase with StatisticsComponent{
   val modelRandom = Random
 }
 
 trait RecaptureModelBase extends ABCModel with Serializable{
-	val statistics = StatisticsComponent
-
   implicit val modelRandom: Random
 	
 	val numberTagged = 50

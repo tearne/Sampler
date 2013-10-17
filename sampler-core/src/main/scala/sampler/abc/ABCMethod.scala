@@ -27,8 +27,9 @@ import sampler.Implicits._
 import sampler.math.Probability
 import sampler.math.Random
 import sampler.abc.population.PopulationBuilder
+import sampler.math.StatisticsComponent
 
-class ABCMethod[M <: ABCModel](val model: M, meta: ABCParameters, implicit val random: Random) extends Serializable{
+class ABCMethod[M <: ABCModel with StatisticsComponent](val model: M, meta: ABCParameters, implicit val random: Random) extends Serializable{
 	import model._
 	val log = LoggerFactory.getLogger(this.getClass)
 	
@@ -87,7 +88,7 @@ class ABCMethod[M <: ABCModel](val model: M, meta: ABCParameters, implicit val r
 					case Some(newPop) =>
 						//Next tolerance is the median of the previous best for each particle
 						val fit = newPop.map(_.bestFit)
-						val medianTolerance = model.statistics.quantile(newPop.map(_.bestFit).toEmpiricalSeq, Probability(0.5))
+						val medianTolerance = quantile(newPop.map(_.bestFit).toEmpiricalSeq, Probability(0.5))
 						val newTolerance = 
 							if(medianTolerance == 0) {
 								log.warn("Median tolerance from last generation evaluated to 0, half the previous tolerance will be used instead.")

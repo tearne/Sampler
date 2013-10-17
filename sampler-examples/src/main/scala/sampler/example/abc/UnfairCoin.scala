@@ -19,9 +19,7 @@ package sampler.example.abc
 
 import java.nio.file.Files
 import java.nio.file.Paths
-
 import org.apache.commons.math3.distribution.NormalDistribution
-
 import sampler.Implicits.RichFractionalSeq
 import sampler.abc.ABCMethod
 import sampler.abc.ABCModel
@@ -34,8 +32,9 @@ import sampler.cluster.actor.ClusterNode
 import sampler.data.Distribution
 import sampler.math.Probability
 import sampler.math.Random
-import sampler.math.StatisticsComponent
 import sampler.r.QuickPlot.writeDensity
+import sampler.math.Statistics
+import sampler.math.StatisticsComponent
 
 object UnfairCoinApplication extends App 
 	with UnfairCoinFactory 
@@ -81,10 +80,9 @@ trait UnfairCoin {
 	)
 }
 
-object CoinModel extends CoinModelBase {
+object CoinModel extends CoinModelBase with StatisticsComponent{
   val abcRandom = Random
   val modelRandom = Random
-  val statistics = StatisticsComponent
 }
 
 trait CoinModelBase extends ABCModel with Serializable{
