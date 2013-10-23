@@ -11,6 +11,7 @@ import sampler.abc.population.PopulationBuilder
 import sampler.data.Distribution
 import sampler.math.StatisticsComponent
 import org.junit.Before
+import sampler.abc.population.LocalPopulationBuilder
 
 class ABCMethodTest extends AssertionsForJUnit {
 
@@ -87,18 +88,20 @@ class ABCMethodTest extends AssertionsForJUnit {
   def runOneRefinementWithCorrectArguments {
     val myModel = new AlwaysOneModel
     
-    val popBuilder = mock[PopulationBuilder]
+    import myModel._
+    val pop = mock[Population]
+    
+    val popBuilder = mock[LocalPopulationBuilder]
     
     val meta = ABCParameters(1, 1, 1e6, 1, 1, 1)
     
     val abcMethod = new ABCMethod(myModel, meta, r)
     
-    val p1 = abcMethod.init
+   val p1 = abcMethod.init
     
     abcMethod.evolveOnce(p1, popBuilder, meta.tolerance)
     
-//    Issue with parallelisation?
-//    verify(popBuilder).run(myModel)(p1, List(1), 1e6, meta, r)
+    when(popBuilder.run(myModel)(p1, List(1), 1e6, meta, r)).thenReturn(null)
   }
   
   @Test
