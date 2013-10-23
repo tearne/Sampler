@@ -26,22 +26,27 @@ import java.nio.file.StandardOpenOption._
 object CSVFile {
 	lazy val newLine = System.getProperty("line.separator")
 		
+	def header(filePath: Path): IndexedSeq[String] = {
+		Source.fromFile(filePath.toFile).getLines.next.split(',').map(_.trim)
+	}
+	
 	// TODO read only one column from header
-	def read[T](file: Path, parser: String => T, header: Seq[String]): Iterator[T] = read(file, parser, Some(header))	
-	def read[T](file: Path, parser: String => T, header: Option[Seq[String]]): Iterator[T] = {
-		val lines = Source.fromFile(file.toFile()).getLines
+	def read[T](filePath: Path, parser: String => T, header: Seq[String]): Iterator[T] = 
+		read(filePath, parser, Some(header))
+	def read[T](filePath: Path, parser: String => T, header: Option[Seq[String]]): Iterator[T] = {
+		val lines = Source.fromFile(filePath.toFile()).getLines
 		
 		if(header.isDefined) checkHeader(header.get, lines.next)
 		
 		lines.map(l => parser(l))
 	}
 	
-	def write(file: Path, data: Traversable[String], header: Seq[String], options: OpenOption*) {
+	def write(filePath: Path, data: Traversable[String], header: Seq[String], options: OpenOption*) {
 		assert(!(options.contains(APPEND) && options.contains(TRUNCATE_EXISTING)), "Can't both append and overwrite")
 		
 		val lines = if(options.contains(APPEND)){
 			if(!header.isEmpty) {
-				checkHeader(header, Source.fromFile(file.toFile()).getLines.next)
+				checkHeader(header, Source.fromFile(filePath.toFile()).getLines.next)
 			}
 			data			
 		} else if(options.contains(TRUNCATE_EXISTING)){
@@ -52,7 +57,7 @@ object CSVFile {
 		}
 		
 		val writer = Files.newBufferedWriter(
-				file, 
+				filePath, 
 				Charset.defaultCharset(), 
 				options:_*
 		)

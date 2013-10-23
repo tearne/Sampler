@@ -129,4 +129,9 @@ class CSVFileTest extends AssertionsForJUnit with ShouldMatchers {
     assert(writtenLines(2).toInt === 2)
     assert(writtenLines.length === 3)
   }
+  
+  @Test def gettingHeaderNames {
+  	val header: IndexedSeq[String] = CSVFile.header(dir.resolve("testTable.csv"))
+  	assert(header === IndexedSeq("MyInts", "TheirBools", "Strings", "Probs", "Doubles"))
+  }
 }
