@@ -4,6 +4,7 @@ import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Test
 import org.scalatest.mock.MockitoSugar._
 import org.mockito.Mockito.when
+import org.mockito.Mockito.verify
 import org.mockito.Matchers.anyObject
 import sampler.math.Random
 import sampler.abc.population.PopulationBuilder
@@ -67,7 +68,6 @@ class ABCMethodTest extends AssertionsForJUnit {
   def runReturnsInitialPopluationWhenRefinementsIsZero {
     val myModel = new AlwaysOneModel
     
-    val model = mock[ABCModel]
     val meta = mock[ABCParameters]
     val popBuilder = mock[PopulationBuilder]
     
@@ -81,5 +81,33 @@ class ABCMethodTest extends AssertionsForJUnit {
     val p2 = abcMethod.run(p1, popBuilder).getOrElse(throw new AssertionError("No population returned"))
     
     assert(p2 === p1)
+  }
+  
+  @Test
+  def runOneRefinementWithCorrectArguments {
+    val myModel = new AlwaysOneModel
+    
+    val popBuilder = mock[PopulationBuilder]
+    
+    val meta = ABCParameters(1, 1, 1e6, 1, 1, 1)
+    
+    val abcMethod = new ABCMethod(myModel, meta, r)
+    
+    val p1 = abcMethod.init
+    
+    abcMethod.evolveOnce(p1, popBuilder, meta.tolerance)
+    
+//    Issue with parallelisation?
+//    verify(popBuilder).run(myModel)(p1, List(1), 1e6, meta, r)
+  }
+  
+  @Test
+  def testCollectionOfLeftAndRightsInEvolveOnce {
+//    TODO
+  }
+  
+  @Test
+  def testCorrectChangingOfToleranceAsRefinementsGoOn {
+//    TODO
   }
 }
