@@ -75,6 +75,21 @@ class CSVFileTest extends AssertionsForJUnit with ShouldMatchers {
   	}
   }
   
+  @Test def exceptionIfHeaderWrongSize {
+  	  	val testData = 
+"""1,Ayeeee,False
+2 ,Bee ,True
+"""
+  	
+  	intercept[AssertionError]{CSVFile
+    		.write(file, testData.lines.toIterable, Seq("Col1", "Col2", "Col3", "Col4"))
+  	}
+  	  	
+  	intercept[AssertionError]{CSVFile
+    		.write(file, testData.lines.toIterable, Seq("Col1", "Col2"))
+  	}
+  }
+  
   @Test def writingAndAppendingWithHeader {
   	val testHeader = Seq("Int", "String", "Boolean")
   	val testData1 = 

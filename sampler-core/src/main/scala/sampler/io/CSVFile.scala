@@ -63,6 +63,7 @@ object CSVFile {
 		)
 		
 		lines.foreach{line =>
+			assert(header.size == line.split(',').size, "Encountered line of different length to header: "+line)
 			writer.append(line)
 			writer.newLine()
 		}
