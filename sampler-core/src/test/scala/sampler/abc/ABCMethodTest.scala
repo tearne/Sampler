@@ -17,8 +17,6 @@ import scala.util.Success
 import scala.util.Failure
 
 class ABCMethodTest extends AssertionsForJUnit {
-
-  implicit var r: Random = _
   
   class AlwaysOneModel extends ABCModel with StatisticsComponent {
     case class Parameters(i: Int) extends ParametersBase with Serializable {
@@ -46,23 +44,39 @@ class ABCMethodTest extends AssertionsForJUnit {
     }
   }
   
+  implicit var r: Random = _
+  
+  var myModel: AlwaysOneModel = _
+  
+  var meta: ABCParameters = _
+  
   @Before
   def setup {
     r = Random
+    myModel = new AlwaysOneModel
+    
+    val reps = 1
+    val particles = 2
+    val tolerance = 1e6
+    val refinements = 1
+    val particleRetries = 1
+    val chunkSize = 1
+    
+    meta = ABCParameters(
+        reps, particles, tolerance, refinements, particleRetries, chunkSize)
   }
   
   @Test
   def testInitialisation {
-    val myModel = new AlwaysOneModel
-    
+    val initialModel = new AlwaysOneModel
     val parameters = mock[ABCParameters]
     when(parameters.numParticles).thenReturn(5)
     
     val abcMethod = new ABCMethod(parameters, r)
     
-    val expectedParticle = Particle(myModel.Parameters(1), 1.0, Double.MaxValue)
+    val expectedParticle = Particle(initialModel.Parameters(1), 1.0, Double.MaxValue)
     
-    val ePop0: EncapsulatedPopulation[myModel.type] = abcMethod.init(myModel)
+    val ePop0: EncapsulatedPopulation[initialModel.type] = abcMethod.init(initialModel)
     val pop0 = ePop0.population
     
     assert(pop0.length === 5)
@@ -71,15 +85,13 @@ class ABCMethodTest extends AssertionsForJUnit {
   
   @Test
   def runReturnsInitialPopluationWhenRefinementsIsZero {
-    val myModel = new AlwaysOneModel
+	val popBuilder = mock[LocalPopulationBuilder]
     
-    val meta = mock[ABCParameters]
-    val popBuilder = mock[PopulationBuilder]
+	val noRefinementsMeta = mock[ABCParameters]
+    when(noRefinementsMeta.numParticles).thenReturn(1)
+    when(noRefinementsMeta.refinements).thenReturn(0)
     
-    when(meta.numParticles).thenReturn(1)
-    when(meta.refinements).thenReturn(0)
-    
-    val abcMethod = new ABCMethod(meta, r)
+    val abcMethod = new ABCMethod(noRefinementsMeta, r)
     
     val p0 = abcMethod.init(myModel)
     
@@ -88,24 +100,20 @@ class ABCMethodTest extends AssertionsForJUnit {
     assert(p1 === p0)
   }
   
-  @Test def populationEvolvedSuccessfully{
-  	val myModel = new AlwaysOneModel
-  	val meta = ABCParameters(1, 4, 1e6, 1, 1, 2)
+  @Test def populationEvolvesSuccessfully{
   	val abcMethod = new ABCMethod(meta, r)
-  	
+  
   	val popBuilder = mock[LocalPopulationBuilder]
   	val p0 = abcMethod.init(myModel)
   	val tolerance = 0.3
   	
-  	val expectedParticle1 = Particle[p0.model.Parameters](p0.model.Parameters(1), 0.3, 400)
-  	val expectedParticle2 = Particle[p0.model.Parameters](p0.model.Parameters(2), 0.4, 410)
-  	val expectedParticle3 = Particle[p0.model.Parameters](p0.model.Parameters(3), 0.5, 420)
-  	val expectedParticle4 = Particle[p0.model.Parameters](p0.model.Parameters(4), 0.6, 430)
+  	val expectedParticle1 = Particle[p0.model.Parameters](p0.model.Parameters(1), 0.5, 400)
+  	val expectedParticle2 = Particle[p0.model.Parameters](p0.model.Parameters(2), 0.5, 410)
   	
-  	when(popBuilder.run(p0, Seq(2,2), tolerance, meta, r)).thenReturn(
+  	when(popBuilder.run(p0, Seq(1,1), tolerance, meta, r)).thenReturn(
   		Seq(
-  			Success(EncapsulatedPopulation(p0.model)(Seq(expectedParticle1, expectedParticle2))),
-  			Success(EncapsulatedPopulation(p0.model)(Seq(expectedParticle3, expectedParticle4)))
+  			Success(EncapsulatedPopulation(p0.model)(Seq(expectedParticle1))),
+  			Success(EncapsulatedPopulation(p0.model)(Seq(expectedParticle2)))
   		)
   	)
   	
@@ -113,24 +121,21 @@ class ABCMethodTest extends AssertionsForJUnit {
   	
   	import result.model._
   	
-  	assert(result.population === Seq(expectedParticle1,expectedParticle2,expectedParticle3,expectedParticle4))
+  	assert(result.population === Seq(expectedParticle1,expectedParticle2))
   }
   
-  @Test def noneIfHitMaxNumReps{
-  	val myModel = new AlwaysOneModel
-  	val meta = ABCParameters(1, 4, 1e6, 1, 1, 2)
+  @Test def evolveReturnsNoneIfHitMaxNumReps{
   	val abcMethod = new ABCMethod(meta, r)
   	
   	val popBuilder = mock[LocalPopulationBuilder]
   	val p0 = abcMethod.init(myModel)
   	val tolerance = 0.3
   	
-  	val expectedParticle1 = Particle(p0.model.Parameters(1), 0.3, 400)
-  	val expectedParticle2 = Particle(p0.model.Parameters(2), 0.4, 410)
+  	val expectedParticle1 = Particle(p0.model.Parameters(1), 1.0, 400)
   	
-  	when(popBuilder.run(p0, Seq(2,2), tolerance, meta, r)).thenReturn(
+  	when(popBuilder.run(p0, Seq(1,1), tolerance, meta, r)).thenReturn(
   		Seq(
-  			Success(EncapsulatedPopulation(p0.model)(Seq(expectedParticle1, expectedParticle2))),
+  			Success(EncapsulatedPopulation(p0.model)(Seq(expectedParticle1))),
   			Failure(new RefinementAbortedException("Bleh"))
   		)
   	)
@@ -139,11 +144,25 @@ class ABCMethodTest extends AssertionsForJUnit {
   	
   	assert(result === None)
   }
-  
+
   @Test
-  def testCollectionOfLeftAndRightsInEvolveOnce {
-  	fail("TODO")
-//    TODO
+  def evolveFailsIfAnyOtherExceptionReturned {
+  	val abcMethod = new ABCMethod(meta, r)
+  	
+  	val popBuilder = mock[LocalPopulationBuilder]
+  	val p0 = abcMethod.init(myModel)
+  	val tolerance = 0.3
+  	
+  	when(popBuilder.run(p0, Seq(1,1), tolerance, meta, r)).thenReturn(
+  		Seq(
+  		    Failure(new RefinementAbortedException("Bleh")),
+  			Failure(new ArrayIndexOutOfBoundsException("Bleh"))
+  		)
+  	)
+  	
+  	intercept[ArrayIndexOutOfBoundsException]{
+    	abcMethod.evolveOnce(p0, popBuilder, tolerance)
+    }
   }
   
   @Test
