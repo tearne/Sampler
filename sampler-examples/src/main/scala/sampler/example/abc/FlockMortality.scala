@@ -48,7 +48,7 @@ object FlockMortality extends App{
 	val abcParams = new ABCParameters(
     	reps = 1,
 		numParticles = 100, 
-		refinements = 30,
+		refinements = 16,
 		particleRetries = 1000, 
 		particleChunking = 200
 	)

@@ -38,13 +38,13 @@ trait PopulationBuilder{
 	 * method in this class.  The cluster implementation (see sampler-cluster) runs the
 	 * build method at every node
 	 */
-	def run(model: ABCModel)(
-			pop: model.Population, 
+	def run[M <: ABCModel](
+			ePop: EncapsulatedPopulation[M], 
 			jobSizes: Seq[Int], 
 			tolerance: Double,
 			meta: ABCParameters,
 			random: Random
-	): Seq[Try[model.Population]]
+	): Seq[Try[EncapsulatedPopulation[M]]]
 }
 
 object PopulationBuilder{

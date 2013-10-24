@@ -28,25 +28,26 @@ import sampler.cluster.actor.client.dispatch.Dispatcher
 import sampler.cluster.actor.FailFastDispatcher
 import sampler.cluster.actor.client.dispatch.Job
 import sampler.abc.population.PopulationBuilder
+import sampler.abc.population.EncapsulatedPopulation
 
 class DispatchingPopulationBuilder(dispatcher: Dispatcher) extends PopulationBuilder{
-	def run(model: ABCModel)(
-			pop: model.Population, 
+	def run[M <: ABCModel](
+			ePop: EncapsulatedPopulation[M], 
 			jobSizes: Seq[Int], 
 			tolerance: Double, 
 			meta: ABCParameters,
 			random: Random
-	): Seq[Try[model.Population]] = {
+	): Seq[Try[EncapsulatedPopulation[M]]] = {
 		val jobs = jobSizes.map{quantity =>
-			ABCJob(pop, quantity, tolerance, meta)
+			ABCJob(ePop.population, quantity, tolerance, meta)
 		}
 		
 		//TODO Is there a way to eliminate this cast? 
 		//It's needed since the ABCActorJob[T] type T can't
 		//carry the model as required for model.Population
-		val result = dispatcher(jobs).asInstanceOf[Seq[Try[model.Population]]]
-		assert(result.size == jobs.size, "Results set not of expected size.  Check logs for Worker exceptions")
-		result
+		val results = dispatcher(jobs).asInstanceOf[Seq[Try[ePop.model.Population]]].map{t => t.map{pop => EncapsulatedPopulation(ePop.model)(pop)}}
+		assert(results.size == jobs.size, "Results set not of expected size.  Check logs for Worker exceptions")
+		results
 	}
 }
 object DispatchingPopulationBuilder{

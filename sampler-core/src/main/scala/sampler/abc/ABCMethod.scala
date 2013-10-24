@@ -44,15 +44,12 @@ class ABCMethod(meta: ABCParameters, random: Random) extends Serializable{
 			pBuilder: PopulationBuilder,
 			tolerance: Double
 	): Option[EncapsulatedPopulation[M]] = {
-		// Number of particles to be generated per job?
 		val jobSizes = (1 to meta.numParticles)
 			.grouped(meta.particleChunking)
 			.map(_.size).toList
 		log.info(s"Tolerance = $tolerance, Job sizes = $jobSizes")
 		
-		import ePop.model._
-		val prevPop = ePop.population
-		val results: Seq[Try[Population]] = pBuilder.run(ePop.model)(ePop.population, jobSizes, tolerance, meta, random)
+		val results: Seq[Try[EncapsulatedPopulation[M]]] = pBuilder.run(ePop, jobSizes, tolerance, meta, random)
 		
 		val failures = results.collect{
 			case Failure(e: RefinementAbortedException) => Right(e)
@@ -67,7 +64,13 @@ class ABCMethod(meta: ABCParameters, random: Random) extends Serializable{
 			None
 		}
 	    else Some{
-	    	EncapsulatedPopulation(ePop.model)(results.collect{case Success(s) => s}.flatten)
+	    	import ePop.model._
+	    	val a = results.map{_.map{_.population}}
+	    	val b = a.collect{
+	    		case Success(p: Seq[Particle[Parameters]]) => p
+	    	}
+	    	val c = b.flatten
+	    	EncapsulatedPopulation(ePop.model)(c)
 	    }
 	}
 		
