@@ -49,7 +49,7 @@ object FlockMortality extends App{
     	reps = 1,
 		numParticles = 100, 
 		refinements = 30,
-		particleRetries = 100, 
+		particleRetries = 1000, 
 		particleChunking = 200
 	)
 	val abcMethod = new ABCMethod(abcParams, Random)

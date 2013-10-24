@@ -39,7 +39,7 @@ class ABCMethod(meta: ABCParameters, random: Random) extends Serializable{
 		EncapsulatedPopulation(model)(pop0)
 	}
 	
-	protected def evolveOnce[M <: ABCModel](
+	def evolveOnce[M <: ABCModel](
 			ePop: EncapsulatedPopulation[M], 
 			pBuilder: PopulationBuilder,
 			tolerance: Double
@@ -84,16 +84,16 @@ class ABCMethod(meta: ABCParameters, random: Random) extends Serializable{
 		): Option[EncapsulatedPopulation[M]] = {
 			log.info(numAttempts + " generations remaining")
 			//TODO report a failure ratio at the end of a generation
-			if(numAttempts == 0) Some(pop)
+			if(numAttempts == 0) Some(ePop)
 			else{
-				evolveOnce(pop, pBuilder, currentTolerance) match {
+				evolveOnce(ePop, pBuilder, currentTolerance) match {
 					case None =>
 						log.warn(s"Failed to refine current population, evolving within previous tolerance $previousTolerance")
-						refine(pop, numAttempts - 1, previousTolerance, previousTolerance)
+						refine(ePop, numAttempts - 1, previousTolerance, previousTolerance)
 					case Some(newEPop) =>
 						//Next tolerance is the median of the previous best for each particle
 						val fit = newEPop.population.map(_.bestFit)
-						val medianTolerance = ePop.model.quantile(newEPop.population.map(_.bestFit).toEmpiricalSeq, Probability(0.5))
+						val medianTolerance = newEPop.model.quantile(newEPop.population.map(_.bestFit).toEmpiricalSeq, Probability(0.5))
 						val newTolerance = 
 							if(medianTolerance == 0) {
 								log.warn("Median tolerance from last generation evaluated to 0, half the previous tolerance will be used instead.")
