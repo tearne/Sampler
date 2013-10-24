@@ -27,18 +27,19 @@ import sampler.abc.ABCParameters
 import sampler.math.Random
 
 class LocalPopulationBuilder(runner: Runner) extends PopulationBuilder{
-	def run(model: ABCModel)(
-			pop: model.Population, 
+	def run[M <: ABCModel](
+			ePop: EncapsulatedPopulation[M], 
 			jobSizes: Seq[Int], 
 			tolerance: Double, 
 			meta: ABCParameters,
 			random: Random
-		): Seq[Try[model.Population]] = {
+		): Seq[Try[EncapsulatedPopulation[M]]] = {
 		val jobs = jobSizes.map{quantity => Abortable{aborter =>
-			PopulationBuilder(model)(pop, quantity, tolerance, aborter, meta, random)
+			PopulationBuilder(ePop.model)(ePop.population, quantity, tolerance, aborter, meta, random)
 		}}
 		
-		runner.apply(jobs)
+		val r = runner.apply(jobs).map{_.map{pop => EncapsulatedPopulation(ePop.model)(pop)}}
+		r
 	}
 }
 object LocalPopulationBuilder{

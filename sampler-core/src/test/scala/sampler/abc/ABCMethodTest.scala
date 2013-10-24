@@ -140,25 +140,6 @@ class ABCMethodTest extends AssertionsForJUnit {
   	assert(result === None)
   }
   
-  
-  @Test
-  def runOneRefinementWithCorrectArguments {
-    val myModel = new AlwaysOneModel
-    val popBuilder = mock[PopulationBuilder]
-    val popBuilder = mock[LocalPopulationBuilder]
-    val meta = ABCParameters(1, 1, 1e6, 1, 1, 1)
-    
-    val abcMethod = new ABCMethod(meta, r)
-    
-    val p0 = abcMethod.init(myModel)
-
-//    when(popBuilder.run(p0, List(1), 1e6, meta, r)).thenReturn(null)
-
-    abcMethod.evolveOnce(p0, popBuilder, meta.tolerance)
-    
-    verify(popBuilder).run(p0, List(1), 1e6, meta, r)
-  }
-  
   @Test
   def testCollectionOfLeftAndRightsInEvolveOnce {
   	fail("TODO")
