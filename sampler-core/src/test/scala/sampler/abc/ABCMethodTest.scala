@@ -13,6 +13,8 @@ import sampler.math.StatisticsComponent
 import org.junit.Before
 import sampler.abc.population.LocalPopulationBuilder
 import sampler.abc.population.EncapsulatedPopulation
+import scala.util.Success
+import scala.util.Failure
 
 class ABCMethodTest extends AssertionsForJUnit {
 
@@ -20,7 +22,7 @@ class ABCMethodTest extends AssertionsForJUnit {
   
   class AlwaysOneModel extends ABCModel with StatisticsComponent {
     case class Parameters(i: Int) extends ParametersBase with Serializable {
-      def perturb() = Parameters(i)
+      def perturb() = this//Parameters(i)
       def perturbDensity(that: Parameters) = 1.0
     }
 
@@ -86,33 +88,86 @@ class ABCMethodTest extends AssertionsForJUnit {
     assert(p1 === p0)
   }
   
+  @Test def populationEvolvedSuccessfully{
+  	val myModel = new AlwaysOneModel
+  	val meta = ABCParameters(1, 4, 1e6, 1, 1, 2)
+  	val abcMethod = new ABCMethod(meta, r)
+  	
+  	val popBuilder = mock[LocalPopulationBuilder]
+  	val p0 = abcMethod.init(myModel)
+  	val tolerance = 0.3
+  	
+  	val expectedParticle1 = Particle[p0.model.Parameters](p0.model.Parameters(1), 0.3, 400)
+  	val expectedParticle2 = Particle[p0.model.Parameters](p0.model.Parameters(2), 0.4, 410)
+  	val expectedParticle3 = Particle[p0.model.Parameters](p0.model.Parameters(3), 0.5, 420)
+  	val expectedParticle4 = Particle[p0.model.Parameters](p0.model.Parameters(4), 0.6, 430)
+  	
+  	when(popBuilder.run(p0, Seq(2,2), tolerance, meta, r)).thenReturn(
+  		Seq(
+  			Success(EncapsulatedPopulation(p0.model)(Seq(expectedParticle1, expectedParticle2))),
+  			Success(EncapsulatedPopulation(p0.model)(Seq(expectedParticle3, expectedParticle4)))
+  		)
+  	)
+  	
+  	val result = abcMethod.evolveOnce(p0, popBuilder, tolerance).get
+  	
+  	import result.model._
+  	
+  	assert(result.population === Seq(expectedParticle1,expectedParticle2,expectedParticle3,expectedParticle4))
+  }
+  
+  @Test def noneIfHitMaxNumReps{
+  	val myModel = new AlwaysOneModel
+  	val meta = ABCParameters(1, 4, 1e6, 1, 1, 2)
+  	val abcMethod = new ABCMethod(meta, r)
+  	
+  	val popBuilder = mock[LocalPopulationBuilder]
+  	val p0 = abcMethod.init(myModel)
+  	val tolerance = 0.3
+  	
+  	val expectedParticle1 = Particle(p0.model.Parameters(1), 0.3, 400)
+  	val expectedParticle2 = Particle(p0.model.Parameters(2), 0.4, 410)
+  	
+  	when(popBuilder.run(p0, Seq(2,2), tolerance, meta, r)).thenReturn(
+  		Seq(
+  			Success(EncapsulatedPopulation(p0.model)(Seq(expectedParticle1, expectedParticle2))),
+  			Failure(new RefinementAbortedException("Bleh"))
+  		)
+  	)
+  	
+  	val result = abcMethod.evolveOnce(p0, popBuilder, tolerance)
+  	
+  	assert(result === None)
+  }
+  
+  
   @Test
   def runOneRefinementWithCorrectArguments {
     val myModel = new AlwaysOneModel
-    
-    import myModel._
-    val pop = mock[Population]
-    
+    val popBuilder = mock[PopulationBuilder]
     val popBuilder = mock[LocalPopulationBuilder]
-    
     val meta = ABCParameters(1, 1, 1e6, 1, 1, 1)
     
     val abcMethod = new ABCMethod(meta, r)
     
     val p0 = abcMethod.init(myModel)
-    
-    when(popBuilder.run(p0.model)(p0.population, List(1), 1e6, meta, r)).thenReturn(null)
+
+//    when(popBuilder.run(p0, List(1), 1e6, meta, r)).thenReturn(null)
 
     abcMethod.evolveOnce(p0, popBuilder, meta.tolerance)
+    
+    verify(popBuilder).run(p0, List(1), 1e6, meta, r)
   }
   
   @Test
   def testCollectionOfLeftAndRightsInEvolveOnce {
+  	fail("TODO")
 //    TODO
   }
   
   @Test
   def testCorrectChangingOfToleranceAsRefinementsGoOn {
+  	fail("TODO")
 //    TODO
   }
 }
