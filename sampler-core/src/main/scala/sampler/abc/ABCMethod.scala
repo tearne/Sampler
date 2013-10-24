@@ -28,28 +28,31 @@ import sampler.math.Probability
 import sampler.math.Random
 import sampler.abc.population.PopulationBuilder
 import sampler.math.StatisticsComponent
+import sampler.abc.population.EncapsulatedPopulation
 
-class ABCMethod[M <: ABCModel with StatisticsComponent](val model: M, meta: ABCParameters, implicit val random: Random) extends Serializable{
-	import model._
+class ABCMethod(meta: ABCParameters, random: Random) extends Serializable{
 	val log = LoggerFactory.getLogger(this.getClass)
 	
-	def init: Population = {
+	def init[M <: ABCModel](model: M): EncapsulatedPopulation[M] = {
 		val numParticles = meta.numParticles
-		(1 to numParticles).par.map(i => Particle(model.prior.sample(), 1.0, Double.MaxValue)).seq
+		val pop0 = (1 to numParticles).par.map(i => Particle(model.prior.sample(), 1.0, Double.MaxValue)).seq
+		EncapsulatedPopulation(model)(pop0)
 	}
 	
-	def evolveOnce(
-			pop: Population, 
+	protected def evolveOnce[M <: ABCModel](
+			ePop: EncapsulatedPopulation[M], 
 			pBuilder: PopulationBuilder,
 			tolerance: Double
-	): Option[Population] = {
+	): Option[EncapsulatedPopulation[M]] = {
 		// Number of particles to be generated per job?
 		val jobSizes = (1 to meta.numParticles)
 			.grouped(meta.particleChunking)
 			.map(_.size).toList
 		log.info(s"Tolerance = $tolerance, Job sizes = $jobSizes")
 		
-		val results: Seq[Try[Population]] = pBuilder.run(model)(pop, jobSizes, tolerance, meta, random)
+		import ePop.model._
+		val prevPop = ePop.population
+		val results: Seq[Try[Population]] = pBuilder.run(ePop.model)(ePop.population, jobSizes, tolerance, meta, random)
 		
 		val failures = results.collect{
 			case Failure(e: RefinementAbortedException) => Right(e)
@@ -63,20 +66,22 @@ class ABCMethod[M <: ABCModel with StatisticsComponent](val model: M, meta: ABCP
 			log.warn("{} exception(s) thrown building population.  First: {}", failures.size, failures(0))
 			None
 		}
-	    else Some(results.collect{case Success(s) => s}.flatten)
+	    else Some{
+	    	EncapsulatedPopulation(ePop.model)(results.collect{case Success(s) => s}.flatten)
+	    }
 	}
 		
-	def run(
-			pop: Population, 
+	def run[M <: ABCModel with StatisticsComponent](
+			pop: EncapsulatedPopulation[M], 
 			pBuilder: PopulationBuilder
-	): Option[Population] = {
+	): Option[EncapsulatedPopulation[M]] = {
 		@tailrec
 		def refine(
-				pop: Population, 
+				ePop: EncapsulatedPopulation[M], 
 				numAttempts: Int, 
 				currentTolerance: Double,
 				previousTolerance: Double
-		): Option[Population] = {
+		): Option[EncapsulatedPopulation[M]] = {
 			log.info(numAttempts + " generations remaining")
 			//TODO report a failure ratio at the end of a generation
 			if(numAttempts == 0) Some(pop)
@@ -85,17 +90,17 @@ class ABCMethod[M <: ABCModel with StatisticsComponent](val model: M, meta: ABCP
 					case None =>
 						log.warn(s"Failed to refine current population, evolving within previous tolerance $previousTolerance")
 						refine(pop, numAttempts - 1, previousTolerance, previousTolerance)
-					case Some(newPop) =>
+					case Some(newEPop) =>
 						//Next tolerance is the median of the previous best for each particle
-						val fit = newPop.map(_.bestFit)
-						val medianTolerance = quantile(newPop.map(_.bestFit).toEmpiricalSeq, Probability(0.5))
+						val fit = newEPop.population.map(_.bestFit)
+						val medianTolerance = ePop.model.quantile(newEPop.population.map(_.bestFit).toEmpiricalSeq, Probability(0.5))
 						val newTolerance = 
 							if(medianTolerance == 0) {
 								log.warn("Median tolerance from last generation evaluated to 0, half the previous tolerance will be used instead.")
 								currentTolerance / 2
 							}
 							else medianTolerance
-						refine(newPop, numAttempts - 1, newTolerance, currentTolerance)
+						refine(newEPop, numAttempts - 1, newTolerance, currentTolerance)
 				}
 			}
 		}

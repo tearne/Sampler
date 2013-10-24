@@ -38,20 +38,23 @@ import sampler.math.StatisticsComponent
 object UnfairCoinApplication extends App 
 	with UnfairCoinFactory 
 	with UnfairCoin
+
 	
 object UnfairCoinWorker extends App {
 	new ClusterNode(new PopulationExecutor(CoinModel, Random))
 }
 
 trait UnfairCoinFactory{
+	throw new UnsupportedOperationException("TODO: Something wrong with this example. \n The metric always seems to return median = 0, see logs when running")
+	
 	val meta = new ABCParameters(
-    	reps = 10000,
+    	reps = 1000,
 		numParticles = 100, 
-		refinements = 10,
+		refinements = 15,
 		particleRetries = 100, 
 		particleChunking = 50
 	)
-	val abcMethod = new ABCMethod(CoinModel, meta, Random)
+	val abcMethod = new ABCMethod(meta, Random)
 	
 //	val pBuilder = DispatchingPopulationBuilder(PortFallbackSystem("ClusterSystem"))
 	val pBuilder = LocalPopulationBuilder()
@@ -60,12 +63,12 @@ trait UnfairCoinFactory{
 trait UnfairCoin {
 	val pBuilder: PopulationBuilder
 	
-	implicit val abcMethod: ABCMethod[CoinModel.type]
+	implicit val abcMethod: ABCMethod
 
-	val population0 = abcMethod.init
+	val pop0 = abcMethod.init(CoinModel)
 	
 	//TODO Fix slightly nasty mapping to population values
-	val finalPopulation = abcMethod.run(population0, pBuilder).map(_.map(_.value))
+	val finalPopulation = abcMethod.run(pop0, pBuilder).map(_.population.map(_.value))
 
 	val headsDensity = finalPopulation.get.map(_.pHeads)
 	
@@ -103,6 +106,7 @@ trait CoinModelBase extends ABCModel with Serializable{
     
     case class Output(simulated: Observations) extends OutputBase with Serializable{
       def distanceTo(obs: Observations): Double = {
+//      	println(obs)
     	assert(simulated.numTrials == obs.numTrials)
       	math.abs(simulated.numHeads - obs.numHeads)
       }

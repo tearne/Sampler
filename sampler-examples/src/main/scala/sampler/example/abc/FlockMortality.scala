@@ -37,31 +37,33 @@ import sampler.math.Probability
 import sampler.math.Random
 import sampler.r.ScriptRunner
 import sampler.math.StatisticsComponent
+import scala.language.existentials
 
 object FlockMortality extends App{
 	import FlockMortalityModel._
 	val wd = Paths.get("results").resolve("FlockMortality")
 	Files.createDirectories(wd)
+	implicit val modelRandom = FlockMortalityModel.modelRandom 
 	
 	val abcParams = new ABCParameters(
     	reps = 1,
-		numParticles = 1000, 
-		refinements = 12,
-		particleRetries = 1000, 
+		numParticles = 100, 
+		refinements = 30,
+		particleRetries = 100, 
 		particleChunking = 200
 	)
-	val abcMethod = new ABCMethod(FlockMortalityModel, abcParams, Random)
-	val encapPopulation0 = abcMethod.init
+	val abcMethod = new ABCMethod(abcParams, Random)
+	val builder = LocalPopulationBuilder()
 	
-	implicit val modelRandom = FlockMortalityModel.modelRandom 
-	val finalPopulation = abcMethod.run(encapPopulation0, LocalPopulationBuilder()).get.map(_.value)//.population
-
+	val pop0 = abcMethod.init(FlockMortalityModel)
+	val posterior = abcMethod.run(pop0, builder).get.population.map(_.value)
+	
 	val posteriors = Map(
-		"Beta" -> finalPopulation.map(_.beta).toEmpiricalSeq,
-		"Eta" -> finalPopulation.map(_.eta).toEmpiricalSeq,
-		"Gamma" -> finalPopulation.map(_.gamma).toEmpiricalSeq,
-		"Sigma" -> finalPopulation.map(_.sigma).toEmpiricalSeq,
-		"Sigma2" -> finalPopulation.map(_.sigma2).toEmpiricalSeq
+		"Beta" -> posterior.map(_.beta).toEmpiricalSeq,
+		"Eta" -> posterior.map(_.eta).toEmpiricalSeq,
+		"Gamma" -> posterior.map(_.gamma).toEmpiricalSeq,
+		"Sigma" -> posterior.map(_.sigma).toEmpiricalSeq,
+		"Sigma2" -> posterior.map(_.sigma2).toEmpiricalSeq
 	)
 	
 	val csvName = "results.csv"
@@ -75,19 +77,19 @@ object FlockMortality extends App{
 	
 	CSVFile.write(
 			wd.resolve(csvName),
-			finalPopulation.map{_.toCSV},
+			posterior.map{_.toCSV},
 			header = Parameters.header
 	)
 	
 	//Get median fit data
 	val half = Probability(0.5)
-	val medBeta = quantile(finalPopulation.map(_.beta).toEmpiricalSeq, half)
-	val medEta = quantile(finalPopulation.map(_.eta).toEmpiricalSeq, half)
-	val medGamma = quantile(finalPopulation.map(_.gamma).toEmpiricalSeq, half)
-	val medDelta = quantile(finalPopulation.map(_.delta).toEmpiricalSeq, half)
-	val medSigma = quantile(finalPopulation.map(_.sigma).toEmpiricalSeq, half)
-	val medSigma2 = quantile(finalPopulation.map(_.sigma2).toEmpiricalSeq, half)
-	val medOffset = quantile(finalPopulation.map(_.offset).map(_.toDouble).toEmpiricalTable, half).toInt
+	val medBeta = quantile(posterior.map(_.beta).toEmpiricalSeq, half)
+	val medEta = quantile(posterior.map(_.eta).toEmpiricalSeq, half)
+	val medGamma = quantile(posterior.map(_.gamma).toEmpiricalSeq, half)
+	val medDelta = quantile(posterior.map(_.delta).toEmpiricalSeq, half)
+	val medSigma = quantile(posterior.map(_.sigma).toEmpiricalSeq, half)
+	val medSigma2 = quantile(posterior.map(_.sigma2).toEmpiricalSeq, half)
+	val medOffset = quantile(posterior.map(_.offset).map(_.toDouble).toEmpiricalTable, half).toInt
 	
 	val medParams = Parameters(medBeta, medEta, medGamma, medDelta, medSigma, medSigma2, medOffset)
 	val fitted = modelDistribution(medParams, observations).sample
