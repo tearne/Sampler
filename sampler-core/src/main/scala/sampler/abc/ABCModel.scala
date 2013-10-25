@@ -27,19 +27,17 @@ trait ABCModel{
 		def perturbDensity(that: Parameters): Double		
 	}
 	
-	type Observations <: ObservationsBase
-	protected trait ObservationsBase
+	type Observed
+	val observed: Observed
 	
-	type Output <: OutputBase
-	protected trait OutputBase {
-		//TODO it's unclear at this point which obs are real and which come from simulation
-		def distanceTo(observed: Observations): Double
+	type Simulated <: SimulatedBase
+	protected trait SimulatedBase {
+		def distanceToObserved: Double
 	}
 	
 	val prior: Prior[Parameters]
-	val observations: Observations
 
-	def modelDistribution(p: Parameters, obs: Observations): Distribution[Output]
+	def modelDistribution(p: Parameters): Distribution[Simulated]
 
 	type Population = Seq[Particle[Parameters]]
 }

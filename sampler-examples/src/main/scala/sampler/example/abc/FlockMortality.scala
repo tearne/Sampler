@@ -70,7 +70,7 @@ object FlockMortality extends App{
 	
 	CSVFile.write(
 			wd.resolve("obseravtions.csv"), 
-			observations.dailyEggs.zip(observations.dailyEggs).map{case (e,d) => s"$e,$d"}, 
+			observed.dailyEggs.zip(observed.dailyEggs).map{case (e,d) => s"$e,$d"}, 
 			header = Seq("Eggs", "Dead")
 	)
 	
@@ -92,11 +92,11 @@ object FlockMortality extends App{
 	val medOffset = quantile(posterior.map(_.offset).map(_.toDouble).toEmpiricalTable, half).toInt
 	
 	val medParams = Parameters(medBeta, medEta, medGamma, medDelta, medSigma, medSigma2, medOffset)
-	val fitted = modelDistribution(medParams, observations).sample
+	val fitted = modelDistribution(medParams).sample
 	
-	val days = 0 until observations.dailyDead.size
+	val days = 0 until observed.dailyDead.size
 	println(days)
-	val cumulativeObsDead = observations.dailyDead.scanLeft(0){case (a,v)=> a + v.toInt}.tail
+	val cumulativeObsDead = observed.dailyDead.scanLeft(0){case (a,v)=> a + v.toInt}.tail
 	
 	case class Fitted(day: Int, fitEggs: Double, fitDead: Double, obsEggs: Int, obsDead: Int){
 		def toCSV = s"$day, $fitEggs, $fitDead, $obsEggs, $obsDead"
@@ -109,7 +109,7 @@ object FlockMortality extends App{
 		day,
 		fitted.dayStates.mapValues(_.eggs)(day),
 		fitted.dayStates.mapValues(_.d)(day),
-		observations.dailyEggs(day),
+		observed.dailyEggs(day),
 		cumulativeObsDead(day)
 	)}
 	
@@ -153,7 +153,7 @@ object FlockMortalityModel extends ABCModel with StatisticsComponent{
 	val modelRandom = Random
 	val statistics = sampler.math.Statistics
 	
-	val observations = Observations(
+	val observed = Observed(
 		dailyEggs = List(2200,2578,2654,2167,2210,2444,2182,2152,2208,2100,1644,1872,1092,1236,1116,1200,1025,1172,1096,1122),
 		dailyDead = List(0,0,0,0,0,0,0,1,15,70,39,60,74,46,54,25,5,5,6,1)
 	)
@@ -201,24 +201,24 @@ object FlockMortalityModel extends ABCModel with StatisticsComponent{
 	object Parameters{
 		val header = Seq("Beta", "Eta", "Gamma", "Delta", "Sigma", "Sigma2", "Offset")
 	}
-	case class Observations(dailyEggs: List[Int], dailyDead: List[Int]) extends ObservationsBase
+	case class Observed(dailyEggs: List[Int], dailyDead: List[Int])
 	
-	case class Output(dayStates: Map[Int, ODEState]) extends OutputBase{
-		def distanceTo(obs: Observations) = {
-			val accumulatedSimDead = (0 until obs.dailyDead.length).map(i => dayStates(i).d.toInt) //No Sum since already accumulated when simulated
-		    val accumulatedObsDead = obs.dailyDead.scanLeft(0){case (a,v)=> a + v.toInt}.tail
+	case class Simulated(dayStates: Map[Int, ODEState]) extends SimulatedBase{
+		def distanceToObserved = {
+			val accumulatedSimDead = (0 until observed.dailyDead.length).map(i => dayStates(i).d.toInt) //No Sum since already accumulated when simulated
+		    val accumulatedObsDead = observed.dailyDead.scanLeft(0){case (a,v)=> a + v.toInt}.tail
 		    
-		    val accumulatedSimEggs = (0 until obs.dailyEggs.length).map(i => dayStates(i).eggs).scanLeft(0){case (a,v)=> a + v.toInt}.tail
-		    val accumulatedObsEggs = obs.dailyEggs.scanLeft(0){case (a,v)=> a + v.toInt}.tail
+		    val accumulatedSimEggs = (0 until observed.dailyEggs.length).map(i => dayStates(i).eggs).scanLeft(0){case (a,v)=> a + v.toInt}.tail
+		    val accumulatedObsEggs = observed.dailyEggs.scanLeft(0){case (a,v)=> a + v.toInt}.tail
 		    
 		    val deadMax = accumulatedObsDead.last
-		    val eggsMax = obs.dailyEggs.max
+		    val eggsMax = observed.dailyEggs.max
 		    
 		    val newObsDead = accumulatedObsDead map (i => i.toDouble / deadMax)
 		    val newSimDead = accumulatedSimDead map (i => i.toDouble / deadMax)
 		    
-		    val newObsEggs = obs.dailyEggs map (i => i.toDouble / eggsMax)
-		    val newSimEggs = (0 until obs.dailyEggs.length).map(i => dayStates(i).eggs) map (i => i.toDouble / eggsMax)
+		    val newObsEggs = observed.dailyEggs map (i => i.toDouble / eggsMax)
+		    val newSimEggs = (0 until observed.dailyEggs.length).map(i => dayStates(i).eggs) map (i => i.toDouble / eggsMax)
 		    
 		    val error = (0 until newObsDead.length).foldLeft(0.0){case (acc,dayIndex) =>
 		    	val delta = math.pow(newSimDead(dayIndex) - newObsDead(dayIndex), 2) +
@@ -230,16 +230,16 @@ object FlockMortalityModel extends ABCModel with StatisticsComponent{
 		}
 	}
 	
-	def modelDistribution(p: Parameters, obs: Observations) = {
+	def modelDistribution(p: Parameters) = {
 		import p._
-		val days = 0 until obs.dailyDead.length
+		val days = 0 until observed.dailyDead.length
 		
-		def solve(): Output = {
+		def solve(): Simulated = {
 			val timeZero = 0.0
 			val relTol = 1e-11; val absTol = 1e-11
 			val minStep = 1e-8; val maxStep = 100.0
 			val y0 = Array((flockSize-1).toDouble, 1.0, 0.0, 0.0, 0.0) //S, E, I, R, D
-			val numDays = obs.dailyDead.size	
+			val numDays = observed.dailyDead.size	
 			
 			class ODE(p: Parameters) extends FirstOrderDifferentialEquations {
 				import p._
@@ -289,13 +289,13 @@ object FlockMortalityModel extends ABCModel with StatisticsComponent{
 						(key + offset) -> value
 					}
 					val additions = (0 until offset).foldLeft(Map[Int, ODEState]()){case (map, day) =>
-						map.updated(day, ODEState(flockSize,0,0,0,0,observations.dailyEggs(0)))
+						map.updated(day, ODEState(flockSize,0,0,0,0,observed.dailyEggs(0)))
 					}
 					tmp.++(additions)
 				}
 				else throw new RuntimeException("not supported yet")
 
-			Output(shiftedResultsMap)
+			Simulated(shiftedResultsMap)
 		}
 		
 		//Deterministic model will always give the same answer

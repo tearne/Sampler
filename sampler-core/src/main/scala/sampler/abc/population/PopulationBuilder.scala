@@ -75,7 +75,7 @@ object PopulationBuilder{
 			else if(failures >= meta.particleRetries) throw new RefinementAbortedException(s"Aborted after the maximum of $failures trials")
 			else{
 				def getScores(params: Parameters): IndexedSeq[Double] = {
-					val modelWithMetric = modelDistribution(params, observations).map(_.distanceTo(observations))
+					val modelWithMetric = modelDistribution(params).map(_.distanceToObserved)
 					val modelWithScores = SerialSampler(modelWithMetric)(_.size == meta.reps)
 						.filter(_ <= tolerance)
 					modelWithScores
