@@ -17,97 +17,38 @@
 
 package sampler.abc
 
-import scala.annotation.tailrec
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
-import org.slf4j.LoggerFactory
-import sampler.data.Empirical
-import sampler.Implicits._
-import sampler.math.Probability
 import sampler.math.Random
 import sampler.abc.population.PopulationBuilder
 import sampler.math.StatisticsComponent
+import sampler.io.Logging
+import sampler.abc.generation._
 import sampler.abc.population.EncapsulatedPopulation
 
-class ABCMethod(meta: ABCParameters, random: Random) extends Serializable{
-	val log = LoggerFactory.getLogger(this.getClass)
-	
-	def init[M <: ABCModel](model: M): EncapsulatedPopulation[M] = {
-		val numParticles = meta.numParticles
-		val pop0 = (1 to numParticles).par.map(i => Particle(model.prior.sample(), 1.0, Double.MaxValue)).seq
-		EncapsulatedPopulation(model)(pop0)
-	}
-	
-	def evolveOnce[M <: ABCModel](
-			ePop: EncapsulatedPopulation[M], 
-			pBuilder: PopulationBuilder,
-			tolerance: Double
-	): Option[EncapsulatedPopulation[M]] = {
-		val jobSizes = (1 to meta.numParticles)
-			.grouped(meta.particleChunking)
-			.map(_.size).toList
-		log.info(s"Tolerance = $tolerance, Job sizes = $jobSizes")
-		
-		val results: Seq[Try[EncapsulatedPopulation[M]]] = pBuilder.run(ePop, jobSizes, tolerance, meta, random)
-		
-		val failures = results.collect{
-			case Failure(e: RefinementAbortedException) => Right(e)
-			case Failure(e) => Left(e)
-		}
-		
-		failures.collectFirst{case Left(e) => throw e}			
-		
-		val exceptions = results.collect{case Failure(e) => e}
-		if(failures.size > 0) {
-			log.warn("{} exception(s) thrown building population.  First: {}", failures.size, failures(0))
-			None
-		}
-	    else Some{
-	    	import ePop.model._
-	    	val a = results.map{_.map{_.population}}
-	    	val b = a.collect{
-	    		case Success(p: Seq[Particle[Parameters]]) => p
-	    	}
-	    	val c = b.flatten
-	    	EncapsulatedPopulation(ePop.model)(c)
-	    }
-	}
-		
-	def run[M <: ABCModel with StatisticsComponent](
-			pop: EncapsulatedPopulation[M], 
-			pBuilder: PopulationBuilder
-	): Option[EncapsulatedPopulation[M]] = {
-		@tailrec
-		def refine(
-				ePop: EncapsulatedPopulation[M], 
-				numAttempts: Int, 
-				currentTolerance: Double,
-				previousTolerance: Double
-		): Option[EncapsulatedPopulation[M]] = {
-			log.info(numAttempts + " generations remaining")
-			//TODO report a failure ratio at the end of a generation
-			if(numAttempts == 0) Some(ePop)
-			else{
-				evolveOnce(ePop, pBuilder, currentTolerance) match {
-					case None =>
-						log.warn(s"Failed to refine current population, evolving within previous tolerance $previousTolerance")
-						refine(ePop, numAttempts - 1, previousTolerance, previousTolerance)
-					case Some(newEPop) =>
-						//Next tolerance is the median of the previous best for each particle
-						val fit = newEPop.population.map(_.bestFit)
-						val medianTolerance = newEPop.model.quantile(newEPop.population.map(_.bestFit).toEmpiricalSeq, Probability(0.5))
-						val newTolerance = 
-							if(medianTolerance == 0) {
-								log.warn("Median tolerance from last generation evaluated to 0, half the previous tolerance will be used instead.")
-								currentTolerance / 2
-							}
-							else medianTolerance
-						refine(newEPop, numAttempts - 1, newTolerance, currentTolerance)
-				}
+trait ABCMethod extends InitialiseComponent
+		with StepComponent
+		with IterateComponent
+		with StatisticsComponent
+		with Logging{
+	def apply[M <: ABCModel](
+			model: M,
+			abcParams: ABCParameters, 
+			populationBuilder: PopulationBuilder,
+			random: Random
+	): Option[Seq[model.Parameters]] = {
+		val pop0 = initialise(model, abcParams)
+		val ePop = iterate(pop0, abcParams, populationBuilder, random)
+		ePop.map(
+			//TODO MS: Don't like this cast
+			_.asInstanceOf[EncapsulatedPopulation[model.type]]
+			.population.map{
+				_.value
 			}
-		}
-		
-		refine(pop, meta.refinements, meta.tolerance,  meta.tolerance)
+		)
 	}
+}
+
+object ABCMethod extends ABCMethod {
+	val initialise = new Initialise{}
+	val step = new Step{}
+	val iterate = new Iterate{}
 }

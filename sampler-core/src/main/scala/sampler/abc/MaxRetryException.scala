@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2012 Crown Copyright 
- *                    Animal Health and Veterinary Laboratories Agency
+ * Copyright (c) 2012-13 Crown Copyright 
+ *                       Animal Health and Veterinary Laboratories Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,11 +17,5 @@
 
 package sampler.abc
 
-case class ABCParameters(
-		reps: Int, 
-		numParticles: Int, 
-		tolerance: Double = Double.MaxValue, 
-		refinements: Int, 
-		particleRetries: Int = 100, 
-		particleChunking: Int = 100
-)
+class MaxRetryException(message: String = null, cause: Throwable = null) 
+	extends RuntimeException(message, cause)

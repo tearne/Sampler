@@ -26,7 +26,6 @@ import org.apache.commons.math3.ode.nonstiff.DormandPrince853Integrator
 import org.apache.commons.math3.ode.sampling.FixedStepHandler
 import org.apache.commons.math3.ode.sampling.StepNormalizer
 import sampler.Implicits._
-import sampler.abc.ABCMethod
 import sampler.abc.ABCModel
 import sampler.abc.ABCParameters
 import sampler.abc.Prior
@@ -38,6 +37,7 @@ import sampler.math.Random
 import sampler.r.ScriptRunner
 import sampler.math.StatisticsComponent
 import scala.language.existentials
+import sampler.abc.ABCMethod
 
 object FlockMortality extends App{
 	import FlockMortalityModel._
@@ -52,11 +52,15 @@ object FlockMortality extends App{
 		particleRetries = 1000, 
 		particleChunking = 200
 	)
-	val abcMethod = new ABCMethod(abcParams, Random)
-	val builder = LocalPopulationBuilder()
+	val posterior = ABCMethod(
+			FlockMortalityModel, 
+			abcParams, 
+			LocalPopulationBuilder(), 
+			Random
+	).get
 	
-	val pop0 = abcMethod.init(FlockMortalityModel)
-	val posterior = abcMethod.run(pop0, builder).get.population.map(_.value)
+//	val pop0 = abcMethod.init(FlockMortalityModel)
+//	val posterior = abcMethod.run(pop0, builder).get.population.map(_.value)
 	
 	val posteriors = Map(
 		"Beta" -> posterior.map(_.beta).toEmpiricalSeq,

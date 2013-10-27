@@ -15,6 +15,24 @@
  * limitations under the License.
  */
 
-package sampler.abc
+package sampler.abc.generation
 
-case class Particle[A](value: A, weight: Double, bestFit: Double)
+import sampler.abc.ABCParameters
+import sampler.abc.population.EncapsulatedPopulation
+import sampler.abc.ABCModel
+import sampler.abc.Particle
+
+protected[abc] trait InitialiseComponent {
+	val initialise: Initialise
+	
+	trait Initialise {
+		def apply[M <: ABCModel](
+				model: M, 
+				abcParams: ABCParameters
+		): EncapsulatedPopulation[M] = {
+			val numParticles = abcParams.numParticles
+			val pop0 = (1 to numParticles).par.map(i => Particle(model.prior.sample(), 1.0, Double.MaxValue)).seq
+			EncapsulatedPopulation(model)(pop0)
+		}
+	}
+}

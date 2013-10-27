@@ -27,7 +27,7 @@ import sampler.data.Distribution
 import sampler.abc.Particle
 import sampler.math.Partition
 import sampler.run.DetectedAbortionException
-import sampler.abc.RefinementAbortedException
+import sampler.abc.MaxRetryException
 import scala.annotation.tailrec
 import sampler.data.SerialSampler
 
@@ -72,7 +72,7 @@ object PopulationBuilder{
 		@tailrec
 		def nextParticle(failures: Int = 0): Particle[Parameters] = {
 			if(aborter.isAborted) throw new DetectedAbortionException("Abort flag was set")
-			else if(failures >= meta.particleRetries) throw new RefinementAbortedException(s"Aborted after the maximum of $failures trials")
+			else if(failures >= meta.particleRetries) throw new MaxRetryException(s"Aborted after the maximum of $failures trials")
 			else{
 				def getScores(params: Parameters): IndexedSeq[Double] = {
 					val modelWithMetric = modelDistribution(params).map(_.distanceToObserved)
