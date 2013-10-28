@@ -76,30 +76,30 @@ object PopulationBuilder{
 			else{
 				def getScores(params: Parameters): IndexedSeq[Double] = {
 					val modelWithMetric = modelDistribution(params).map(_.distanceToObserved)
-					val modelWithScores = SerialSampler(modelWithMetric)(_.size == meta.reps)
-						.filter(_ <= tolerance)
-					modelWithScores
+					SerialSampler(modelWithMetric)(_.size == meta.reps)
 				}
 				
-				def getWeight(params: Parameters, numPassed: Int): Option[Double] = {
-					val fHat = numPassed.toDouble / meta.reps
+				def getWeight(params: Parameters, scores: IndexedSeq[Double]): Option[Double] = {
+					val fHat = scores.filter(_ < tolerance).size.toDouble
 					val numerator = fHat * prior.density(params)
 					val denominator = weightsTable.map{case (params0, weight) => 
 						weight * params0.perturbDensity(params)
 					}.sum
 					if(numerator > 0 && denominator > 0) Some(numerator / denominator)
-					else None	
+					else None
 				}
 				
 				val res: Option[Particle[Parameters]] = for{
 					params <- Some(samplablePopulation.sample().perturb()) if prior.density(params) > 0
 					fitScores <- Some(getScores(params))
-					weight <- getWeight(params, fitScores.size) 
-				} yield(Particle(params, weight, fitScores.min))
+					weight <- getWeight(params, fitScores) 
+					meanFit = fitScores.sum.toDouble / fitScores.size
+				} yield Particle(params, weight, meanFit)
 				
 				res match {
 					case Some(p: Particle[Parameters]) => p
-					case None => nextParticle(failures + 1)
+					case None => 
+						nextParticle(failures + 1)
 				}
 			}
 		}
