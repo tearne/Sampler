@@ -29,7 +29,7 @@ case class ABCParameters(
 		particleChunking: Int = 100
 )
 
-case class Particle[A](value: A, weight: Double, bestFit: Double)
+case class Particle[A](value: A, weight: Double, meanFit: Double)
 
 trait Prior[A] extends Distribution[A]{
 	def density(value: A): Double

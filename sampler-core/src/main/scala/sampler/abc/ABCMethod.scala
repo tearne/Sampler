@@ -29,6 +29,7 @@ trait ABCMethod extends InitialiseComponent
 		with IterateComponent
 		with StatisticsComponent
 		with Logging{
+	
 	def apply[M <: ABCModel](
 			model: M,
 			abcParams: ABCParameters, 

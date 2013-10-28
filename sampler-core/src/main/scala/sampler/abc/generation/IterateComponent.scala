@@ -52,19 +52,19 @@ protected[abc] trait IterateComponent {
 				else{
 					step(ePop, populationBuilder, abcParams, currentTolerance, random) match {
 						case None =>
-						log.warn(s"Failed to refine current population, evolving within previous tolerance $previousTolerance")
-						loop(ePop, generationsRemaining - 1, previousTolerance, previousTolerance)
+							log.warn(s"Failed to refine current population, evolving within previous tolerance $previousTolerance")
+							loop(ePop, generationsRemaining - 1, previousTolerance, previousTolerance)
 						case Some(newEPop) =>
-						//Next tolerance is the median of the previous best for each particle
-						val fit = newEPop.population.map(_.bestFit)
-						val medianTolerance = quantile(newEPop.population.map(_.bestFit).toEmpiricalSeq, Probability(0.5))
-						val newTolerance = 
-							if(medianTolerance == 0) {
-								log.warn("Median tolerance from last generation evaluated to 0, half the previous tolerance will be used instead.")
-								currentTolerance / 2
-							}
-							else medianTolerance
-						loop(newEPop, generationsRemaining - 1, newTolerance, currentTolerance)
+							//Next tolerance is the median of the previous best for each particle
+							val fit = newEPop.population.map(_.meanFit)
+							val medianMeanFit = quantile(fit.toEmpiricalSeq, Probability(0.5))
+							val newTolerance = 
+								if(medianMeanFit == 0) {
+									log.warn("Median of mean scores from last generation evaluated to 0, half the previous tolerance will be used instead.")
+									currentTolerance / 2
+								}
+								else math.min(medianMeanFit, currentTolerance)
+							loop(newEPop, generationsRemaining - 1, newTolerance, currentTolerance)
 					}
 				}
 			}

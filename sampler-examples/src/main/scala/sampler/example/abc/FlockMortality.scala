@@ -59,9 +59,6 @@ object FlockMortality extends App{
 			Random
 	).get
 	
-//	val pop0 = abcMethod.init(FlockMortalityModel)
-//	val posterior = abcMethod.run(pop0, builder).get.population.map(_.value)
-	
 	val posteriors = Map(
 		"Beta" -> posterior.map(_.beta).toEmpiricalSeq,
 		"Eta" -> posterior.map(_.eta).toEmpiricalSeq,
