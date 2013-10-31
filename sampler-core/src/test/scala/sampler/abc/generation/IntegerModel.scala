@@ -21,8 +21,8 @@ import sampler.abc.ABCModel
 import sampler.data.Distribution
 import sampler.abc.Prior
 
-object VacuousModel extends ABCModel {
-    case class Parameters() extends ParametersBase with Serializable {
+object IntegerModel extends ABCModel {
+    case class Parameters(i: Int) extends ParametersBase with Serializable {
       def perturb() = this
       def perturbDensity(that: Parameters) = if(that == this) 1.0 else 0.0
     }
@@ -41,6 +41,6 @@ object VacuousModel extends ABCModel {
     val prior = new Prior[Parameters] with Serializable{
       val dist = Distribution.continually(1)
       def density(p: Parameters) = 1.0
-      def sample() = Parameters()
+      def sample() = Parameters(1)
     }
   }

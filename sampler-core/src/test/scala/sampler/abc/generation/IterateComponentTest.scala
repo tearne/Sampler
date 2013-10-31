@@ -44,7 +44,7 @@ class RunComponentTest extends AssertionsForJUnit with MockitoSugar{
   )
   
   val random = Random
-  val p0 = EncapsulatedPopulation(VacuousModel)(Nil)
+  val p0 = EncapsulatedPopulation(IntegerModel)(Nil)
 	
   @Test
   def runReturnsInitialPopluationWhenRefinementsIsZero {

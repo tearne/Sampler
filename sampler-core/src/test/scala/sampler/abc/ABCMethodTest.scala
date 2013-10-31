@@ -22,18 +22,49 @@ import org.junit.Test
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import sampler.math.Statistics
+import sampler.abc.builder.PopulationBuilder
+import sampler.math.Random
+import sampler.abc.generation.IntegerModel
 
 class ABCMethodTest extends AssertionsForJUnit with MockitoSugar{
-	@Test def initialisesAndIterates {
-		
+	
+  @Test def initialisesAndIteratesToGiveOptionPopulation {
 		val instance = new ABCMethod{
 			val initialise = mock[Initialise]
 			val iterate = mock[Iterate]
 			val statistics = mock[Statistics]
 		}
 		
+		val model = IntegerModel
+		val parameters = mock[ABCParameters]
+		val pBuilder = mock[PopulationBuilder]
+		val r = mock[Random]
+
+		val mock1 = mock[model.Parameters]
+		val mock2 = mock[model.Parameters]
+		val mock3 = mock[model.Parameters]
+
+		val expectedReturn = Some(Seq(mock1, mock2, mock3))
 		
-		fail("todo")
+		val p1 = Particle(mock1, 10.0, Double.MaxValue)
+		val p2 = Particle(mock2, 15.0, Double.MaxValue)
+		val p3 = Particle(mock3, 20.0, Double.MaxValue)
 		
+		val ePop1 = EncapsulatedPopulation(model)(Nil)
+		val ePop2 = EncapsulatedPopulation(model)(Seq(p1, p2, p3))
+		
+		when(instance.initialise.apply(model, parameters)).thenReturn(ePop1)
+		
+		when(instance.iterate.apply(ePop1, parameters, pBuilder, r)).thenReturn(Some(ePop2))
+		
+		val evolvedPopulation = instance.apply(model, parameters, pBuilder, r)
+
+		assert(expectedReturn === evolvedPopulation)
 	}
+  
+  @Test def ensureTwoParameterMocksAreDifferent {
+    val p1 = mock[IntegerModel.Parameters]
+    
+    assert(p1 != mock[IntegerModel.Parameters])
+  }
 }
