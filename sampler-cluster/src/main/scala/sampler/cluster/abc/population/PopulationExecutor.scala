@@ -27,8 +27,14 @@ import sampler.cluster.abc.ABCJob
 import sampler.abc.ABCParameters
 import java.util.concurrent.atomic.AtomicBoolean
 import sampler.abc.builder.PopulationBuilder
+import sampler.abc.builder.ParticleBuilderComponent
 
-class PopulationExecutor(model: ABCModel, random: Random, builder: PopulationBuilder){
+trait ClusterParticleBuilder {
+	self: ParticleBuilderComponent =>
+	
+	val model: ABCModel
+	val random: Random
+	
 	val aborted: AtomicBoolean = new AtomicBoolean(false)
 
 	def abort() {aborted.set(true)}
@@ -39,7 +45,7 @@ class PopulationExecutor(model: ABCModel, random: Random, builder: PopulationBui
 		case job: ABCJob[_] => 
 			import job._
 			Try{
-				builder(model)(
+				particleBuilder(model)(
 					population.asInstanceOf[model.Population], 
 					abcParams.particleChunking, 	//Run a chunks worth of particles on this iteration
 					currentTolerance,
@@ -50,3 +56,12 @@ class PopulationExecutor(model: ABCModel, random: Random, builder: PopulationBui
 			}
 	}
 }
+
+object ClusterParticleBuilder{
+	def apply(model0: ABCModel, random0: Random) = new ClusterParticleBuilder with ParticleBuilderComponent{
+		val model = model0
+		val random = random0
+		val particleBuilder = new ParticleBuilder{}
+	}
+}
+

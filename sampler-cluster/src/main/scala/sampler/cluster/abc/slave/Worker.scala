@@ -27,7 +27,6 @@ import akka.cluster.Cluster
 import akka.cluster.ClusterEvent
 import akka.actor.ActorRef
 import sampler.cluster.abc.master.WorkAvailable
-import sampler.cluster.abc.population.PopulationExecutor
 import sampler.cluster.abc.ABCJob
 import sampler.run.DetectedAbortionException
 import scala.util.Failure
@@ -36,6 +35,7 @@ import sampler.abc.ABCModel
 import org.slf4j.LoggerFactory
 import sampler.io.Logging
 import scala.concurrent.Promise
+import sampler.cluster.abc.population.ClusterParticleBuilder
 
 //object WorkerApp extends App with HostnameSetup{
 //	if(args.size == 1){
@@ -51,7 +51,7 @@ import scala.concurrent.Promise
  * and switches between idle and busy states, with the option 
  * of aborting work
  */
-class Worker(executor: PopulationExecutor) extends Actor with ActorLogging{
+class Worker(clusterParticleBuilder: ClusterParticleBuilder) extends Actor with ActorLogging{
 	case class Aborted()
 	case class DoneWork()
 	case class GotResult(work: IndexedJob, newResult: Try[ABCModel#Population])
@@ -91,7 +91,7 @@ class Worker(executor: PopulationExecutor) extends Actor with ActorLogging{
 		log.info("Starting work on job {}", indexedJob.id)
 		import context._
 		val fut = Future{
-			val result: Try[ABCModel#Population] = executor.apply(indexedJob.job)
+			val result: Try[ABCModel#Population] = clusterParticleBuilder.apply(indexedJob.job)
 			result match{
 				case Failure(e: DetectedAbortionException) =>
 					log.info("Aborted future finished")
@@ -121,7 +121,7 @@ class Worker(executor: PopulationExecutor) extends Actor with ActorLogging{
 		case Abort(id) => 
 			if(currentJob.map(_.id == id).getOrElse(false)){
 				log.info("============== Aborting ===============")
-				executor.abort
+				clusterParticleBuilder.abort
 				currentJob = None
 				//Let the aborted future complete, then status will become idle automatically
 			}
@@ -138,7 +138,7 @@ class Worker(executor: PopulationExecutor) extends Actor with ActorLogging{
 			}
 		case Aborted => 
 			log.info("Becoming idle")
-			executor.reset
+			clusterParticleBuilder.reset
 			context.become(idle)
 			lastKnownMaster.foreach(_ ! WorkerIdle)
 		case WorkAvailable => 
