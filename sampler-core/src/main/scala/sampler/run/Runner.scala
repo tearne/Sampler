@@ -19,6 +19,10 @@ package sampler.run
 
 import scala.util.Try
 
+trait RunnerComponent{
+	val runner: Runner
+}
+
 trait Runner {
 	def apply[T](jobs: Seq[Abortable[T]]): Seq[Try[T]]
 }
