@@ -21,6 +21,7 @@ import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Test
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
+import sampler.math.Statistics
 
 class ABCMethodTest extends AssertionsForJUnit with MockitoSugar{
 	@Test def initialisesAndIterates {

@@ -28,6 +28,7 @@ import sampler.math.Random
 import sampler.abc.EncapsulatedPopulation
 import sampler.abc.ABCParameters
 import sampler.math.StatisticsComponent
+import sampler.math.Statistics
 
 class RunComponentTest extends AssertionsForJUnit with MockitoSugar{
   val anything = 0

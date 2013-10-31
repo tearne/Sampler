@@ -22,6 +22,7 @@ import sampler.math.StatisticsComponent
 import sampler.io.Logging
 import sampler.abc.generation._
 import sampler.abc.builder.PopulationBuilder
+import sampler.math.Statistics
 
 trait ABCMethod extends InitialiseComponent
 		with IterateComponent

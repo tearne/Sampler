@@ -21,30 +21,24 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import org.apache.commons.math3.distribution.NormalDistribution
 import sampler.Implicits.RichFractionalSeq
-import sampler.abc.ABCMethod
 import sampler.abc.ABCModel
 import sampler.abc.ABCParameters
 import sampler.abc.Prior
-import sampler.abc.population.LocalPopulationBuilder
-import sampler.abc.population.PopulationBuilder
 import sampler.data.Distribution
 import sampler.math.Probability
 import sampler.math.Random
 import sampler.r.QuickPlot.writeDensity
-import sampler.math.StatisticsComponent
-import sampler.cluster.actor.PortFallbackSystem
-import sampler.cluster.abc.Node
-import sampler.cluster.abc.population.PopulationExecutor
-import sampler.cluster.abc.population.DispatchingPopulationBuilder
+import sampler.abc.builder.local.LocalBuilder
+import sampler.abc.ABCMethod
 
 object UnfairCoinApplication extends App 
 	with UnfairCoinFactory 
 	with UnfairCoin
 
 	
-object UnfairCoinWorker extends App {
-	new Node(new PopulationExecutor(CoinModel, Random))
-}
+//object UnfairCoinWorker extends App {
+//	new Node(new PopulationExecutor(CoinModel, Random))
+//}
 
 trait UnfairCoinFactory{
 	val meta = new ABCParameters(
@@ -54,15 +48,20 @@ trait UnfairCoinFactory{
 		particleRetries = 100, 
 		particleChunking = 100
 	)
-	val pBuilder = DispatchingPopulationBuilder(PortFallbackSystem("ClusterSystem"))
-//	val pBuilder = LocalPopulationBuilder()
+//	val pBuilder = DispatchingPopulationBuilder(PortFallbackSystem("ClusterSystem"))
+//	val pBuilder = LocalBuilder()
 }
 
 trait UnfairCoin {
-	val pBuilder: PopulationBuilder
+	val pBuilder = LocalBuilder
 	val meta: ABCParameters
 	
-	val finalPopulation = ABCMethod(CoinModel, meta, pBuilder, Random).get
+	val finalPopulation = ABCMethod(
+			CoinModel, 
+			meta, 
+			pBuilder, 
+			Random
+	).get
 
 	val headsDensity = finalPopulation.map(_.pHeads)
 	
@@ -76,7 +75,7 @@ trait UnfairCoin {
 	)
 }
 
-object CoinModel extends CoinModelBase with StatisticsComponent{
+object CoinModel extends CoinModelBase{
   val abcRandom = Random
   val modelRandom = Random
 }

@@ -29,18 +29,20 @@ import sampler.Implicits._
 import sampler.abc.ABCModel
 import sampler.abc.ABCParameters
 import sampler.abc.Prior
-import sampler.abc.population.LocalPopulationBuilder
 import sampler.data.Distribution
 import sampler.io.CSVFile
 import sampler.math.Probability
 import sampler.math.Random
 import sampler.r.ScriptRunner
-import sampler.math.StatisticsComponent
 import scala.language.existentials
+import sampler.abc.builder.local.LocalBuilder
 import sampler.abc.ABCMethod
+import sampler.math.Statistics
 
-object FlockMortality extends App{
+object FlockMortality extends App {
 	import FlockMortalityModel._
+	import Statistics._
+	
 	val wd = Paths.get("results").resolve("FlockMortality")
 	Files.createDirectories(wd)
 	implicit val modelRandom = FlockMortalityModel.modelRandom 
@@ -55,7 +57,7 @@ object FlockMortality extends App{
 	val posterior = ABCMethod(
 			FlockMortalityModel, 
 			abcParams, 
-			LocalPopulationBuilder(), 
+			LocalBuilder, 
 			Random
 	).get
 	
@@ -149,7 +151,7 @@ dev.off()
 	
 }
 
-object FlockMortalityModel extends ABCModel with StatisticsComponent{
+object FlockMortalityModel extends ABCModel {
 	implicit val abcRandom = Random
 	val modelRandom = Random
 	val statistics = sampler.math.Statistics
