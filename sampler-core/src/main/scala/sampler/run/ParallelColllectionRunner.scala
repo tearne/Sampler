@@ -26,7 +26,7 @@ class ParallelRunner(aborter: Aborter) extends Runner{
 }
 object ParallelRunner{
 	def apply[T](jobs: Seq[Abortable[T]]) = new ParallelRunner(Aborter())(jobs)
-	def apply[T]() = new ParallelRunner(Aborter())
+	def apply() = new ParallelRunner(Aborter())
 }
 
 object ParallelRunnerTest extends App{

@@ -4,13 +4,29 @@ import sampler.run.Abortable
 import sampler.abc.ABCModel
 import sampler.abc.ABCParameters
 import sampler.abc.builder.ParticleBuilderComponent
+import sampler.io.Logging
+import sampler.math.Random
+import sampler.abc.EncapsulatedPopulation
 
 trait JobBuilderComponent {
-	self: ParticleBuilderComponent => 
+	self: ParticleBuilderComponent with Logging => 
 	val jobBuilder: JobBuilder
 	
 	trait JobBuilder {
-		def makeJobs(model: ABCModel)(abcParams: ABCParameters): Seq[Abortable[model.Population]]
+		def makeJobs[M <: ABCModel](ePop: EncapsulatedPopulation[M])(abcParams: ABCParameters, tolerance: Double, r: Random): Seq[Abortable[ePop.model.Population]] = {
+		  	//Run the building in parallel on local machine, by chunking
+			val jobSizes = (1 to abcParams.numParticles)
+				.grouped(abcParams.particleChunking)
+				.map(_.size).toList
+				
+			log.info(s"Tolerance = $tolerance, Local job sizes = $jobSizes")
+			
+			val jobs = jobSizes.map{quantity => Abortable{aborter =>
+				particleBuilder.apply(ePop.model)(ePop.population, quantity, tolerance, aborter, abcParams, r)
+			}}
+			
+			jobs
+		}
 	}
 	
 }

@@ -35,7 +35,7 @@ import sampler.math.Probability
 import sampler.math.Random
 import sampler.r.ScriptRunner
 import scala.language.existentials
-import sampler.abc.builder.local.LocalBuilder
+import sampler.abc.builder.local.LocalPopulationBuilder
 import sampler.abc.ABCMethod
 import sampler.math.Statistics
 
@@ -52,12 +52,12 @@ object FlockMortality extends App {
 		numParticles = 100, 
 		refinements = 16,
 		particleRetries = 1000, 
-		particleChunking = 200
+		particleChunking = 50
 	)
 	val posterior = ABCMethod(
 			FlockMortalityModel, 
 			abcParams, 
-			LocalBuilder, 
+			LocalPopulationBuilder, 
 			Random
 	).get
 	

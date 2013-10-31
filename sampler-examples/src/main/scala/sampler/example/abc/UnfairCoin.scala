@@ -28,7 +28,7 @@ import sampler.data.Distribution
 import sampler.math.Probability
 import sampler.math.Random
 import sampler.r.QuickPlot.writeDensity
-import sampler.abc.builder.local.LocalBuilder
+import sampler.abc.builder.local.LocalPopulationBuilder
 import sampler.abc.ABCMethod
 
 object UnfairCoinApplication extends App 
@@ -53,7 +53,7 @@ trait UnfairCoinFactory{
 }
 
 trait UnfairCoin {
-	val pBuilder = LocalBuilder
+	val pBuilder = LocalPopulationBuilder
 	val meta: ABCParameters
 	
 	val finalPopulation = ABCMethod(
