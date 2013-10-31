@@ -19,14 +19,15 @@ package sampler.abc.generation
 
 import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Test
-import sampler.abc.population.PopulationBuilder
+import sampler.abc.builder.PopulationBuilder
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import sampler.abc.ABCParameters
 import sampler.io.Logging
 import sampler.math.Random
-import sampler.abc.population.EncapsulatedPopulation
+import sampler.abc.EncapsulatedPopulation
 import sampler.abc.ABCParameters
+import sampler.math.StatisticsComponent
 
 class RunComponentTest extends AssertionsForJUnit with MockitoSugar{
   val anything = 0
@@ -46,11 +47,9 @@ class RunComponentTest extends AssertionsForJUnit with MockitoSugar{
 	
   @Test
   def runReturnsInitialPopluationWhenRefinementsIsZero {
-    val instance = new IterateComponent
-    		with StepComponent
-    		with Logging{
+    val instance = new IterateComponent with Logging with StatisticsComponent{
 		val iterate = new Iterate{}
-		val step = mock[Step]
+		val statistics = mock[Statistics]
     }
     
   	val populationBuilder = mock[PopulationBuilder]

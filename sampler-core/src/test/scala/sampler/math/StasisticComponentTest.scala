@@ -11,8 +11,11 @@ class StasisticComponentTest extends AssertionsForJUnit with StatisticsComponent
 
   implicit val r = Random
   val tolerance = 1e-8
+  val statistics = new Statistics{}
+  import statistics._
   
   @Test def testRightTail {
+  	
 	val empSeq = IndexedSeq[Double](1,2,3,4).toEmpiricalSeq
     
 	assert(rightTail(empSeq, 1.0).value === 1.0)

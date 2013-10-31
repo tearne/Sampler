@@ -18,14 +18,12 @@
 package sampler.abc
 
 import sampler.math.Random
-import sampler.abc.population.PopulationBuilder
 import sampler.math.StatisticsComponent
 import sampler.io.Logging
 import sampler.abc.generation._
-import sampler.abc.population.EncapsulatedPopulation
+import sampler.abc.builder.PopulationBuilder
 
 trait ABCMethod extends InitialiseComponent
-		with StepComponent
 		with IterateComponent
 		with StatisticsComponent
 		with Logging{
@@ -36,9 +34,9 @@ trait ABCMethod extends InitialiseComponent
 			populationBuilder: PopulationBuilder,
 			random: Random
 	): Option[Seq[model.Parameters]] = {
-		val pop0 = initialise(model, abcParams)
-		val ePop = iterate(pop0, abcParams, populationBuilder, random)
-		ePop.map(
+		val ePop0 = initialise(model, abcParams)
+		val ePopFinal = iterate(ePop0, abcParams, populationBuilder, random)
+		ePopFinal.map(
 			//TODO MS: Don't like this cast
 			_.asInstanceOf[EncapsulatedPopulation[model.type]]
 			.population.map{
@@ -50,6 +48,6 @@ trait ABCMethod extends InitialiseComponent
 
 object ABCMethod extends ABCMethod {
 	val initialise = new Initialise{}
-	val step = new Step{}
 	val iterate = new Iterate{}
+	val statistics = new Statistics{}
 }

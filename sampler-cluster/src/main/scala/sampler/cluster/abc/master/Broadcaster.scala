@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor.client
+package sampler.cluster.abc.master
 
 import akka.actor.Actor
 import akka.actor.ActorLogging
@@ -29,10 +29,10 @@ import akka.actor.actorRef2Scala
 import akka.cluster.ClusterEvent.ClusterDomainEvent
 import akka.actor.Props
 import akka.cluster.ClusterEvent.ClusterDomainEvent
-import sampler.cluster.actor.worker.StatusRequest
-import sampler.cluster.actor.worker.WorkerBusy
-import sampler.cluster.actor.worker.WorkerIdle
 import scala.concurrent.duration.DurationInt
+import sampler.cluster.abc.slave.StatusRequest
+import sampler.cluster.abc.slave.WorkerBusy
+import sampler.cluster.abc.slave.WorkerIdle
 
 case class Broadcast(msg: Any)
 
@@ -67,7 +67,7 @@ class Broadcaster extends Actor with ActorLogging{
 	def attemptWorkerHandshake(m: Member){
 		val workerCandidate = context.actorFor(RootActorPath(m.address) / workerPath)
 		workerCandidate ! StatusRequest
-		log.debug("Attempting handshake with potential worker {}", workerCandidate)
+		log.info("Attempting handshake with potential worker {}", workerCandidate)
 	}
 	
 	def receive = {
@@ -79,12 +79,13 @@ class Broadcaster extends Actor with ActorLogging{
   		case MemberRemoved(member, previousStatus) =>
   			val down = workers.filter(_.path.address == member.address)
   			workers --= down
-  		  	log.info(s"Worker down {}, prevous status", down, previousStatus)
+  		  	log.info(s"Worker down {}, previous status", down, previousStatus)
   		  	reportingActor ! NumWorkers(workers.size)
   		case WorkerBusy =>
   		  	workers += sender 
   		  	reportingActor ! NumWorkers(workers.size)
   		case WorkerIdle =>
+  			log.info("{} is IDLE", sender)
   			workers += sender
   			reportingActor ! NumWorkers(workers.size)
   			context.parent.forward(WorkerIdle)

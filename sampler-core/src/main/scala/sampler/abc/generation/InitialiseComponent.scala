@@ -18,7 +18,7 @@
 package sampler.abc.generation
 
 import sampler.abc.ABCParameters
-import sampler.abc.population.EncapsulatedPopulation
+import sampler.abc.EncapsulatedPopulation
 import sampler.abc.ABCModel
 import sampler.abc.Particle
 

@@ -49,10 +49,10 @@ object SamplerBuild extends Build{
 		settings = buildSettings ++ Seq(
 			libraryDependencies ++= Seq(
 				"com.typesafe" % "config" % "0.4.1",
-				"com.typesafe.akka" %% "akka-actor" % "2.1.4", 
-				"com.typesafe.akka" %% "akka-remote" % "2.1.4",
-				"com.typesafe.akka" %% "akka-cluster-experimental" % "2.1.4",
-				"com.typesafe.akka" %% "akka-slf4j" % "2.1.4", 
+				"com.typesafe.akka" %% "akka-actor" % "2.2.3", 
+				"com.typesafe.akka" %% "akka-remote" % "2.2.3",
+				"com.typesafe.akka" %% "akka-cluster" % "2.2.3",
+				"com.typesafe.akka" %% "akka-slf4j" % "2.2.3", 
 				"org.apache.commons" % "commons-math3" % "3.0",
 				"com.amazonaws" % "aws-java-sdk" % "1.4.0.1"	
 			)

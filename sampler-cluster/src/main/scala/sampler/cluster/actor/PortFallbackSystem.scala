@@ -28,10 +28,10 @@ object PortFallbackSystem {
 	val log = LoggerFactory.getLogger(PortFallbackSystem.this.getClass())
 	
 	def apply(name: String): AkkaSystem = {
-		val startPort = ConfigFactory.load.getInt("akka.remote.netty.port")
+		val startPort = ConfigFactory.load.getInt("akka.remote.netty.tcp.port")
 		
 		def tryPort(i: Int) = {
-			System.setProperty("akka.remote.netty.port", i.toString)
+			System.setProperty("akka.remote.netty.tcp.port", i.toString)
 			ConfigFactory.invalidateCaches()
 			Try(AkkaSystem(name))
 		}

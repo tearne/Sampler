@@ -29,7 +29,7 @@ trait HostnameSetup {
 			java.net.InetAddress.getLocalHost.getHostAddress
 		}match{
 			case Success(addr) => 
-				System.setProperty("akka.remote.netty.hostname", addr)
+				System.setProperty("akkak.remote.netty.tcp.hostname", addr)
 				log.info("Binding to local host address "+addr)
 			case Failure(_) => 
 				log.warn("Falling back to config hostname instead of inet host address")

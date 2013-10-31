@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor.client
+package sampler.cluster.abc.master
 
 import akka.actor.Actor
 import akka.actor.ActorLogging
@@ -23,15 +23,10 @@ import akka.actor.ActorRef
 import scala.concurrent.duration._
 import akka.actor.Props
 import akka.actor.actorRef2Scala
-import sampler.cluster.actor.worker.Abort
-import sampler.cluster.actor.worker.WorkerIdle
-import sampler.cluster.actor.client.dispatch.Job
-import scala.language.existentials
-
-case class Request(job: Job[_], requestor: ActorRef, jobID: Long)
-case class WorkAvailable()
-case class AbortAll()
-case class Delegate(request: Request, worker: ActorRef)
+import sampler.cluster.abc.slave.WorkerIdle
+import sampler.cluster.abc.ABCJob
+import sampler.cluster.abc.slave.Abort
+import sampler.cluster.abc.slave.IndexedJob
 
 class Master extends Actor with ActorLogging {
 	case class BroadcastWorkAvailable()
@@ -39,34 +34,39 @@ class Master extends Actor with ActorLogging {
 	val broadcasterName = "broadcaster"
 	val broadcaster: ActorRef = context.actorOf(Props[Broadcaster], broadcasterName)
 	
-	val requestQ = collection.mutable.Queue.empty[Request]
-	val jobIDIterator = Iterator.iterate(0)(_ + 1)
+	var currentRequest: Option[(IndexedJob, ActorRef)] = None
 	
 	import context.dispatcher
 	context.system.scheduler.schedule(1.seconds, 5.second, self, BroadcastWorkAvailable)
 	
-	override def postStop(){
-		log.debug("Stopped")
+	override def postStop(): Unit = {
+		log.info("Post stop")
 	}
 	
 	def receive = {
-		case job: Job[_] => 
-			val requestor = sender
-			val jobID = jobIDIterator.next
-  		  	val newReq = Request(job, requestor, jobID)
-  		  	requestQ += newReq 
-  		  	log.info("New job id {}, |Q|={}", jobID, requestQ.size)
+		case job: IndexedJob => 
+			if(currentRequest.isDefined) {
+				log.warning("Ignoring work from {} as cluster is busy", sender)
+				sender ! ClusterBusy
+			}
+			else{
+				val requestor = sender
+				currentRequest = Some((job, requestor)) 
+				log.info("Sending notification of new work")
+				 broadcaster ! Broadcast(WorkAvailable)
+			}
 		case BroadcastWorkAvailable =>
-			if(!requestQ.isEmpty) broadcaster ! Broadcast(WorkAvailable)
+			if(currentRequest.isDefined) {
+				log.info("Routine notification of existing work")
+				broadcaster ! Broadcast(WorkAvailable)
+			}
 		case WorkerIdle =>
-			log.debug("Idle msg from {}.  {} Jobs in Q",sender, requestQ.size)
+			log.debug("Idle msg from {}", sender)
 			val worker = sender
-			if(!requestQ.isEmpty) 
-				context.actorOf(Props[Supervisor]) ! Delegate(requestQ.dequeue, worker)
-		case AbortAll =>
-			//All children other than the broadcaster are work monitors
-			//TODO Not sure how this would work.  Are remote cluster nodes part of the context?
-			context.children.filter(_.path.name != broadcasterName).foreach(_ ! Abort)
-			requestQ.clear
+			currentRequest.foreach{case (job, requestor) => worker.tell(job, requestor)}
+		case AbortAll(jobId) =>
+			log.info("Sending abort message")
+			currentRequest = None
+			broadcaster ! Broadcast(Abort(jobId))
 	}
 }

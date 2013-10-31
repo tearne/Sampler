@@ -88,7 +88,7 @@ class Supervisor extends Actor with ActorLogging {
 	
 	def awaitingResults(worker: ActorRef, request: Request): Receive = {
 		def behaviour: Receive = {
-			case MemberRemoved(m) => clusterMemberLost(worker, m, request)
+			case MemberRemoved(m, previousStatus) => clusterMemberLost(worker, m, request)
 			case Abort =>
 				worker ! Abort
 				context.stop(self)

@@ -18,22 +18,21 @@
 package sampler.abc.generation
 
 import sampler.math.StatisticsComponent
-import sampler.abc.population.PopulationBuilder
+import sampler.abc.builder.PopulationBuilder
 import scala.annotation.tailrec
 import sampler.io.Logging
 import sampler.abc.ABCModel
-import sampler.abc.population.EncapsulatedPopulation
+import sampler.abc.EncapsulatedPopulation
 import sampler.Implicits._
 import sampler.math.Probability
 import sampler.abc.ABCParameters
 import sampler.math.Random
 
-protected[abc] trait IterateComponent {
-	self: StepComponent with Logging =>
-		
+protected[abc] trait IterateComponent { 
+	self: Logging with StatisticsComponent => 
 	val iterate: Iterate
 	
-	trait Iterate extends StatisticsComponent{
+	trait Iterate {
 		def apply[M <: ABCModel](
 				ePop: EncapsulatedPopulation[M], 
 				abcParams: ABCParameters, 
@@ -50,14 +49,14 @@ protected[abc] trait IterateComponent {
 				log.info(generationsRemaining + " generations remaining")
 				if(generationsRemaining == 0) Some(ePop)
 				else{
-					step(ePop, populationBuilder, abcParams, currentTolerance, random) match {
+					populationBuilder.run(ePop, abcParams, currentTolerance, random) match {
 						case None =>
 							log.warn(s"Failed to refine current population, evolving within previous tolerance $previousTolerance")
 							loop(ePop, generationsRemaining - 1, previousTolerance, previousTolerance)
 						case Some(newEPop) =>
 							//Next tolerance is the median of the previous best for each particle
 							val fit = newEPop.population.map(_.meanFit)
-							val medianMeanFit = quantile(fit.toEmpiricalSeq, Probability(0.5))
+							val medianMeanFit = statistics.quantile(fit.toEmpiricalSeq, Probability(0.5))
 							val newTolerance = 
 								if(medianMeanFit == 0) {
 									log.warn("Median of mean scores from last generation evaluated to 0, half the previous tolerance will be used instead.")

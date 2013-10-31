@@ -27,13 +27,15 @@ import sampler.abc.ABCParameters
 import sampler.abc.Prior
 import sampler.abc.population.LocalPopulationBuilder
 import sampler.abc.population.PopulationBuilder
-import sampler.cluster.abc.population.PopulationExecutor
-import sampler.cluster.actor.ClusterNode
 import sampler.data.Distribution
 import sampler.math.Probability
 import sampler.math.Random
 import sampler.r.QuickPlot.writeDensity
 import sampler.math.StatisticsComponent
+import sampler.cluster.actor.PortFallbackSystem
+import sampler.cluster.abc.Node
+import sampler.cluster.abc.population.PopulationExecutor
+import sampler.cluster.abc.population.DispatchingPopulationBuilder
 
 object UnfairCoinApplication extends App 
 	with UnfairCoinFactory 
@@ -41,19 +43,19 @@ object UnfairCoinApplication extends App
 
 	
 object UnfairCoinWorker extends App {
-	new ClusterNode(new PopulationExecutor(CoinModel, Random))
+	new Node(new PopulationExecutor(CoinModel, Random))
 }
 
 trait UnfairCoinFactory{
 	val meta = new ABCParameters(
     	reps = 100,
-		numParticles = 1000, 
+		numParticles = 100, 
 		refinements = 50,
 		particleRetries = 100, 
-		particleChunking = 50
+		particleChunking = 100
 	)
-//	val pBuilder = DispatchingPopulationBuilder(PortFallbackSystem("ClusterSystem"))
-	val pBuilder = LocalPopulationBuilder()
+	val pBuilder = DispatchingPopulationBuilder(PortFallbackSystem("ClusterSystem"))
+//	val pBuilder = LocalPopulationBuilder()
 }
 
 trait UnfairCoin {
@@ -68,9 +70,9 @@ trait UnfairCoin {
 	Files.createDirectories(wd)
 	
 	writeDensity(
-			wd, 
-			"posterior", 
-			headsDensity.continuous("P[Heads]")
+		wd, 
+		"posterior", 
+		headsDensity.continuous("P[Heads]")
 	)
 }
 

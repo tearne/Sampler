@@ -1,4 +1,4 @@
-package sampler.abc.population
+package sampler.abc
 
 import sampler.abc.ABCModel
 

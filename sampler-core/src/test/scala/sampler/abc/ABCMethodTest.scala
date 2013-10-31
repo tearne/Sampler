@@ -19,9 +19,20 @@ package sampler.abc
 
 import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Test
+import org.mockito.Mockito._
+import org.scalatest.mock.MockitoSugar
 
-class ABCMethodTest extends AssertionsForJUnit{
+class ABCMethodTest extends AssertionsForJUnit with MockitoSugar{
 	@Test def initialisesAndIterates {
+		
+		val instance = new ABCMethod{
+			val initialise = mock[Initialise]
+			val iterate = mock[Iterate]
+			val statistics = mock[Statistics]
+		}
+		
+		
 		fail("todo")
+		
 	}
 }

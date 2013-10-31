@@ -22,18 +22,31 @@ import sampler.data.Empirical
 import sampler.math.Random
 import sampler.cluster.actor.worker.Executor
 import sampler.run.WrappedAborter
-import sampler.abc.population.PopulationBuilder
+import scala.util.Try
+import sampler.cluster.abc.ABCJob
+import sampler.abc.ABCParameters
+import java.util.concurrent.atomic.AtomicBoolean
+import sampler.abc.builder.PopulationBuilder
 
-class PopulationExecutor(model: ABCModel, random: Random) extends Executor {
-	def apply = PartialFunction[Any, Any]{
-		case ABCJob(pop, quantity, tol, meta) => 
-			PopulationBuilder(model)(
-					pop.asInstanceOf[model.Population], 
-					quantity, 
-					tol,
-					new WrappedAborter(aborted),
-					meta,
+class PopulationExecutor(model: ABCModel, random: Random, builder: PopulationBuilder){
+	val aborted: AtomicBoolean = new AtomicBoolean(false)
+
+	def abort() {aborted.set(true)}
+	def isAborted = aborted.get
+	def reset() {aborted.set(false)}
+	
+	def apply = PartialFunction[Any, Try[ABCModel#Population]]{
+		case job: ABCJob[_] => 
+			import job._
+			Try{
+				builder(model)(
+					population.asInstanceOf[model.Population], 
+					abcParams.particleChunking, 	//Run a chunks worth of particles on this iteration
+					currentTolerance,
+					new WrappedAborter(aborted), 	//TODO HUH, how does this get aborted?
+					abcParams,
 					random
-			)
+				)
+			}
 	}
 }
