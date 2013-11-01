@@ -30,24 +30,19 @@ import sampler.abc.generation.IntegerModel
 
 class ABCMethodTest extends AssertionsForJUnit with MockitoSugar{
 
-  var instance: ABCMethod = _
-  var parameters: ABCParameters = _
-  var pBuilder: PopulationBuilder = _
-  var r: Random = _
-  
   val model = IntegerModel
   
-  @Before def setup {
-    instance = new ABCMethod{
-      val initialise = mock[Initialise]
-	  val iterate = mock[Iterate]
-	  val statistics = mock[Statistics]
-	}
-    
-    parameters = mock[ABCParameters]
-    pBuilder = mock[PopulationBuilder]
-    r = mock[Random]
+  val instance = new ABCMethod{
+	val initialise = mock[Initialise]
+	val iterate = mock[Iterate]
+	val statistics = mock[Statistics]
   }
+  
+  val parameters = mock[ABCParameters]
+  val pBuilder = mock[PopulationBuilder]
+  val r = mock[Random]
+
+  val ePop = EncapsulatedPopulation(model)(Nil)
   
   @Test def initialisesAndIteratesToGiveOptionPopulation {
     val mock1 = mock[model.Parameters]
@@ -60,12 +55,11 @@ class ABCMethodTest extends AssertionsForJUnit with MockitoSugar{
     val p2 = Particle(mock2, 15.0, Double.MaxValue)
     val p3 = Particle(mock3, 20.0, Double.MaxValue)
 
-    val ePop1 = EncapsulatedPopulation(model)(Nil)
     val ePop2 = EncapsulatedPopulation(model)(Seq(p1, p2, p3))
 		
-    when(instance.initialise.apply(model, parameters)).thenReturn(ePop1)
+    when(instance.initialise.apply(model, parameters)).thenReturn(ePop)
 		
-    when(instance.iterate.apply(ePop1, parameters, pBuilder, r)).thenReturn(Some(ePop2))
+    when(instance.iterate.apply(ePop, parameters, pBuilder, r)).thenReturn(Some(ePop2))
 		
     val evolvedPopulation = instance.apply(model, parameters, pBuilder, r)
 
@@ -73,10 +67,9 @@ class ABCMethodTest extends AssertionsForJUnit with MockitoSugar{
   }
   
   @Test def returnsNoneWhenANoneParticleIsGiven {
-    val ePop1 = EncapsulatedPopulation(model)(Nil)
-    when(instance.initialise.apply(model, parameters)).thenReturn(ePop1)
+    when(instance.initialise.apply(model, parameters)).thenReturn(ePop)
     
-    when(instance.iterate.apply(ePop1, parameters, pBuilder, r)).thenReturn(None)
+    when(instance.iterate.apply(ePop, parameters, pBuilder, r)).thenReturn(None)
     
     assert(instance.apply(model, parameters, pBuilder, r) === None)
   }
