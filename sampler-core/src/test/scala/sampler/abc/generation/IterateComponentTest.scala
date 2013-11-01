@@ -29,22 +29,24 @@ import sampler.abc.EncapsulatedPopulation
 import sampler.abc.ABCParameters
 import sampler.math.StatisticsComponent
 import sampler.math.Statistics
+import sampler.abc.Particle
 
-class RunComponentTest extends AssertionsForJUnit with MockitoSugar{
+class IterateComponentTest extends AssertionsForJUnit with MockitoSugar {
   val anything = 0
   val zeroGenerations = 0
 	
   val abcParams = ABCParameters(
     anything, 
 	anything, 
+	
 	anything, 
 	zeroGenerations, 
-	anything, 
+	anything,
 	anything
   )
   
   val random = Random
-  val p0 = EncapsulatedPopulation(IntegerModel)(Nil)
+  val pop0 = EncapsulatedPopulation(IntegerModel)(Nil)
 	
   @Test
   def runReturnsInitialPopluationWhenRefinementsIsZero {
@@ -55,7 +57,107 @@ class RunComponentTest extends AssertionsForJUnit with MockitoSugar{
     
   	val populationBuilder = mock[PopulationBuilder]
     
-    val result = instance.iterate(p0, abcParams, populationBuilder, random).get
-    assert(result === p0)
+    val result = instance.iterate(pop0, abcParams, populationBuilder, random).get
+    assert(result === pop0)
+  }
+  
+  @Test def oneRefinementUnsuccessfulRefinementSoReturnsInitialPopulation {
+    val instance = new IterateComponent with Logging with StatisticsComponent{
+		val iterate = new Iterate{}
+		val statistics = mock[Statistics]
+    }
+    
+  	val populationBuilder = mock[PopulationBuilder]
+    
+  	val oneGeneration = 1
+  	val tolerance1 = 1e6
+  	
+  	val abcParams1 = ABCParameters(
+  	  anything, 
+  	  anything, 
+	  tolerance1, 
+	  oneGeneration, 
+	  anything,
+	  anything
+    )
+  	
+    when(populationBuilder.run(pop0, abcParams1, tolerance1, random)).thenReturn(None)
+    
+    val result = instance.iterate(pop0, abcParams1, populationBuilder, random).get
+    
+    assert(result === pop0)
+  }
+  
+  @Test def oneRefinementSuccessfulRefinementReturnsNewPopulation {
+    val instance = new IterateComponent with Logging with StatisticsComponent{
+		val iterate = new Iterate{}
+		val statistics = mock[Statistics]
+    }
+    
+  	val populationBuilder = mock[PopulationBuilder]
+    
+  	val oneGeneration = 1
+  	val tolerance1 = 1e6
+  	
+  	val abcParams1 = ABCParameters(
+  	  anything, 
+  	  anything, 
+	  tolerance1, 
+	  oneGeneration, 
+	  anything,
+	  anything
+    )
+  	
+    val p1 = new Particle(mock[IntegerModel.Parameters], 1, Double.MaxValue)
+  	val p2 = new Particle(mock[IntegerModel.Parameters], 1, Double.MaxValue)
+    
+  	val pop1 = EncapsulatedPopulation(IntegerModel)(Seq(p1,p2))
+  	
+    when(populationBuilder.run(pop0, abcParams1, tolerance1, random)).thenReturn(Some(pop1))
+    
+    val result = instance.iterate(pop0, abcParams1, populationBuilder, random).get
+    
+    assert(result === pop1)
+  }
+  
+  @Test def twoRefinementsImplicitelyCorrectToleranceOnSecondLoop {
+        val instance = new IterateComponent with Logging with StatisticsComponent{
+		val iterate = new Iterate{}
+		val statistics = mock[Statistics]
+    }
+    
+  	val populationBuilder = mock[PopulationBuilder]
+    
+  	val twoGenerations = 2
+  	val tolerance1 = 1e6
+  	val tolerance2 = 500000.0
+  	
+  	val abcParams2 = ABCParameters(
+  	  anything, 
+  	  anything, 
+	  tolerance1, 
+	  twoGenerations, 
+	  anything,
+	  anything
+    )
+    
+    val p1 = new Particle(mock[IntegerModel.Parameters], 1, Double.MaxValue)
+  	val p2 = new Particle(mock[IntegerModel.Parameters], 1, Double.MaxValue)
+  	val p3 = new Particle(mock[IntegerModel.Parameters], 1, Double.MaxValue)
+  	val p4 = new Particle(mock[IntegerModel.Parameters], 1, Double.MaxValue)
+    
+  	val pop1 = EncapsulatedPopulation(IntegerModel)(Seq(p1,p2))
+  	val pop2 = EncapsulatedPopulation(IntegerModel)(Seq(p3,p4))
+  	
+  	when(populationBuilder.run(pop0, abcParams2, tolerance1, random)).thenReturn(Some(pop1))
+  	when(populationBuilder.run(pop1, abcParams2, tolerance2, random)).thenReturn(Some(pop2))
+    
+  	val result = instance.iterate(pop0, abcParams2, populationBuilder, random).get
+  	
+    assert(result === pop2)
+  }
+  
+  @Test def scenarioWhereMedianMeanFitInstZero {
+    fail()
   }
 }
