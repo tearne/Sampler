@@ -4,7 +4,7 @@ import scala.language.existentials
 import sampler.cluster.abc.ABCJob
 import akka.actor.ActorRef
 
-case class Abort(id: Int)
+case class AbortRequest(id: Int)
 case class StatusRequest()
 case class WorkerBusy()
 case class WorkerIdle()

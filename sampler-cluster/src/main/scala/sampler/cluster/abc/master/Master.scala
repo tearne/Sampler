@@ -25,7 +25,7 @@ import akka.actor.Props
 import akka.actor.actorRef2Scala
 import sampler.cluster.abc.slave.WorkerIdle
 import sampler.cluster.abc.ABCJob
-import sampler.cluster.abc.slave.Abort
+import sampler.cluster.abc.slave.AbortRequest
 import sampler.cluster.abc.slave.IndexedJob
 
 class Master extends Actor with ActorLogging {
@@ -37,7 +37,7 @@ class Master extends Actor with ActorLogging {
 	var currentRequest: Option[(IndexedJob, ActorRef)] = None
 	
 	import context.dispatcher
-	context.system.scheduler.schedule(1.seconds, 5.second, self, BroadcastWorkAvailable)
+	context.system.scheduler.schedule(1.seconds, 10.second, self, BroadcastWorkAvailable)
 	
 	override def postStop(): Unit = {
 		log.info("Post stop")
@@ -67,6 +67,6 @@ class Master extends Actor with ActorLogging {
 		case AbortAll(jobId) =>
 			log.info("Sending abort message")
 			currentRequest = None
-			broadcaster ! Broadcast(Abort(jobId))
+			broadcaster ! Broadcast(AbortRequest(jobId))
 	}
 }

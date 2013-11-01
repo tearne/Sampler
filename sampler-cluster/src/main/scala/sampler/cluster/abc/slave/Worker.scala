@@ -36,21 +36,8 @@ import org.slf4j.LoggerFactory
 import sampler.io.Logging
 import scala.concurrent.Promise
 import sampler.cluster.abc.population.ClusterParticleBuilder
+import sampler.cluster.actor.worker.Abort
 
-//object WorkerApp extends App with HostnameSetup{
-//	if(args.size == 1){
-//		System.setProperty("akka.remote.netty.port", args(0))
-//		ConfigFactory.invalidateCaches()
-//	}
-//	val system = ActorSystem.withPortFallback("ClusterSystem")
-//	system.actorOf(Props(new WorkerBase(new TestDomainWorker)), name = "workerroot")
-//}
-
-/*
- * Keep the worker simple.  It just responds to status requests
- * and switches between idle and busy states, with the option 
- * of aborting work
- */
 class Worker(clusterParticleBuilder: ClusterParticleBuilder) extends Actor with ActorLogging{
 	case class Aborted()
 	case class DoneWork()
@@ -60,7 +47,10 @@ class Worker(clusterParticleBuilder: ClusterParticleBuilder) extends Actor with 
 	override def preStart(): Unit = cluster.subscribe(self, classOf[ClusterEvent.UnreachableMember])
 	override def postStop(): Unit = cluster.unsubscribe(self)
 	
-	var future: Future[Unit] = Promise.successful().future
+	
+	//If the future is incomplete then we regard the worker as still busy
+	var future: Option[Future[Unit]] = None
+	
 	var currentJob: Option[IndexedJob] = None
 	var lastKnownMaster: Option[ActorRef] = None
 	
@@ -73,7 +63,7 @@ class Worker(clusterParticleBuilder: ClusterParticleBuilder) extends Actor with 
 			lastKnownMaster = Some(master)
 		}
 		case WorkAvailable => {
-			log.debug("Work is available and I'm free")
+			log.debug("Work is available, I will apply for it")
 			val master = sender
 			lastKnownMaster = Some(master)
 			sender ! WorkerIdle
@@ -90,35 +80,33 @@ class Worker(clusterParticleBuilder: ClusterParticleBuilder) extends Actor with 
 		context.become(busy(requestor))
 		log.info("Starting work on job {}", indexedJob.id)
 		import context._
-		val fut = Future{
-			val result: Try[ABCModel#Population] = clusterParticleBuilder.apply(indexedJob.job)
-			result match{
+		future = Some(Future{
+			clusterParticleBuilder.apply(indexedJob.job) match{
 				case Failure(e: DetectedAbortionException) =>
 					log.info("Aborted future finished")
 					me ! Aborted
-					requestor ! result
+					requestor ! Failure(e)
 				case result =>
 					me ! GotResult(indexedJob, result)
-					log.info("Future returned result", requestor)
+					log.info("Future returned result {}", requestor)
 			}
-		}
+		})
 		
 		currentJob = Some(indexedJob)
-		future = fut 
 	}
 	
 	def busy(requestor: ActorRef): Receive = {
 		case ClusterEvent.UnreachableMember(m) =>
 			if(requestor.path.address == m.address) {
 				log.warning(s"Detected requester unreachable "+m.address)
-				self ! Abort
+				currentJob.foreach(cj => self ! AbortRequest(cj.id))
 			}
 		case StatusRequest => {
 			sender ! WorkerBusy
 			val master = sender
 			lastKnownMaster = Some(master)
 		}
-		case Abort(id) => 
+		case AbortRequest(id) => 
 			if(currentJob.map(_.id == id).getOrElse(false)){
 				log.info("============== Aborting ===============")
 				clusterParticleBuilder.abort
@@ -127,12 +115,14 @@ class Worker(clusterParticleBuilder: ClusterParticleBuilder) extends Actor with 
 			}
 		case GotResult(work, newResult) => 
 			if(currentJob.map(_.id == work.id).getOrElse(false)){
+				// A job is still expected to be running, and has given an output
 				requestor ! newResult
 				log.info("Result sent to {}, starting antoher run", requestor)
 				doWork(work, requestor)
 				// Don't become idle, since another job might jump in, just start new job
-				// Stay as busy with the same requestor reference
+				// Stay as busy with the same requestor as before
 			} else {
+				// A job just returned a result, but was not expected to still be running
 				log.info("Ignoring stale result from job number {}")
 				self ! Aborted
 			}
@@ -140,10 +130,13 @@ class Worker(clusterParticleBuilder: ClusterParticleBuilder) extends Actor with 
 			log.info("Becoming idle")
 			clusterParticleBuilder.reset
 			context.become(idle)
-			lastKnownMaster.foreach(_ ! WorkerIdle)
+			lastKnownMaster.foreach{master => 
+				master ! WorkerIdle
+				log.info("Sent idle message to {}", master)
+			}
 		case WorkAvailable => 
 			val master = sender
 			lastKnownMaster = Some(master)
-			log.debug("Work is availbale but I'm busy")
+			log.debug("Work is available but I'm busy")
 	}
 }

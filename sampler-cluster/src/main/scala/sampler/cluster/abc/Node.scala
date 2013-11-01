@@ -8,7 +8,7 @@ import sampler.cluster.abc.slave.RootActor
 import sampler.cluster.abc.population.ClusterParticleBuilder
 
 class Node(executorFactory: => ClusterParticleBuilder) extends HostnameSetup with Logging{
-	val system = PortFallbackSystem("ClusterSystem")
+	val system = PortFallbackSystem("ABCSystem")
 	val rootNodeActor = system.actorOf(Props(new RootActor(executorFactory)), name="workerroot")
 	log.info("Started "+rootNodeActor)
 }

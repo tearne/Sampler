@@ -42,8 +42,10 @@ class AccumulatorActor(master: ActorRef) extends Actor with ActorLogging{
 			if(results.size >= jobWrapper.job.abcParams.numParticles) { 
 				log.info(s"Asking master $master to abort all")
 				master ! AbortAll(jobWrapper.id)
-				client ! results.take(jobWrapper.job.abcParams.numParticles).toSeq
-				self ! PoisonPill
+				val finalised = results.take(jobWrapper.job.abcParams.numParticles).toSeq
+				client ! finalised
+				log.info("Send results seq of size {} to {}", finalised.size, client)
+				context.stop(self)
 			}
 		case Failure(e: MaxRetryException) => 
 			log.warning("Got a max retry exception", e)
