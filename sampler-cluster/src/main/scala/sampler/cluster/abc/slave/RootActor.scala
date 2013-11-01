@@ -5,25 +5,15 @@ import sampler.io.Logging
 import sampler.cluster.actor.PortFallbackSystem
 import akka.actor.Props
 import com.typesafe.config.ConfigFactory
-import sampler.cluster.abc.population.PopulationExecutor
 import akka.actor.Actor
 import akka.actor.ActorLogging
+import sampler.cluster.abc.population.ClusterParticleBuilder
 
-//class Node(executorFactory: => PopulationExecutor) extends HostnameSetup with Logging{
-//	val system = PortFallbackSystem("ClusterSystem")
-//	
-//	val n = ConfigFactory.load().getInt("sampler.node.workers-per")
-//	val numWorkers = if(n <= 0) Runtime.getRuntime().availableProcessors() else n
-//
-//	(1 to numWorkers).foreach(i => system.actorOf(Props(new Worker(executorFactory))))
-//	log.info("Started {} workers on physical node", numWorkers)
-//}
-
-class RootActor(executorFactory: => PopulationExecutor) extends Actor with ActorLogging{
+class RootActor(builderFactory: => ClusterParticleBuilder) extends Actor with ActorLogging{
 	val n = ConfigFactory.load().getInt("sampler.node.workers-per")
 	val numWorkers = if(n <= 0) Runtime.getRuntime().availableProcessors() else n
 
-	(1 to numWorkers).foreach(i => context.actorOf(Props(new Worker(executorFactory))))
+	(1 to numWorkers).foreach(i => context.actorOf(Props(new Worker(builderFactory))))
 	
 	log.info(s"Started $numWorkers workers")
 	

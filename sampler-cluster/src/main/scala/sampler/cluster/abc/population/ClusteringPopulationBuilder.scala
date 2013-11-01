@@ -28,12 +28,13 @@ import org.apache.commons.math3.genetics.Population
 import sampler.cluster.abc.Dispatcher
 import sampler.cluster.abc.ABCJob
 import sampler.abc.builder.PopulationBuilder
+import sampler.abc.EncapsulatedPopulation
 
 /*
  * Takes the request to get a new generation, unwrap then EncapsulatedPopulation,
  * passes it to the dispatcher, and performs the nasty casting back on the results
  */
-class DispatchingPopulationBuilder(dispatcher: Dispatcher) extends PopulationBuilder{
+class ClusteringPopulationBuilder(dispatcher: Dispatcher) extends PopulationBuilder{
 	def run[M <: ABCModel](
 			ePop: EncapsulatedPopulation[M], 
 			abcParams: ABCParameters,
@@ -53,13 +54,8 @@ class DispatchingPopulationBuilder(dispatcher: Dispatcher) extends PopulationBui
 		//carry the model as required for model.Population
 		val resultPopulation = dispatcher.apply(job).asInstanceOf[ePop.model.Population]
 		Some(EncapsulatedPopulation(ePop.model)(resultPopulation))
-//		
-//		
-//		.map{population => t.map{pop => EncapsulatedPopulation(ePop.model)(pop)}}
-//		assert(results.size == abcParams.numParticles, "Results set not of expected size.  Check logs for Worker exceptions")
-//		results
 	}
 }
-object DispatchingPopulationBuilder{
-	def apply(system: ActorSystem) = new DispatchingPopulationBuilder(new Dispatcher(system))
+object ClusteringPopulationBuilder{
+	def apply(system: ActorSystem) = new ClusteringPopulationBuilder(new Dispatcher(system))
 }
