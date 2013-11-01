@@ -1,7 +1,5 @@
 package sampler.abc
 
-import sampler.abc.ABCModel
-
 abstract class EncapsulatedPopulation[M <: ABCModel] {
 //	type M <: ABCModel
 	val model : M
