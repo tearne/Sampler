@@ -48,12 +48,12 @@ object UnfairCoinWorker extends App {
 trait UnfairCoinFactory{
 	val meta = new ABCParameters(
     	reps = 100,
-		numParticles = 100, 
-		refinements = 50,
+		numParticles = 5000, 
+		refinements = 30,
 		particleRetries = 100, 
-		particleChunking = 100
+		particleChunking = 500
 	)
-	val pBuilder = ClusteringPopulationBuilder(PortFallbackSystem("ClusterSystem"))
+	val pBuilder = ClusteringPopulationBuilder()
 //	val pBuilder = LocalBuilder()
 }
 

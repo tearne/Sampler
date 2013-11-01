@@ -29,6 +29,7 @@ import sampler.cluster.abc.Dispatcher
 import sampler.cluster.abc.ABCJob
 import sampler.abc.builder.PopulationBuilder
 import sampler.abc.EncapsulatedPopulation
+import sampler.cluster.actor.PortFallbackSystem
 
 /*
  * Takes the request to get a new generation, unwrap then EncapsulatedPopulation,
@@ -57,5 +58,8 @@ class ClusteringPopulationBuilder(dispatcher: Dispatcher) extends PopulationBuil
 	}
 }
 object ClusteringPopulationBuilder{
-	def apply(system: ActorSystem) = new ClusteringPopulationBuilder(new Dispatcher(system))
+	def apply() = {
+		val system = PortFallbackSystem("ABCSystem")
+		new ClusteringPopulationBuilder(new Dispatcher(system))
+	}
 }
