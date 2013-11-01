@@ -15,29 +15,11 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor
+package sampler.cluster.run.master.dispatch
 
 import scala.util.Try
+import scala.concurrent.duration._
 
-import com.typesafe.config.ConfigFactory
-
-import akka.actor.{ActorSystem => AkkaSystem}
-import sampler.io.Logging
-
-object PortFallbackSystemFactory extends Logging{
-	def apply(name: String): AkkaSystem = {
-		val startPort = ConfigFactory.load.getInt("akka.remote.netty.tcp.port")
-		
-		def tryPort(i: Int) = {
-			System.setProperty("akka.remote.netty.tcp.port", i.toString)
-			ConfigFactory.invalidateCaches()
-			Try(AkkaSystem(name))
-		}
-
-		Try(AkkaSystem(name))
-			.orElse(tryPort(startPort + 1))
-			.orElse(tryPort(startPort + 2))
-			.orElse(tryPort(0))
-			.get
-	}
+trait Dispatcher {
+	def apply[T](jobs: Seq[Job[T]]): Seq[Try[T]]
 }

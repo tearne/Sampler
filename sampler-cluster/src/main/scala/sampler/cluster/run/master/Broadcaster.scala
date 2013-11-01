@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.master
+package sampler.cluster.run.master
 
 import akka.actor.Actor
 import akka.actor.ActorLogging
@@ -30,12 +30,10 @@ import akka.cluster.ClusterEvent.ClusterDomainEvent
 import akka.actor.Props
 import akka.cluster.ClusterEvent.ClusterDomainEvent
 import scala.concurrent.duration.DurationInt
-import sampler.cluster.abc.StatusRequest
-import sampler.cluster.abc.WorkerBusy
-import sampler.cluster.abc.WorkerIdle
-import akka.util.Timeout
-import scala.concurrent.duration._
-import scala.concurrent.Await
+import akka.cluster.ClusterEvent.ClusterDomainEvent
+import sampler.cluster.run.slave.StatusRequest
+import sampler.cluster.run.slave.WorkerBusy
+import sampler.cluster.run.slave.WorkerIdle
 
 case class Broadcast(msg: Any)
 
@@ -68,19 +66,9 @@ class Broadcaster extends Actor with ActorLogging{
 	val workerPath = Seq("user", "workerroot")
 	
 	def attemptWorkerHandshake(m: Member){
-//		implicit val timeout = Timeout(5.seconds)
-//		val workerCandidate = Await.result(
-//				context.system
-//				.actorSelection(RootActorPath(m.address) / workerPath)
-//				.resolveOne,
-//				timeout.duration
-//		)
-		
-		val path = RootActorPath(m.address) / workerPath
-		context.system.actorSelection(path) ! StatusRequest
-				
-//		workerCandidate 
-		log.info("Attempting handshake with potential worker {}", path)
+		val workerCandidate = context.actorFor(RootActorPath(m.address) / workerPath)
+		workerCandidate ! StatusRequest
+		log.debug("Attempting handshake with potential worker {}", workerCandidate)
 	}
 	
 	def receive = {
@@ -92,13 +80,12 @@ class Broadcaster extends Actor with ActorLogging{
   		case MemberRemoved(member, previousStatus) =>
   			val down = workers.filter(_.path.address == member.address)
   			workers --= down
-  		  	log.info(s"Worker down {}, previous status", down, previousStatus)
+  		  	log.info(s"Worker down {}, prevous status", down, previousStatus)
   		  	reportingActor ! NumWorkers(workers.size)
   		case WorkerBusy =>
   		  	workers += sender 
   		  	reportingActor ! NumWorkers(workers.size)
   		case WorkerIdle =>
-  			log.info("{} is IDLE", sender)
   			workers += sender
   			reportingActor ! NumWorkers(workers.size)
   			context.parent.forward(WorkerIdle)

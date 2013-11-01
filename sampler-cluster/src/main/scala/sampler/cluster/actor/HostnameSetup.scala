@@ -17,27 +17,23 @@
 
 package sampler.cluster.actor
 
-import scala.util.Try
-
 import com.typesafe.config.ConfigFactory
-
-import akka.actor.{ActorSystem => AkkaSystem}
+import scala.util.{Try, Success, Failure}
 import sampler.io.Logging
 
-object PortFallbackSystemFactory extends Logging{
-	def apply(name: String): AkkaSystem = {
-		val startPort = ConfigFactory.load.getInt("akka.remote.netty.tcp.port")
-		
-		def tryPort(i: Int) = {
-			System.setProperty("akka.remote.netty.tcp.port", i.toString)
-			ConfigFactory.invalidateCaches()
-			Try(AkkaSystem(name))
+trait HostnameSetup {
+	this: Logging =>
+	
+	if(ConfigFactory.load().getBoolean("sampler.node.inet-bind")){
+		Try{
+			java.net.InetAddress.getLocalHost.getHostAddress
+		}match{
+			case Success(addr) => 
+				System.setProperty("akkak.remote.netty.tcp.hostname", addr)
+				log.info("Binding to local host address "+addr)
+			case Failure(_) => 
+				log.warn("Falling back to config hostname instead of inet host address")
 		}
-
-		Try(AkkaSystem(name))
-			.orElse(tryPort(startPort + 1))
-			.orElse(tryPort(startPort + 2))
-			.orElse(tryPort(0))
-			.get
-	}
+	} else log.info("Binding with hostname in config")
+	ConfigFactory.invalidateCaches()
 }

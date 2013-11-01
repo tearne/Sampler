@@ -15,29 +15,34 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor
+package sampler.cluster.run.example
 
-import scala.util.Try
-
-import com.typesafe.config.ConfigFactory
-
-import akka.actor.{ActorSystem => AkkaSystem}
+import sampler.run.DetectedAbortionException
 import sampler.io.Logging
+import sampler.cluster.run.ClusterNode
+import sampler.cluster.run.slave.Executor
 
-object PortFallbackSystemFactory extends Logging{
-	def apply(name: String): AkkaSystem = {
-		val startPort = ConfigFactory.load.getInt("akka.remote.netty.tcp.port")
-		
-		def tryPort(i: Int) = {
-			System.setProperty("akka.remote.netty.tcp.port", i.toString)
-			ConfigFactory.invalidateCaches()
-			Try(AkkaSystem(name))
-		}
+object TestSlave extends App{
+	/*
+	 * Don't forget:
+	 * To run this you need to have 
+	 * src/main/resources/application.conf
+	 * on the class path
+	 */
+	new ClusterNode(new MyExecutor())
+}
 
-		Try(AkkaSystem(name))
-			.orElse(tryPort(startPort + 1))
-			.orElse(tryPort(startPort + 2))
-			.orElse(tryPort(0))
-			.get
+class MyExecutor() extends Executor with Logging {
+	def apply = {
+		case request: TestJob => 
+			if(request.i == 3) {
+				throw new RuntimeException("Induced exception")
+				log.error("OMG!  Going down!")
+			}
+			(1 to 10000000).foreach{j => {
+				if(isAborted) throw new DetectedAbortionException
+				math.sqrt(j.toDouble)
+			}}
+			"Done"+request.i
 	}
 }

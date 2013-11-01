@@ -15,29 +15,24 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor
+package sampler.cluster.run
 
-import scala.util.Try
-
+import akka.actor.Actor
+import akka.actor.ActorLogging
+import akka.actor.Props
+import org.slf4j.LoggerFactory
 import com.typesafe.config.ConfigFactory
-
-import akka.actor.{ActorSystem => AkkaSystem}
+import scala.util.Try
+import scala.util.{Success, Failure}
 import sampler.io.Logging
+import sampler.io.Logging
+import sampler.cluster.actor.HostnameSetup
+import sampler.cluster.run.slave.Executor
+import sampler.cluster.actor.PortFallbackSystemFactory
+import sampler.cluster.run.slave.Node
 
-object PortFallbackSystemFactory extends Logging{
-	def apply(name: String): AkkaSystem = {
-		val startPort = ConfigFactory.load.getInt("akka.remote.netty.tcp.port")
-		
-		def tryPort(i: Int) = {
-			System.setProperty("akka.remote.netty.tcp.port", i.toString)
-			ConfigFactory.invalidateCaches()
-			Try(AkkaSystem(name))
-		}
-
-		Try(AkkaSystem(name))
-			.orElse(tryPort(startPort + 1))
-			.orElse(tryPort(startPort + 2))
-			.orElse(tryPort(0))
-			.get
-	}
+class ClusterNode(executorFactory: => Executor) extends HostnameSetup with Logging{
+	val system = PortFallbackSystemFactory("ClusterSystem")
+	val rootNodeActor = system.actorOf(Props(new Node(executorFactory)), name="workerroot")
+	log.info("Started "+rootNodeActor)
 }

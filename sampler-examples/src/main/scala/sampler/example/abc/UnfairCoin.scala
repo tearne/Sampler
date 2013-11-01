@@ -30,11 +30,9 @@ import sampler.math.Random
 import sampler.r.QuickPlot.writeDensity
 import sampler.abc.builder.local.LocalPopulationBuilder
 import sampler.abc.ABCMethod
-import sampler.cluster.abc.Node
-import sampler.cluster.abc.population.ClusterParticleBuilder
-import sampler.cluster.abc.population.ClusteringPopulationBuilder
-import sampler.cluster.actor.PortFallbackSystem
 import sampler.abc.builder.PopulationBuilder
+import sampler.cluster.abc.slave.SlaveNode
+import sampler.cluster.abc.ClusterPopulationBuilder
 
 object UnfairCoinApplication extends App 
 	with UnfairCoinFactory 
@@ -42,18 +40,18 @@ object UnfairCoinApplication extends App
 
 	
 object UnfairCoinWorker extends App {
-	new Node(ClusterParticleBuilder(CoinModel, Random))
+	new SlaveNode(CoinModel)
 }
 
 trait UnfairCoinFactory{
 	val meta = new ABCParameters(
     	reps = 100,
-		numParticles = 5000, 
+		numParticles = 1000, 
 		refinements = 30,
 		particleRetries = 100, 
 		particleChunking = 500
 	)
-	val pBuilder = ClusteringPopulationBuilder()
+	val pBuilder = ClusterPopulationBuilder.startAndGet()
 //	val pBuilder = LocalBuilder()
 }
 

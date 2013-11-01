@@ -15,29 +15,25 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor
+package sampler.cluster.abc
 
-import scala.util.Try
+import sampler.abc.ABCParameters
+import scala.language.existentials
 
-import com.typesafe.config.ConfigFactory
+case class ABCJob[P](
+		population: P, 
+		currentTolerance: Double, 
+		abcParams: ABCParameters
+)
 
-import akka.actor.{ActorSystem => AkkaSystem}
-import sampler.io.Logging
+case class IndexedJob(job: ABCJob[_], id: Int)
+case class ClusterBusy()
+case class WorkAvailable()
+case class AbortJob(id: Int)
 
-object PortFallbackSystemFactory extends Logging{
-	def apply(name: String): AkkaSystem = {
-		val startPort = ConfigFactory.load.getInt("akka.remote.netty.tcp.port")
-		
-		def tryPort(i: Int) = {
-			System.setProperty("akka.remote.netty.tcp.port", i.toString)
-			ConfigFactory.invalidateCaches()
-			Try(AkkaSystem(name))
-		}
+case class StatusRequest()
+case class WorkerBusy()
+case class WorkerIdle()
+case class WorkConfirmed()
+case class WorkRejected()
 
-		Try(AkkaSystem(name))
-			.orElse(tryPort(startPort + 1))
-			.orElse(tryPort(startPort + 2))
-			.orElse(tryPort(0))
-			.get
-	}
-}

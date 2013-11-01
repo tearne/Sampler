@@ -15,25 +15,34 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.slave
+package sampler.cluster.run.slave
 
-import sampler.cluster.actor.HostnameSetup
-import sampler.io.Logging
-import akka.actor.Props
-import com.typesafe.config.ConfigFactory
 import akka.actor.Actor
 import akka.actor.ActorLogging
-import sampler.cluster.abc.StatusRequest
+import akka.actor.Props
+import com.typesafe.config.ConfigFactory
 
-class RootActor(builderFactory: => ParticleGenerator) extends Actor with ActorLogging{
+//case class Status(numCPU: Int, load: Float, memFree: Float){
+//	override def toString() = f"Status(numCPU=$numCPU, load=$load%.2f, memFree=$memFree%.2f)"
+//}
+
+class Node(runnerFactory: => Executor) extends Actor with ActorLogging{
 	val n = ConfigFactory.load().getInt("sampler.node.workers-per")
 	val numWorkers = if(n <= 0) Runtime.getRuntime().availableProcessors() else n
 
-	(1 to numWorkers).foreach(i => context.actorOf(Props(new Worker(builderFactory))))
+	(1 to numWorkers).foreach(i => context.actorOf(Props(new Worker(runnerFactory))))
 	
 	log.info(s"Started $numWorkers workers")
 	
+//	val monitor = new JavaSysMon
+	
 	def receive = {
+//		case NodeCapability =>
+//			sender ! Status(
+//	  	  		monitor.numCpus(),
+//	  	  		monitor.cpuTimes.getIdleMillis.asInstanceOf[Float] / monitor.cpuTimes.getTotalMillis,
+//	  	  		monitor.physical.getFreeBytes.asInstanceOf[Float] / monitor.physical.getTotalBytes
+//	  	  	)
 		case StatusRequest => 
 			context.children.foreach{child => 
 				child.forward(StatusRequest)

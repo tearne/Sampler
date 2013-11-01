@@ -15,29 +15,25 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor
+package sampler.cluster.run.example
 
-import scala.util.Try
+import sampler.cluster.run.master.dispatch.Job
+import sampler.cluster.actor.PortFallbackSystemFactory
+import sampler.cluster.run.FailFastDispatcher
 
-import com.typesafe.config.ConfigFactory
+case class TestJob(i: Int) extends Job[String]
 
-import akka.actor.{ActorSystem => AkkaSystem}
-import sampler.io.Logging
-
-object PortFallbackSystemFactory extends Logging{
-	def apply(name: String): AkkaSystem = {
-		val startPort = ConfigFactory.load.getInt("akka.remote.netty.tcp.port")
-		
-		def tryPort(i: Int) = {
-			System.setProperty("akka.remote.netty.tcp.port", i.toString)
-			ConfigFactory.invalidateCaches()
-			Try(AkkaSystem(name))
-		}
-
-		Try(AkkaSystem(name))
-			.orElse(tryPort(startPort + 1))
-			.orElse(tryPort(startPort + 2))
-			.orElse(tryPort(0))
-			.get
-	}
+object TestMaster extends App{
+	val system = PortFallbackSystemFactory("ClusterSystem")
+	
+	//Run 100 jobs ...
+	val jobs = (1 to 100).map{i => TestJob(i)}
+	
+	// ... but one of them will fail, causing the rest to abort
+	val result = new FailFastDispatcher(system).apply(jobs)
+	
+	println("*********************")
+	println("Result is ..."+result)
+	println("*********************")
+	
 }
