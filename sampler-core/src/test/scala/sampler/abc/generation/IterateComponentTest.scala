@@ -17,142 +17,102 @@
 
 package sampler.abc.generation
 
-import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Test
-import sampler.abc.builder.PopulationBuilder
-import org.mockito.Mockito._
+import org.mockito.Mockito.when
+import org.scalatest.junit.AssertionsForJUnit
 import org.scalatest.mock.MockitoSugar
+
 import sampler.abc.ABCParameters
+import sampler.abc.EncapsulatedPopulation
+import sampler.abc.Particle
+import sampler.abc.builder.PopulationBuilder
 import sampler.io.Logging
 import sampler.math.Random
-import sampler.abc.EncapsulatedPopulation
-import sampler.abc.ABCParameters
-import sampler.math.StatisticsComponent
 import sampler.math.Statistics
-import sampler.abc.Particle
+import sampler.math.StatisticsComponent
 
 class IterateComponentTest extends AssertionsForJUnit with MockitoSugar {
   val anything = 0
-  val zeroGenerations = 0
 	
-  val abcParams = ABCParameters(
-    anything, 
-	anything, 
-	
-	anything, 
-	zeroGenerations, 
-	anything,
-	anything
+  val parameters = ABCParameters(
+    anything, anything, anything,
+    anything, anything, anything
   )
   
+  val instance = new IterateComponent with Logging with StatisticsComponent{
+	val iterate = new Iterate{}
+	val statistics = mock[Statistics]
+  }
+  
   val random = Random
+  val populationBuilder = mock[PopulationBuilder]
+
   val pop0 = EncapsulatedPopulation(IntegerModel)(Nil)
-	
+
   @Test
   def runReturnsInitialPopluationWhenRefinementsIsZero {
-    val instance = new IterateComponent with Logging with StatisticsComponent{
-		val iterate = new Iterate{}
-		val statistics = mock[Statistics]
-    }
-    
-  	val populationBuilder = mock[PopulationBuilder]
+	val abcParams = parameters.copy(refinements = 0)
     
     val result = instance.iterate(pop0, abcParams, populationBuilder, random).get
     assert(result === pop0)
   }
   
   @Test def oneRefinementUnsuccessfulRefinementSoReturnsInitialPopulation {
-    val instance = new IterateComponent with Logging with StatisticsComponent{
-		val iterate = new Iterate{}
-		val statistics = mock[Statistics]
-    }
+    val tolerance = 1e6
+    val refinements = 1
     
-  	val populationBuilder = mock[PopulationBuilder]
-    
-  	val oneGeneration = 1
-  	val tolerance1 = 1e6
-  	
-  	val abcParams1 = ABCParameters(
-  	  anything, 
-  	  anything, 
-	  tolerance1, 
-	  oneGeneration, 
-	  anything,
-	  anything
+    val abcParams = parameters.copy(
+      startTolerance = tolerance,
+      refinements = refinements
     )
-  	
-    when(populationBuilder.run(pop0, abcParams1, tolerance1, random)).thenReturn(None)
     
-    val result = instance.iterate(pop0, abcParams1, populationBuilder, random).get
+    when(populationBuilder.run(pop0, abcParams, tolerance, random)).thenReturn(None)
+    
+    val result = instance.iterate(pop0, abcParams, populationBuilder, random).get
     
     assert(result === pop0)
   }
   
   @Test def oneRefinementSuccessfulRefinementReturnsNewPopulation {
-    val instance = new IterateComponent with Logging with StatisticsComponent{
-		val iterate = new Iterate{}
-		val statistics = mock[Statistics]
-    }
-    
-  	val populationBuilder = mock[PopulationBuilder]
-    
-  	val oneGeneration = 1
-  	val tolerance1 = 1e6
+  	val tolerance = 1e6
+  	val refinements = 1
   	
-  	val abcParams1 = ABCParameters(
-  	  anything, 
-  	  anything, 
-	  tolerance1, 
-	  oneGeneration, 
-	  anything,
-	  anything
-    )
+  	val abcParams = parameters.copy(
+  	    startTolerance = tolerance,
+  	    refinements = refinements
+  	)
   	
     val p1 = new Particle(mock[IntegerModel.Parameters], 1, Double.MaxValue)
-  	val p2 = new Particle(mock[IntegerModel.Parameters], 1, Double.MaxValue)
     
-  	val pop1 = EncapsulatedPopulation(IntegerModel)(Seq(p1,p2))
+  	val pop1 = EncapsulatedPopulation(IntegerModel)(Seq(p1))
   	
-    when(populationBuilder.run(pop0, abcParams1, tolerance1, random)).thenReturn(Some(pop1))
+    when(populationBuilder.run(pop0, abcParams, tolerance, random)).thenReturn(Some(pop1))
     
-    val result = instance.iterate(pop0, abcParams1, populationBuilder, random).get
+    val result = instance.iterate(pop0, abcParams, populationBuilder, random).get
     
     assert(result === pop1)
   }
   
   @Test def twoRefinementsImplicitelyCorrectToleranceOnSecondLoop {
-        val instance = new IterateComponent with Logging with StatisticsComponent{
-		val iterate = new Iterate{}
-		val statistics = mock[Statistics]
-    }
-    
-  	val populationBuilder = mock[PopulationBuilder]
-    
-  	val twoGenerations = 2
-  	val tolerance1 = 1e6
+  	val refinements = 2
+  	val tolerance = 1e6
   	val tolerance2 = 500000.0
   	
-  	val abcParams2 = ABCParameters(
-  	  anything, 
-  	  anything, 
-	  tolerance1, 
-	  twoGenerations, 
-	  anything,
-	  anything
-    )
+  	val abcParams = parameters.copy(
+  	    startTolerance = tolerance,
+  	    refinements = refinements
+  	)
     
     val p1 = new Particle(mock[IntegerModel.Parameters], 1, Double.MaxValue)
   	val p2 = new Particle(mock[IntegerModel.Parameters], 1, Double.MaxValue)
-  	val p3 = new Particle(mock[IntegerModel.Parameters], 1, Double.MaxValue)
-  	val p4 = new Particle(mock[IntegerModel.Parameters], 1, Double.MaxValue)
     
-  	val pop1 = EncapsulatedPopulation(IntegerModel)(Seq(p1,p2))
-  	val pop2 = EncapsulatedPopulation(IntegerModel)(Seq(p3,p4))
+  	val pop1 = EncapsulatedPopulation(IntegerModel)(Seq(p1))
+  	val pop2 = EncapsulatedPopulation(IntegerModel)(Seq(p2))
   	
-  	when(populationBuilder.run(pop0, abcParams2, tolerance1, random)).thenReturn(Some(pop1))
-  	when(populationBuilder.run(pop1, abcParams2, tolerance2, random)).thenReturn(Some(pop2))
+  	when(populationBuilder.run(pop0, abcParams, tolerance, random)).thenReturn(Some(pop1))
+  	when(populationBuilder.run(pop1, abcParams, tolerance2, random)).thenReturn(Some(pop2))
     
-  	val result = instance.iterate(pop0, abcParams2, populationBuilder, random).get
+  	val result = instance.iterate(pop0, abcParams, populationBuilder, random).get
   	
     assert(result === pop2)
   }
