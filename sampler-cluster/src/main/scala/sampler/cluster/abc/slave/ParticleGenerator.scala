@@ -39,14 +39,14 @@ trait ParticleGenerator {
 	
 	def apply = PartialFunction[Any, Try[ABCModel#Population]]{
 		case job: ABCJob[_] => 
-			import job._
+			//import job._
 			Try{
 				particleBuilder(model)(
-					population.asInstanceOf[model.Population], 
-					abcParams.particleChunking,
-					currentTolerance,
+					job.population.asInstanceOf[model.Population], 
+					job.abcParams.particleChunking,
+					job.currentTolerance,
 					new WrappedAborter(aborted),
-					abcParams,
+					job.abcParams,
 					random
 				)
 			}

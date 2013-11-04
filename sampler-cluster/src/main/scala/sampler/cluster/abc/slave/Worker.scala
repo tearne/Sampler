@@ -35,11 +35,7 @@ import sampler.abc.ABCModel
 import org.slf4j.LoggerFactory
 import sampler.io.Logging
 import scala.concurrent.Promise
-import sampler.cluster.abc.IndexedJob
-import sampler.cluster.abc.StatusRequest
-import sampler.cluster.abc.WorkerIdle
 import sampler.cluster.abc.AbortJob
-import sampler.cluster.abc.WorkerBusy
 
 class Worker(particleGenerator: ParticleGenerator) extends Actor with ActorLogging{
 	case class Aborted()

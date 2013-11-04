@@ -33,6 +33,54 @@ import sampler.abc.ABCMethod
 import sampler.abc.builder.PopulationBuilder
 import sampler.cluster.abc.slave.SlaveNode
 import sampler.cluster.abc.ClusterPopulationBuilder
+import sampler.abc.generation.InitialiseComponent
+import sampler.cluster.actor.PortFallbackSystemFactory
+import sampler.cluster.abc.distributed.ABCActor
+import akka.actor.Props
+import sampler.cluster.abc.distributed.NewScoredParameters
+import sampler.cluster.abc.distributed.ScoredParam
+import sampler.cluster.abc.distributed.ModelRunner
+import sampler.cluster.abc.distributed.Start
+import akka.util.Timeout
+import scala.concurrent.duration._
+import scala.concurrent.Await
+
+object Test extends App with InitialiseComponent{
+	val initialise = new Initialise{}
+	val model = CoinModel
+	val abcParams = new ABCParameters(
+    	reps = 100,
+		numParticles = 1000, 
+		refinements = 3,
+		particleRetries = 100, 
+		particleChunking = 500
+	)
+	
+	val system = PortFallbackSystemFactory("ABCSystem")
+	val modelRunner = new ModelRunner{
+		val model = CoinModel
+		val random = Random
+	}
+	val abcActor = system.actorOf(Props(new ABCActor(model, abcParams, modelRunner)), "abcactor")
+	
+	import akka.pattern.ask
+	implicit val timeout = Timeout(1.minute)
+	val future = (abcActor ? Start).mapTo[Seq[CoinModel.Parameters]]
+	val result = Await.result(future, 1.minute)
+	
+	system.shutdown
+	
+	val headsDensity = result.map(_.pHeads)
+	
+	val wd = Paths.get("results", "UnfairCoin")
+	Files.createDirectories(wd)
+	
+	writeDensity(
+		wd, 
+		"posterior", 
+		headsDensity.continuous("P[Heads]")
+	)
+}
 
 object UnfairCoinApplication extends App 
 	with UnfairCoinFactory 
@@ -47,12 +95,12 @@ trait UnfairCoinFactory{
 	val meta = new ABCParameters(
     	reps = 100,
 		numParticles = 1000, 
-		refinements = 30,
+		refinements = 3,
 		particleRetries = 100, 
 		particleChunking = 500
 	)
-	val pBuilder = ClusterPopulationBuilder.startAndGet()
-//	val pBuilder = LocalBuilder()
+//	val pBuilder = ClusterPopulationBuilder.startAndGet()
+	val pBuilder = LocalPopulationBuilder
 }
 
 trait UnfairCoin {
