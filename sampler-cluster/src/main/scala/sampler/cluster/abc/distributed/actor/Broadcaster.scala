@@ -15,39 +15,37 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.distributed
+package sampler.cluster.abc.distributed.actor
 
+import scala.concurrent.duration.DurationInt
 import akka.actor.Actor
 import akka.actor.ActorLogging
-import akka.cluster.Cluster
 import akka.actor.ActorRef
-import akka.cluster.ClusterEvent._
-import akka.cluster.Member
-import akka.actor.RootActorPath
-import akka.cluster.MemberStatus
-import akka.actor.actorRef2Scala
-import akka.cluster.ClusterEvent.ClusterDomainEvent
 import akka.actor.Props
+import akka.actor.RootActorPath
+import akka.actor.actorRef2Scala
+import akka.cluster.Cluster
 import akka.cluster.ClusterEvent.ClusterDomainEvent
-import scala.concurrent.duration.DurationInt
-import sampler.cluster.abc.WorkerBusy
-import sampler.cluster.abc.WorkerIdle
-import akka.util.Timeout
-import scala.concurrent.duration._
-import scala.concurrent.Await
+import akka.cluster.ClusterEvent.CurrentClusterState
+import akka.cluster.ClusterEvent.MemberRemoved
+import akka.cluster.ClusterEvent.MemberUp
+import akka.cluster.Member
+import akka.cluster.MemberStatus
 import sampler.data.Distribution
 import sampler.math.Random
+import sampler.cluster.abc.distributed.actor.Messages._
+import akka.pattern.pipe
 import akka.actor.Identify
-import scala.util.Success
-import scala.util.Failure
-
-case class Broadcast(msg: Any)
-case class RandomSend(msg: Any)
-case class FoundNode(ref: ActorRef)
+import akka.pattern.ask
+import akka.util.Timeout
+import akka.actor.ActorIdentity
+import scala.concurrent.Await
 
 class Broadcaster extends Actor with ActorLogging{
 	val cluster = Cluster(context.system)
 	implicit val r = Random
+	
+	case class FoundNode(ref: ActorRef)
 
 	override def preStart(): Unit = cluster.subscribe(self, classOf[ClusterDomainEvent])
 	override def postStop(): Unit = {
@@ -57,44 +55,51 @@ class Broadcaster extends Actor with ActorLogging{
 	
 	import context._
 	
-	val nodes = collection.mutable.Set.empty[ActorRef]
-	val nodePath = Seq("user", "abcactor")
+	val selfAddress = cluster.selfAddress
+//	val myRemotePath = Await.result(system.actorSelection(self.path).resolveOne(1.second), 1.second).path.root
 	
-	def attemptWorkerHandshake(m: Member){
-		val path = RootActorPath(m.address) / nodePath
-		
-		val future = context.system.actorSelection(path).resolveOne(1.second)
+	case class AreYouThere()
+	
+	val nodes = collection.mutable.Set.empty[ActorRef]
+	val nodePath = Seq("user", "abcrootactor")
+	
+	def attemptWorkerHandshake(root: RootActorPath){
+		val path = root / nodePath
 		log.info("Attempting handshake with potential node: {}", path)
-		future.onSuccess{
-			case ref => 
-				self ! FoundNode(ref)
-				log.info("Handshake completed with node: {}",ref)
-		}
-		
+		context.system.actorSelection(path) ! Identify(None)
 	}
 	
 	def receive = {
 		case state: CurrentClusterState => 
-  		  	state.members.filter(_.status == MemberStatus.Up).foreach(attemptWorkerHandshake)
+  		  	state.members.filter(_.status == MemberStatus.Up).foreach(m => 
+  		  		attemptWorkerHandshake(RootActorPath(m.address))
+  		  	)
   		case MemberUp(m) => 
-  		  	log.debug("Member {} is up", m)
-  		  	attemptWorkerHandshake(m)
+  		  	val rootPath = RootActorPath(m.address)
+  		  	log.info("{} is 'up'", m)
+  		  	if(
+  		  		m.address != selfAddress
+	  			&&
+	  			!nodes.exists(ref => ref.path.root == rootPath)
+  		  	) 
+  		  	attemptWorkerHandshake(rootPath)
   		case MemberRemoved(member, previousStatus) =>
   			val down = nodes.filter(_.path.address == member.address)
   			nodes --= down
-  		  	log.info(s"Node down {}, previous status", down, previousStatus)
+  		  	log.info(s"Node down {}, previous status {}", down, previousStatus)
   		  	reportingActor ! NumWorkers(nodes.size)
-  		case FoundNode(ref) =>
-  			nodes += ref
-  		case Broadcast(msg) => 
-			log.info("Broadcasting {} to {} known nodes", msg, nodes.size)
-			nodes.foreach(_.forward(msg))
-  		case RandomSend(msg) =>
-  			if(nodes.size > 1){
-	  			val recipient = Distribution.uniform(nodes.-(context.parent).toIndexedSeq).sample 
+  		case ActorIdentity(_, Some(actorRef)) =>
+  			val remoteNode = actorRef
+  			nodes += remoteNode
+  			log.info("Handshake completed with node: {}",remoteNode)
+  			log.info("node set = {}", nodes)
+  		case msg: MixingMessage =>
+  			if(!nodes.isEmpty){
+	  			val recipient = Distribution.uniform(nodes.toIndexedSeq).sample 
 	  			recipient ! msg
-	  			log.info("Sent message {} to {}", msg, recipient)
+	  			log.info("Sent message {} to {}", msg.getClass(), recipient)
   			}
+//  		case msg => log.warning("Unexpected message: "+msg)
 	}
 	
 	case class NumWorkers(n: Int)

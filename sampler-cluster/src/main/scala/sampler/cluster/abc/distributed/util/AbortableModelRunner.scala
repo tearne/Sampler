@@ -15,24 +15,24 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.distributed
+package sampler.cluster.abc.distributed.util
 
-import sampler.abc.ABCModel
-import sampler.math.Random
-import sampler.run.WrappedAborter
-import scala.util.Try
-import sampler.cluster.abc.ABCJob
 import java.util.concurrent.atomic.AtomicBoolean
-import sampler.abc.builder.ParticleBuilderComponent
-import sampler.data.Distribution
-import sampler.math.Partition
+
 import scala.annotation.tailrec
-import sampler.run.DetectedAbortionException
+import scala.util.Try
+
+import sampler.abc.MaxRetryException
+import sampler.cluster.abc.distributed.ABCModel
+import sampler.cluster.abc.distributed.actor.Messages.Job
+import sampler.data.Distribution
 import sampler.data.SerialSampler
 import sampler.io.Logging
-import sampler.abc.MaxRetryException
+import sampler.math.Partition
+import sampler.math.Random
+import sampler.run.DetectedAbortionException
 
-trait ModelRunner extends Logging{
+trait AbortableModelRunner extends Logging{
 	val model: ABCModel
 	import model._
 	implicit val random: Random
@@ -43,38 +43,43 @@ trait ModelRunner extends Logging{
 	def isAborted = aborted.get
 	def reset() { aborted.set(false) }
 	
-	def run(job: ABCJob[_]): Try[Seq[ScoredParam]] = Try{
-		val prevPopulation = job.population.asInstanceOf[model.Population]
-		
-		val weightsTable = prevPopulation.groupBy(_.value).map{case (k,v) => (k, v.map(_.weight).sum)}.toIndexedSeq
-		val (parameters, weights) = weightsTable.unzip
-		val samplablePopulation = Distribution.fromPartition(parameters, Partition.fromWeights(weights))
+	def run(job: Job): Try[Seq[Scored]] = Try{
+		val prevPopulation = job.population.asInstanceOf[Seq[Weighted]]
+		val weightsTable = prevPopulation.groupBy(_.parameterSet).map{case (k,v) => (k, v.map(_.weight).sum)}.toIndexedSeq
+		val (parameterSets, weights) = weightsTable.unzip
+		val samplablePopulation = Distribution.fromPartition(parameterSets, Partition.fromWeights(weights))
 		
 		@tailrec
-		def nextParticle(failures: Int = 0): ScoredParam = {
+		def getScoredParameter(failures: Int = 0): Scored = {
 			if(isAborted) throw new DetectedAbortionException("Abort flag was set")
 			else if(failures >= job.abcParams.particleRetries) throw new MaxRetryException(s"Aborted after the maximum of $failures trials")
 			else{
-				def getScores(params: Parameters): IndexedSeq[Double] = {
+				def getScores(params: ParameterSet): IndexedSeq[Double] = {
 					val modelWithMetric = modelDistribution(params).map(_.distanceToObserved)
-					SerialSampler(modelWithMetric)(_.size == job.abcParams.reps)
+					//TODO in parallel?
+					SerialSampler(modelWithMetric)(_.size == job.abcParams.numReplicates)
 				}
 				
-				val res: Option[ScoredParam] = for{
+				val res: Option[Scored] = for{
 					params <- Some(samplablePopulation.sample().perturb()) if prior.density(params) > 0
 					fitScores <- Some(getScores(params))
-				} yield ScoredParam(params, fitScores)
+				} yield Scored(params, fitScores)
 				
 				res match {
 					case Some(p) => p
-					case None => nextParticle(failures + 1)
+					case None => getScoredParameter(failures + 1)
 				}
 			}
 		}
 		
-		val r = (1 to job.abcParams.particleChunking).map(i => nextParticle()) 
-		log.info(s"${job.abcParams.particleChunking} requested, ${r.size} are being returned")
-		r
+		(1 to job.abcParams.particleChunkSize).map(i => getScoredParameter()) 
+	}
+}
+
+object AbortableModelRunner{
+	def apply(model0: ABCModel) = new AbortableModelRunner{
+		val model = model0
+		val random = Random
 	}
 }
 
