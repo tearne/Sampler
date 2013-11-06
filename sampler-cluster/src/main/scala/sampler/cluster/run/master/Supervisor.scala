@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor.client
+package sampler.cluster.run.master
 
 import akka.actor.Actor
 import akka.actor.ActorRef
@@ -28,12 +28,13 @@ import akka.cluster.Member
 import akka.actor.ActorLogging
 import akka.actor.actorRef2Scala
 import akka.cluster.ClusterEvent.MemberRemoved
-import sampler.cluster.actor.worker.Abort
-import sampler.cluster.actor.worker.WorkConfirmed
-import sampler.cluster.actor.worker.WorkRejected
-import sampler.cluster.actor.worker.WorkerIdle
 import scala.util.Failure
 import scala.util.Success
+import akka.cluster.ClusterEvent.UnreachableMember
+import sampler.cluster.run.slave.Abort
+import sampler.cluster.run.slave.WorkConfirmed
+import sampler.cluster.run.slave.WorkRejected
+import sampler.cluster.run.slave.WorkerIdle
 
 class Supervisor extends Actor with ActorLogging {
 	val confirmationTimeout = 1.second

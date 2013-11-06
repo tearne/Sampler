@@ -15,25 +15,24 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor.util
+package sampler.cluster.run
 
+import akka.actor.Actor
+import akka.actor.ActorLogging
+import akka.actor.Props
+import org.slf4j.LoggerFactory
 import com.typesafe.config.ConfigFactory
-import scala.util.{Try, Success, Failure}
+import scala.util.Try
+import scala.util.{Success, Failure}
 import sampler.io.Logging
+import sampler.io.Logging
+import sampler.cluster.actor.HostnameSetup
+import sampler.cluster.run.slave.Executor
+import sampler.cluster.actor.PortFallbackSystemFactory
+import sampler.cluster.run.slave.Node
 
-trait HostnameSetup {
-	this: Logging =>
-	
-	if(ConfigFactory.load().getBoolean("sampler.node.inet-bind")){
-		Try{
-			java.net.InetAddress.getLocalHost.getHostAddress
-		}match{
-			case Success(addr) => 
-				System.setProperty("akkak.remote.netty.tcp.hostname", addr)
-				log.info("Binding to local host address "+addr)
-			case Failure(_) => 
-				log.warn("Falling back to config hostname instead of inet host address")
-		}
-	} else log.info("Binding with hostname in config")
-	ConfigFactory.invalidateCaches()
+class ClusterNode(executorFactory: => Executor) extends HostnameSetup with Logging{
+	val system = PortFallbackSystemFactory("ClusterSystem")
+	val rootNodeActor = system.actorOf(Props(new Node(executorFactory)), name="workerroot")
+	log.info("Started "+rootNodeActor)
 }

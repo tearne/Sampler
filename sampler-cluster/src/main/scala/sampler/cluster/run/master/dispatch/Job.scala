@@ -15,24 +15,9 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor.example
+package sampler.cluster.run.master.dispatch
 
-import sampler.cluster.actor.client.dispatch.Job
-import sampler.cluster.actor.{FailFastDispatcher,PortFallbackSystem}
-
-case class TestJob(i: Int) extends Job[String]
-
-object TestMaster extends App{
-	val system = PortFallbackSystem("ClusterSystem")
-	
-	//Run 100 jobs ...
-	val jobs = (1 to 100).map{i => TestJob(i)}
-	
-	// ... but one of them will fail, causing the rest to abort
-	val result = new FailFastDispatcher(system).apply(jobs)
-	
-	println("*********************")
-	println("Result is ..."+result)
-	println("*********************")
-	
-}
+/*
+ * Just a marker to aid pattern matching
+ */
+trait Job[T]

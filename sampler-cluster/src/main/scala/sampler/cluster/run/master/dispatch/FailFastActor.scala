@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor.client.dispatch
+package sampler.cluster.run.master.dispatch
 
 import scala.util.Failure
 import scala.util.Success
@@ -24,10 +24,10 @@ import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
 import akka.actor.PoisonPill
-import akka.actor.Props
 import akka.actor.actorRef2Scala
-import sampler.cluster.actor.client.AbortAll
-import sampler.cluster.actor.client.Master
+import akka.actor.Props
+import sampler.cluster.run.master.Master
+import sampler.cluster.run.master.AbortAll
 
 class FailFastActor extends Actor with ActorLogging{
 	val results = collection.mutable.Buffer[Try[Any]]()

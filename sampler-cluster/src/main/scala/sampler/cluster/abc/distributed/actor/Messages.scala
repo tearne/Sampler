@@ -15,9 +15,19 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor.client.dispatch
+package sampler.cluster.abc.distributed.actor
 
-/*
- * Just a marker to aid pattern matching
- */
-trait Job[T]
+import sampler.cluster.abc.distributed.ABCParameters
+import sampler.cluster.abc.distributed.ABCModel
+
+object Messages {
+	case class Start()
+	case class Result(params: Seq[ABCModel#ParameterSet])
+	
+	case class Job(population: Seq[ABCModel#Weighted], abcParams: ABCParameters)
+	trait MixingMessage
+	case class NewScoredParameters[P](seq: Seq[P]) extends MixingMessage
+	
+	case class Abort()
+	case class Aborted()
+}

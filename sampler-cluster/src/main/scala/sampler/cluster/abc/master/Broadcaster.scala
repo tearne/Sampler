@@ -30,9 +30,12 @@ import akka.cluster.ClusterEvent.ClusterDomainEvent
 import akka.actor.Props
 import akka.cluster.ClusterEvent.ClusterDomainEvent
 import scala.concurrent.duration.DurationInt
-import sampler.cluster.abc.slave.StatusRequest
-import sampler.cluster.abc.slave.WorkerBusy
-import sampler.cluster.abc.slave.WorkerIdle
+import sampler.cluster.abc.StatusRequest
+import sampler.cluster.abc.WorkerBusy
+import sampler.cluster.abc.WorkerIdle
+import akka.util.Timeout
+import scala.concurrent.duration._
+import scala.concurrent.Await
 
 case class Broadcast(msg: Any)
 
@@ -65,9 +68,19 @@ class Broadcaster extends Actor with ActorLogging{
 	val workerPath = Seq("user", "workerroot")
 	
 	def attemptWorkerHandshake(m: Member){
-		val workerCandidate = context.actorFor(RootActorPath(m.address) / workerPath)
-		workerCandidate ! StatusRequest
-		log.info("Attempting handshake with potential worker {}", workerCandidate)
+//		implicit val timeout = Timeout(5.seconds)
+//		val workerCandidate = Await.result(
+//				context.system
+//				.actorSelection(RootActorPath(m.address) / workerPath)
+//				.resolveOne,
+//				timeout.duration
+//		)
+		
+		val path = RootActorPath(m.address) / workerPath
+		context.system.actorSelection(path) ! StatusRequest
+				
+//		workerCandidate 
+		log.info("Attempting handshake with potential worker {}", path)
 	}
 	
 	def receive = {

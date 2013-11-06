@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor.client
+package sampler.cluster.run.master
 
 import akka.actor.Actor
 import akka.actor.ActorLogging
@@ -29,10 +29,11 @@ import akka.actor.actorRef2Scala
 import akka.cluster.ClusterEvent.ClusterDomainEvent
 import akka.actor.Props
 import akka.cluster.ClusterEvent.ClusterDomainEvent
-import sampler.cluster.actor.worker.StatusRequest
-import sampler.cluster.actor.worker.WorkerBusy
-import sampler.cluster.actor.worker.WorkerIdle
 import scala.concurrent.duration.DurationInt
+import akka.cluster.ClusterEvent.ClusterDomainEvent
+import sampler.cluster.run.slave.StatusRequest
+import sampler.cluster.run.slave.WorkerBusy
+import sampler.cluster.run.slave.WorkerIdle
 
 case class Broadcast(msg: Any)
 

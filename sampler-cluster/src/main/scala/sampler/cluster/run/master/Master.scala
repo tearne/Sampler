@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor.client
+package sampler.cluster.run.master
 
 import akka.actor.Actor
 import akka.actor.ActorLogging
@@ -23,10 +23,9 @@ import akka.actor.ActorRef
 import scala.concurrent.duration._
 import akka.actor.Props
 import akka.actor.actorRef2Scala
-import sampler.cluster.actor.worker.Abort
-import sampler.cluster.actor.worker.WorkerIdle
-import sampler.cluster.actor.client.dispatch.Job
-import scala.language.existentials
+import sampler.cluster.run.master.dispatch.Job
+import sampler.cluster.run.slave.WorkerIdle
+import sampler.cluster.run.slave.Abort
 
 case class Request(job: Job[_], requestor: ActorRef, jobID: Long)
 case class WorkAvailable()

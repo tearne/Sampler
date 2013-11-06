@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor.example
+package sampler.cluster.run.example
 
-import sampler.cluster.actor.worker.Executor
-import sampler.cluster.actor.ClusterNode
 import sampler.run.DetectedAbortionException
 import sampler.io.Logging
+import sampler.cluster.run.ClusterNode
+import sampler.cluster.run.slave.Executor
 
 object TestSlave extends App{
 	/*

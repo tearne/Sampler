@@ -15,11 +15,25 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor.client.dispatch
+package sampler.cluster.actor
 
-import scala.util.Try
-import scala.concurrent.duration._
+import com.typesafe.config.ConfigFactory
+import scala.util.{Try, Success, Failure}
+import sampler.io.Logging
 
-trait Dispatcher {
-	def apply[T](jobs: Seq[Job[T]]): Seq[Try[T]]
+trait HostnameSetup {
+	this: Logging =>
+	
+	if(ConfigFactory.load().getBoolean("sampler.node.inet-bind")){
+		Try{
+			java.net.InetAddress.getLocalHost.getHostAddress
+		}match{
+			case Success(addr) => 
+				System.setProperty("akkak.remote.netty.tcp.hostname", addr)
+				log.info("Binding to local host address "+addr)
+			case Failure(_) => 
+				log.warn("Falling back to config hostname instead of inet host address")
+		}
+	} else log.info("Binding with hostname in config")
+	ConfigFactory.invalidateCaches()
 }

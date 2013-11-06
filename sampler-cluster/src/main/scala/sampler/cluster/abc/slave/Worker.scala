@@ -26,7 +26,7 @@ import akka.actor.actorRef2Scala
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent
 import akka.actor.ActorRef
-import sampler.cluster.abc.master.WorkAvailable
+import sampler.cluster.abc.WorkAvailable
 import sampler.cluster.abc.ABCJob
 import sampler.run.DetectedAbortionException
 import scala.util.Failure
@@ -35,10 +35,9 @@ import sampler.abc.ABCModel
 import org.slf4j.LoggerFactory
 import sampler.io.Logging
 import scala.concurrent.Promise
-import sampler.cluster.abc.population.ClusterParticleBuilder
-import sampler.cluster.actor.worker.Abort
+import sampler.cluster.abc.AbortJob
 
-class Worker(clusterParticleBuilder: ClusterParticleBuilder) extends Actor with ActorLogging{
+class Worker(particleGenerator: ParticleGenerator) extends Actor with ActorLogging{
 	case class Aborted()
 	case class DoneWork()
 	case class GotResult(work: IndexedJob, newResult: Try[ABCModel#Population])
@@ -46,10 +45,6 @@ class Worker(clusterParticleBuilder: ClusterParticleBuilder) extends Actor with 
 	val cluster = Cluster(context.system)
 	override def preStart(): Unit = cluster.subscribe(self, classOf[ClusterEvent.UnreachableMember])
 	override def postStop(): Unit = cluster.unsubscribe(self)
-	
-	
-	//If the future is incomplete then we regard the worker as still busy
-	var future: Option[Future[Unit]] = None
 	
 	var currentJob: Option[IndexedJob] = None
 	var lastKnownMaster: Option[ActorRef] = None
@@ -70,7 +65,7 @@ class Worker(clusterParticleBuilder: ClusterParticleBuilder) extends Actor with 
 		}
 		case job: IndexedJob =>
 			val requestor = sender
-			log.info(s"Got request from $requestor")
+			log.debug(s"Got request from $requestor")
 			assert(currentJob.isEmpty)
 			doWork(job, requestor)
 	}
@@ -78,19 +73,19 @@ class Worker(clusterParticleBuilder: ClusterParticleBuilder) extends Actor with 
 	def doWork(indexedJob: IndexedJob, requestor: ActorRef){
 		val me = self
 		context.become(busy(requestor))
-		log.info("Starting work on job {}", indexedJob.id)
+		log.info("Starting run for job {}", indexedJob.id)
 		import context._
-		future = Some(Future{
-			clusterParticleBuilder.apply(indexedJob.job) match{
+		Future{
+			particleGenerator.apply(indexedJob.job) match{
 				case Failure(e: DetectedAbortionException) =>
-					log.info("Aborted future finished")
+					log.debug("Aborted future finished")
 					me ! Aborted
 					requestor ! Failure(e)
 				case result =>
 					me ! GotResult(indexedJob, result)
-					log.info("Future returned result {}", requestor)
+					log.debug("Future returned result {}", requestor)
 			}
-		})
+		}
 		
 		currentJob = Some(indexedJob)
 	}
@@ -99,23 +94,22 @@ class Worker(clusterParticleBuilder: ClusterParticleBuilder) extends Actor with 
 		case ClusterEvent.UnreachableMember(m) =>
 			if(requestor.path.address == m.address) {
 				log.warning(s"Detected requester unreachable "+m.address)
-				currentJob.foreach(cj => self ! AbortRequest(cj.id))
+				currentJob.foreach(cj => self ! AbortJob(cj.id))
 			}
 		case StatusRequest => {
 			sender ! WorkerBusy
 			val master = sender
 			lastKnownMaster = Some(master)
 		}
-		case AbortRequest(id) => 
+		case AbortJob(id) => 
 			if(currentJob.map(_.id == id).getOrElse(false)){
-				log.info("============== Aborting ===============")
-				clusterParticleBuilder.abort
+				log.debug("Aborting")
+				particleGenerator.abort
 				currentJob = None
 				//Let the aborted future complete, then status will become idle automatically
 			}
 		case GotResult(work, newResult) => 
 			if(currentJob.map(_.id == work.id).getOrElse(false)){
-				// A job is still expected to be running, and has given an output
 				requestor ! newResult
 				log.info("Result sent to {}, starting antoher run", requestor)
 				doWork(work, requestor)
@@ -123,16 +117,17 @@ class Worker(clusterParticleBuilder: ClusterParticleBuilder) extends Actor with 
 				// Stay as busy with the same requestor as before
 			} else {
 				// A job just returned a result, but was not expected to still be running
-				log.info("Ignoring stale result from job number {}")
+				log.debug("Ignoring stale result from job number {}")
 				self ! Aborted
 			}
 		case Aborted => 
 			log.info("Becoming idle")
-			clusterParticleBuilder.reset
+			particleGenerator.reset
+			currentJob = None
 			context.become(idle)
 			lastKnownMaster.foreach{master => 
 				master ! WorkerIdle
-				log.info("Sent idle message to {}", master)
+				log.debug("Sent idle message to {}", master)
 			}
 		case WorkAvailable => 
 			val master = sender

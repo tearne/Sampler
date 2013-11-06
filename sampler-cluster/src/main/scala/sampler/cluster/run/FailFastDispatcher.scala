@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor
+package sampler.cluster.run
 
 import akka.actor.ActorSystem
 import scala.concurrent.duration._
@@ -24,10 +24,10 @@ import scala.util.Try
 import akka.actor.Props
 import akka.pattern.ask
 import scala.concurrent.Await
-import sampler.cluster.actor.client.dispatch.Dispatcher
-import sampler.cluster.actor.client.dispatch.FailFastActor
-import sampler.cluster.actor.client.dispatch.Job
-import sampler.cluster.actor.client.dispatch.Batch
+import sampler.cluster.run.master.dispatch.Dispatcher
+import sampler.cluster.run.master.dispatch.Batch
+import sampler.cluster.run.master.dispatch.Job
+import sampler.cluster.run.master.dispatch.FailFastActor
 
 class FailFastDispatcher(system: ActorSystem) extends Dispatcher{
 	//TODO Configurable timeout

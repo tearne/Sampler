@@ -15,19 +15,20 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor.worker
+package sampler.cluster.run.slave
 
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import scala.concurrent.Future
 import scala.util.Try
 import akka.actor.actorRef2Scala
-import sampler.cluster.actor.client.WorkAvailable
-import sampler.cluster.actor.client.Request
-import sampler.cluster.actor.client.dispatch.Job
+import sampler.cluster.run.master.dispatch.Job
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent
 import akka.actor.ActorRef
+import akka.cluster.ClusterEvent.UnreachableMember
+import sampler.cluster.run.master.WorkAvailable
+import sampler.cluster.run.master.Request
 
 case class Abort()
 case class StatusRequest()

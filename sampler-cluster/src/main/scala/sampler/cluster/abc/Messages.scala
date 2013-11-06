@@ -15,8 +15,25 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor.client.dispatch
+package sampler.cluster.abc
 
-case class Batch[J](jobs: Seq[J]){
-	val size = jobs.size
-}
+import sampler.abc.ABCParameters
+import scala.language.existentials
+
+case class ABCJob[P](
+		population: P, 
+		currentTolerance: Double, 
+		abcParams: ABCParameters
+)
+
+case class IndexedJob(job: ABCJob[_], id: Int)
+case class ClusterBusy()
+case class WorkAvailable()
+case class AbortJob(id: Int)
+
+case class StatusRequest()
+case class WorkerBusy()
+case class WorkerIdle()
+case class WorkConfirmed()
+case class WorkRejected()
+

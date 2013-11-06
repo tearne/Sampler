@@ -1,15 +1,31 @@
+/*
+ * Copyright (c) 2012-13 Crown Copyright 
+ *                       Animal Health and Veterinary Laboratories Agency
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package sampler.cluster.abc.slave
 
-import sampler.cluster.actor.util.HostnameSetup
+import sampler.cluster.actor.HostnameSetup
 import sampler.io.Logging
-import sampler.cluster.actor.PortFallbackSystem
 import akka.actor.Props
 import com.typesafe.config.ConfigFactory
 import akka.actor.Actor
 import akka.actor.ActorLogging
-import sampler.cluster.abc.population.ClusterParticleBuilder
+import sampler.cluster.abc.StatusRequest
 
-class RootActor(builderFactory: => ClusterParticleBuilder) extends Actor with ActorLogging{
+class RootActor(builderFactory: => ParticleGenerator) extends Actor with ActorLogging{
 	val n = ConfigFactory.load().getInt("sampler.node.workers-per")
 	val numWorkers = if(n <= 0) Runtime.getRuntime().availableProcessors() else n
 

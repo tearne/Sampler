@@ -23,10 +23,12 @@ import akka.actor.ActorRef
 import scala.concurrent.duration._
 import akka.actor.Props
 import akka.actor.actorRef2Scala
-import sampler.cluster.abc.slave.WorkerIdle
 import sampler.cluster.abc.ABCJob
-import sampler.cluster.abc.slave.AbortRequest
-import sampler.cluster.abc.slave.IndexedJob
+import sampler.cluster.abc.WorkAvailable
+import sampler.cluster.abc.ClusterBusy
+import sampler.cluster.abc.IndexedJob
+import sampler.cluster.abc.WorkerIdle
+import sampler.cluster.abc.AbortJob
 
 class Master extends Actor with ActorLogging {
 	case class BroadcastWorkAvailable()
@@ -64,9 +66,13 @@ class Master extends Actor with ActorLogging {
 			log.debug("Idle msg from {}", sender)
 			val worker = sender
 			currentRequest.foreach{case (job, requestor) => worker.tell(job, requestor)}
-		case AbortAll(jobId) =>
-			log.info("Sending abort message")
-			currentRequest = None
-			broadcaster ! Broadcast(AbortRequest(jobId))
+		case AbortJob(jobId) =>
+			if(currentRequest.map(_._1.id == jobId).getOrElse(false)){
+				log.info("Sending abort message")
+				currentRequest = None
+				broadcaster ! Broadcast(AbortJob(jobId))
+			}else{
+				log.warning("The cluster is not currently working on job {}, so cann't abort it.",jobId)
+			}
 	}
 }

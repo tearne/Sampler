@@ -16,7 +16,8 @@ import akka.actor.ActorSelection
 import akka.util.Timeout
 import scala.concurrent.duration._
 import scala.concurrent.Await
-import sampler.cluster.abc.slave.IndexedJob
+import sampler.cluster.abc.IndexedJob
+import sampler.cluster.abc.AbortJob
 
 class AccumulatorActor(master: ActorRef) extends Actor with ActorLogging{
 	val results = collection.mutable.Buffer[Particle[_]]()
@@ -41,7 +42,7 @@ class AccumulatorActor(master: ActorRef) extends Actor with ActorLogging{
 			log.info("Accumulated {} success results", results.size)
 			if(results.size >= jobWrapper.job.abcParams.numParticles) { 
 				log.info(s"Asking master $master to abort all")
-				master ! AbortAll(jobWrapper.id)
+				master ! AbortJob(jobWrapper.id)
 				val finalised = results.take(jobWrapper.job.abcParams.numParticles).toSeq
 				client ! finalised
 				log.info("Send results seq of size {} to {}", finalised.size, client)

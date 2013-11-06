@@ -15,27 +15,21 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.population
+package sampler.cluster.abc
 
-import scala.util.Try
-import scala.language.existentials
-import akka.actor.ActorSystem
 import sampler.abc.ABCModel
-import sampler.data.Empirical
 import sampler.abc.ABCParameters
-import sampler.math.Random
-import org.apache.commons.math3.genetics.Population
-import sampler.cluster.abc.Dispatcher
-import sampler.cluster.abc.ABCJob
-import sampler.abc.builder.PopulationBuilder
 import sampler.abc.EncapsulatedPopulation
-import sampler.cluster.actor.PortFallbackSystem
+import sampler.abc.builder.PopulationBuilder
+import sampler.cluster.actor.PortFallbackSystemFactory
+import sampler.math.Random
+import sampler.cluster.abc.master.Dispatcher
 
 /*
  * Takes the request to get a new generation, unwrap then EncapsulatedPopulation,
  * passes it to the dispatcher, and performs the nasty casting back on the results
  */
-class ClusteringPopulationBuilder(dispatcher: Dispatcher) extends PopulationBuilder{
+class ClusterPopulationBuilder(dispatcher: Dispatcher) extends PopulationBuilder{
 	def run[M <: ABCModel](
 			ePop: EncapsulatedPopulation[M], 
 			abcParams: ABCParameters,
@@ -57,9 +51,9 @@ class ClusteringPopulationBuilder(dispatcher: Dispatcher) extends PopulationBuil
 		Some(EncapsulatedPopulation(ePop.model)(resultPopulation))
 	}
 }
-object ClusteringPopulationBuilder{
-	def apply() = {
-		val system = PortFallbackSystem("ABCSystem")
-		new ClusteringPopulationBuilder(new Dispatcher(system))
+object ClusterPopulationBuilder{
+	def startAndGet() = {
+		val system = PortFallbackSystemFactory("ABCSystem")
+		new ClusterPopulationBuilder(new Dispatcher(system))
 	}
 }

@@ -15,50 +15,46 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.population
+package sampler.cluster.abc.slave
 
 import sampler.abc.ABCModel
-import sampler.data.Empirical
 import sampler.math.Random
-import sampler.cluster.actor.worker.Executor
 import sampler.run.WrappedAborter
 import scala.util.Try
 import sampler.cluster.abc.ABCJob
-import sampler.abc.ABCParameters
 import java.util.concurrent.atomic.AtomicBoolean
-import sampler.abc.builder.PopulationBuilder
 import sampler.abc.builder.ParticleBuilderComponent
 
-trait ClusterParticleBuilder {
+trait ParticleGenerator {
 	self: ParticleBuilderComponent =>
-	
+		
 	val model: ABCModel
 	val random: Random
 	
 	val aborted: AtomicBoolean = new AtomicBoolean(false)
 
-	def abort() {aborted.set(true)}
+	def abort() { aborted.set(true) }
 	def isAborted = aborted.get
-	def reset() {aborted.set(false)}
+	def reset() { aborted.set(false) }
 	
 	def apply = PartialFunction[Any, Try[ABCModel#Population]]{
 		case job: ABCJob[_] => 
-			import job._
+			//import job._
 			Try{
 				particleBuilder(model)(
-					population.asInstanceOf[model.Population], 
-					abcParams.particleChunking, 	//Run a chunks worth of particles on this iteration
-					currentTolerance,
-					new WrappedAborter(aborted), 	//TODO HUH, how does this get aborted?
-					abcParams,
+					job.population.asInstanceOf[model.Population], 
+					job.abcParams.particleChunking,
+					job.currentTolerance,
+					new WrappedAborter(aborted),
+					job.abcParams,
 					random
 				)
 			}
 	}
 }
 
-object ClusterParticleBuilder{
-	def apply(model0: ABCModel, random0: Random) = new ClusterParticleBuilder with ParticleBuilderComponent{
+object ParticleGenerator{
+	def apply(model0: ABCModel, random0: Random) = new ParticleGenerator with ParticleBuilderComponent {
 		val model = model0
 		val random = random0
 		val particleBuilder = new ParticleBuilder{}

@@ -15,15 +15,8 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor.worker
+package sampler.cluster.run.master.dispatch
 
-import java.util.concurrent.atomic.AtomicBoolean
-
-trait Executor{
-	def apply: PartialFunction[Any, Any]
-
-	val aborted: AtomicBoolean = new AtomicBoolean(false)
-
-	def abort() {aborted.set(true)}
-	def isAborted = aborted.get
+case class Batch[J](jobs: Seq[J]){
+	val size = jobs.size
 }

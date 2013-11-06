@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.cluster.actor.worker
+package sampler.cluster.run.slave
 
 import akka.actor.Actor
 import akka.actor.ActorLogging
