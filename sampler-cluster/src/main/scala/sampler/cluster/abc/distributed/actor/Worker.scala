@@ -49,7 +49,9 @@ class Worker(modelRunner: AbortableModelRunner) extends Actor with ActorLogging{
 			parent ! NewScoredParameters(seq)
 			startWork(currentJob)
 			log.debug("Result sent to parent, started another job")
-		case Failure(exception) => throw exception
+		case Failure(exception) => 
+			log.warning("Model threw exception, but will be run again: {}", exception)
+			startWork(currentJob)
 		case Aborted => 
 			become(idle)
 		case msg => 

@@ -40,6 +40,8 @@ import akka.pattern.ask
 import akka.util.Timeout
 import akka.actor.ActorIdentity
 import scala.concurrent.Await
+import com.typesafe.config.ConfigFactory
+import scala.concurrent.duration._
 
 class Broadcaster extends Actor with ActorLogging{
 	val cluster = Cluster(context.system)
@@ -56,15 +58,23 @@ class Broadcaster extends Actor with ActorLogging{
 	import context._
 	
 	val selfAddress = cluster.selfAddress
-//	val myRemotePath = Await.result(system.actorSelection(self.path).resolveOne(1.second), 1.second).path.root
+
+	val config = ConfigFactory.load
+	val testTimeout = Duration(config.getMilliseconds("sampler.abc-mixing.response-threshold"), MILLISECONDS)
+	log.info("Pre-mixing test timeout: {}", testTimeout)
 	
-	case class AreYouThere()
+	case class CheckPreMixingTests()
+	case class PreMixingTest(msg: MixingMessage, when: Long  = System.currentTimeMillis()){
+		def durationSince = Duration(System.currentTimeMillis() - when, MILLISECONDS)
+	}
+	context.system.scheduler.schedule(1.second, testTimeout * 10 , self, CheckPreMixingTests)
+	var preMixingTests = Map.empty[ActorRef, PreMixingTest]
 	
 	val nodes = collection.mutable.Set.empty[ActorRef]
-	val nodePath = Seq("user", "abcrootactor")
+	val recipientPath = Seq("user", "abcrootactor")
 	
 	def attemptWorkerHandshake(root: RootActorPath){
-		val path = root / nodePath
+		val path = root / recipientPath
 		log.info("Attempting handshake with potential node: {}", path)
 		context.system.actorSelection(path) ! Identify(None)
 	}
@@ -88,18 +98,41 @@ class Broadcaster extends Actor with ActorLogging{
   			nodes --= down
   		  	log.info(s"Node down {}, previous status {}", down, previousStatus)
   		  	reportingActor ! NumWorkers(nodes.size)
-  		case ActorIdentity(_, Some(actorRef)) =>
+  		case ActorIdentity(None, Some(actorRef)) =>
   			val remoteNode = actorRef
   			nodes += remoteNode
   			log.info("Handshake completed with node: {}",remoteNode)
   			log.info("node set = {}", nodes)
+  		case ActorIdentity(_, Some(who)) =>
+  			//This is a response to a pre-message test
+  			if(preMixingTests.contains(who)){
+  				val test = preMixingTests(who)
+  				val responseTime = test.durationSince
+  				val expired = responseTime > testTimeout
+  				if(!expired){
+	  				who ! test.msg
+	  				log.info("Pre-message test passed after {}, sent data to {}", responseTime, who)
+  				}
+  				else log.warning("Pre-message test p after {} for {}", responseTime, who)
+  			}
+  			preMixingTests = preMixingTests - who
+  		case CheckPreMixingTests =>
+  			//Drop pending messages where the responsiveness test failed
+  			preMixingTests = preMixingTests.filter{case (recipient, test) =>
+  				val responseTime = test.durationSince
+  				val expired = responseTime > testTimeout
+  				if(expired) log.warning("Pre-message test failed after {} for {}", responseTime, recipient)
+  				!expired
+  			}
   		case msg: MixingMessage =>
   			if(!nodes.isEmpty){
 	  			val recipient = Distribution.uniform(nodes.toIndexedSeq).sample 
-	  			recipient ! msg
-	  			log.info("Sent message {} to {}", msg.getClass(), recipient)
+	  			if(!preMixingTests.contains(recipient)){
+		  			val test = PreMixingTest(msg)
+		  			preMixingTests = preMixingTests + (recipient -> test)
+		  			recipient ! Identify(test.when)
+	  			}
   			}
-//  		case msg => log.warning("Unexpected message: "+msg)
 	}
 	
 	case class NumWorkers(n: Int)

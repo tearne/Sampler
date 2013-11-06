@@ -40,7 +40,7 @@ object ABC {
 		import akka.pattern.ask
 		implicit val timeout = Timeout(1.minute)
 		val future = (abcActor ? Start).mapTo[Seq[model.ParameterSet]]
-		val result = Await.result(future, 1.minute)
+		val result = Await.result(future, Duration.Inf)
 		
 		system.shutdown
 		

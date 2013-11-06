@@ -45,7 +45,7 @@ trait Helpers extends Logging{
 		getWeight(newScoredParam).map{wt => Weighted(newScoredParam, wt)}
 	}
 	
-	def calculateNewTolerance(model: ABCModel)(weighedParameters: Seq[model.Weighted], fallBackTolerance: Double): Double = {
+	def calculateNewTolerance(weighedParameters: Seq[ABCModel#Weighted], fallBackTolerance: Double): Double = {
 		val medianMeanScore = statistics.quantile(weighedParameters.map{_.meanScore}.toEmpiricalSeq, Probability(0.5))
 		if(medianMeanScore == 0) {
 			log.warn("Median of mean scores from last generation evaluated to 0, using fallback tolerance: {}", fallBackTolerance)
