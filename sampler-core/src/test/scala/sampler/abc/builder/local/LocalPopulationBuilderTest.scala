@@ -34,7 +34,7 @@ class LocalPopulationBuilderTest extends AssertionsForJUnit with MockitoSugar {
     anything, anything, anything
   )
   
-  @Test def mainTest {
+  @Test def returnsANewPopulation {
     val particles = 2
     val chunks = 1
     val tolerance = 1000
