@@ -5,7 +5,6 @@ import org.scalatest.mock.MockitoSugar
 import org.junit.Test
 import sampler.abc.generation.IntegerModel
 import sampler.abc.EncapsulatedPopulation
-import sampler.abc.Particle
 import sampler.run.ParallelRunner
 import sampler.abc.ABCParameters
 import sampler.math.Random
@@ -41,14 +40,16 @@ class LocalPopulationBuilderTest extends AssertionsForJUnit with MockitoSugar {
     
     val abcParams = parameters.copy(
       numParticles = particles,
-      particleChunking = chunks,
+      particleChunkSize = chunks,
       startTolerance = tolerance
     )
+    
+    import model._
 
-    val p1 = new Particle(model.Parameters(1), 1, Double.MaxValue)
-    val p2 = new Particle(model.Parameters(2), 1, Double.MaxValue)
-    val p3 = new Particle(model.Parameters(3), 1, Double.MaxValue)
-    val p4 = new Particle(model.Parameters(4), 1, Double.MaxValue)
+    val p1 = mock[Weighted]//new Particle(model.Parameters(1), 1, Double.MaxValue)
+    val p2 = mock[Weighted]//new Particle(model.Parameters(2), 1, Double.MaxValue)
+    val p3 = mock[Weighted]//new Particle(model.Parameters(3), 1, Double.MaxValue)
+    val p4 = mock[Weighted]//new Particle(model.Parameters(4), 1, Double.MaxValue)
     
     val ePop = EncapsulatedPopulation(model)(Seq(p1, p2))
     val ePop2 = EncapsulatedPopulation(model)(Seq(p3, p4))
@@ -73,11 +74,12 @@ class LocalPopulationBuilderTest extends AssertionsForJUnit with MockitoSugar {
 
     val abcParams = parameters.copy(
       numParticles = particles,
-      particleChunking = chunks,
+      particleChunkSize = chunks,
       startTolerance = tolerance
     )
     
-    val p1 = new Particle(model.Parameters(1), 1, Double.MaxValue)
+    val p1 = mock[model.Weighted]//
+//    val p1 = new Particle(model.Parameters(1), 1, Double.MaxValue)
     
     val ePop = EncapsulatedPopulation(model)(Seq(p1))
     
@@ -101,11 +103,12 @@ class LocalPopulationBuilderTest extends AssertionsForJUnit with MockitoSugar {
     
     val abcParams = parameters.copy(
       numParticles = particles,
-      particleChunking = chunks,
+      particleChunkSize = chunks,
       startTolerance = tolerance
     )
     
-    val p1 = new Particle(model.Parameters(1), 1, Double.MaxValue)
+    val p1 = mock[model.Weighted]//
+//    val p1 = new Particle(model.Parameters(1), 1, Double.MaxValue)
     
     val ePop = EncapsulatedPopulation(model)(Seq(p1))
     

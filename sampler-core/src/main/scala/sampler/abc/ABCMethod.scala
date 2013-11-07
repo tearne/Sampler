@@ -34,14 +34,14 @@ trait ABCMethod extends InitialiseComponent
 			abcParams: ABCParameters, 
 			populationBuilder: PopulationBuilder,
 			random: Random
-	): Option[Seq[model.Parameters]] = {
+	): Option[Seq[model.ParameterSet]] = {
 		val ePop0 = initialise(model, abcParams)
 		val ePopFinal = iterate(ePop0, abcParams, populationBuilder, random)
 		ePopFinal.map(
 			//TODO MS: Don't like this cast
 			_.asInstanceOf[EncapsulatedPopulation[model.type]]
 			.population.map{
-				_.value
+				_.parameterSet
 			}
 		)
 	}

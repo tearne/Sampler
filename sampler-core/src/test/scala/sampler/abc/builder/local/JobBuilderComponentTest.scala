@@ -6,7 +6,6 @@ import org.junit.Test
 import sampler.io.Logging
 import sampler.abc.builder.ParticleBuilderComponent
 import sampler.abc.generation.IntegerModel
-import sampler.abc.Particle
 import sampler.run.Abortable
 import sampler.math.Random
 import sampler.abc.ABCParameters
@@ -38,9 +37,10 @@ class JobRBuilderComponentTest extends AssertionsForJUnit with MockitoSugar {
       anything, anything, chunkSizes
     )
     
-    val p1 = new Particle(mock[model.Parameters], 1, Double.MaxValue)
-    val p2 = new Particle(mock[model.Parameters], 1, Double.MaxValue)
-    val p3 = new Particle(mock[model.Parameters], 1, Double.MaxValue)
+    import model._
+    val p1 = mock[Weighted]//new Particle(mock[model.Parameters], 1, Double.MaxValue)
+    val p2 = mock[Weighted]//new Particle(mock[model.Parameters], 1, Double.MaxValue)
+    val p3 = mock[Weighted]//new Particle(mock[model.Parameters], 1, Double.MaxValue)
     
     val ePop = EncapsulatedPopulation(IntegerModel)(Seq(p1,p2,p3))
     

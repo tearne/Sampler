@@ -24,7 +24,6 @@ import org.scalatest.mock.MockitoSugar
 
 import sampler.abc.ABCParameters
 import sampler.abc.EncapsulatedPopulation
-import sampler.abc.Particle
 import sampler.abc.builder.PopulationBuilder
 import sampler.io.Logging
 import sampler.math.Random
@@ -51,7 +50,7 @@ class IterateComponentTest extends AssertionsForJUnit with MockitoSugar {
 
   @Test
   def runReturnsInitialPopluationWhenRefinementsIsZero {
-	val abcParams = parameters.copy(refinements = 0)
+	val abcParams = parameters.copy(numGenerations = 0)
     
     val result = instance.iterate(pop0, abcParams, populationBuilder, random).get
     assert(result === pop0)
@@ -63,7 +62,7 @@ class IterateComponentTest extends AssertionsForJUnit with MockitoSugar {
     
     val abcParams = parameters.copy(
       startTolerance = tolerance,
-      refinements = refinements
+      numGenerations = refinements
     )
     
     when(populationBuilder.run(pop0, abcParams, tolerance, random)).thenReturn(None)
@@ -79,10 +78,10 @@ class IterateComponentTest extends AssertionsForJUnit with MockitoSugar {
   	
   	val abcParams = parameters.copy(
   	    startTolerance = tolerance,
-  	    refinements = refinements
+  	    numGenerations = refinements
   	)
   	
-    val p1 = new Particle(mock[IntegerModel.Parameters], 1, Double.MaxValue)
+    val p1 = mock[IntegerModel.Weighted]//new Particle(mock[IntegerModel.Parameters], 1, Double.MaxValue)
     
   	val pop1 = EncapsulatedPopulation(IntegerModel)(Seq(p1))
   	
@@ -100,11 +99,11 @@ class IterateComponentTest extends AssertionsForJUnit with MockitoSugar {
   	
   	val abcParams = parameters.copy(
   	    startTolerance = tolerance,
-  	    refinements = refinements
+  	    numGenerations = refinements
   	)
     
-    val p1 = new Particle(mock[IntegerModel.Parameters], 1, Double.MaxValue)
-  	val p2 = new Particle(mock[IntegerModel.Parameters], 1, Double.MaxValue)
+    val p1 = mock[IntegerModel.Weighted]//new Particle(mock[IntegerModel.Parameters], 1, Double.MaxValue)
+  	val p2 = mock[IntegerModel.Weighted]//new Particle(mock[IntegerModel.Parameters], 1, Double.MaxValue)
     
   	val pop1 = EncapsulatedPopulation(IntegerModel)(Seq(p1))
   	val pop2 = EncapsulatedPopulation(IntegerModel)(Seq(p2))

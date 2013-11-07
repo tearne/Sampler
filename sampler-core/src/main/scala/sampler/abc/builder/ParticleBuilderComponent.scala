@@ -21,7 +21,6 @@ import sampler.abc.ABCParameters
 import sampler.math.Random
 import sampler.run.Aborter
 import sampler.data.Distribution
-import sampler.abc.Particle
 import sampler.math.Partition
 import sampler.run.DetectedAbortionException
 import sampler.abc.MaxRetryException
@@ -40,31 +39,31 @@ trait ParticleBuilderComponent{
 	 */
 	class ParticleBuilder {
 		def apply(model: ABCModel)(
-				prevPopulation: model.Population,
+				prevPopulation: Seq[model.Weighted],
 				numParticles: Int, 
 				tolerance: Double,
 				aborter: Aborter,
 				meta: ABCParameters,
 				random: Random
-		): Seq[Particle[model.Parameters]] = {
+		): Seq[model.Weighted] = {
 			import model._
 			implicit val r = random
 			
-			val weightsTable = prevPopulation.groupBy(_.value).map{case (k,v) => (k, v.map(_.weight).sum)}.toIndexedSeq
+			val weightsTable = prevPopulation.groupBy(_.parameterSet).map{case (k,v) => (k, v.map(_.weight).sum)}.toIndexedSeq
 			val (parameters, weights) = weightsTable.unzip
 			val samplablePopulation = Distribution.fromPartition(parameters, Partition.fromWeights(weights))
 			
 			@tailrec
-			def nextParticle(failures: Int = 0): Particle[Parameters] = {
+			def nextParticle(failures: Int = 0): Weighted = {
 				if(aborter.isAborted) throw new DetectedAbortionException("Abort flag was set")
 				else if(failures >= meta.particleRetries) throw new MaxRetryException(s"Aborted after the maximum of $failures trials")
 				else{
-					def getScores(params: Parameters): IndexedSeq[Double] = {
+					def getScores(params: ParameterSet): IndexedSeq[Double] = {
 						val modelWithMetric = modelDistribution(params).map(_.distanceToObserved)
-						SerialSampler(modelWithMetric)(_.size == meta.reps)
+						SerialSampler(modelWithMetric)(_.size == meta.numReplicates)
 					}
 					
-					def getWeight(params: Parameters, scores: IndexedSeq[Double]): Option[Double] = {
+					def getWeight(params: ParameterSet, scores: IndexedSeq[Double]): Option[Double] = {
 						val fHat = scores.filter(_ < tolerance).size.toDouble
 						val numerator = fHat * prior.density(params)
 						val denominator = weightsTable.map{case (params0, weight) => 
@@ -74,15 +73,15 @@ trait ParticleBuilderComponent{
 						else None
 					}
 					
-					val res: Option[Particle[Parameters]] = for{
+					val res: Option[Weighted] = for{
 						params <- Some(samplablePopulation.sample().perturb()) if prior.density(params) > 0
 						fitScores <- Some(getScores(params))
 						weight <- getWeight(params, fitScores) 
-						meanFit = fitScores.sum.toDouble / fitScores.size
-					} yield Particle(params, weight, meanFit)
+//						meanFit = fitScores.sum.toDouble / fitScores.size
+					} yield Weighted(Scored(params, fitScores), weight)
 					
 					res match {
-						case Some(p: Particle[Parameters]) => p
+						case Some(p: Weighted) => p
 						case None => 
 							nextParticle(failures + 1)
 					}

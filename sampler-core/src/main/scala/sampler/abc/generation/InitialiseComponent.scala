@@ -20,7 +20,6 @@ package sampler.abc.generation
 import sampler.abc.ABCParameters
 import sampler.abc.EncapsulatedPopulation
 import sampler.abc.ABCModel
-import sampler.abc.Particle
 
 protected[abc] trait InitialiseComponent {
 	val initialise: Initialise
@@ -30,8 +29,10 @@ protected[abc] trait InitialiseComponent {
 				model: M, 
 				abcParams: ABCParameters
 		): EncapsulatedPopulation[M] = {
+			import model._ 
+			
 			val numParticles = abcParams.numParticles
-			val pop0 = (1 to numParticles).par.map(i => Particle(model.prior.sample(), 1.0, Double.MaxValue)).seq
+			val pop0 = (1 to numParticles).par.map(i => Weighted(Scored(model.prior.sample(), Nil), 1.0)).seq
 			EncapsulatedPopulation(model)(pop0)
 		}
 	}

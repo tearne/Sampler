@@ -22,9 +22,9 @@ import sampler.data.Distribution
 import sampler.abc.Prior
 
 object IntegerModel extends ABCModel {
-    case class Parameters(i: Int) extends ParametersBase with Serializable {
+    case class ParameterSet(i: Int) extends ParameterSetBase with Serializable {
       def perturb() = this
-      def perturbDensity(that: Parameters) = if(that == this) 1.0 else 0.0
+      def perturbDensity(that: ParameterSet) = if(that == this) 1.0 else 0.0
     }
 
     case class Observed()
@@ -34,13 +34,13 @@ object IntegerModel extends ABCModel {
       def distanceToObserved: Double = 1.0
     }
           
-    def modelDistribution(p: Parameters) = new Distribution[Simulated] with Serializable {
+    def modelDistribution(p: ParameterSet) = new Distribution[Simulated] with Serializable {
       override def sample = Simulated()
     }
       
-    val prior = new Prior[Parameters] with Serializable{
+    val prior = new Prior[ParameterSet] with Serializable{
       val dist = Distribution.continually(1)
-      def density(p: Parameters) = 1.0
-      def sample() = Parameters(1)
+      def density(p: ParameterSet) = 1.0
+      def sample() = ParameterSet(1)
     }
   }

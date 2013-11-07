@@ -21,25 +21,23 @@ import sampler.math.{ Random, StatisticsComponent }
 import sampler.data.Distribution
 
 case class ABCParameters(
-		reps: Int, 
+		numReplicates: Int, 
 		numParticles: Int, 
 		startTolerance: Double = Double.MaxValue, 
-		refinements: Int, 
+		numGenerations: Int, 
 		particleRetries: Int = 100, 
-		particleChunking: Int = 100
+		particleChunkSize: Int = 100
 )
-
-case class Particle[A](value: A, weight: Double, meanFit: Double)
 
 trait Prior[A] extends Distribution[A]{
 	def density(value: A): Double
 }
 
 trait ABCModel{
-	type Parameters <: ParametersBase
-	protected trait ParametersBase {
-		def perturb(): Parameters
-		def perturbDensity(that: Parameters): Double		
+	type ParameterSet <: ParameterSetBase
+	protected trait ParameterSetBase {
+		def perturb(): ParameterSet
+		def perturbDensity(that: ParameterSet): Double		
 	}
 	
 	type Observed
@@ -50,9 +48,14 @@ trait ABCModel{
 		def distanceToObserved: Double
 	}
 	
-	val prior: Prior[Parameters]
+	val prior: Prior[ParameterSet]
 
-	def modelDistribution(p: Parameters): Distribution[Simulated]
-
-	type Population = Seq[Particle[Parameters]]
+	def modelDistribution(p: ParameterSet): Distribution[Simulated]
+	
+	case class Scored(parameterSet: ParameterSet, runScores: Seq[Double])
+	case class Weighted(scored: Scored, weight: Double){
+		def parameterSet = scored.parameterSet
+		def runScores = scored.runScores
+		def meanScore = runScores.sum.toDouble / runScores.size
+	}
 }

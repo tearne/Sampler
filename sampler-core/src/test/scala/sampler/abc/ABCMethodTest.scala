@@ -45,22 +45,21 @@ class ABCMethodTest extends AssertionsForJUnit with MockitoSugar{
   val ePop = EncapsulatedPopulation(model)(Nil)
   
   @Test def initialisesAndIteratesToGiveOptionPopulation {
-    val mock1 = mock[model.Parameters]
-    val mock2 = mock[model.Parameters]
-    val mock3 = mock[model.Parameters]
+    import model._
+    val p1 = mock[ParameterSet]
+    val p2 = mock[ParameterSet]
+    val p3 = mock[ParameterSet]
+ 	val expectedReturn = Some(Seq(p1, p2, p3))
+    
+    val w1 = Weighted(Scored(p1, Nil), 10.0)
+    val w2 = Weighted(Scored(p2, Nil), 15.0)
+    val w3 = Weighted(Scored(p3, Nil), 20.0)
 
-    val expectedReturn = Some(Seq(mock1, mock2, mock3))
-		
-    val p1 = Particle(mock1, 10.0, Double.MaxValue)
-    val p2 = Particle(mock2, 15.0, Double.MaxValue)
-    val p3 = Particle(mock3, 20.0, Double.MaxValue)
-
-    val ePop2 = EncapsulatedPopulation(model)(Seq(p1, p2, p3))
+    val ePop2 = EncapsulatedPopulation(model)(Seq(w1, w2, w3))
 		
     when(instance.initialise.apply(model, parameters)).thenReturn(ePop)
-		
     when(instance.iterate.apply(ePop, parameters, pBuilder, r)).thenReturn(Some(ePop2))
-		
+	
     val evolvedPopulation = instance.apply(model, parameters, pBuilder, r)
 
     assert(expectedReturn === evolvedPopulation)
@@ -75,8 +74,8 @@ class ABCMethodTest extends AssertionsForJUnit with MockitoSugar{
   }
   
   @Test def ensureTwoParameterMocksAreDifferent {
-    val p1 = mock[IntegerModel.Parameters]
+    val p1 = mock[IntegerModel.ParameterSet]
     
-    assert(p1 != mock[IntegerModel.Parameters])
+    assert(p1 != mock[IntegerModel.ParameterSet])
   }
 }
