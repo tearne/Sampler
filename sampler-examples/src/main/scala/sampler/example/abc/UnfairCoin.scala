@@ -28,25 +28,15 @@ import sampler.r.QuickPlot.writeDensity
 import sampler.abc.builder.local.LocalPopulationBuilder
 import sampler.abc.ABCMethod
 import sampler.abc.builder.PopulationBuilder
-import sampler.cluster.abc.slave.SlaveNode
-import sampler.cluster.abc.ClusterPopulationBuilder
 import sampler.abc.generation.InitialiseComponent
-import sampler.cluster.abc.distributed.ABCParameters
-import sampler.cluster.abc.distributed.ABC
-import sampler.cluster.abc.distributed.ABCModel
-import sampler.cluster.abc.distributed.Prior
+import sampler.abc.ABCModel
+import sampler.abc.Prior
+import sampler.abc.ABCParameters
 
-object Test extends App with InitialiseComponent{
+object ClusteredUnfairCoin extends App with ABCParametersComponent with InitialiseComponent{
 	val initialise = new Initialise{}
-	val abcParams = new ABCParameters(
-    	numReplicates = 100,
-		numParticles = 10000, 
-		numGenerations = 10,
-		particleRetries = 100, 
-		particleChunkSize = 1000
-	)
-	
-	val result = ABC.run(CoinModel, abcParams)
+
+	val result = sampler.cluster.abc.distributed.ABCMethod(CoinModel, abcParams)
 	
 	val headsDensity = result.map(_.pHeads)
 	
@@ -60,56 +50,42 @@ object Test extends App with InitialiseComponent{
 	)
 }
 
-//object UnfairCoinApplication extends App 
-//	with UnfairCoinFactory 
-//	with UnfairCoin
-//
-//	
-//object UnfairCoinWorker extends App {
-//	new SlaveNode(CoinModel)
-//}
-//
-//trait UnfairCoinFactory{
-//	val meta = new ABCParameters(
-//    	reps = 100,
-//		numParticles = 1000, 
-//		refinements = 3,
-//		particleRetries = 100, 
-//		particleChunking = 500
-//	)
-////	val pBuilder = ClusterPopulationBuilder.startAndGet()
-//	val pBuilder = LocalPopulationBuilder
-//}
-//
-//trait UnfairCoin {
-//	val pBuilder: PopulationBuilder
-//	val meta: ABCParameters
-//	
-//	val finalPopulation = ABCMethod(
-//			CoinModel, 
-//			meta, 
-//			pBuilder, 
-//			Random
-//	).get
-//
-//	val headsDensity = finalPopulation.map(_.pHeads)
-//	
-//	val wd = Paths.get("results", "UnfairCoin")
-//	Files.createDirectories(wd)
-//	
-//	writeDensity(
-//		wd, 
-//		"posterior", 
-//		headsDensity.continuous("P[Heads]")
-//	)
-//}
+object LocalUnfairCoin extends ABCParametersComponent with App{
+	val finalPopulation = ABCMethod(
+			CoinModel, 
+			abcParams, 
+			LocalPopulationBuilder, 
+			Random
+	).get
+
+	val headsDensity = finalPopulation.map(_.pHeads)
+	
+	val wd = Paths.get("results", "UnfairCoin")
+	Files.createDirectories(wd)
+	
+	writeDensity(
+		wd, 
+		"posterior", 
+		headsDensity.continuous("P[Heads]")
+	)
+}
+
+trait ABCParametersComponent{
+	val abcParams = new ABCParameters(
+    	numReplicates = 100,
+		numParticles = 1000,
+		numGenerations = 10,
+		particleRetries = 100,
+		particleChunkSize = 100
+	)
+}
 
 object CoinModel extends CoinModelBase{
   val abcRandom = Random
   val modelRandom = Random
 }
 
-//TODO Remove some of the serializable
+//TODO Remove some of the serializable?
 trait CoinModelBase extends ABCModel with Serializable{
 	implicit val abcRandom: Random
   	val modelRandom: Random

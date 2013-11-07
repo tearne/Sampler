@@ -24,10 +24,9 @@ import akka.actor.ActorLogging
 import akka.actor.ActorRef
 import akka.actor.Props
 import akka.actor.actorRef2Scala
-import sampler.cluster.abc.distributed.ABCParameters
-import sampler.cluster.abc.distributed.ABCModel
+import sampler.abc.ABCParameters
+import sampler.abc.ABCModel
 import sampler.cluster.abc.distributed.actor.Messages.Abort
-import sampler.cluster.abc.distributed.actor.Messages.NewScoredParameters
 import sampler.cluster.abc.distributed.actor.Messages.Job
 import sampler.cluster.abc.distributed.actor.Messages.Start
 import sampler.cluster.abc.distributed.util.AbortableModelRunner
@@ -39,6 +38,13 @@ import sampler.math.Statistics
 import sampler.math.StatisticsComponent
 import com.typesafe.config.ConfigFactory
 import scala.concurrent.duration._
+import sampler.cluster.abc.distributed.actor.Messages.LocalParameters
+import sampler.cluster.abc.distributed.actor.Messages.RemoteParameters
+import akka.cluster.Cluster
+import akka.actor.Address
+
+//A value wrapped together with its origin
+case class Remote[T](value: T, origin: Address)
 
 class RootActor(val model: ABCModel, abcParams: ABCParameters, modelRunner: AbortableModelRunner) extends Actor with ActorLogging{
 	import model._
@@ -48,8 +54,11 @@ class RootActor(val model: ABCModel, abcParams: ABCParameters, modelRunner: Abor
 		val statistics = Statistics
 	}
 	
+	val myRemoteAddress = Cluster(system).selfAddress
+	
 	val config = ConfigFactory.load
-	val mixingMessageInterval = Duration(config.getMilliseconds("sampler.abc-mixing.rate"), MILLISECONDS)
+	val terminateAtTargetGeneration = config.getBoolean("sampler.abc.terminate-at-target-generation")
+	val mixingMessageInterval = Duration(config.getMilliseconds("sampler.abc.mixing.rate"), MILLISECONDS)
 	log.info("Mixing rate: {}", mixingMessageInterval)
 	
 	val broadcaster = context.actorOf(Props[Broadcaster], "broadcaster")
@@ -58,14 +67,20 @@ class RootActor(val model: ABCModel, abcParams: ABCParameters, modelRunner: Abor
 	case class Mix()
 
 	implicit val r = Random
-	var inBox = Seq[Weighted]()
+	type Origin = ActorRef
+	
+	//TODO improve ability to prevent repeat particles from
+	// being used.  This current attempt will only prevent
+	// duplication within a generation, not between them.
+	// Filtering against known particle GUIDs would work, 
+	// but take up lots of space.  Perhaps a FIFO? 
+	var inBox = Set[Remote[Weighted]]()
+	
 	var currentTolerance = Double.MaxValue
 	var currentIteration = 0
 	var currentWeightsTable: Map[ParameterSet,Double] = Map.empty
 	
 	def receive = idle
-	
-	log.info("READY")
 	
 	def idle: Receive = {
 		case Start =>
@@ -82,39 +97,57 @@ class RootActor(val model: ABCModel, abcParams: ABCParameters, modelRunner: Abor
 			become(busy(sndr))
 	}
 	
-	def busy(originalRequestor: ActorRef): Receive = {
-		case NewScoredParameters(scored: Seq[Scored]) => 
-			inBox = inBox ++ scored.map{scored =>
-				helpers.weighScoredParameterSet(model)(scored, currentWeightsTable.toMap, currentTolerance)
-			}.flatten
-			if(sender.path.root == self.path.root) 
-				log.info("Got {} particles from self, total = {}", scored.size, inBox.size)
-			else 
-				log.info("Got {} particles from {}, total = {}", scored.size, sender.path.root, inBox.size)
-			if(inBox.size >= abcParams.numParticles) inBoxFull(originalRequestor)
+	def busy(client: ActorRef): Receive = {
+		case LocalParameters(localScoreds: Seq[Scored]) =>
+			val weighedAndTagged = localScoreds.map{scored =>
+					helpers.filterAndWeighScoredParameterSet(model)(scored, currentWeightsTable.toMap, currentTolerance)
+						.map{weighted => Remote(weighted, myRemoteAddress)}
+				}.flatten
+			inBox = inBox ++ weighedAndTagged
+			log.info("Generated {} samples, kept {}, accumulated {}", localScoreds.size, weighedAndTagged.size, inBox.size)
+			if(inBox.size >= abcParams.numParticles) inBoxFull(client)
+			
+		case RemoteParameters(remoteScoreds: Seq[Remote[Scored]]) =>
+			val weighedAndTagged = remoteScoreds.view.map{case Remote(scored, address) =>
+					helpers.filterAndWeighScoredParameterSet(model)(scored, currentWeightsTable.toMap, currentTolerance)
+						.map(weighted => Remote(weighted, address))
+				}.flatten
+			inBox = inBox ++ weighedAndTagged // InBox is a set, so duplicates wont be added again
+			log.info("Received {} particles, kept {}, accumulated {}", remoteScoreds.size, weighedAndTagged.size, inBox.size)
+			if(inBox.size >= abcParams.numParticles) inBoxFull(client)
+				
 		case Mix =>
 			if(inBox.size > 0){
-				val weightedParameters = Distribution.uniform(inBox.toIndexedSeq).until(_.size == abcParams.particleChunkSize).sample
-				val scoredParameters = weightedParameters.map(_.scored)
-				broadcaster ! NewScoredParameters(scoredParameters)
+				// Send entire inBox
+				broadcaster ! RemoteParameters(inBox.toSeq.map{case Remote(weighted, origin) =>
+					Remote(weighted.scored, origin)
+				})
 			}
 	}
 	
-	def inBoxFull(originalRequestor: ActorRef) {
-		log.info("InBox full, current it {}, required {}", currentIteration,abcParams.numGenerations)
+	def inBoxFull(client: ActorRef) {
+		log.info("Generation {}/{} complete", currentIteration, abcParams.numGenerations)
 		if(currentIteration == abcParams.numGenerations){
-			originalRequestor ! inBox.map(_.parameterSet).take(abcParams.numParticles)
-			worker ! Abort
-		} else {
-			val newPopulation = inBox
-			val newTolerance = helpers.calculateNewTolerance(newPopulation, currentTolerance / 2)
-			log.info("Generation {}, tolerance {}", currentIteration, newTolerance)
-			worker ! Job(newPopulation, abcParams)
-			log.info("Sent job to {}", worker)
-			inBox = Seq.empty
-			currentWeightsTable = helpers.consolidateTowWeightsTable(model)(newPopulation)
-			currentTolerance = newTolerance
-			currentIteration = currentIteration + 1
+			client ! inBox.toSeq.map(_.value.parameterSet).take(abcParams.numParticles)
+			log.info("Number of required generations completed and reported to requestor")
+			
+			if(terminateAtTargetGeneration){
+				worker ! Abort
+			} 
+			else startNextRun()
 		}
+		else startNextRun()
+	}
+	
+	def startNextRun(){
+		val seqWeighted = inBox.toSeq.map(_.value)
+		val newTolerance = helpers.calculateNewTolerance(seqWeighted, currentTolerance / 2)
+		log.info("New tolerance: {}", newTolerance)
+		inBox = Set.empty
+		currentWeightsTable = helpers.consolidateToWeightsTable(model)(seqWeighted)
+		currentTolerance = newTolerance
+		currentIteration = currentIteration + 1
+		
+		worker ! Job(seqWeighted, abcParams)
 	}
 }

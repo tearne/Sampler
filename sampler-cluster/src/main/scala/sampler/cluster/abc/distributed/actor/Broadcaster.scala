@@ -42,6 +42,8 @@ import akka.actor.ActorIdentity
 import scala.concurrent.Await
 import com.typesafe.config.ConfigFactory
 import scala.concurrent.duration._
+import sampler.abc.ABCModel
+import scala.language.existentials
 
 class Broadcaster extends Actor with ActorLogging{
 	val cluster = Cluster(context.system)
@@ -60,11 +62,11 @@ class Broadcaster extends Actor with ActorLogging{
 	val selfAddress = cluster.selfAddress
 
 	val config = ConfigFactory.load
-	val testTimeout = Duration(config.getMilliseconds("sampler.abc-mixing.response-threshold"), MILLISECONDS)
+	val testTimeout = Duration(config.getMilliseconds("sampler.abc.mixing.response-threshold"), MILLISECONDS)
 	log.info("Pre-mixing test timeout: {}", testTimeout)
 	
 	case class CheckPreMixingTests()
-	case class PreMixingTest(msg: MixingMessage, when: Long  = System.currentTimeMillis()){
+	case class PreMixingTest(msg: RemoteParameters[_], when: Long  = System.currentTimeMillis()){
 		def durationSince = Duration(System.currentTimeMillis() - when, MILLISECONDS)
 	}
 	context.system.scheduler.schedule(1.second, testTimeout * 10 , self, CheckPreMixingTests)
@@ -104,16 +106,16 @@ class Broadcaster extends Actor with ActorLogging{
   			log.info("Handshake completed with node: {}",remoteNode)
   			log.info("node set = {}", nodes)
   		case ActorIdentity(_, Some(who)) =>
-  			//This is a response to a pre-message test
+  			// A response to a pre-message test
   			if(preMixingTests.contains(who)){
   				val test = preMixingTests(who)
   				val responseTime = test.durationSince
   				val expired = responseTime > testTimeout
   				if(!expired){
 	  				who ! test.msg
-	  				log.info("Pre-message test passed after {}, sent data to {}", responseTime, who)
+	  				log.debug("Pre-message test passed after {}, sent data to {}", responseTime, who)
   				}
-  				else log.warning("Pre-message test p after {} for {}", responseTime, who)
+  				else log.warning("Pre-message test failed after {} for {}", responseTime, who)
   			}
   			preMixingTests = preMixingTests - who
   		case CheckPreMixingTests =>
@@ -124,7 +126,7 @@ class Broadcaster extends Actor with ActorLogging{
   				if(expired) log.warning("Pre-message test failed after {} for {}", responseTime, recipient)
   				!expired
   			}
-  		case msg: MixingMessage =>
+  		case msg: RemoteParameters[_] =>
   			if(!nodes.isEmpty){
 	  			val recipient = Distribution.uniform(nodes.toIndexedSeq).sample 
 	  			if(!preMixingTests.contains(recipient)){

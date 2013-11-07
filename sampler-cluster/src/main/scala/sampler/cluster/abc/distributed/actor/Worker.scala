@@ -46,7 +46,7 @@ class Worker(modelRunner: AbortableModelRunner) extends Actor with ActorLogging{
 			modelRunner.abort
 			become(waitingForAbortComfirmation(None))
 		case Success(seq: Seq[_]) =>
-			parent ! NewScoredParameters(seq)
+			parent ! LocalParameters(seq)
 			startWork(currentJob)
 			log.debug("Result sent to parent, started another job")
 		case Failure(exception) => 

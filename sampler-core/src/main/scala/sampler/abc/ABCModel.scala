@@ -26,7 +26,7 @@ case class ABCParameters(
 		startTolerance: Double = Double.MaxValue, 
 		numGenerations: Int, 
 		particleRetries: Int = 100, 
-		particleChunkSize: Int = 100
+		particleChunkSize: Int
 )
 
 trait Prior[A] extends Distribution[A]{

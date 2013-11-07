@@ -23,7 +23,7 @@ import scala.annotation.tailrec
 import scala.util.Try
 
 import sampler.abc.MaxRetryException
-import sampler.cluster.abc.distributed.ABCModel
+import sampler.abc.ABCModel
 import sampler.cluster.abc.distributed.actor.Messages.Job
 import sampler.data.Distribution
 import sampler.data.SerialSampler

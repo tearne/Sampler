@@ -18,7 +18,7 @@
 package sampler.cluster.abc.distributed.util
 
 import sampler.Implicits.RichIndexedSeq
-import sampler.cluster.abc.distributed.ABCModel
+import sampler.abc.ABCModel
 import sampler.io.Logging
 import sampler.math.Probability
 import sampler.math.StatisticsComponent
@@ -26,7 +26,7 @@ import sampler.math.StatisticsComponent
 trait Helpers extends Logging{
 	self: StatisticsComponent =>
 	
-	def weighScoredParameterSet(model: ABCModel)(
+	def filterAndWeighScoredParameterSet(model: ABCModel)(
 			newScoredParam: model.Scored,
 			previousParamsWithWeights: Map[model.ParameterSet, Double],
 			tolerance: Double
@@ -54,7 +54,7 @@ trait Helpers extends Logging{
 		else math.min(medianMeanScore, fallBackTolerance)
 	}
 	
-	def consolidateTowWeightsTable(model: ABCModel)(population: Seq[model.Weighted]) = {
+	def consolidateToWeightsTable(model: ABCModel)(population: Seq[model.Weighted]): Map[model.ParameterSet, Double] = {
 		population
 			.groupBy(_.parameterSet)
 			.map{case (k,v) => (k, v.map(_.weight).sum)}

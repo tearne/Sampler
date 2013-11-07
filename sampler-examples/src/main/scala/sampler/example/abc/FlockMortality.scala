@@ -27,7 +27,6 @@ import org.apache.commons.math3.ode.sampling.FixedStepHandler
 import org.apache.commons.math3.ode.sampling.StepNormalizer
 import sampler.Implicits._
 import sampler.abc.ABCModel
-import sampler.abc.ABCParameters
 import sampler.abc.Prior
 import sampler.data.Distribution
 import sampler.io.CSVFile
@@ -38,6 +37,7 @@ import scala.language.existentials
 import sampler.abc.builder.local.LocalPopulationBuilder
 import sampler.abc.ABCMethod
 import sampler.math.Statistics
+import sampler.abc.ABCParameters
 
 object FlockMortality extends App {
 	import FlockMortalityModel._
@@ -48,11 +48,11 @@ object FlockMortality extends App {
 	implicit val modelRandom = FlockMortalityModel.modelRandom 
 	
 	val abcParams = new ABCParameters(
-    	reps = 1,
+    	numReplicates = 1,
 		numParticles = 100, 
-		refinements = 16,
+		numGenerations = 16,
 		particleRetries = 1000, 
-		particleChunking = 50
+		particleChunkSize = 50
 	)
 	val posterior = ABCMethod(
 			FlockMortalityModel, 
@@ -77,7 +77,6 @@ object FlockMortality extends App {
 			header = Seq("Eggs", "Dead")
 	)
 	
-	
 	CSVFile.write(
 			wd.resolve(csvName),
 			posterior.map{_.toCSV},
@@ -94,7 +93,7 @@ object FlockMortality extends App {
 	val medSigma2 = quantile(posterior.map(_.sigma2).toEmpiricalSeq, half)
 	val medOffset = quantile(posterior.map(_.offset).map(_.toDouble).toEmpiricalTable, half).toInt
 	
-	val medParams = Parameters(medBeta, medEta, medGamma, medDelta, medSigma, medSigma2, medOffset)
+	val medParams = ParameterSet(medBeta, medEta, medGamma, medDelta, medSigma, medSigma2, medOffset)
 	val fitted = modelDistribution(medParams).sample
 	
 	val days = 0 until observed.dailyDead.size
@@ -164,7 +163,7 @@ object FlockMortalityModel extends ABCModel {
 	val flockSize = 3000
 	val eggCoef = 2200.0 / 3000.0
 	
-	case class Parameters(
+	case class ParameterSet(
 			beta: Double, 
 			eta: Double, 
 			gamma: Double, 
@@ -172,7 +171,7 @@ object FlockMortalityModel extends ABCModel {
 			sigma: Double, 
 			sigma2: Double, 
 			offset: Int
-	) extends ParametersBase {
+	) extends ParameterSetBase {
 		val kernel = new Prior[Double] with Distribution[Double]{
 			val normal = new NormalDistribution(0,0.1)
 			def sample = normal.sample
@@ -181,7 +180,7 @@ object FlockMortalityModel extends ABCModel {
 		val threeDie = Distribution.uniform(IndexedSeq(-1,0,1))
 		private def threeDensity(v: Int) = if(v <= 1 || v >= -1) 1.0 / 3 else 0
 		
-		def perturb = Parameters(
+		def perturb = ParameterSet(
 			beta + kernel.sample,
 			eta + kernel.sample,
 			gamma + kernel.sample,
@@ -190,7 +189,7 @@ object FlockMortalityModel extends ABCModel {
 			sigma2 + kernel.sample,
 			offset + threeDie.sample
 		)
-		def perturbDensity(that: Parameters) = 
+		def perturbDensity(that: ParameterSet) = 
 			kernel.density(beta - that.beta) *
 			kernel.density(eta - that.eta) *
 			kernel.density(gamma - that.gamma) *
@@ -233,7 +232,7 @@ object FlockMortalityModel extends ABCModel {
 		}
 	}
 	
-	def modelDistribution(p: Parameters) = {
+	def modelDistribution(p: ParameterSet) = {
 		import p._
 		val days = 0 until observed.dailyDead.length
 		
@@ -244,7 +243,7 @@ object FlockMortalityModel extends ABCModel {
 			val y0 = Array((flockSize-1).toDouble, 1.0, 0.0, 0.0, 0.0) //S, E, I, R, D
 			val numDays = observed.dailyDead.size	
 			
-			class ODE(p: Parameters) extends FirstOrderDifferentialEquations {
+			class ODE(p: ParameterSet) extends FirstOrderDifferentialEquations {
 				import p._
 				
 			    def getDimension() = 5
@@ -305,8 +304,8 @@ object FlockMortalityModel extends ABCModel {
 		Distribution.continually(solve)
 	}
 	
-	val prior = new Prior[Parameters]{
-		def density(p: Parameters) = {
+	val prior = new Prior[ParameterSet]{
+		def density(p: ParameterSet) = {
 			def unitRange(d: Double) = if(d > 1.0 || d < 0.0) 0.0 else 1.0
 			def tenRange(i: Int) = if(i < 0 || i > 10) 0.0 else 1.0
 			
@@ -323,7 +322,7 @@ object FlockMortalityModel extends ABCModel {
 		}
 		
 		//TODO can use random in the model?
-		def sample = Parameters(
+		def sample = ParameterSet(
 			beta = modelRandom.nextDouble(0, 1),
 			eta = modelRandom.nextDouble(0, 1),
 			gamma = modelRandom.nextDouble(0, 1),

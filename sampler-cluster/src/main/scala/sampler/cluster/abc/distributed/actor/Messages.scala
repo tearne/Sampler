@@ -17,16 +17,18 @@
 
 package sampler.cluster.abc.distributed.actor
 
-import sampler.cluster.abc.distributed.ABCParameters
-import sampler.cluster.abc.distributed.ABCModel
+import sampler.abc.ABCParameters
+import sampler.abc.ABCModel
+import akka.actor.ActorRef
 
 object Messages {
 	case class Start()
 	case class Result(params: Seq[ABCModel#ParameterSet])
 	
 	case class Job(population: Seq[ABCModel#Weighted], abcParams: ABCParameters)
-	trait MixingMessage
-	case class NewScoredParameters[P](seq: Seq[P]) extends MixingMessage
+	
+	case class LocalParameters[P](seq: Seq[P])
+	case class RemoteParameters[P](seq: Seq[P])
 	
 	case class Abort()
 	case class Aborted()

@@ -27,10 +27,17 @@ import sampler.cluster.abc.distributed.util.AbortableModelRunner
 import sampler.cluster.abc.distributed.actor.RootActor
 import sampler.cluster.abc.distributed.actor.Messages.Start
 import sampler.cluster.actor.PortFallbackSystemFactory
+import sampler.abc.ABCModel
+import sampler.abc.ABCParameters
+import com.typesafe.config.ConfigFactory
+import sampler.io.Logging
 
-object ABC {
-	def run(model: ABCModel, abcParameters: ABCParameters) = {
+object ABCMethod extends Logging{
+	def apply(model: ABCModel, abcParameters: ABCParameters) = {
 		val system = PortFallbackSystemFactory("ABCSystem")
+		
+		val terminateAtTargetGeneration = ConfigFactory.load.getBoolean("sampler.abc.terminate-at-target-generation")
+		
 		val modelRunner = AbortableModelRunner(model)
 		val abcActor = system.actorOf(
 				Props(new RootActor(model, abcParameters, modelRunner)), 
@@ -38,11 +45,14 @@ object ABC {
 		)
 		
 		import akka.pattern.ask
-		implicit val timeout = Timeout(1.minute)
+		implicit val timeout = Timeout(20.second)
 		val future = (abcActor ? Start).mapTo[Seq[model.ParameterSet]]
 		val result = Await.result(future, Duration.Inf)
 		
-		system.shutdown
+		if(terminateAtTargetGeneration){
+			log.info("Terminating actor system")
+			system.shutdown
+		}
 		
 		result
 	}
