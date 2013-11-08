@@ -15,21 +15,18 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.distributed.actor
+package sampler.cluster.abc.actor
 
 import sampler.abc.ABCParameters
 import sampler.abc.ABCModel
-import akka.actor.ActorRef
 
-object Messages {
-	case class Start()
-	case class Result(params: Seq[ABCModel#ParameterSet])
-	
-	case class Job(population: Seq[ABCModel#Weighted], abcParams: ABCParameters)
-	
-	case class LocalParameters[P](seq: Seq[P])
-	case class RemoteParameters[P](seq: Seq[P])
-	
-	case class Abort()
-	case class Aborted()
-}
+case class Start()
+case class Result(params: Seq[ABCModel#ParameterSet])
+
+case class Job(population: Seq[ABCModel#Weighted], abcParams: ABCParameters)
+
+case class LocalParameters[P](seq: Seq[P])
+case class RemoteParameters[P](seq: Seq[P])
+
+case class Abort()
+case class Aborted()

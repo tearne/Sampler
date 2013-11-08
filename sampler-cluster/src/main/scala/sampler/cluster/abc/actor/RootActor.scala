@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.distributed.actor
+package sampler.cluster.abc.actor
 
 import scala.Option.option2Iterable
 import scala.concurrent.duration.DurationInt
@@ -25,21 +25,17 @@ import akka.actor.ActorRef
 import akka.actor.actorRef2Scala
 import sampler.abc.ABCParameters
 import sampler.abc.ABCModel
-import sampler.cluster.abc.distributed.actor.Messages.Start
-import sampler.cluster.abc.distributed.util.AbortableModelRunner
-import sampler.cluster.abc.distributed.util.Helpers
+import sampler.cluster.abc.util.AbortableModelRunner
+import sampler.cluster.abc.util.Helpers
 import sampler.io.Logging
 import sampler.math.Random
 import sampler.math.Statistics
 import sampler.math.StatisticsComponent
 import com.typesafe.config.ConfigFactory
 import scala.concurrent.duration._
-import sampler.cluster.abc.distributed.actor.Messages.LocalParameters
-import sampler.cluster.abc.distributed.actor.Messages.RemoteParameters
 import akka.cluster.Cluster
 import scala.collection.SortedSet
 import akka.actor.Props
-import sampler.cluster.abc.distributed.actor.Messages._
 
 //A value wrapped together with its origin
 case class Tagged[T](value: T, originCode: Long)

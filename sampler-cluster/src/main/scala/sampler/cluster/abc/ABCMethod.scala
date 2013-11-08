@@ -15,22 +15,20 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.distributed
+package sampler.cluster.abc
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import akka.actor.ActorSystem
-import akka.pattern.ask
 import akka.util.Timeout
 import akka.actor.Props
-import sampler.cluster.abc.distributed.util.AbortableModelRunner
-import sampler.cluster.abc.distributed.actor.RootActor
-import sampler.cluster.abc.distributed.actor.Messages.Start
+import sampler.cluster.abc.util.AbortableModelRunner
+import sampler.cluster.abc.actor.RootActor
 import sampler.cluster.actor.PortFallbackSystemFactory
 import sampler.abc.ABCModel
 import sampler.abc.ABCParameters
 import com.typesafe.config.ConfigFactory
 import sampler.io.Logging
+import sampler.cluster.abc.actor.Start
 
 object ABCMethod extends Logging{
 	def apply(model: ABCModel, abcParameters: ABCParameters) = {

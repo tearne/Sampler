@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.distributed.actor
+package sampler.cluster.abc.actor
 
 import scala.concurrent.duration.DurationInt
 import akka.actor.Actor
@@ -29,21 +29,15 @@ import akka.cluster.ClusterEvent.ClusterDomainEvent
 import akka.cluster.ClusterEvent.CurrentClusterState
 import akka.cluster.ClusterEvent.MemberRemoved
 import akka.cluster.ClusterEvent.MemberUp
-import akka.cluster.Member
 import akka.cluster.MemberStatus
 import sampler.data.Distribution
 import sampler.math.Random
-import sampler.cluster.abc.distributed.actor.Messages._
-import akka.pattern.pipe
 import akka.actor.Identify
-import akka.pattern.ask
-import akka.util.Timeout
 import akka.actor.ActorIdentity
-import scala.concurrent.Await
 import com.typesafe.config.ConfigFactory
 import scala.concurrent.duration._
-import sampler.abc.ABCModel
-import scala.language.existentials
+import akka.actor.ActorSelection.toScala
+import akka.cluster.ClusterEvent.ClusterDomainEvent
 
 class Broadcaster extends Actor with ActorLogging{
 	val cluster = Cluster(context.system)

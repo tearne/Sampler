@@ -36,7 +36,7 @@ import sampler.abc.ABCParameters
 object ClusteredUnfairCoin extends App with ABCParametersComponent with InitialiseComponent{
 	val initialise = new Initialise{}
 
-	val result = sampler.cluster.abc.distributed.ABCMethod(CoinModel, abcParams)
+	val result = sampler.cluster.abc.ABCMethod(CoinModel, abcParams)
 	
 	val headsDensity = result.map(_.pHeads)
 	

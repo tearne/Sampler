@@ -15,22 +15,20 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.distributed.util
+package sampler.cluster.abc.util
 
 import java.util.concurrent.atomic.AtomicBoolean
-
 import scala.annotation.tailrec
 import scala.util.Try
-
 import sampler.abc.MaxRetryException
 import sampler.abc.ABCModel
-import sampler.cluster.abc.distributed.actor.Messages.Job
 import sampler.data.Distribution
 import sampler.data.SerialSampler
 import sampler.io.Logging
 import sampler.math.Partition
 import sampler.math.Random
 import sampler.run.DetectedAbortionException
+import sampler.cluster.abc.actor.Job
 
 trait AbortableModelRunner extends Logging{
 	val model: ABCModel

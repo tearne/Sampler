@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.distributed.util
+package sampler.cluster.abc.util
 
-import sampler.Implicits.RichIndexedSeq
 import sampler.abc.ABCModel
 import sampler.io.Logging
 import sampler.math.Probability
 import sampler.math.StatisticsComponent
+import sampler.Implicits._
 
 trait Helpers extends Logging{
 	self: StatisticsComponent =>

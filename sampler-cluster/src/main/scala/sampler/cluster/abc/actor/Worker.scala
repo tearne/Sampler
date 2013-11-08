@@ -15,21 +15,18 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.distributed.actor
+package sampler.cluster.abc.actor
 
 import java.rmi.UnexpectedException
-
 import scala.concurrent.Future
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
-
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.actorRef2Scala
-import sampler.cluster.abc.distributed.util.AbortableModelRunner
+import sampler.cluster.abc.util.AbortableModelRunner
 import sampler.run.DetectedAbortionException
-import sampler.cluster.abc.distributed.actor.Messages._
 
 class Worker(modelRunner: AbortableModelRunner) extends Actor with ActorLogging{
 	import context._
