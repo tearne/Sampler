@@ -22,16 +22,12 @@ import scala.concurrent.duration.DurationInt
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
-import akka.actor.Props
 import akka.actor.actorRef2Scala
 import sampler.abc.ABCParameters
 import sampler.abc.ABCModel
-import sampler.cluster.abc.distributed.actor.Messages.Abort
-import sampler.cluster.abc.distributed.actor.Messages.Job
 import sampler.cluster.abc.distributed.actor.Messages.Start
 import sampler.cluster.abc.distributed.util.AbortableModelRunner
 import sampler.cluster.abc.distributed.util.Helpers
-import sampler.data.Distribution
 import sampler.io.Logging
 import sampler.math.Random
 import sampler.math.Statistics
@@ -41,10 +37,12 @@ import scala.concurrent.duration._
 import sampler.cluster.abc.distributed.actor.Messages.LocalParameters
 import sampler.cluster.abc.distributed.actor.Messages.RemoteParameters
 import akka.cluster.Cluster
-import akka.actor.Address
+import scala.collection.SortedSet
+import akka.actor.Props
+import sampler.cluster.abc.distributed.actor.Messages._
 
 //A value wrapped together with its origin
-case class Remote[T](value: T, origin: Address)
+case class Tagged[T](value: T, originCode: Long)
 
 class RootActor(val model: ABCModel, abcParams: ABCParameters, modelRunner: AbortableModelRunner) extends Actor with ActorLogging{
 	import model._
@@ -69,12 +67,8 @@ class RootActor(val model: ABCModel, abcParams: ABCParameters, modelRunner: Abor
 	implicit val r = Random
 	type Origin = ActorRef
 	
-	//TODO improve ability to prevent repeat particles from
-	// being used.  This current attempt will only prevent
-	// duplication within a generation, not between them.
-	// Filtering against known particle GUIDs would work, 
-	// but take up lots of space.  Perhaps a FIFO? 
-	var inBox = Set[Remote[Weighted]]()
+	var inBox = Set[Tagged[Weighted]]()
+	var particlesAlreadySeen: SortedSet[Long] = SortedSet.empty
 	
 	var currentTolerance = Double.MaxValue
 	var currentIteration = 0
@@ -101,26 +95,36 @@ class RootActor(val model: ABCModel, abcParams: ABCParameters, modelRunner: Abor
 		case LocalParameters(localScoreds: Seq[Scored]) =>
 			val weighedAndTagged = localScoreds.map{scored =>
 					helpers.filterAndWeighScoredParameterSet(model)(scored, currentWeightsTable.toMap, currentTolerance)
-						.map{weighted => Remote(weighted, myRemoteAddress)}
+						.map{weighted => Tagged(weighted, System.currentTimeMillis())}
 				}.flatten
 			inBox = inBox ++ weighedAndTagged
+			particlesAlreadySeen = particlesAlreadySeen ++ weighedAndTagged.map(_.originCode)
+			if(particlesAlreadySeen.size > 10 * abcParams.numParticles){
+				particlesAlreadySeen = particlesAlreadySeen.drop(abcParams.numParticles)
+			}
 			log.info("Generated {} samples, kept {}, accumulated {}", localScoreds.size, weighedAndTagged.size, inBox.size)
 			if(inBox.size >= abcParams.numParticles) inBoxFull(client)
 			
-		case RemoteParameters(remoteScoreds: Seq[Remote[Scored]]) =>
-			val weighedAndTagged = remoteScoreds.view.map{case Remote(scored, address) =>
+		case RemoteParameters(remoteScoreds: Seq[Tagged[Scored]]) =>
+			val weighedAndTagged = remoteScoreds.view
+				.filter(scored => !particlesAlreadySeen.contains(scored.originCode))
+				.map{case Tagged(scored, address) =>
 					helpers.filterAndWeighScoredParameterSet(model)(scored, currentWeightsTable.toMap, currentTolerance)
-						.map(weighted => Remote(weighted, address))
+						.map(weighted => Tagged(weighted, address))
 				}.flatten
 			inBox = inBox ++ weighedAndTagged // InBox is a set, so duplicates wont be added again
+			particlesAlreadySeen = particlesAlreadySeen ++ weighedAndTagged.map(_.originCode)
+			if(particlesAlreadySeen.size > 10 * abcParams.numParticles){
+				particlesAlreadySeen = particlesAlreadySeen.drop(abcParams.numParticles)
+			}
 			log.info("Received {} particles, kept {}, accumulated {}", remoteScoreds.size, weighedAndTagged.size, inBox.size)
 			if(inBox.size >= abcParams.numParticles) inBoxFull(client)
 				
 		case Mix =>
 			if(inBox.size > 0){
 				// Send entire inBox
-				broadcaster ! RemoteParameters(inBox.toSeq.map{case Remote(weighted, origin) =>
-					Remote(weighted.scored, origin)
+				broadcaster ! RemoteParameters(inBox.toSeq.map{case Tagged(weighted, origin) =>
+					Tagged(weighted.scored, origin)
 				})
 			}
 	}
