@@ -17,17 +17,8 @@
 
 package sampler.cluster.abc.actor
 
-import sampler.abc.ABCParameters
-import sampler.abc.ABCModel
-
-case class Start()
-case class Result(params: Seq[ABCModel#ParameterSet])
-
-case class Job(population: Seq[ABCModel#Weighted], abcParams: ABCParameters)
-
-case class TaggedAndScoredParameterSets[T](seq: Seq[Tagged[T]])
-
-
-
-case class Abort()
-case class Aborted()
+//A value wrapped together with a pseudo unique id
+case class Tagged[T](value: T, id: Long)
+object Tagged{
+	def apply[T](value: T): Tagged[T] = Tagged(value, System.currentTimeMillis + 3*value.hashCode())
+}

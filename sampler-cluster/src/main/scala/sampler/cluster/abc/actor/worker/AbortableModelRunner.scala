@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.util
+package sampler.cluster.abc.actor.worker
 
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.tailrec

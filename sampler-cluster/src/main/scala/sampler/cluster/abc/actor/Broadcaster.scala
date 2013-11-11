@@ -60,7 +60,7 @@ class Broadcaster extends Actor with ActorLogging{
 	log.info("Pre-mixing test timeout: {}", testTimeout)
 	
 	case class CheckPreMixingTests()
-	case class PreMixingTest(msg: RemoteParameters[_], when: Long  = System.currentTimeMillis()){
+	case class PreMixingTest(msg: TaggedAndScoredParameterSets[_], when: Long  = System.currentTimeMillis()){
 		def durationSince = Duration(System.currentTimeMillis() - when, MILLISECONDS)
 	}
 	context.system.scheduler.schedule(1.second, testTimeout * 10 , self, CheckPreMixingTests)
@@ -120,7 +120,7 @@ class Broadcaster extends Actor with ActorLogging{
   				if(expired) log.warning("Pre-message test failed after {} for {}", responseTime, recipient)
   				!expired
   			}
-  		case msg: RemoteParameters[_] =>
+  		case msg: TaggedAndScoredParameterSets[_] =>
   			if(!nodes.isEmpty){
 	  			val recipient = Distribution.uniform(nodes.toIndexedSeq).sample 
 	  			if(!preMixingTests.contains(recipient)){

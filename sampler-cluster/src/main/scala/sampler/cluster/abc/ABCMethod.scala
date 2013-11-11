@@ -21,8 +21,8 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import akka.util.Timeout
 import akka.actor.Props
-import sampler.cluster.abc.util.AbortableModelRunner
-import sampler.cluster.abc.actor.RootActor
+import sampler.cluster.abc.actor.worker.AbortableModelRunner
+import sampler.cluster.abc.actor.root.RootActor
 import sampler.cluster.actor.PortFallbackSystemFactory
 import sampler.abc.ABCModel
 import sampler.abc.ABCParameters

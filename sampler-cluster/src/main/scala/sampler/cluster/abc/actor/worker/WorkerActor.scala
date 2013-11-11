@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.actor
+package sampler.cluster.abc.actor.worker
 
 import java.rmi.UnexpectedException
 import scala.concurrent.Future
@@ -25,11 +25,19 @@ import scala.util.Try
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.actorRef2Scala
-import sampler.cluster.abc.util.AbortableModelRunner
 import sampler.run.DetectedAbortionException
+import sampler.cluster.abc.actor.Abort
+import sampler.cluster.abc.actor.Aborted
+import sampler.cluster.abc.actor.Job
+import sampler.cluster.abc.actor.TaggedAndScoredParameterSets
+import sampler.cluster.abc.actor.Tagged
 
-class Worker(modelRunner: AbortableModelRunner) extends Actor with ActorLogging{
+class Worker(modelRunner: AbortableModelRunner) 
+		extends Actor 
+		with ActorLogging
+		 {
 	import context._
+//	import model._
 	
 	def receive = idle
 
@@ -43,7 +51,7 @@ class Worker(modelRunner: AbortableModelRunner) extends Actor with ActorLogging{
 			modelRunner.abort
 			become(waitingForAbortComfirmation(None))
 		case Success(seq: Seq[_]) =>
-			parent ! LocalParameters(seq)
+			parent ! TaggedAndScoredParameterSets(seq.map{Tagged(_)})
 			startWork(currentJob)
 			log.debug("Result sent to parent, started another job")
 		case Failure(exception) => 
