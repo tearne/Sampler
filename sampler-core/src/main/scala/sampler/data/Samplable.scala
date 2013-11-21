@@ -53,7 +53,7 @@ trait Samplable[R, T]{
 trait ToSamplable {
 	implicit class SamplableMap[T](val items: Map[T, Int]) extends Samplable[Map[T,Int], T]{
 		def empty = state[Counts, Counts](Map[T, Int]())
-		def numRemaining = items.values.size
+		def numRemaining = items.values.sum
 			
 		def removeOne(soFar: Counts)(implicit r: Random): State[Counts, Counts] = for(
 			item <- State[Counts, T]{s =>
@@ -84,23 +84,3 @@ trait ToSamplable {
 		) yield soFar.updated(item, soFar.getOrElse(item, 0) + 1)
 	}
 }
-
-//TODO move something like this to a test
-object Test extends App with ToSamplable{
-	implicit val r = Random
-	trait Colour
-	object Red extends Colour { override def toString = "Red"}
-	object Green extends Colour { override def toString = "Green"}
-	object Blue extends Colour { override def toString = "Blue"}
-	
-	val startBag = Map(Red -> 300, Green -> 200, Blue -> 100)
-	println(startBag.draw(3)) 
-	
-	val startSeq = IndexedSeq.fill(300)(Red) ++ IndexedSeq.fill(200)(Green) ++ IndexedSeq.fill(100)(Blue)
-	println({
-		val (a,b) = startSeq.draw(3)
-		(a.groupBy(identity).mapValues(_.size), b)
-	}) 
-}
-
-
