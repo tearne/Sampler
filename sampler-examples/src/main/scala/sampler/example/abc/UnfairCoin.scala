@@ -76,7 +76,7 @@ trait ABCParametersComponent{
 		numParticles = 1000,
 		numGenerations = 10,
 		particleRetries = 100,
-		particleChunkSize = 100
+		particleChunkSize = 300
 	)
 }
 

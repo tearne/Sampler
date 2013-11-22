@@ -135,7 +135,7 @@ trait StateEngineComponent{
 				"Received {} samples, kept {}, accumulated {}: sender:{}", 
 				taggedAndScoredParamSets.size.toString, 
 				weighedAndTagged.size.toString, 
-				inBox.size.toString,
+				newInBox.size.toString,
 				sender
 		)
 		
