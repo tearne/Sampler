@@ -30,14 +30,13 @@ import sampler.cluster.abc.actor.Abort
 import sampler.cluster.abc.actor.Aborted
 import sampler.cluster.abc.actor.Job
 import sampler.cluster.abc.actor.TaggedAndScoredParameterSets
-import sampler.cluster.abc.actor.Tagged
+import sampler.cluster.abc.actor.root.Tagged
 
 class Worker(modelRunner: AbortableModelRunner) 
 		extends Actor 
 		with ActorLogging
 		 {
 	import context._
-//	import model._
 	
 	def receive = idle
 
@@ -56,6 +55,7 @@ class Worker(modelRunner: AbortableModelRunner)
 			log.debug("Result sent to parent, started another job")
 		case Failure(exception) => 
 			log.warning("Model threw exception, but will be run again: {}", exception)
+			exception.printStackTrace()
 			startWork(currentJob)
 		case Aborted => 
 			become(idle)
@@ -86,6 +86,7 @@ class Worker(modelRunner: AbortableModelRunner)
 	def idle(): Receive = {
 		case job: Job =>
 			startWork(job)
+			val size = job.population.size
 			become(working(job))
 		case msg: Aborted => 
 			throw new UnexpectedException("Not expected in idle state: "+msg)

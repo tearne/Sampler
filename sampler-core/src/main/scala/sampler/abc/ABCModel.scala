@@ -32,6 +32,12 @@ case class ABCParameters(
 trait Prior[A] extends Distribution[A]{
 	def density(value: A): Double
 }
+case class Scored[+A](value: A, runScores: Seq[Double])
+case class Weighted[+A](scored: Scored[A], weight: Double){
+	def value = scored.value
+	def runScores = scored.runScores
+	def meanScore = runScores.sum.toDouble / runScores.size
+}
 
 trait ABCModel{
 	type ParameterSet <: ParameterSetBase
@@ -52,10 +58,10 @@ trait ABCModel{
 
 	def modelDistribution(p: ParameterSet): Distribution[Simulated]
 	
-	case class Scored(parameterSet: ParameterSet, runScores: Seq[Double])
-	case class Weighted(scored: Scored, weight: Double){
-		def parameterSet = scored.parameterSet
-		def runScores = scored.runScores
-		def meanScore = runScores.sum.toDouble / runScores.size
-	}
+//	case class Scored(parameterSet: ParameterSet, runScores: Seq[Double])
+//	case class Weighted(scored: Scored, weight: Double){
+//		def parameterSet = scored.parameterSet
+//		def runScores = scored.runScores
+//		def meanScore = runScores.sum.toDouble / runScores.size
+//	}
 }

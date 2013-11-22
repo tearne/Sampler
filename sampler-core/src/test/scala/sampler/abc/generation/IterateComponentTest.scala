@@ -21,7 +21,6 @@ import org.junit.Test
 import org.mockito.Mockito.when
 import org.scalatest.junit.AssertionsForJUnit
 import org.scalatest.mock.MockitoSugar
-
 import sampler.abc.ABCParameters
 import sampler.abc.EncapsulatedPopulation
 import sampler.abc.builder.PopulationBuilder
@@ -29,6 +28,7 @@ import sampler.io.Logging
 import sampler.math.Random
 import sampler.math.Statistics
 import sampler.math.StatisticsComponent
+import sampler.abc.Weighted
 
 class IterateComponentTest extends AssertionsForJUnit with MockitoSugar {
   val anything = 0
@@ -81,7 +81,7 @@ class IterateComponentTest extends AssertionsForJUnit with MockitoSugar {
   	    numGenerations = refinements
   	)
   	
-    val p1 = mock[IntegerModel.Weighted]//new Particle(mock[IntegerModel.Parameters], 1, Double.MaxValue)
+    val p1 = mock[Weighted[IntegerModel.ParameterSet]]
     
   	val pop1 = EncapsulatedPopulation(IntegerModel)(Seq(p1))
   	
@@ -102,8 +102,8 @@ class IterateComponentTest extends AssertionsForJUnit with MockitoSugar {
   	    numGenerations = refinements
   	)
     
-    val p1 = mock[IntegerModel.Weighted]//new Particle(mock[IntegerModel.Parameters], 1, Double.MaxValue)
-  	val p2 = mock[IntegerModel.Weighted]//new Particle(mock[IntegerModel.Parameters], 1, Double.MaxValue)
+    val p1 = mock[Weighted[IntegerModel.ParameterSet]]
+  	val p2 = mock[Weighted[IntegerModel.ParameterSet]]
     
   	val pop1 = EncapsulatedPopulation(IntegerModel)(Seq(p1))
   	val pop2 = EncapsulatedPopulation(IntegerModel)(Seq(p2))

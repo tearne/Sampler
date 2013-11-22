@@ -41,7 +41,7 @@ trait ABCMethod extends InitialiseComponent
 			//TODO MS: Don't like this cast
 			_.asInstanceOf[EncapsulatedPopulation[model.type]]
 			.population.map{
-				_.parameterSet
+				_.value
 			}
 		)
 	}

@@ -20,6 +20,8 @@ package sampler.abc.generation
 import sampler.abc.ABCParameters
 import sampler.abc.EncapsulatedPopulation
 import sampler.abc.ABCModel
+import sampler.abc.Weighted
+import sampler.abc.Scored
 
 protected[abc] trait InitialiseComponent {
 	val initialise: Initialise

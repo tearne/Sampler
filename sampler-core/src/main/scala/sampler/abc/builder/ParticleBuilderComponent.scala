@@ -27,6 +27,8 @@ import sampler.abc.MaxRetryException
 import scala.annotation.tailrec
 import sampler.data.SerialSampler
 import sampler.abc.EncapsulatedPopulation
+import sampler.abc.Weighted
+import sampler.abc.Scored
 
 trait ParticleBuilderComponent{
 	val particleBuilder: ParticleBuilder
@@ -39,22 +41,22 @@ trait ParticleBuilderComponent{
 	 */
 	class ParticleBuilder {
 		def apply(model: ABCModel)(
-				prevPopulation: Seq[model.Weighted],
+				prevPopulation: Seq[Weighted[model.ParameterSet]],
 				numParticles: Int, 
 				tolerance: Double,
 				aborter: Aborter,
 				meta: ABCParameters,
 				random: Random
-		): Seq[model.Weighted] = {
+		): Seq[Weighted[model.ParameterSet]] = {
 			import model._
 			implicit val r = random
 			
-			val weightsTable = prevPopulation.groupBy(_.parameterSet).map{case (k,v) => (k, v.map(_.weight).sum)}.toIndexedSeq
+			val weightsTable = prevPopulation.groupBy(_.value).map{case (k,v) => (k, v.map(_.weight).sum)}.toIndexedSeq
 			val (parameters, weights) = weightsTable.unzip
 			val samplablePopulation = Distribution.fromPartition(parameters, Partition.fromWeights(weights))
 			
 			@tailrec
-			def nextParticle(failures: Int = 0): Weighted = {
+			def nextParticle(failures: Int = 0): Weighted[ParameterSet] = {
 				if(aborter.isAborted) throw new DetectedAbortionException("Abort flag was set")
 				else if(failures >= meta.particleRetries) throw new MaxRetryException(s"Aborted after the maximum of $failures trials")
 				else{
@@ -73,7 +75,7 @@ trait ParticleBuilderComponent{
 						else None
 					}
 					
-					val res: Option[Weighted] = for{
+					val res: Option[Weighted[ParameterSet]] = for{
 						params <- Some(samplablePopulation.sample().perturb()) if prior.density(params) > 0
 						fitScores <- Some(getScores(params))
 						weight <- getWeight(params, fitScores) 
@@ -81,7 +83,7 @@ trait ParticleBuilderComponent{
 					} yield Weighted(Scored(params, fitScores), weight)
 					
 					res match {
-						case Some(p: Weighted) => p
+						case Some(p: Weighted[ParameterSet]) => p
 						case None => 
 							nextParticle(failures + 1)
 					}

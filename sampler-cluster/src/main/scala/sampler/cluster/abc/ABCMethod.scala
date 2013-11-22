@@ -29,22 +29,32 @@ import sampler.abc.ABCParameters
 import com.typesafe.config.ConfigFactory
 import sampler.io.Logging
 import sampler.cluster.abc.actor.Start
+import sampler.cluster.abc.actor.root.state.StateEngineService
+import sampler.math.Statistics
+import akka.pattern.ask
+import akka.actor.ActorSystem
+import java.util.concurrent.TimeUnit
 
-object ABCMethod extends Logging{
+trait ABCMethod extends Logging{
+	val stateEngineService: StateEngineService
+	
+	val terminateAtTargetGeneration: Boolean
+	val particleMemoryGenerations: Int
+	
+	val system: ActorSystem
+	implicit val timeout: Timeout
+	
 	def apply(model: ABCModel, abcParameters: ABCParameters) = {
-		val system = PortFallbackSystemFactory("ABCSystem")
-		
-		val terminateAtTargetGeneration = ConfigFactory.load.getBoolean("sampler.abc.terminate-at-target-generation")
-		
 		val modelRunner = AbortableModelRunner(model)
+		val targetParticleMemory = particleMemoryGenerations * abcParameters.numParticles
+		
 		val abcActor = system.actorOf(
-				Props(new RootActor(model, abcParameters, modelRunner)), 
+				Props(new RootActor(model, abcParameters, modelRunner, stateEngineService)), 
 				"abcrootactor"
 		)
 		
 		import akka.pattern.ask
-		implicit val timeout = Timeout(20.second)
-		val future = (abcActor ? Start).mapTo[Seq[model.ParameterSet]]
+		val future = (abcActor ? Start(stateEngineService.init(model, abcParameters))).mapTo[Seq[model.ParameterSet]]
 		val result = Await.result(future, Duration.Inf)
 		
 		if(terminateAtTargetGeneration){
@@ -54,4 +64,28 @@ object ABCMethod extends Logging{
 		
 		result
 	}
+}
+
+object ABCMethod extends ABCMethod with Logging{
+	val config = ConfigFactory.load
+	val terminateAtTargetGeneration = config.getBoolean("sampler.abc.terminate-at-target-generation")
+	val particleMemoryGenerations = config.getInt("sampler.abc.particle-memory-generations")
+	
+	val stateEngineService =  new StateEngineService{
+		val statistics = Statistics
+		val toleranceCalculator = new ToleranceCalculator{}
+		val weigher = new Weigher{}
+		val numGenerationsMemory = particleMemoryGenerations
+	}
+	
+	val system = PortFallbackSystemFactory("ABCSystem")
+	import collection.JavaConversions._
+	val milliSec: scala.Long = config.getMilliseconds("sampler.abc.system-timeout")
+	implicit val timeout = Timeout(milliSec, TimeUnit.MILLISECONDS)
+	
+	log.info("ABC Method configuration, timeout {}, terminate at target {}, particle memory {}",
+			timeout.toString,
+			terminateAtTargetGeneration.toString,
+			particleMemoryGenerations.toString
+	)
 }

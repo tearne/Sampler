@@ -13,6 +13,7 @@ import sampler.run.Abortable
 import scala.util.Success
 import sampler.abc.MaxRetryException
 import scala.util.Failure
+import sampler.abc.Weighted
 
 class LocalPopulationBuilderTest extends AssertionsForJUnit with MockitoSugar {
 
@@ -46,10 +47,10 @@ class LocalPopulationBuilderTest extends AssertionsForJUnit with MockitoSugar {
     
     import model._
 
-    val p1 = mock[Weighted]//new Particle(model.Parameters(1), 1, Double.MaxValue)
-    val p2 = mock[Weighted]//new Particle(model.Parameters(2), 1, Double.MaxValue)
-    val p3 = mock[Weighted]//new Particle(model.Parameters(3), 1, Double.MaxValue)
-    val p4 = mock[Weighted]//new Particle(model.Parameters(4), 1, Double.MaxValue)
+    val p1 = mock[Weighted[ParameterSet]]
+    val p2 = mock[Weighted[ParameterSet]]
+    val p3 = mock[Weighted[ParameterSet]]
+    val p4 = mock[Weighted[ParameterSet]]
     
     val ePop = EncapsulatedPopulation(model)(Seq(p1, p2))
     val ePop2 = EncapsulatedPopulation(model)(Seq(p3, p4))
@@ -78,8 +79,7 @@ class LocalPopulationBuilderTest extends AssertionsForJUnit with MockitoSugar {
       startTolerance = tolerance
     )
     
-    val p1 = mock[model.Weighted]//
-//    val p1 = new Particle(model.Parameters(1), 1, Double.MaxValue)
+    val p1 = mock[Weighted[model.ParameterSet]]//
     
     val ePop = EncapsulatedPopulation(model)(Seq(p1))
     
@@ -107,8 +107,7 @@ class LocalPopulationBuilderTest extends AssertionsForJUnit with MockitoSugar {
       startTolerance = tolerance
     )
     
-    val p1 = mock[model.Weighted]//
-//    val p1 = new Particle(model.Parameters(1), 1, Double.MaxValue)
+    val p1 = mock[Weighted[model.ParameterSet]]//
     
     val ePop = EncapsulatedPopulation(model)(Seq(p1))
     

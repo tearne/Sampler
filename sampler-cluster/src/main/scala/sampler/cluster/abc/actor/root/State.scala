@@ -15,20 +15,17 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.actor
-
-import sampler.abc.ABCParameters
-import sampler.abc.ABCModel
+package sampler.cluster.abc.actor.root
+import akka.actor.ActorRef
+import scala.collection.immutable.SortedSet
 import sampler.abc.Weighted
-import sampler.cluster.abc.actor.root.EncapsulatedState
-import sampler.cluster.abc.actor.root.Tagged
 
-case class Start(eState: EncapsulatedState)
-case class Result(params: Seq[ABCModel#ParameterSet])
-
-case class Job(population: Seq[Weighted[_]], abcParams: ABCParameters)
-
-case class TaggedAndScoredParameterSets[T](seq: Seq[Tagged[T]])
-
-case class Abort()
-case class Aborted()
+case class State[P](
+	client: ActorRef,
+	inBox: Set[Tagged[Weighted[P]]],
+	idsObserved: SortedSet[Long],
+	currentTolerance: Double,
+	currentIteration: Int,
+	weightsTable: Map[P, Double],
+	weightedParameterSets: Seq[Weighted[P]]
+)

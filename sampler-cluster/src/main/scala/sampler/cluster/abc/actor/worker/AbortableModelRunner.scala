@@ -29,6 +29,8 @@ import sampler.math.Partition
 import sampler.math.Random
 import sampler.run.DetectedAbortionException
 import sampler.cluster.abc.actor.Job
+import sampler.abc.Scored
+import sampler.abc.Weighted
 
 trait AbortableModelRunner extends Logging{
 	val model: ABCModel
@@ -41,14 +43,14 @@ trait AbortableModelRunner extends Logging{
 	def isAborted = aborted.get
 	def reset() { aborted.set(false) }
 	
-	def run(job: Job): Try[Seq[Scored]] = Try{
-		val prevPopulation = job.population.asInstanceOf[Seq[Weighted]]
-		val weightsTable = prevPopulation.groupBy(_.parameterSet).map{case (k,v) => (k, v.map(_.weight).sum)}.toIndexedSeq
+	def run(job: Job): Try[Seq[Scored[ParameterSet]]] = Try{
+		val prevPopulation = job.population.asInstanceOf[Seq[Weighted[ParameterSet]]]
+		val weightsTable = prevPopulation.groupBy(_.value).map{case (k,v) => (k, v.map(_.weight).sum)}.toIndexedSeq
 		val (parameterSets, weights) = weightsTable.unzip
 		val samplablePopulation = Distribution.fromPartition(parameterSets, Partition.fromWeights(weights))
 		
 		@tailrec
-		def getScoredParameter(failures: Int = 0): Scored = {
+		def getScoredParameter(failures: Int = 0): Scored[ParameterSet] = {
 			if(isAborted) throw new DetectedAbortionException("Abort flag was set")
 			else if(failures >= job.abcParams.particleRetries) throw new MaxRetryException(s"Aborted after the maximum of $failures trials")
 			else{
@@ -58,7 +60,7 @@ trait AbortableModelRunner extends Logging{
 					SerialSampler(modelWithMetric)(_.size == job.abcParams.numReplicates)
 				}
 				
-				val res: Option[Scored] = for{
+				val res: Option[Scored[ParameterSet]] = for{
 					params <- Some(samplablePopulation.sample().perturb()) if prior.density(params) > 0
 					fitScores <- Some(getScores(params))
 				} yield Scored(params, fitScores)

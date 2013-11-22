@@ -25,10 +25,12 @@ import org.mockito.Mockito._
 import sampler.data.Distribution
 import sampler.abc.Prior
 import sampler.abc.ABCModel
+import sampler.abc.Weighted
+import sampler.abc.Scored
 
 class InitialiseComponentTest extends AssertionsForJUnit with MockitoSugar{
   
-  object VacuousModel1 extends ABCModel {
+  object VacuousModel extends ABCModel {
     case class ParameterSet() extends ParameterSetBase with Serializable {
       def perturb() = this
       def perturbDensity(that: ParameterSet) = if(that == this) 1.0 else 0.0
@@ -70,7 +72,7 @@ class InitialiseComponentTest extends AssertionsForJUnit with MockitoSugar{
   		val initialise = new Initialise{}
   	}
   	
-  	val model = VacuousModel1
+  	val model = VacuousModel
   	import model._
   	
     val ePop0 = instance.initialise(model, abcParams)

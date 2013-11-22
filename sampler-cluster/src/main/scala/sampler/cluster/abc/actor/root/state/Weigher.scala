@@ -15,12 +15,14 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.actor.root
+package sampler.cluster.abc.actor.root.state
 
 import sampler.abc.ABCModel
 import sampler.io.Logging
 import sampler.math.StatisticsComponent
 import sampler.Implicits._
+import sampler.abc.Scored
+import sampler.abc.Weighted
 
 trait WeigherComponent {
 	self: StatisticsComponent =>
@@ -29,16 +31,16 @@ trait WeigherComponent {
 	
 	trait Weigher extends Logging{
 		def filterAndWeighScoredParameterSet(model: ABCModel)(
-				newScoredParam: model.Scored,
+				newScoredParam: Scored[model.ParameterSet],
 				previousParamsWithWeights: Map[model.ParameterSet, Double],
 				tolerance: Double
-				): Option[model.Weighted] = {
+				): Option[Weighted[model.ParameterSet]] = {
 			import model._
-			def getWeight(scored: Scored): Option[Double] = {
+			def getWeight(scored: Scored[ParameterSet]): Option[Double] = {
 				val fHat = scored.runScores.filter(_ < tolerance).size.toDouble
-						val numerator = fHat * prior.density(scored.parameterSet)
+						val numerator = fHat * prior.density(scored.value)
 						val denominator = previousParamsWithWeights.map{case (params0, weight) => 
-						weight * params0.perturbDensity(scored.parameterSet)
+						weight * params0.perturbDensity(scored.value)
 				}.sum
 				if(numerator > 0 && denominator > 0) Some(numerator / denominator)
 				else None
@@ -47,9 +49,9 @@ trait WeigherComponent {
 			getWeight(newScoredParam).map{wt => Weighted(newScoredParam, wt)}
 		}
 		
-		def consolidateToWeightsTable(model: ABCModel)(population: Seq[model.Weighted]): Map[model.ParameterSet, Double] = {
+		def consolidateToWeightsTable(model: ABCModel)(population: Seq[Weighted[model.ParameterSet]]): Map[model.ParameterSet, Double] = {
 			population
-			.groupBy(_.parameterSet)
+			.groupBy(_.value)
 			.map{case (k,v) => (k, v.map(_.weight).sum)}
 		}
 	}

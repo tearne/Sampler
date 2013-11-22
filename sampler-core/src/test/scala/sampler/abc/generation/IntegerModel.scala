@@ -43,4 +43,4 @@ object IntegerModel extends ABCModel {
       def density(p: ParameterSet) = 1.0
       def sample() = ParameterSet(1)
     }
-  }
+}

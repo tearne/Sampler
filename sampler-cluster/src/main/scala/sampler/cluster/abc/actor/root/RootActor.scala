@@ -16,50 +16,45 @@
  */
 
 package sampler.cluster.abc.actor.root
+
+import scala.concurrent.duration._
 import scala.concurrent.duration.DurationInt
+import com.typesafe.config.ConfigFactory
 import akka.actor.Actor
 import akka.actor.ActorLogging
+import akka.actor.Props
 import akka.actor.actorRef2Scala
-import sampler.abc.ABCParameters
+import akka.cluster.Cluster
 import sampler.abc.ABCModel
+import sampler.abc.ABCParameters
+import sampler.abc.Scored
+import sampler.cluster.abc.actor.Abort
+import sampler.cluster.abc.actor.Broadcaster
+import sampler.cluster.abc.actor.Job
+import sampler.cluster.abc.actor.Start
+import sampler.cluster.abc.actor.root.state.StateEngineService
+import sampler.cluster.abc.actor.TaggedAndScoredParameterSets
 import sampler.cluster.abc.actor.worker.AbortableModelRunner
+import sampler.cluster.abc.actor.worker.Worker
 import sampler.math.Random
 import sampler.math.Statistics
 import sampler.math.StatisticsComponent
-import com.typesafe.config.ConfigFactory
-import scala.concurrent.duration._
-import akka.cluster.Cluster
-import akka.actor.Props
-import sampler.cluster.abc.actor.worker.Worker
-import sampler.cluster.abc.actor.Abort
-import sampler.cluster.abc.actor.Broadcaster
-import sampler.cluster.abc.actor.Start
-import sampler.cluster.abc.actor.TaggedAndScoredParameterSets
-import sampler.cluster.abc.actor.Job
+import sampler.abc.Weighted
 
 class RootActor(
 		val model0: ABCModel, 
 		abcParams: ABCParameters, 
-		modelRunner: AbortableModelRunner
+		modelRunner: AbortableModelRunner,
+		stateEngine: StateEngineService
 ) 
 		extends Actor 
 		with ActorLogging
-		with RootStateComponent
-		with WeigherComponent
-		with ToleranceCalculatorComponent
-		with StatisticsComponent
-		with ModelComponent
 {
 	val model = model0
-	val weigher = new Weigher{}
-	val toleranceCalculator = new ToleranceCalculator{}
-	val rootStateInitialiser = new RootStateInitialiser{}
 	val statistics = Statistics
 	
 	import model._
 	import context._
-	
-	val myRemoteAddress = Cluster(system).selfAddress
 	
 	val config = ConfigFactory.load
 	val terminateAtTargetGeneration = config.getBoolean("sampler.abc.terminate-at-target-generation")
@@ -69,59 +64,68 @@ class RootActor(
 	val broadcaster = context.actorOf(Props[Broadcaster], "broadcaster")
 	val worker = context.actorOf(Props(new Worker(modelRunner)), "worker")
 	
-	context.system.scheduler.schedule(1.second, mixingMessageInterval, self, Mix)
 	case class Mix()
+	context.system.scheduler.schedule(5.second, mixingMessageInterval, self, Mix)
 
 	implicit val r = Random
 	
 	def receive = idle
 	
 	def idle: Receive = {
-		case Start =>
+		case Start(eState) =>
 			val client = sender
-			val state = rootStateInitialiser(abcParams, client)
-			worker ! Job(state.weightedParameterSets, abcParams)
+			val population = eState.state.weightsTable.keysIterator
+				.map{value => Weighted(Scored(value, Nil), 1.0)}
+				.toSeq
+			worker ! Job(population, abcParams)
 			
 			val sndr = sender
-			become(busy(state))
+			
+			become(busy(stateEngine.setClient(eState, sndr)))
 			
 			log.info("Inisialised, starting first generation", worker)
+		case msg => log.warning(msg.toString)
 	}
 	
-	def busy(state: RootState): Receive = {
-		case msg: TaggedAndScoredParameterSets[Scored] =>
+	
+	def busy(eState: EncapsulatedState): Receive = {
+		case msg: TaggedAndScoredParameterSets[Scored[ParameterSet]] =>
 			val sndr = sender
-			val newState = state
-				.add(msg.seq, sndr)
-				.pruneObservedIds(abcParams.numParticles)
-			become(busy(newState))
-			checkIfDone(newState)
+
+			//TODO can remove the cast somehow?
+			val castSeq = msg.seq.asInstanceOf[Seq[Tagged[Scored[eState.model.ParameterSet]]]]
+			
+			val newEState = stateEngine.add(eState)(abcParams, castSeq, sndr)
+			become(busy(newEState))
+			checkIfDone(newEState)
 			
 		case Mix =>
-			state.getMixPayload.foreach{message =>
+			stateEngine.getMixPayload(eState).foreach{message =>
 				broadcaster ! message
 			}
+			case msg => log.warning(msg.toString)
 	}
 	
-	def checkIfDone(state: RootState) {
-		import state._
-		if(numberAccumulated >= abcParams.numParticles){
-			log.info("Generation {}/{} complete", state.currentIteration, abcParams.numGenerations)
-			if(state.currentIteration == abcParams.numGenerations){
-				client ! weightedParameterSets.map(_.parameterSet).take(abcParams.numParticles)
+	def checkIfDone(eState: EncapsulatedState) {
+		if(stateEngine.numberAccumulated(eState) >= abcParams.numParticles){
+			import eState.state._
+			log.info("Generation {}/{} complete", currentIteration, abcParams.numGenerations)
+			if(currentIteration == abcParams.numGenerations){
+				val result: Seq[eState.model.ParameterSet] = weightedParameterSets.map(_.value).take(abcParams.numParticles) 
+				client ! result
 				log.info("Number of required generations completed and reported to requestor")
 				if(terminateAtTargetGeneration) worker ! Abort
-				else startNextRun(state)
+				else startNextRun(eState)
 			} else{
-				startNextRun(state)
+				startNextRun(eState)
 			}
 		}
 	}
 		
-	def startNextRun(state: RootState){
-		val newState = state.flushGeneration(abcParams.numParticles)
-		become(busy(newState))
+	def startNextRun(eState: EncapsulatedState){
+		val newEState = stateEngine.flushGeneration(eState, abcParams.numParticles)
+		become(busy(newEState))
 		
-		worker ! Job(newState.weightedParameterSets, abcParams)
+		worker ! Job(newEState.state.weightedParameterSets, abcParams)
 	}
 }

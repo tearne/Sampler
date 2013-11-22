@@ -13,6 +13,7 @@ import sampler.abc.EncapsulatedPopulation
 import org.mockito.Mockito.when
 import org.mockito.Matchers._
 import sampler.run.Aborter
+import sampler.abc.Weighted
 
 class JobRBuilderComponentTest extends AssertionsForJUnit with MockitoSugar {
 
@@ -38,9 +39,9 @@ class JobRBuilderComponentTest extends AssertionsForJUnit with MockitoSugar {
     )
     
     import model._
-    val p1 = mock[Weighted]//new Particle(mock[model.Parameters], 1, Double.MaxValue)
-    val p2 = mock[Weighted]//new Particle(mock[model.Parameters], 1, Double.MaxValue)
-    val p3 = mock[Weighted]//new Particle(mock[model.Parameters], 1, Double.MaxValue)
+    val p1 = mock[Weighted[IntegerModel.ParameterSet]]
+    val p2 = mock[Weighted[IntegerModel.ParameterSet]]
+    val p3 = mock[Weighted[IntegerModel.ParameterSet]]
     
     val ePop = EncapsulatedPopulation(IntegerModel)(Seq(p1,p2,p3))
     
