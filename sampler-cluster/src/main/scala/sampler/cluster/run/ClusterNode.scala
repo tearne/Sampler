@@ -26,12 +26,11 @@ import scala.util.Try
 import scala.util.{Success, Failure}
 import sampler.io.Logging
 import sampler.io.Logging
-import sampler.cluster.actor.HostnameSetup
 import sampler.cluster.run.slave.Executor
 import sampler.cluster.actor.PortFallbackSystemFactory
 import sampler.cluster.run.slave.Node
 
-class ClusterNode(executorFactory: => Executor) extends HostnameSetup with Logging{
+class ClusterNode(executorFactory: => Executor) extends Logging{
 	val system = PortFallbackSystemFactory("ClusterSystem")
 	val rootNodeActor = system.actorOf(Props(new Node(executorFactory)), name="workerroot")
 	log.info("Started "+rootNodeActor)
