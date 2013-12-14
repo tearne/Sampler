@@ -97,6 +97,7 @@ class Broadcaster extends Actor with ActorLogging{
   		case ActorIdentity(None, Some(actorRef)) =>
   			val remoteNode = actorRef
   			nodes += remoteNode
+  			reportingActor ! NumWorkers(nodes.size)
   			log.info("Handshake completed with node: {}",remoteNode)
   			log.info("node set = {}", nodes)
   		case ActorIdentity(_, Some(who)) =>
@@ -133,15 +134,16 @@ class Broadcaster extends Actor with ActorLogging{
 	
 	case class NumWorkers(n: Int)
 	val reportingActor = context.actorOf(Props(new Actor with ActorLogging{
+		
 		val Tick = "timeToReport"
 		import context.dispatcher
 		import scala.concurrent.duration._
 		
 		var numWorkers: Option[Int] = None
-		context.system.scheduler.schedule(1.second, 10.second, self, Tick)
+		context.system.scheduler.schedule(1.second, 1.second, self, Tick)
 		def receive = {
 			case Tick => 
-				numWorkers.foreach(n => log.info("{} workers in the cluster", n))
+				numWorkers.foreach(n => log.info("{} other workers in the cluster", n))
 				numWorkers = None
 			case NumWorkers(n) => numWorkers = Some(n)
 		}
