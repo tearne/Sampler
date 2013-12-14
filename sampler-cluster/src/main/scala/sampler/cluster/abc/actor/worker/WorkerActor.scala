@@ -31,6 +31,9 @@ import sampler.cluster.abc.actor.Aborted
 import sampler.cluster.abc.actor.Job
 import sampler.cluster.abc.actor.TaggedAndScoredParameterSets
 import sampler.cluster.abc.actor.root.Tagged
+import scala.collection.parallel.CompositeThrowable
+import scala.concurrent.duration._
+import scala.concurrent.duration.DurationInt
 
 class Worker(modelRunner: AbortableModelRunner) 
 		extends Actor 
@@ -54,8 +57,7 @@ class Worker(modelRunner: AbortableModelRunner)
 			startWork(currentJob)
 			log.debug("Result sent to parent, started another job")
 		case Failure(exception) => 
-			log.warning("Model threw exception, but will be run again: {}", exception)
-			exception.printStackTrace()
+			log.error("Model threw exception, but will be run again: {}", exception)
 			startWork(currentJob)
 		case Aborted => 
 			become(idle)
@@ -65,22 +67,25 @@ class Worker(modelRunner: AbortableModelRunner)
 	
 	def waitingForAbortComfirmation(nextJob: Option[Job]): Receive = {
 		case newJob: Job =>
-			log.warning("Overiding previous work request (still waiting for last job to abort)")
+			log.error("Ignoring previous work request (still waiting for last job to abort)")
 			become(waitingForAbortComfirmation(Some(newJob)))
 		case out: Try[_] => 
-			log.debug("Ignoring result, waiting for abort comfirmation")
+			log.warning("Recieved result {} while waiting for abort comfirmation.  ASsuming finished now", out)
+			self ! Aborted
 		case Aborted => 
-			log.debug("Aborted signal recieved")
+			log.debug("Aborted confirmation recieved")
 			modelRunner.reset
 			nextJob match{
 				case Some(job) =>
-					log.debug("Moving to next job")
+					log.info("Moving to next job")
 					become(working(job))
 					startWork(job)
 				case None =>
-					log.debug("Becoming idle")
+					log.info("Becoming idle")
 					become(idle)
 			}
+		case msg => 
+			log.error("Unexpected message when waiting for abort signal: {}", msg)
 	}
 	
 	def idle(): Receive = {
@@ -99,6 +104,8 @@ class Worker(modelRunner: AbortableModelRunner)
 			val result = modelRunner.run(job) 
 			result match{
 				case Failure(e: DetectedAbortionException) =>
+					self ! Aborted
+				case Failure(e: CompositeThrowable) if e.throwables.exists(_.isInstanceOf[DetectedAbortionException]) =>
 					self ! Aborted
 				case anythingElse =>
 					me ! anythingElse
