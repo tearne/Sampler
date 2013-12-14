@@ -19,7 +19,7 @@ package sampler.cluster.abc.actor.root
 
 import sampler.abc.ABCModel
 
-trait EncapsulatedState{
+trait EncapsulatedState extends Serializable {
 	type M <: ABCModel
 	val model: M
 	import model._

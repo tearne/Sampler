@@ -95,12 +95,12 @@ class RootActor(
 			//TODO can remove the cast somehow?
 			val castSeq = msg.seq.asInstanceOf[Seq[Tagged[Scored[eState.model.ParameterSet]]]]
 			
-			val newEState = stateEngine.add(eState)(abcParams, castSeq, sndr)
+			val newEState = stateEngine.add(eState, abcParams, sndr)(castSeq)
 			become(busy(newEState))
 			checkIfDone(newEState)
 			
 		case Mix =>
-			stateEngine.getMixPayload(eState).foreach{message =>
+			stateEngine.getMixPayload(eState, abcParams).foreach{message =>
 				broadcaster ! message
 			}
 			case msg => log.warning(msg.toString)

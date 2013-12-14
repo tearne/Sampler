@@ -98,21 +98,25 @@ trait StateEngineComponent{
 		EncapsulatedState(eState.model)(newState)
 	}
 	
-	def getMixPayload(eState: EncapsulatedState): Option[TaggedAndScoredParameterSets[Scored[eState.model.ParameterSet]]] = {
+	def getMixPayload(eState: EncapsulatedState, abcParameters: ABCParameters): Option[TaggedAndScoredParameterSets[Scored[eState.model.ParameterSet]]] = {
 		import eState.state._
 		if(inBox.size > 0)
-			Some(TaggedAndScoredParameterSets(inBox.toSeq.map{case Tagged(weighted, origin) =>
+			Some(TaggedAndScoredParameterSets(inBox
+				.toSeq
+				.map{case Tagged(weighted, origin) =>
 					Tagged(weighted.scored, origin)
-			}))
+				}
+				.takeRight(abcParameters.particleChunkSize)
+			))
 		else None
 	}
 	
 	def add(
-			eState: EncapsulatedState
-	)(
+			eState: EncapsulatedState,
 			abcParameters: ABCParameters,
-			taggedAndScoredParamSets: Seq[Tagged[Scored[eState.model.ParameterSet]]], 
 			sender: ActorRef
+	)(
+			taggedAndScoredParamSets: Seq[Tagged[Scored[eState.model.ParameterSet]]]
 	): EncapsulatedState = {
 		import eState.state._
 		type T = Tagged[Weighted[eState.model.ParameterSet]]
