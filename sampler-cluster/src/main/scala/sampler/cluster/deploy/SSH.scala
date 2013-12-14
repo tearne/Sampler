@@ -20,15 +20,18 @@ package sampler.cluster.deploy
 import scala.sys.process.{Process, ProcessBuilder}
 import sampler.cluster.deploy.aws.AWS
 import java.nio.file.Path
+import sampler.io.Logging
+import scala.language.postfixOps
 
-class SSHCommand(keyFile: Option[Path] = None) {
+class SSH(keyFile: Option[Path] = None) extends Logging{
 	private val keyFileArgs = keyFile.map(f => List("-i", f.toString)).getOrElse(Nil)
 	private val noHostFileArgs = List(
 			"-o", "StrictHostKeyChecking=no",
-			"-o","UserKnownHostsFile=/dev/null"
+			"-o","UserKnownHostsFile=/dev/null",
+			"-o", "LogLevel=quiet"
 	)
 	
-	def forground(username:String, host:String, command: String): ProcessBuilder = {
+	def forground(username: String, host: String, command: String) {
 		val args = List("-t","-t") ::: 
 			keyFileArgs :::
 			noHostFileArgs :::
@@ -37,10 +40,10 @@ class SSHCommand(keyFile: Option[Path] = None) {
 				command
 			)
 		
-		Process("ssh", args)
+		Process("ssh", args).!!
 	}
 	
-	def background(username:String, host:String, command: String): ProcessBuilder = {
+	def background(username: String, host: String, command: String) {
 		val args = List("-f","-n") ::: 
 			keyFileArgs ::: 
 			noHostFileArgs :::
@@ -49,9 +52,18 @@ class SSHCommand(keyFile: Option[Path] = None) {
 				"""sh -c 'nohup """+command+""" > /dev/null 2>&1 &'"""
 			)
 		
-		Process("ssh", args)
+		println(args.map(_+" ").mkString)
+		println(Process("ssh", args).!!)
 	}
-}
-object SSHCommand{
-	def apply(sshKeyFile: Path) = new SSHCommand(Some(sshKeyFile))
+	
+	def scp(username: String, host: String, file: Path){
+		val args = keyFileArgs ::: 
+			noHostFileArgs ::: 
+			List(s"$file", s"$username@$host:~")
+		
+		println(args.map(_ +' ').mkString)
+		val p = Process("scp", args)
+		println(p.toString)
+		p.!!
+	}
 }
