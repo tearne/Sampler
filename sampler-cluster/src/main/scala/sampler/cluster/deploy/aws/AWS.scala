@@ -15,7 +15,7 @@ object Test extends App{
 }
 
 object AWS{
-	private val keyPath = Paths.get("/mnt/hgfs/EC2/AWS-Key.properties")
+	private val keyPath = Paths.get("/mnt/hgfs/share/AWS/AWS-Key.properties")
 	private val keyProps = new PropertiesCredentials(Files.newInputStream(keyPath))
 	
 	val ec2 = new AmazonEC2Client(keyProps);
