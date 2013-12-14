@@ -38,6 +38,11 @@ trait AbortableModelRunner extends Logging{
 	implicit val random: Random
 	
 	val aborted: AtomicBoolean = new AtomicBoolean(false)
+	
+	val parallelism: Int
+	lazy val parallelTaskSupport = 
+		if(parallelism == 0) None
+		else Some(new scala.collection.parallel.ForkJoinTaskSupport(new scala.concurrent.forkjoin.ForkJoinPool(parallelism)))
 
 	def abort() { aborted.set(true) }
 	def isAborted = aborted.get
@@ -72,14 +77,17 @@ trait AbortableModelRunner extends Logging{
 			}
 		}
 		
-		(1 to job.abcParams.particleChunkSize).map(i => getScoredParameter()) 
+		val pc = (1 to job.abcParams.particleChunkSize).par
+		parallelTaskSupport.foreach{pc.tasksupport = _}
+		pc.map(i => getScoredParameter()).seq
 	}
 }
 
 object AbortableModelRunner{
-	def apply(model0: ABCModel) = new AbortableModelRunner{
+	def apply(model0: ABCModel, parallelism0: Int) = new AbortableModelRunner{
 		val model = model0
 		val random = Random
+		val parallelism = parallelism0
 	}
 }
 

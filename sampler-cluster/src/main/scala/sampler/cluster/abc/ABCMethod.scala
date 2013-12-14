@@ -40,12 +40,13 @@ trait ABCMethod extends Logging{
 	
 	val terminateAtTargetGeneration: Boolean
 	val particleMemoryGenerations: Int
+	val parallelism: Int
 	
 	val system: ActorSystem
 	implicit val timeout: Timeout
 	
 	def apply(model: ABCModel, abcParameters: ABCParameters) = {
-		val modelRunner = AbortableModelRunner(model)
+		val modelRunner = AbortableModelRunner(model, parallelism)
 		val targetParticleMemory = particleMemoryGenerations * abcParameters.numParticles
 		
 		val abcActor = system.actorOf(
@@ -70,6 +71,7 @@ object ABCMethod extends ABCMethod with Logging{
 	val config = ConfigFactory.load
 	val terminateAtTargetGeneration = config.getBoolean("sampler.abc.terminate-at-target-generation")
 	val particleMemoryGenerations = config.getInt("sampler.abc.particle-memory-generations")
+	val parallelism = config.getInt("sampler.abc.actor-task-parallelism")
 	
 	val stateEngineService =  new StateEngineService{
 		val statistics = Statistics
@@ -83,9 +85,10 @@ object ABCMethod extends ABCMethod with Logging{
 	val milliSec: scala.Long = config.getMilliseconds("sampler.abc.system-timeout")
 	implicit val timeout = Timeout(milliSec, TimeUnit.MILLISECONDS)
 	
-	log.info("ABC Method configuration, timeout {}, terminate at target {}, particle memory {}",
+	log.info("ABC Method configuration, timeout {}, terminate at target {}, particle memory {}, actor parellelism {}",
 			timeout.toString,
 			terminateAtTargetGeneration.toString,
-			particleMemoryGenerations.toString
+			particleMemoryGenerations.toString,
+			parallelism.toString
 	)
 }
