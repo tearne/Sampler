@@ -13,7 +13,7 @@ object SamplerBuild extends Build{
 		id = "sampler",
 		base = file("."),
 		settings = buildSettings,
-		aggregate = Seq(core, examples)
+		aggregate = Seq(core, examples, cluster)
 	) 
 	
 	lazy val core = Project(
