@@ -56,16 +56,11 @@ class RootActor(
 	import model._
 	import context._
 	
-	val config = ConfigFactory.load
-	val terminateAtTargetGeneration = config.getBoolean("sampler.abc.terminate-at-target-generation")
-	val mixingMessageInterval = Duration(config.getMilliseconds("sampler.abc.mixing.rate"), MILLISECONDS)
-	log.info("Mixing rate: {}", mixingMessageInterval)
-	
-	val broadcaster = context.actorOf(Props[Broadcaster], "broadcaster")
-	val worker = context.actorOf(Props(new Worker(modelRunner)), "worker")
+	val broadcaster = context.actorOf(Props(classOf[Broadcaster], abcParams), "broadcaster")
+	val worker = context.actorOf(Props(classOf[Worker],modelRunner), "worker")
 	
 	case class Mix()
-	context.system.scheduler.schedule(5.second, mixingMessageInterval, self, Mix)
+	context.system.scheduler.schedule(5.second, abcParams.cluster.mixRateMS.millisecond, self, Mix)
 
 	implicit val r = Random
 	
@@ -116,7 +111,7 @@ class RootActor(
 				val result: Seq[eState.model.ParameterSet] = weightedParameterSets.map(_.value).take(abcParams.job.numParticles) 
 				client ! result
 				log.info("Number of required generations completed and reported to requestor")
-				if(terminateAtTargetGeneration) worker ! Abort
+				if(abcParams.cluster.terminateAtTargetGenerations) worker ! Abort
 				else startNextRun(eState)
 			} else{
 				startNextRun(eState)

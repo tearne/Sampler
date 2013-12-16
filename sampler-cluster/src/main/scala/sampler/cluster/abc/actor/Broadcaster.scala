@@ -38,8 +38,9 @@ import com.typesafe.config.ConfigFactory
 import scala.concurrent.duration._
 import akka.actor.ActorSelection.toScala
 import akka.cluster.ClusterEvent.ClusterDomainEvent
+import sampler.cluster.abc.parameters.ABCParameters
 
-class Broadcaster extends Actor with ActorLogging{
+class Broadcaster(abcParams: ABCParameters) extends Actor with ActorLogging{
 	val cluster = Cluster(context.system)
 	implicit val r = Random
 	
@@ -56,8 +57,7 @@ class Broadcaster extends Actor with ActorLogging{
 	val selfAddress = cluster.selfAddress
 
 	val config = ConfigFactory.load
-	val testTimeout = Duration(config.getMilliseconds("sampler.abc.mixing.response-threshold"), MILLISECONDS)
-	log.info("Pre-mixing test timeout: {}", testTimeout)
+	val testTimeout = Duration(abcParams.cluster.mixRateMS, MILLISECONDS)
 	
 	case class CheckPreMixingTests()
 	case class PreMixingTest(msg: TaggedAndScoredParameterSets[_], when: Long  = System.currentTimeMillis()){

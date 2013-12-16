@@ -42,7 +42,18 @@ trait ABCMethod extends Logging{
 	def apply(model: ABCModel, params: ABCParameters) = {
 		implicit val timeout = Timeout(params.cluster.futuresTimeoutMS, TimeUnit.MILLISECONDS)
 		
-		log.info("ABC configuration: {}",params)
+		log.info("Num generations: {}",params.job.numGenerations)
+		log.info("Num particles: {}",params.job.numParticles)
+		log.info("Num replicates: {}",params.job.numReplicates)
+		log.info("Max particle retrys: {}",params.algorithm.maxParticleRetries)
+		log.info("Particle chunk size: {}",params.algorithm.particleChunkSize)
+		log.info("Mix rate {} MS",params.cluster.mixRateMS)
+		log.info("Mix payload: {}",params.cluster.mixPayloadSize)
+		log.info("Mix response threshold {} MS",params.cluster.mixResponseLimitMS)
+		log.info("Futures timeout {} MS",params.cluster.futuresTimeoutMS)
+		log.info("Node parallelism: {}",params.cluster.parallelism)
+		log.info("Particle memory generations: {}",params.cluster.particleMemoryGenerations)
+		log.info("Ternimate at target generations: {}",params.cluster.terminateAtTargetGenerations)
 		
 		val modelRunner = AbortableModelRunner(model, params.cluster.parallelism)
 		val targetParticleMemory = params.cluster.particleMemoryGenerations * params.job.numParticles

@@ -62,7 +62,7 @@ class LocalPopulationBuilderTest extends AssertionsForJUnit with MockitoSugar {
     
     val result = instance.run(previousEPop, abcParams, tolerance, random)
     
-    assert(result.get.population == newEPop.population)	// Have to use population as Encapsulation happens within class
+    assert(result.get.population == newEPop.population)
   }
   
   @Test def returnsNoneIfOnlyBadRetryException {

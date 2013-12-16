@@ -5,5 +5,5 @@ java \
 -Dakka.cluster.seed-nodes.0=akka.tcp://ABCSystem@127.0.0.1:2552 \
 -Dconfig.file=application.conf \
 -Dlogback.configurationFile=logback.xml \
--classpath "*.jar" \
+-classpath "lib/*" \
 sampler.example.abc.ClusteredUnfairCoin

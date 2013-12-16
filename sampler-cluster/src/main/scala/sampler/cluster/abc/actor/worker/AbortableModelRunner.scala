@@ -62,7 +62,6 @@ trait AbortableModelRunner extends Logging{
 			else{
 				def getScores(params: ParameterSet): IndexedSeq[Double] = {
 					val modelWithMetric = modelDistribution(params).map(_.distanceToObserved)
-					//TODO in parallel?
 					SerialSampler(modelWithMetric)(_.size == job.abcParams.job.numReplicates)
 				}
 				
