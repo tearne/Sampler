@@ -23,6 +23,9 @@ import sampler.io.Logging
 import sampler.abc.generation._
 import sampler.abc.builder.PopulationBuilder
 import sampler.math.Statistics
+import sampler.abc.parameters.JobParameters
+import sampler.abc.parameters.AlgorithmParameters
+import sampler.abc.parameters.ABCParameters
 
 trait ABCMethod extends InitialiseComponent
 		with IterateComponent
@@ -31,12 +34,12 @@ trait ABCMethod extends InitialiseComponent
 	
 	def apply[M <: ABCModel](
 			model: M,
-			abcParams: ABCParameters, 
+			params: ABCParameters,
 			populationBuilder: PopulationBuilder,
 			random: Random
 	): Option[Seq[model.ParameterSet]] = {
-		val ePop0 = initialise(model, abcParams)
-		val ePopFinal = iterate(ePop0, abcParams, populationBuilder, random)
+		val ePop0 = initialise(model, params.job)
+		val ePopFinal = iterate(ePop0, params, populationBuilder, random)
 		ePopFinal.map(
 			//TODO MS: Don't like this cast
 			_.asInstanceOf[EncapsulatedPopulation[model.type]]

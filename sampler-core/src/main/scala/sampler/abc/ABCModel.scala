@@ -20,15 +20,6 @@ package sampler.abc
 import sampler.math.{ Random, StatisticsComponent }
 import sampler.data.Distribution
 
-case class ABCParameters(
-		numReplicates: Int, 
-		numParticles: Int, 
-		startTolerance: Double = Double.MaxValue, 
-		numGenerations: Int, 
-		particleRetries: Int = 100, 
-		particleChunkSize: Int
-)
-
 trait Prior[A] extends Distribution[A]{
 	def density(value: A): Double
 }

@@ -15,20 +15,23 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.actor
+package sampler.cluster.abc.parameters
 
-import sampler.abc.ABCModel
-import sampler.abc.Weighted
-import sampler.cluster.abc.actor.root.EncapsulatedState
-import sampler.cluster.abc.actor.root.Tagged
-import sampler.cluster.abc.parameters.ABCParameters
+import sampler.abc.parameters.AlgorithmParameters
+import sampler.abc.parameters.JobParameters
+import com.typesafe.config.Config
 
-case class Start(eState: EncapsulatedState)
-case class Result(params: Seq[ABCModel#ParameterSet])
+case class ABCParameters(
+		job: JobParameters,
+		algorithm: AlgorithmParameters,
+		cluster: ClusterParameters
+)
 
-case class Job(population: Seq[Weighted[_]], abcParams: ABCParameters)
-
-case class TaggedAndScoredParameterSets[T](seq: Seq[Tagged[T]])
-
-case class Abort()
-case class Aborted()
+object ABCParameters{
+	//TODO test
+	def fromConfig(c: Config) = ABCParameters(
+		JobParameters.fromConfig(c),
+		AlgorithmParameters.fromConfig(c),
+		ClusterParameters.fromConfig(c)
+	)
+}

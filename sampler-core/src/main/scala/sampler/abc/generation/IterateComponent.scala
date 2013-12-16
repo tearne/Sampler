@@ -25,8 +25,10 @@ import sampler.abc.ABCModel
 import sampler.abc.EncapsulatedPopulation
 import sampler.Implicits._
 import sampler.math.Probability
-import sampler.abc.ABCParameters
+import sampler.abc.parameters.JobParameters
 import sampler.math.Random
+import sampler.abc.parameters.AlgorithmParameters
+import sampler.abc.parameters.ABCParameters
 
 protected[abc] trait IterateComponent { 
 	self: Logging with StatisticsComponent => 
@@ -35,7 +37,7 @@ protected[abc] trait IterateComponent {
 	trait Iterate {
 		def apply[M <: ABCModel](
 				ePop: EncapsulatedPopulation[M], 
-				abcParams: ABCParameters, 
+				params: ABCParameters, 
 				populationBuilder: PopulationBuilder,
 				random: Random
 		): Option[EncapsulatedPopulation[M]] = {
@@ -49,7 +51,7 @@ protected[abc] trait IterateComponent {
 				log.info(generationsRemaining + " generations remaining")
 				if(generationsRemaining == 0) Some(ePop)
 				else{
-					populationBuilder.run(ePop, abcParams, currentTolerance, random) match {
+					populationBuilder.run(ePop, params, currentTolerance, random) match {
 						case None =>
 							log.warn(s"Failed to refine current population, evolving within previous tolerance $previousTolerance")
 							loop(ePop, generationsRemaining - 1, previousTolerance, previousTolerance)
@@ -68,7 +70,8 @@ protected[abc] trait IterateComponent {
 				}
 			}
 			
-			loop(ePop, abcParams.numGenerations, abcParams.startTolerance, abcParams.startTolerance)
+			val startTolerance = Double.MaxValue
+			loop(ePop, params.job.numGenerations, startTolerance, startTolerance)
 		}
 	}
 }

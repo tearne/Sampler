@@ -6,7 +6,7 @@ import org.junit.Test
 import sampler.abc.generation.IntegerModel
 import sampler.abc.EncapsulatedPopulation
 import sampler.run.ParallelRunner
-import sampler.abc.ABCParameters
+import sampler.abc.parameters
 import sampler.math.Random
 import org.mockito.Mockito.when
 import sampler.run.Abortable
@@ -14,6 +14,11 @@ import scala.util.Success
 import sampler.abc.MaxRetryException
 import scala.util.Failure
 import sampler.abc.Weighted
+import sampler.abc.parameters.JobParameters
+import sampler.abc.parameters.AlgorithmParameters
+import sampler.abc.parameters.ABCParameters
+import scalaz._
+import Scalaz._
 
 class LocalPopulationBuilderTest extends AssertionsForJUnit with MockitoSugar {
 
@@ -28,23 +33,17 @@ class LocalPopulationBuilderTest extends AssertionsForJUnit with MockitoSugar {
   val random = Random
 
   val anything = 0
+  val twoParticles = 2
+  val chunkSize = 10
   
-  val parameters = ABCParameters(
-    anything, anything, anything,
-    anything, anything, anything
+  val abcParams = ABCParameters(
+    JobParameters(twoParticles, anything, 1), 
+    AlgorithmParameters(anything, chunkSize)
   )
   
+  val tolerance = 1000
+  
   @Test def returnsANewPopulation {
-    val particles = 2
-    val chunks = 1
-    val tolerance = 1000
-    
-    val abcParams = parameters.copy(
-      numParticles = particles,
-      particleChunkSize = chunks,
-      startTolerance = tolerance
-    )
-    
     import model._
 
     val p1 = mock[Weighted[ParameterSet]]
@@ -52,33 +51,21 @@ class LocalPopulationBuilderTest extends AssertionsForJUnit with MockitoSugar {
     val p3 = mock[Weighted[ParameterSet]]
     val p4 = mock[Weighted[ParameterSet]]
     
-    val ePop = EncapsulatedPopulation(model)(Seq(p1, p2))
-    val ePop2 = EncapsulatedPopulation(model)(Seq(p3, p4))
+    val previousEPop = EncapsulatedPopulation(model)(Seq(p1, p2))
+    val newEPop = EncapsulatedPopulation(model)(Seq(p3, p4))
     
-    val jobs = Seq(Abortable{aborter => ePop.population})
+    val mockJobs = Seq(Abortable{aborter => previousEPop.population})
+    val mockResult = Seq(Success(newEPop.population))
     
-    val jobResult = Seq(Success(ePop2.population))
+    when(instance.jobBuilder.makeJobs(previousEPop)(abcParams, tolerance, random)).thenReturn(mockJobs)
+    when(instance.runner.apply(mockJobs)).thenReturn(mockResult)
     
-    when(instance.jobBuilder.makeJobs(ePop)(abcParams, tolerance, random)).thenReturn(jobs)
+    val result = instance.run(previousEPop, abcParams, tolerance, random)
     
-    when(instance.runner.apply(jobs)).thenReturn(jobResult)
-    
-    val result = instance.run(ePop, abcParams, tolerance, random)
-    
-    assert(result.get.population === ePop2.population)	// Have to use population as Encapsulation happens within class
+    assert(result.get.population == newEPop.population)	// Have to use population as Encapsulation happens within class
   }
   
   @Test def returnsNoneIfOnlyBadRetryException {
-    val particles = 1
-    val chunks = 1
-    val tolerance = 1000
-
-    val abcParams = parameters.copy(
-      numParticles = particles,
-      particleChunkSize = chunks,
-      startTolerance = tolerance
-    )
-    
     val p1 = mock[Weighted[model.ParameterSet]]//
     
     val ePop = EncapsulatedPopulation(model)(Seq(p1))
@@ -88,26 +75,15 @@ class LocalPopulationBuilderTest extends AssertionsForJUnit with MockitoSugar {
     val jobResult = Seq(Failure(new MaxRetryException))
     
     when(instance.jobBuilder.makeJobs(ePop)(abcParams, tolerance, random)).thenReturn(jobs)
-    
     when(instance.runner.apply(jobs)).thenReturn(jobResult)
     
     val result = instance.run(ePop, abcParams, tolerance, random)
     
-    assert(result === None)
+    assert(result == None)
   }
   
   @Test def failIfUnexpectedExceptionOccurs {
-    val particles = 1
-    val chunks = 1
-    val tolerance = 1000
-    
-    val abcParams = parameters.copy(
-      numParticles = particles,
-      particleChunkSize = chunks,
-      startTolerance = tolerance
-    )
-    
-    val p1 = mock[Weighted[model.ParameterSet]]//
+    val p1 = mock[Weighted[model.ParameterSet]]
     
     val ePop = EncapsulatedPopulation(model)(Seq(p1))
     

@@ -2,7 +2,7 @@ package sampler.abc.builder
 
 import sampler.abc.ABCModel
 import sampler.abc.EncapsulatedPopulation
-import sampler.abc.ABCParameters
+import sampler.abc.parameters._
 import sampler.math.Random
 
 trait PopulationBuilder {
@@ -14,7 +14,7 @@ trait PopulationBuilder {
 	 */
 	def run[M <: ABCModel](
 			ePop: EncapsulatedPopulation[M], 
-			abcParameters: ABCParameters,
+			parameters: ABCParameters,
 			tolerance: Double,
 			random: Random
 	): Option[EncapsulatedPopulation[M]]

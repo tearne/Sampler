@@ -21,7 +21,7 @@ import sampler.abc.ABCModel
 import sampler.run.ParallelRunner
 import sampler.run.Abortable
 import sampler.run.RunnerComponent
-import sampler.abc.ABCParameters
+import sampler.abc.parameters._
 import sampler.math.Random
 import sampler.io.Logging
 import sampler.abc.MaxRetryException
@@ -38,17 +38,16 @@ trait LocalPopulationBuilder
 		extends PopulationBuilder
 		with ParticleBuilderComponent
 		with JobBuilderComponent
-		with Logging	// Added because of Logging in JobComponent
+		with Logging
 		with RunnerComponent {
 	
 	def run[M <: ABCModel](
 		ePop: EncapsulatedPopulation[M], 
-		abcParams: ABCParameters,
+		params: ABCParameters,
 		tolerance: Double, 
 		random: Random
 	): Option[EncapsulatedPopulation[M]] = {
-	  //TODO think about the Random
-	  val jobs = jobBuilder.makeJobs(ePop)(abcParams, tolerance, random)
+	  val jobs = jobBuilder.makeJobs(ePop)(params, tolerance, random)
 		
 	  val result = runner.apply(jobs)
 		
@@ -56,7 +55,7 @@ trait LocalPopulationBuilder
 			case Success(s) => s
 	  }.flatten
 		
-	  if(successes.size == abcParams.numParticles)
+	  if(successes.size == params.job.numParticles)
 			Some(EncapsulatedPopulation(ePop.model)(successes))
 	  else{
 		val badException = result.collectFirst{
@@ -64,7 +63,7 @@ trait LocalPopulationBuilder
 		}
 		badException.foreach{throw _}
 			
-		log.warn("Expected {}, got {}", abcParams.numParticles, successes.size)
+		log.warn("Expected {}, got {}", params.job.numParticles, successes.size)
 		None
 	  }
 	}

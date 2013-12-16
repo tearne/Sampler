@@ -53,16 +53,17 @@ trait AbortableModelRunner extends Logging{
 		val weightsTable = prevPopulation.groupBy(_.value).map{case (k,v) => (k, v.map(_.weight).sum)}.toIndexedSeq
 		val (parameterSets, weights) = weightsTable.unzip
 		val samplablePopulation = Distribution.fromPartition(parameterSets, Partition.fromWeights(weights))
+		val maxParticleRetries = job.abcParams.algorithm.maxParticleRetries
 		
 		@tailrec
 		def getScoredParameter(failures: Int = 0): Scored[ParameterSet] = {
 			if(isAborted) throw new DetectedAbortionException("Abort flag was set")
-			else if(failures >= job.abcParams.particleRetries) throw new MaxRetryException(s"Aborted after the maximum of $failures trials")
+			else if(failures >= maxParticleRetries) throw new MaxRetryException(s"Aborted after $failures failed particle draws from previous population")
 			else{
 				def getScores(params: ParameterSet): IndexedSeq[Double] = {
 					val modelWithMetric = modelDistribution(params).map(_.distanceToObserved)
 					//TODO in parallel?
-					SerialSampler(modelWithMetric)(_.size == job.abcParams.numReplicates)
+					SerialSampler(modelWithMetric)(_.size == job.abcParams.job.numReplicates)
 				}
 				
 				val res: Option[Scored[ParameterSet]] = for{
@@ -77,7 +78,7 @@ trait AbortableModelRunner extends Logging{
 			}
 		}
 		
-		val pc = (1 to job.abcParams.particleChunkSize).par
+		val pc = (1 to job.abcParams.algorithm.particleChunkSize).par
 		parallelTaskSupport.foreach{pc.tasksupport = _}
 		pc.map(i => getScoredParameter()).seq
 	}

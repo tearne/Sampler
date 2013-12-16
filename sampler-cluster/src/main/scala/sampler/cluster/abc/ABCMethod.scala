@@ -25,7 +25,6 @@ import sampler.cluster.abc.actor.worker.AbortableModelRunner
 import sampler.cluster.abc.actor.root.RootActor
 import sampler.cluster.actor.PortFallbackSystemFactory
 import sampler.abc.ABCModel
-import sampler.abc.ABCParameters
 import com.typesafe.config.ConfigFactory
 import sampler.io.Logging
 import sampler.cluster.abc.actor.Start
@@ -34,31 +33,30 @@ import sampler.math.Statistics
 import akka.pattern.ask
 import akka.actor.ActorSystem
 import java.util.concurrent.TimeUnit
+import sampler.cluster.abc.parameters.ABCParameters
 
 trait ABCMethod extends Logging{
 	val stateEngineService: StateEngineService
-	
-	val terminateAtTargetGeneration: Boolean
-	val particleMemoryGenerations: Int
-	val parallelism: Int
-	
 	val system: ActorSystem
-	implicit val timeout: Timeout
-	
-	def apply(model: ABCModel, abcParameters: ABCParameters) = {
-		val modelRunner = AbortableModelRunner(model, parallelism)
-		val targetParticleMemory = particleMemoryGenerations * abcParameters.numParticles
+
+	def apply(model: ABCModel, params: ABCParameters) = {
+		implicit val timeout = Timeout(params.cluster.futuresTimeoutMS, TimeUnit.MILLISECONDS)
+		
+		log.info("ABC configuration: {}",params)
+		
+		val modelRunner = AbortableModelRunner(model, params.cluster.parallelism)
+		val targetParticleMemory = params.cluster.particleMemoryGenerations * params.job.numParticles
 		
 		val abcActor = system.actorOf(
-				Props(new RootActor(model, abcParameters, modelRunner, stateEngineService)), 
+				Props(new RootActor(model, params, modelRunner, stateEngineService)), 
 				"abcrootactor"
 		)
 		
 		import akka.pattern.ask
-		val future = (abcActor ? Start(stateEngineService.init(model, abcParameters))).mapTo[Seq[model.ParameterSet]]
+		val future = (abcActor ? Start(stateEngineService.init(model, params))).mapTo[Seq[model.ParameterSet]]
 		val result = Await.result(future, Duration.Inf)
 		
-		if(terminateAtTargetGeneration){
+		if(params.cluster.terminateAtTargetGenerations){
 			log.info("Terminating actor system")
 			system.shutdown
 		}
@@ -68,27 +66,11 @@ trait ABCMethod extends Logging{
 }
 
 object ABCMethod extends ABCMethod with Logging{
-	val config = ConfigFactory.load
-	val terminateAtTargetGeneration = config.getBoolean("sampler.abc.terminate-at-target-generation")
-	val particleMemoryGenerations = config.getInt("sampler.abc.particle-memory-generations")
-	val parallelism = config.getInt("sampler.abc.actor-task-parallelism")
-	
 	val stateEngineService =  new StateEngineService{
 		val statistics = Statistics
 		val toleranceCalculator = new ToleranceCalculator{}
 		val weigher = new Weigher{}
-		val numGenerationsMemory = particleMemoryGenerations
 	}
 	
 	val system = PortFallbackSystemFactory("ABCSystem")
-	import collection.JavaConversions._
-	val milliSec: scala.Long = config.getMilliseconds("sampler.abc.system-timeout")
-	implicit val timeout = Timeout(milliSec, TimeUnit.MILLISECONDS)
-	
-	log.info("ABC Method configuration, timeout {}, terminate at target {}, particle memory {}, actor parellelism {}",
-			timeout.toString,
-			terminateAtTargetGeneration.toString,
-			particleMemoryGenerations.toString,
-			parallelism.toString
-	)
 }

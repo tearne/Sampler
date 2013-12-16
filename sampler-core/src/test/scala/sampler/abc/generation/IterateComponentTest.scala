@@ -21,7 +21,7 @@ import org.junit.Test
 import org.mockito.Mockito.when
 import org.scalatest.junit.AssertionsForJUnit
 import org.scalatest.mock.MockitoSugar
-import sampler.abc.ABCParameters
+import sampler.abc.parameters._
 import sampler.abc.EncapsulatedPopulation
 import sampler.abc.builder.PopulationBuilder
 import sampler.io.Logging
@@ -32,10 +32,10 @@ import sampler.abc.Weighted
 
 class IterateComponentTest extends AssertionsForJUnit with MockitoSugar {
   val anything = 0
-	
-  val parameters = ABCParameters(
-    anything, anything, anything,
-    anything, anything, anything
+  
+  val oneRefinementParams = ABCParameters(
+  		JobParameters(anything, anything, 1), 
+  		AlgorithmParameters(anything, anything)
   )
   
   val instance = new IterateComponent with Logging with StatisticsComponent{
@@ -50,73 +50,61 @@ class IterateComponentTest extends AssertionsForJUnit with MockitoSugar {
 
   @Test
   def runReturnsInitialPopluationWhenRefinementsIsZero {
-	val abcParams = parameters.copy(numGenerations = 0)
+	val zeroRefinementParams = ABCParameters(
+	  JobParameters(anything, anything, 0), 
+	  AlgorithmParameters(anything, anything)
+    )
     
-    val result = instance.iterate(pop0, abcParams, populationBuilder, random).get
+    val result = instance.iterate(pop0, zeroRefinementParams, populationBuilder, random).get
     assert(result === pop0)
   }
   
   @Test def oneRefinementUnsuccessfulRefinementSoReturnsInitialPopulation {
     val tolerance = 1e6
-    val refinements = 1
+    when(populationBuilder.run(pop0, oneRefinementParams, tolerance, random)).thenReturn(None)
     
-    val abcParams = parameters.copy(
-      startTolerance = tolerance,
-      numGenerations = refinements
-    )
-    
-    when(populationBuilder.run(pop0, abcParams, tolerance, random)).thenReturn(None)
-    
-    val result = instance.iterate(pop0, abcParams, populationBuilder, random).get
+    val result = instance.iterate(pop0, oneRefinementParams, populationBuilder, random).get
     
     assert(result === pop0)
   }
   
   @Test def oneRefinementSuccessfulRefinementReturnsNewPopulation {
   	val tolerance = 1e6
-  	val refinements = 1
-  	
-  	val abcParams = parameters.copy(
-  	    startTolerance = tolerance,
-  	    numGenerations = refinements
-  	)
-  	
     val p1 = mock[Weighted[IntegerModel.ParameterSet]]
     
   	val pop1 = EncapsulatedPopulation(IntegerModel)(Seq(p1))
   	
-    when(populationBuilder.run(pop0, abcParams, tolerance, random)).thenReturn(Some(pop1))
+    when(populationBuilder.run(pop0, oneRefinementParams, tolerance, random)).thenReturn(Some(pop1))
     
-    val result = instance.iterate(pop0, abcParams, populationBuilder, random).get
+    val result = instance.iterate(pop0,  oneRefinementParams, populationBuilder, random).get
     
     assert(result === pop1)
   }
   
   @Test def twoRefinementsImplicitelyCorrectToleranceOnSecondLoop {
-  	val refinements = 2
   	val tolerance = 1e6
   	val tolerance2 = 500000.0
   	
-  	val abcParams = parameters.copy(
-  	    startTolerance = tolerance,
-  	    numGenerations = refinements
-  	)
-    
+  	val twoRefinementParams = ABCParameters(
+  		JobParameters(anything, anything, 2), 
+  		AlgorithmParameters(anything, anything)
+    )
+  	
     val p1 = mock[Weighted[IntegerModel.ParameterSet]]
   	val p2 = mock[Weighted[IntegerModel.ParameterSet]]
     
   	val pop1 = EncapsulatedPopulation(IntegerModel)(Seq(p1))
   	val pop2 = EncapsulatedPopulation(IntegerModel)(Seq(p2))
   	
-  	when(populationBuilder.run(pop0, abcParams, tolerance, random)).thenReturn(Some(pop1))
-  	when(populationBuilder.run(pop1, abcParams, tolerance2, random)).thenReturn(Some(pop2))
+  	when(populationBuilder.run(pop0, twoRefinementParams, tolerance, random)).thenReturn(Some(pop1))
+  	when(populationBuilder.run(pop1, twoRefinementParams, tolerance2, random)).thenReturn(Some(pop2))
     
-  	val result = instance.iterate(pop0, abcParams, populationBuilder, random).get
+  	val result = instance.iterate(pop0, twoRefinementParams, populationBuilder, random).get
   	
     assert(result === pop2)
   }
   
   @Test def scenarioWhereMedianMeanFitInstZero {
-    fail()
+    fail("Not implemented yet")
   }
 }

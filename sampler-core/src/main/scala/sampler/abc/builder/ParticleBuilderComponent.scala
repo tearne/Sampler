@@ -17,7 +17,7 @@
 
 package sampler.abc.builder
 import sampler.abc.ABCModel
-import sampler.abc.ABCParameters
+import sampler.abc.parameters._
 import sampler.math.Random
 import sampler.run.Aborter
 import sampler.data.Distribution
@@ -45,7 +45,7 @@ trait ParticleBuilderComponent{
 				numParticles: Int, 
 				tolerance: Double,
 				aborter: Aborter,
-				meta: ABCParameters,
+				params: ABCParameters,
 				random: Random
 		): Seq[Weighted[model.ParameterSet]] = {
 			import model._
@@ -55,14 +55,17 @@ trait ParticleBuilderComponent{
 			val (parameters, weights) = weightsTable.unzip
 			val samplablePopulation = Distribution.fromPartition(parameters, Partition.fromWeights(weights))
 			
+			val maxParticleRetrys = params.algorithm.maxParticleRetries
+			val numReplicates = params.job.numReplicates
+			
 			@tailrec
 			def nextParticle(failures: Int = 0): Weighted[ParameterSet] = {
 				if(aborter.isAborted) throw new DetectedAbortionException("Abort flag was set")
-				else if(failures >= meta.particleRetries) throw new MaxRetryException(s"Aborted after the maximum of $failures trials")
+				else if(failures >= maxParticleRetrys) throw new MaxRetryException(s"Aborted after $failures particle draw failures")
 				else{
 					def getScores(params: ParameterSet): IndexedSeq[Double] = {
 						val modelWithMetric = modelDistribution(params).map(_.distanceToObserved)
-						SerialSampler(modelWithMetric)(_.size == meta.numReplicates)
+						SerialSampler(modelWithMetric)(_.size == numReplicates)
 					}
 					
 					def getWeight(params: ParameterSet, scores: IndexedSeq[Double]): Option[Double] = {

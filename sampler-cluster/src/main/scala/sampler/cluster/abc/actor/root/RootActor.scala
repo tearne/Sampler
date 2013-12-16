@@ -26,7 +26,6 @@ import akka.actor.Props
 import akka.actor.actorRef2Scala
 import akka.cluster.Cluster
 import sampler.abc.ABCModel
-import sampler.abc.ABCParameters
 import sampler.abc.Scored
 import sampler.cluster.abc.actor.Abort
 import sampler.cluster.abc.actor.Broadcaster
@@ -40,6 +39,7 @@ import sampler.math.Random
 import sampler.math.Statistics
 import sampler.math.StatisticsComponent
 import sampler.abc.Weighted
+import sampler.cluster.abc.parameters.ABCParameters
 
 class RootActor(
 		val model0: ABCModel, 
@@ -107,11 +107,13 @@ class RootActor(
 	}
 	
 	def checkIfDone(eState: EncapsulatedState) {
-		if(stateEngine.numberAccumulated(eState) >= abcParams.numParticles){
+		val numGenerations = abcParams.job.numGenerations
+		
+		if(stateEngine.numberAccumulated(eState) >= abcParams.job.numParticles){
 			import eState.state._
-			log.info("Generation {}/{} complete", currentIteration, abcParams.numGenerations)
-			if(currentIteration == abcParams.numGenerations){
-				val result: Seq[eState.model.ParameterSet] = weightedParameterSets.map(_.value).take(abcParams.numParticles) 
+			log.info("Generation {}/{} complete", currentIteration, numGenerations)
+			if(currentIteration == numGenerations){
+				val result: Seq[eState.model.ParameterSet] = weightedParameterSets.map(_.value).take(abcParams.job.numParticles) 
 				client ! result
 				log.info("Number of required generations completed and reported to requestor")
 				if(terminateAtTargetGeneration) worker ! Abort
@@ -123,7 +125,7 @@ class RootActor(
 	}
 		
 	def startNextRun(eState: EncapsulatedState){
-		val newEState = stateEngine.flushGeneration(eState, abcParams.numParticles)
+		val newEState = stateEngine.flushGeneration(eState, abcParams.job.numParticles)
 		become(busy(newEState))
 		
 		worker ! Job(newEState.state.weightedParameterSets, abcParams)

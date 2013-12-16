@@ -8,7 +8,7 @@ import sampler.abc.builder.ParticleBuilderComponent
 import sampler.abc.generation.IntegerModel
 import sampler.run.Abortable
 import sampler.math.Random
-import sampler.abc.ABCParameters
+import sampler.abc.parameters._
 import sampler.abc.EncapsulatedPopulation
 import org.mockito.Mockito.when
 import org.mockito.Matchers._
@@ -30,12 +30,12 @@ class JobRBuilderComponentTest extends AssertionsForJUnit with MockitoSugar {
     val anything = 0
   
     val tolerance = 1e-6
-    val particles = 3
+    val numParticles = 3
     val chunkSizes = 1
     
     val parameters = ABCParameters(
-      anything, particles, tolerance,
-      anything, anything, chunkSizes
+    	JobParameters(numParticles, anything, 1), 
+    	AlgorithmParameters(anything, chunkSizes)
     )
     
     import model._

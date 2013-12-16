@@ -31,13 +31,20 @@ import sampler.abc.builder.PopulationBuilder
 import sampler.abc.generation.InitialiseComponent
 import sampler.abc.ABCModel
 import sampler.abc.Prior
-import sampler.abc.ABCParameters
+import com.typesafe.config.ConfigFactory
+import sampler.abc.parameters.JobParameters
+import sampler.abc.parameters.AlgorithmParameters
 
-object ClusteredUnfairCoin extends App with ABCParametersComponent with InitialiseComponent{
+object ClusteredUnfairCoin extends App with InitialiseComponent{
 	val initialise = new Initialise{}
 
-	val result = sampler.cluster.abc.ABCMethod(CoinModel, abcParams)
+	/*
+	 * ABCParameters loaded from application.conf
+	 */
+	val config = ConfigFactory.load()
+	val parameters = sampler.cluster.abc.parameters.ABCParameters.fromConfig(config)
 	
+	val result = sampler.cluster.abc.ABCMethod(CoinModel, parameters)
 	val headsDensity = result.map(_.pHeads)
 	
 	val wd = Paths.get("results", "UnfairCoin")
@@ -50,10 +57,24 @@ object ClusteredUnfairCoin extends App with ABCParametersComponent with Initiali
 	)
 }
 
-object LocalUnfairCoin extends ABCParametersComponent with App{
+object LocalUnfairCoin extends App{
+	/*
+	 * ABCParameters hard coded
+	 */
+	val numParticles = 10000
+	val numReplicates = 1000
+	val numGenerations = 100
+	val	particleRetries = 100
+	val	particleChunkSize = 300
+	
+	val parameters = sampler.abc.parameters.ABCParameters(
+		JobParameters(numParticles, numReplicates, numGenerations),
+		AlgorithmParameters(particleRetries, particleChunkSize)
+	)
+	
 	val finalPopulation = ABCMethod(
 			CoinModel, 
-			abcParams, 
+			parameters, 
 			LocalPopulationBuilder, 
 			Random
 	).get
@@ -70,15 +91,15 @@ object LocalUnfairCoin extends ABCParametersComponent with App{
 	)
 }
 
-trait ABCParametersComponent{
-	val abcParams = new ABCParameters(
-    	numReplicates = 100,
-		numParticles = 1000,
-		numGenerations = 10,
-		particleRetries = 100,
-		particleChunkSize = 300
-	)
-}
+//trait ABCParametersComponent{
+//	val abcParams = new ABCParameters(
+//    	numReplicates = 1000,
+//		numParticles = 10000,
+//		numGenerations = 100,
+//		particleRetries = 100,
+//		particleChunkSize = 300
+//	)
+//}
 
 object CoinModel extends CoinModelBase{
   val abcRandom = Random

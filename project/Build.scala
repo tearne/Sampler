@@ -48,7 +48,6 @@ object SamplerBuild extends Build{
 		base = file("sampler-cluster"),
 		settings = buildSettings ++ Seq(
 			libraryDependencies ++= Seq(
-				"com.typesafe" % "config" % "0.4.1",
 				"com.typesafe.akka" %% "akka-actor" % "2.2.3", 
 				"com.typesafe.akka" %% "akka-remote" % "2.2.3",
 				"com.typesafe.akka" %% "akka-cluster" % "2.2.3",
@@ -88,7 +87,8 @@ object SamplerBuild extends Build{
 
 		scalacOptions ++= Seq("-deprecation", "-feature"),
 		
-		retrieveManaged	:= false,
+		//Copies all dependencies to lib_managed
+		retrieveManaged	:= true,
 		
 		resolvers ++= Seq(
 			"Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
@@ -97,6 +97,7 @@ object SamplerBuild extends Build{
 		),
 		
 		libraryDependencies ++= Seq(
+			"com.typesafe" % "config" % "1.0.2",
 			"junit" % "junit" % "4.8" % "test->default",
 			"org.scalatest" % "scalatest_2.10" % "2.0.M5b" % "test",
 			"org.specs2" %% "specs2" % "1.13" % "test",

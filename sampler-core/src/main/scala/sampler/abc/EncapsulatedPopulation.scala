@@ -3,7 +3,7 @@ package sampler.abc
 abstract class EncapsulatedPopulation[M <: ABCModel] {
 //	type M <: ABCModel
 	val model : M
-	val population : Seq[Weighted[model.ParameterSet]]//model.Population
+	val population : Seq[Weighted[model.ParameterSet]]
 }
 
 object EncapsulatedPopulation {

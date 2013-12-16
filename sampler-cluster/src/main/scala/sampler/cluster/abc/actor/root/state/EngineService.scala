@@ -27,10 +27,9 @@ import sampler.math.StatisticsComponent
 import sampler.cluster.abc.actor.root.Tagged
 import scala.Option.option2Iterable
 import sampler.cluster.abc.actor.TaggedAndScoredParameterSets
-import sampler.abc.ABCParameters
 import sampler.cluster.abc.actor.root.State
 import sampler.cluster.abc.actor.root.EncapsulatedState
-import sampler.abc.ABCParameters
+import sampler.cluster.abc.parameters.ABCParameters
 
 trait StateEngineService 
 	extends StateEngineComponent 
@@ -44,12 +43,10 @@ trait StateEngineComponent{
 		with ToleranceCalculatorComponent
 		with Logging =>
 	
-	val numGenerationsMemory: Int
-	
 	def init(model: ABCModel, abcParameters: ABCParameters): EncapsulatedState = {
 		EncapsulatedState(model){
 			import model._
-			val generationZero = (1 to abcParameters.numParticles)
+			val generationZero = (1 to abcParameters.job.numParticles)
 				.par
 				.map(i => 
 					Weighted(Scored(prior.sample(), Nil), 1.0)
@@ -106,7 +103,7 @@ trait StateEngineComponent{
 				.map{case Tagged(weighted, origin) =>
 					Tagged(weighted.scored, origin)
 				}
-				.takeRight(abcParameters.particleChunkSize)
+				.takeRight(abcParameters.algorithm.particleChunkSize)
 			))
 		else None
 	}
@@ -145,7 +142,7 @@ trait StateEngineComponent{
 		
 		val newIdsObserved = {
 			val union = idsObserved ++ weighedAndTagged.map(_.id)
-			val memorySize = numGenerationsMemory * abcParameters.numParticles
+			val memorySize = abcParameters.cluster.particleMemoryGenerations * abcParameters.job.numParticles
 			if(union.size > 1.5 * memorySize) union.drop(union.size - memorySize)
 			else union
 		}

@@ -37,7 +37,7 @@ import scala.language.existentials
 import sampler.abc.builder.local.LocalPopulationBuilder
 import sampler.abc.ABCMethod
 import sampler.math.Statistics
-import sampler.abc.ABCParameters
+import sampler.abc.parameters._
 
 object FlockMortality extends App {
 	import FlockMortalityModel._
@@ -47,13 +47,17 @@ object FlockMortality extends App {
 	Files.createDirectories(wd)
 	implicit val modelRandom = FlockMortalityModel.modelRandom 
 	
-	val abcParams = new ABCParameters(
-    	numReplicates = 1,
-		numParticles = 100, 
-		numGenerations = 16,
-		particleRetries = 1000, 
-		particleChunkSize = 50
+	val numParticles = 100
+	val numReplicates = 1
+	val numGenerations = 16
+	val	particleRetries = 1000
+	val	particleChunkSize = 50
+	
+	val abcParams = ABCParameters(
+		JobParameters(numParticles, numReplicates, numGenerations),
+		AlgorithmParameters(particleRetries, particleChunkSize)
 	)
+	
 	val posterior = ABCMethod(
 			FlockMortalityModel, 
 			abcParams, 

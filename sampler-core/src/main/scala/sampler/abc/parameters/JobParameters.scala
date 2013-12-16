@@ -15,27 +15,27 @@
  * limitations under the License.
  */
 
-package sampler.abc.generation
+package sampler.abc.parameters
 
-import sampler.abc.parameters.JobParameters
-import sampler.abc.EncapsulatedPopulation
-import sampler.abc.ABCModel
-import sampler.abc.Weighted
-import sampler.abc.Scored
+import com.typesafe.config.Config
+import scalaz._
+import Scalaz._
 
-protected[abc] trait InitialiseComponent {
-	val initialise: Initialise
+case class JobParameters(
+	numParticles: Int,
+	numReplicates: Int,
+	numGenerations: Int
+)
+object JobParameters{
+	//TODO test
+	def fromConfig(c: Config) = JobParameters(
+		c.getInt("sampler.abc.job.particles"),
+		c.getInt("sampler.abc.job.replicates"),
+		c.getInt("sampler.abc.job.generations")
+	)
 	
-	trait Initialise {
-		def apply[M <: ABCModel](
-				model: M, 
-				jobParams: JobParameters
-		): EncapsulatedPopulation[M] = {
-			import model._ 
-			
-			val numParticles = jobParams.numParticles
-			val pop0 = (1 to numParticles).par.map(i => Weighted(Scored(model.prior.sample(), Nil), 1.0)).seq
-			EncapsulatedPopulation(model)(pop0)
-		}
-	}
+	val numParticlesLens = Lens.lensu[JobParameters, Int](
+		(o,v) => o.copy(numParticles = v),
+		_.numParticles
+	)
 }

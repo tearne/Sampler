@@ -27,6 +27,9 @@ import sampler.math.Random
 import sampler.abc.generation.IntegerModel
 import org.junit.Before
 import sampler.abc.generation.IntegerModel
+import sampler.abc.parameters.JobParameters
+import sampler.abc.parameters.AlgorithmParameters
+import sampler.abc.parameters.ABCParameters
 
 class ABCMethodTest extends AssertionsForJUnit with MockitoSugar{
 
@@ -38,7 +41,9 @@ class ABCMethodTest extends AssertionsForJUnit with MockitoSugar{
 	val statistics = mock[Statistics]
   }
   
-  val parameters = mock[ABCParameters]
+  val jobParams = mock[JobParameters]
+  val algorithmParams = mock[AlgorithmParameters]
+  val abcParams = ABCParameters(jobParams, algorithmParams)
   val pBuilder = mock[PopulationBuilder]
   val r = mock[Random]
 
@@ -57,20 +62,20 @@ class ABCMethodTest extends AssertionsForJUnit with MockitoSugar{
 
     val ePop2 = EncapsulatedPopulation(model)(Seq(w1, w2, w3))
 		
-    when(instance.initialise.apply(model, parameters)).thenReturn(ePop)
-    when(instance.iterate.apply(ePop, parameters, pBuilder, r)).thenReturn(Some(ePop2))
+    when(instance.initialise.apply(model, jobParams)).thenReturn(ePop)
+    when(instance.iterate.apply(ePop, abcParams, pBuilder, r)).thenReturn(Some(ePop2))
 	
-    val evolvedPopulation = instance.apply(model, parameters, pBuilder, r)
+    val evolvedPopulation = instance.apply(model, abcParams, pBuilder, r)
 
     assert(expectedReturn === evolvedPopulation)
   }
   
   @Test def returnsNoneWhenANoneParticleIsGiven {
-    when(instance.initialise.apply(model, parameters)).thenReturn(ePop)
+    when(instance.initialise.apply(model, jobParams)).thenReturn(ePop)
     
-    when(instance.iterate.apply(ePop, parameters, pBuilder, r)).thenReturn(None)
+    when(instance.iterate.apply(ePop, abcParams, pBuilder, r)).thenReturn(None)
     
-    assert(instance.apply(model, parameters, pBuilder, r) === None)
+    assert(instance.apply(model, abcParams, pBuilder, r) === None)
   }
   
   @Test def ensureTwoParameterMocksAreDifferent {

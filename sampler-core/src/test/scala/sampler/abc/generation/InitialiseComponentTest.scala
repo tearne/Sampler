@@ -17,7 +17,7 @@
 
 package sampler.abc.generation
 
-import sampler.abc.ABCParameters
+import sampler.abc.parameters
 import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Test
 import org.scalatest.mock.MockitoSugar
@@ -27,6 +27,7 @@ import sampler.abc.Prior
 import sampler.abc.ABCModel
 import sampler.abc.Weighted
 import sampler.abc.Scored
+import sampler.abc.parameters.JobParameters
 
 class InitialiseComponentTest extends AssertionsForJUnit with MockitoSugar{
   
@@ -57,12 +58,9 @@ class InitialiseComponentTest extends AssertionsForJUnit with MockitoSugar{
   val anything = 1 
   val fiveParticles = 5
 	
-  val abcParams = ABCParameters(
+  val jobParams = JobParameters(
+    fiveParticles, 
     anything, 
-	fiveParticles, 
-	anything, 
-	anything, 
-	anything, 
 	anything
   )
 	
@@ -75,7 +73,7 @@ class InitialiseComponentTest extends AssertionsForJUnit with MockitoSugar{
   	val model = VacuousModel
   	import model._
   	
-    val ePop0 = instance.initialise(model, abcParams)
+    val ePop0 = instance.initialise(model, jobParams)
     val pop0 = ePop0.population
     
     assert(pop0.length === 5)
