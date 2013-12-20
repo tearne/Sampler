@@ -22,11 +22,10 @@ import com.typesafe.config.Config
 case class ClusterParameters(
 		terminateAtTargetGenerations: Boolean,
 		particleMemoryGenerations: Int,
-		parallelism: Int,
 		futuresTimeoutMS: Long,
 		mixPayloadSize: Int,
 		mixRateMS: Long,
-		mixResponseLimitMS: Long
+		mixResponseTimeoutMS: Long
 )
 
 object ClusterParameters{
@@ -36,7 +35,6 @@ object ClusterParameters{
 		ClusterParameters(
 			subC.getBoolean("terminate-at-target-generation"),
 			subC.getInt("particle-memory-generations"),
-			subC.getInt("task-parallelism"),
 			subC.getMilliseconds("futures-timeout"),
 			subC.getInt("mixing.num-particles"),
 			subC.getMilliseconds("mixing.rate"),

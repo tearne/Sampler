@@ -2,6 +2,7 @@
 .project
 .classpath
 .settings
+workspace
 
 *.class
 *.log

@@ -25,7 +25,7 @@ object SamplerBuild extends Build{
 	lazy val examples = Project(
 		id = "sampler-examples",
 		base = file("sampler-examples"),
-		settings = buildSettings ++ assySettings ++ Seq(
+		settings = buildSettings ++ assySettings ++ packageSettings ++ Seq(
 			libraryDependencies ++= Seq(
 				"org.apache.commons" % "commons-math3" % "3.0"
 			)
@@ -37,7 +37,6 @@ object SamplerBuild extends Build{
 		base = file("sampler-spike"),
 		settings = buildSettings ++ Seq(
 			libraryDependencies ++= Seq(
-				"com.typesafe" % "config" % "0.4.1",
 				"org.apache.commons" % "commons-math3" % "3.0"
 			)
 		)
@@ -48,10 +47,10 @@ object SamplerBuild extends Build{
 		base = file("sampler-cluster"),
 		settings = buildSettings ++ Seq(
 			libraryDependencies ++= Seq(
-				"com.typesafe.akka" %% "akka-actor" % "2.2.3", 
-				"com.typesafe.akka" %% "akka-remote" % "2.2.3",
-				"com.typesafe.akka" %% "akka-cluster" % "2.2.3",
-				"com.typesafe.akka" %% "akka-slf4j" % "2.2.3", 
+				"com.typesafe.akka" %% "akka-actor" % "2.3-M2", 
+				"com.typesafe.akka" %% "akka-remote" % "2.3-M2",
+				"com.typesafe.akka" %% "akka-cluster" % "2.3-M2",
+				"com.typesafe.akka" %% "akka-slf4j" % "2.3-M2", 
 				"org.apache.commons" % "commons-math3" % "3.0",
 				"com.amazonaws" % "aws-java-sdk" % "1.4.0.1",
 				"net.schmizz" % "sshj" % "0.9.0"

@@ -34,6 +34,7 @@ import akka.pattern.ask
 import akka.actor.ActorSystem
 import java.util.concurrent.TimeUnit
 import sampler.cluster.abc.parameters.ABCParameters
+import sampler.cluster.abc.actor.worker.AbortableModelRunnerFactory
 
 trait ABCMethod extends Logging{
 	val stateEngineService: StateEngineService
@@ -49,18 +50,17 @@ trait ABCMethod extends Logging{
 		log.info("Particle chunk size: {}",params.algorithm.particleChunkSize)
 		log.info("Mix rate {} MS",params.cluster.mixRateMS)
 		log.info("Mix payload: {}",params.cluster.mixPayloadSize)
-		log.info("Mix response threshold {} MS",params.cluster.mixResponseLimitMS)
+		log.info("Mix response threshold {} MS",params.cluster.mixResponseTimeoutMS)
 		log.info("Futures timeout {} MS",params.cluster.futuresTimeoutMS)
-		log.info("Node parallelism: {}",params.cluster.parallelism)
 		log.info("Particle memory generations: {}",params.cluster.particleMemoryGenerations)
 		log.info("Ternimate at target generations: {}",params.cluster.terminateAtTargetGenerations)
 		
-		val modelRunner = AbortableModelRunner(model, params.cluster.parallelism)
+		val modelRunner = AbortableModelRunnerFactory(model)
 		val targetParticleMemory = params.cluster.particleMemoryGenerations * params.job.numParticles
 		
 		val abcActor = system.actorOf(
 				Props(new RootActor(model, params, modelRunner, stateEngineService)), 
-				"abcrootactor"
+				"root"
 		)
 		
 		import akka.pattern.ask
@@ -83,5 +83,5 @@ object ABCMethod extends ABCMethod with Logging{
 		val weigher = new Weigher{}
 	}
 	
-	val system = PortFallbackSystemFactory("ABCSystem")
+	val system = PortFallbackSystemFactory("ABC")
 }

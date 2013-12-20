@@ -57,7 +57,7 @@ class Broadcaster(abcParams: ABCParameters) extends Actor with ActorLogging{
 	val selfAddress = cluster.selfAddress
 
 	val config = ConfigFactory.load
-	val testTimeout = Duration(abcParams.cluster.mixRateMS, MILLISECONDS)
+	val testTimeout = Duration(abcParams.cluster.mixResponseTimeoutMS, MILLISECONDS)
 	
 	case class CheckPreMixingTests()
 	case class PreMixingTest(msg: TaggedAndScoredParameterSets[_], when: Long  = System.currentTimeMillis()){
@@ -67,11 +67,11 @@ class Broadcaster(abcParams: ABCParameters) extends Actor with ActorLogging{
 	var preMixingTests = Map.empty[ActorRef, PreMixingTest]
 	
 	val nodes = collection.mutable.Set.empty[ActorRef]
-	val recipientPath = Seq("user", "abcrootactor")
+	val recipientPath = Seq("user", "root", "receiver")
 	
 	def attemptWorkerHandshake(root: RootActorPath){
 		val path = root / recipientPath
-		log.info("Attempting handshake with potential node: {}", path)
+		log.debug("Attempting handshake with potential node: {}", path)
 		context.system.actorSelection(path) ! Identify(None)
 	}
 	
@@ -82,7 +82,7 @@ class Broadcaster(abcParams: ABCParameters) extends Actor with ActorLogging{
   		  	)
   		case MemberUp(m) => 
   		  	val rootPath = RootActorPath(m.address)
-  		  	log.info("{} is 'up'", m)
+  		  	log.debug("{} is 'up'", m)
   		  	if(
   		  		m.address != selfAddress
 	  			&&
@@ -92,25 +92,25 @@ class Broadcaster(abcParams: ABCParameters) extends Actor with ActorLogging{
   		case MemberRemoved(member, previousStatus) =>
   			val down = nodes.filter(_.path.address == member.address)
   			nodes --= down
-  		  	log.info(s"Node down {}, previous status {}", down, previousStatus)
+  		  	log.warning(s"Node down {}, previous status {}", down, previousStatus)
   		  	reportingActor ! NumWorkers(nodes.size)
   		case ActorIdentity(None, Some(actorRef)) =>
+  			// A handshake response
   			val remoteNode = actorRef
   			nodes += remoteNode
   			reportingActor ! NumWorkers(nodes.size)
-  			log.info("Handshake completed with node: {}",remoteNode)
-  			log.info("node set = {}", nodes)
-  		case ActorIdentity(_, Some(who)) =>
+  			log.info("Handshake completed with: {}",remoteNode)
+  		case ActorIdentity(_: Long, Some(who)) =>
   			// A response to a pre-message test
   			if(preMixingTests.contains(who)){
   				val test = preMixingTests(who)
   				val responseTime = test.durationSince
   				val expired = responseTime > testTimeout
   				if(!expired){
+  					log.debug("Pre-message test passed after {}, sent data to {}", responseTime, who)
 	  				who ! test.msg
-	  				log.debug("Pre-message test passed after {}, sent data to {}", responseTime, who)
   				}
-  				else log.warning("Pre-message test failed after {} for {}", responseTime, who)
+  				else log.warning("Pre-message test failed after {}>{} ms for {}", responseTime, testTimeout, who)
   			}
   			preMixingTests = preMixingTests - who
   		case CheckPreMixingTests =>
@@ -118,7 +118,7 @@ class Broadcaster(abcParams: ABCParameters) extends Actor with ActorLogging{
   			preMixingTests = preMixingTests.filter{case (recipient, test) =>
   				val responseTime = test.durationSince
   				val expired = responseTime > testTimeout
-  				if(expired) log.warning("Pre-message test failed after {} for {}", responseTime, recipient)
+  				if(expired) log.warning("Pre-message test timed out after {}>{} ms for {}", responseTime, testTimeout, recipient)
   				!expired
   			}
   		case msg: TaggedAndScoredParameterSets[_] =>
@@ -140,11 +140,10 @@ class Broadcaster(abcParams: ABCParameters) extends Actor with ActorLogging{
 		import scala.concurrent.duration._
 		
 		var numWorkers: Option[Int] = None
-		context.system.scheduler.schedule(1.second, 1.second, self, Tick)
+		context.system.scheduler.schedule(5.second, 5.second, self, Tick)
 		def receive = {
 			case Tick => 
-				numWorkers.foreach(n => log.info("{} other workers in the cluster", n))
-				numWorkers = None
+				numWorkers.foreach(n => log.info("{} other system(s) in the cluster", n))
 			case NumWorkers(n) => numWorkers = Some(n)
 		}
 	}))

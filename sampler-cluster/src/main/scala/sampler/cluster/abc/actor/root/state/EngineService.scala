@@ -103,7 +103,7 @@ trait StateEngineComponent{
 				.map{case Tagged(weighted, origin) =>
 					Tagged(weighted.scored, origin)
 				}
-				.takeRight(abcParameters.algorithm.particleChunkSize)
+				.takeRight(abcParameters.cluster.mixPayloadSize)
 			))
 		else None
 	}

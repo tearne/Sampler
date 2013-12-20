@@ -44,7 +44,8 @@ class SSH(keyFile: Option[Path] = None) extends Logging{
 	}
 	
 	def background(username: String, host: String, command: String) {
-		val args = List("-f","-n") ::: 
+		val args = 
+			List("-f","-n") ::: 
 			keyFileArgs ::: 
 			noHostFileArgs :::
 			List(
@@ -52,8 +53,8 @@ class SSH(keyFile: Option[Path] = None) extends Logging{
 				"""sh -c 'nohup """+command+""" > /dev/null 2>&1 &'"""
 			)
 		
-		println(args.map(_+" ").mkString)
-		println(Process("ssh", args).!!)
+		log.info("Running: ssh {}",args.map(_+" ").mkString)
+		log.info("Output: {}",Process("ssh", args).!!)
 	}
 	
 	def scp(username: String, host: String, file: Path){

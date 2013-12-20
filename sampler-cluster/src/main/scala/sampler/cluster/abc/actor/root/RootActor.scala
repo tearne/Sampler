@@ -40,11 +40,15 @@ import sampler.math.Statistics
 import sampler.math.StatisticsComponent
 import sampler.abc.Weighted
 import sampler.cluster.abc.parameters.ABCParameters
+import akka.routing.BroadcastRouter
+import sampler.cluster.abc.actor.worker.AbortableModelRunnerFactory
+import akka.routing.FromConfig
+import sampler.cluster.abc.actor.Receiver
 
 class RootActor(
 		val model0: ABCModel, 
 		abcParams: ABCParameters, 
-		modelRunner: AbortableModelRunner,
+		modelRunnerFactory: AbortableModelRunnerFactory,
 		stateEngine: StateEngineService
 ) 
 		extends Actor 
@@ -57,7 +61,8 @@ class RootActor(
 	import context._
 	
 	val broadcaster = context.actorOf(Props(classOf[Broadcaster], abcParams), "broadcaster")
-	val worker = context.actorOf(Props(classOf[Worker],modelRunner), "worker")
+	val receiver = context.actorOf(Props[Receiver], "receiver")
+	val workerRouter = context.actorOf(FromConfig.props(Props(classOf[Worker],modelRunnerFactory)), "work-router")
 	
 	case class Mix()
 	context.system.scheduler.schedule(5.second, abcParams.cluster.mixRateMS.millisecond, self, Mix)
@@ -72,14 +77,11 @@ class RootActor(
 			val population = eState.state.weightsTable.keysIterator
 				.map{value => Weighted(Scored(value, Nil), 1.0)}
 				.toSeq
-			worker ! Job(population, abcParams)
+			workerRouter ! Job(population, abcParams)
 			
 			val sndr = sender
-			
 			become(busy(stateEngine.setClient(eState, sndr)))
-			
-			log.info("Inisialised, starting first generation", worker)
-		case msg => log.warning(msg.toString)
+		case msg => log.error("Unexpected message of type {}",msg.getClass())
 	}
 	
 	
@@ -93,12 +95,12 @@ class RootActor(
 			val newEState = stateEngine.add(eState, abcParams, sndr)(castSeq)
 			become(busy(newEState))
 			checkIfDone(newEState)
-			
 		case Mix =>
-			stateEngine.getMixPayload(eState, abcParams).foreach{message =>
+			val payload = stateEngine.getMixPayload(eState, abcParams)
+			payload.foreach{message =>
 				broadcaster ! message
 			}
-			case msg => log.warning(msg.toString)
+		case msg => log.error("Unexpected message of type {}",msg.getClass())
 	}
 	
 	def checkIfDone(eState: EncapsulatedState) {
@@ -111,7 +113,7 @@ class RootActor(
 				val result: Seq[eState.model.ParameterSet] = weightedParameterSets.map(_.value).take(abcParams.job.numParticles) 
 				client ! result
 				log.info("Number of required generations completed and reported to requestor")
-				if(abcParams.cluster.terminateAtTargetGenerations) worker ! Abort
+				if(abcParams.cluster.terminateAtTargetGenerations) workerRouter ! Abort
 				else startNextRun(eState)
 			} else{
 				startNextRun(eState)
@@ -123,6 +125,6 @@ class RootActor(
 		val newEState = stateEngine.flushGeneration(eState, abcParams.job.numParticles)
 		become(busy(newEState))
 		
-		worker ! Job(newEState.state.weightedParameterSets, abcParams)
+		workerRouter ! Job(newEState.state.weightedParameterSets, abcParams)
 	}
 }

@@ -31,6 +31,8 @@ import sampler.run.DetectedAbortionException
 import sampler.cluster.abc.actor.Job
 import sampler.abc.Scored
 import sampler.abc.Weighted
+import scala.collection.parallel.ForkJoinTaskSupport
+import scala.collection.parallel.ThreadPoolTaskSupport
 
 trait AbortableModelRunner extends Logging{
 	val model: ABCModel
@@ -39,11 +41,6 @@ trait AbortableModelRunner extends Logging{
 	
 	val aborted: AtomicBoolean = new AtomicBoolean(false)
 	
-	val parallelism: Int
-	lazy val parallelTaskSupport = 
-		if(parallelism == 0) None
-		else Some(new scala.collection.parallel.ForkJoinTaskSupport(new scala.concurrent.forkjoin.ForkJoinPool(parallelism)))
-
 	def abort() { aborted.set(true) }
 	def isAborted = aborted.get
 	def reset() { aborted.set(false) }
@@ -77,17 +74,13 @@ trait AbortableModelRunner extends Logging{
 			}
 		}
 		
-		val pc = (1 to job.abcParams.algorithm.particleChunkSize).par
-		parallelTaskSupport.foreach{pc.tasksupport = _}
-		pc.map(i => getScoredParameter()).seq
+		(1 to job.abcParams.algorithm.particleChunkSize).map(i => getScoredParameter())
 	}
 }
 
-object AbortableModelRunner{
-	def apply(model0: ABCModel, parallelism0: Int) = new AbortableModelRunner{
+case class AbortableModelRunnerFactory(model0: ABCModel){
+	def getNew = new AbortableModelRunner{
 		val model = model0
 		val random = Random
-		val parallelism = parallelism0
 	}
 }
-

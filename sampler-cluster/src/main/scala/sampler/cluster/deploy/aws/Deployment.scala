@@ -14,6 +14,9 @@ import java.nio.file.Path
 import scala.sys.process._
 import sampler.cluster.run.ClusterNode
 import sampler.cluster.deploy.SSH
+import java.nio.file.StandardOpenOption
+import java.nio.charset.Charset
+import java.nio.file.attribute.PosixFilePermission
 
 
 /*
@@ -22,7 +25,6 @@ import sampler.cluster.deploy.SSH
  */
 
 object Deployment extends App with Logging{
-
 	val localDeployDir = Paths.get(System.getProperty("user.home")).resolve("workspace/Sampler/sampler-examples/deploy")
 	log.info("localDeployDir: {}", localDeployDir)
 	assert(Files.exists(localDeployDir))
@@ -38,6 +40,8 @@ object Deployment extends App with Logging{
 	assert(Files.exists(accessKeyPath))
 	assert(Files.exists(sshPemPath))
 	assert(Files.exists(s3cmdCfgPath))
+	
+	val newLine = System.getProperty("line.separator")
 	
 	val endpoint = "ec2.eu-west-1.amazonaws.com"
 
@@ -69,19 +73,39 @@ object Deployment extends App with Logging{
 	}
 	
 	def startApplication(host: String, internalIP: String, masterIP: String) {
-		val command = List(
-			"java",
-			"-Xmx3g",
-			s"-Dakka.remote.netty.tcp.hostname=$internalIP",
-			s"-Dakka.cluster.seed-nodes.0=akka.tcp://ABCSystem@$masterIP:2552",
-			"-Dconfig.file=application.conf",
-			"-Dlogback.configurationFile=logback.xml",
-			"-cp",
-			"sampler-examples-assembly-*.jar",
-			"sampler.example.abc.ClusteredUnfairCoin"
-		).map(_+" ").mkString.dropRight(1)
-		println(command)
-		ssh.background(user, host, command)
+		val runCommand = 
+s"""
+java -Xmx3g \\
+-Dakka.remote.netty.tcp.hostname=$internalIP \\
+-Dakka.cluster.seed-nodes.0=akka.tcp://ABC@$masterIP:2552 \\
+-Dconfig.file=application.conf \\
+-Dlogback.statusListenerClass=ch.qos.logback.core.status.OnConsoleStatusListener \\
+-Dlogback.configurationFile=logback.xml \\
+-cp "lib/*" \\
+sampler.example.abc.ClusteredUnfairCoin
+"""
+
+//		val tempDir = Paths.get(System.getProperty("java.io.tmpdir"))
+		val tempFile = Files.createTempFile("run", ".sh")
+		tempFile.toFile().deleteOnExit
+		log.info("Temp file path is {}", tempFile)
+//Delete the temporary directory
+//            temp.toFile().deleteOnExit();
+		Files.setPosixFilePermissions(tempFile, Set(
+				PosixFilePermission.OWNER_EXECUTE,
+				PosixFilePermission.OWNER_READ,
+				PosixFilePermission.OWNER_WRITE,
+				PosixFilePermission.GROUP_EXECUTE,
+				PosixFilePermission.OTHERS_EXECUTE
+		))
+		
+		val writer = Files.newBufferedWriter(tempFile, Charset.defaultCharset())
+		writer.write("#!/bin/bash")
+		writer.write(runCommand)
+		writer.close
+		
+		ssh.scp(user, host, tempFile)		
+		ssh.background(user, host, s"./${tempFile.getFileName()}")
 	}
 	
 	def stopApplication(host: String) {
@@ -113,25 +137,26 @@ object Deployment extends App with Logging{
 	 */
 	log.info("Confirm account details: {}", userStuff)
 
+	clusterNodes.foreach{node => 
+		stopApplication(node.getPublicDnsName())
+	}
+
 //	emptyS3Bucket
 	doS3upload(localDeployDir, s3DeployBucket)
-//
-//	val masterPrivateIp = clusterNodes.head.getPrivateIpAddress()
-//	clusterNodes.foreach{node => 
-//		val publicDNS = node.getPublicDnsName
-//		val privateIP = node.getPrivateIpAddress
-//		
-//		transferS3CmdConfig(publicDNS)
-//		
-//		//TODO only do this if not already there?
-//		// or sync is enough?
-//		instanceS3download(publicDNS)
-//		
-//		startApplication(publicDNS, privateIP, masterPrivateIp)
-//		println("started application on "+node.getPrivateIpAddress())
-//	}
+
+	val masterPrivateIp = clusterNodes.head.getPrivateIpAddress()
+	clusterNodes.foreach{node => 
+		val publicDNS = node.getPublicDnsName
+		val privateIP = node.getPrivateIpAddress
+		
+		transferS3CmdConfig(publicDNS)
+		
+		//TODO only do this if not already there?
+		// or sync is enough?
+		instanceS3download(publicDNS)
+		
+		startApplication(publicDNS, privateIP, masterPrivateIp)
+		println("started application on "+node.getPrivateIpAddress())
+	}
 //	
-//	clusterNodes.foreach{node => 
-//		stopApplication(node.getPublicDnsName())
-//	}
 }
