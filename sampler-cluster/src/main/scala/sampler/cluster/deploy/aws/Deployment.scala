@@ -25,9 +25,8 @@ import java.nio.file.attribute.PosixFilePermission
  */
 
 object Deployment extends App with Logging{
-	val localDeployDir = Paths.get(System.getProperty("user.home")).resolve("workspace/Sampler/sampler-examples/deploy")
+	val localDeployDir = Paths.get(System.getProperty("user.home")).resolve("Sampler/sampler-examples/deploy")
 	log.info("localDeployDir: {}", localDeployDir)
-	assert(Files.exists(localDeployDir))
 	
 	val targetTag = new Tag("Name", "test")
 	val s3DeployBucket = "s3://ot-test1"	
@@ -37,6 +36,7 @@ object Deployment extends App with Logging{
 	val sshPemPath = credentialsPath.resolve("otkp.pem")
 	val s3cmdCfgPath = credentialsPath.resolve(".s3cfg")
 	
+	assert(Files.exists(localDeployDir))	
 	assert(Files.exists(accessKeyPath))
 	assert(Files.exists(sshPemPath))
 	assert(Files.exists(s3cmdCfgPath))

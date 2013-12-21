@@ -44,6 +44,8 @@ import akka.routing.BroadcastRouter
 import sampler.cluster.abc.actor.worker.AbortableModelRunnerFactory
 import akka.routing.FromConfig
 import sampler.cluster.abc.actor.Receiver
+import scala.concurrent.Future
+import akka.pattern.pipe
 
 class RootActor(
 		val model0: ABCModel, 
@@ -64,9 +66,15 @@ class RootActor(
 	val receiver = context.actorOf(Props[Receiver], "receiver")
 	val workerRouter = context.actorOf(FromConfig.props(Props(classOf[Worker],modelRunnerFactory)), "work-router")
 	
+	
+	case class Finished(eState: EncapsulatedState)
+	case class NextGeneration(eState: EncapsulatedState)
+	
 	case class Mix()
-	context.system.scheduler.schedule(5.second, abcParams.cluster.mixRateMS.millisecond, self, Mix)
+	val mixPeriod = abcParams.cluster.mixRateMS.millisecond
+	context.system.scheduler.schedule(mixPeriod * 10, mixPeriod, self, Mix)
 
+	
 	implicit val r = Random
 	
 	def receive = idle
@@ -80,51 +88,59 @@ class RootActor(
 			workerRouter ! Job(population, abcParams)
 			
 			val sndr = sender
-			become(busy(stateEngine.setClient(eState, sndr)))
-		case msg => log.error("Unexpected message of type {}",msg.getClass())
+			become(gathering(stateEngine.setClient(eState, sndr)))
+		case msg => log.error("Unexpected message of type {} when in Idle state",msg.getClass())
 	}
 	
 	
-	def busy(eState: EncapsulatedState): Receive = {
-		case msg: TaggedAndScoredParameterSets[Scored[ParameterSet]] =>
+	def gathering(eState: EncapsulatedState): Receive = {
+		case data: TaggedAndScoredParameterSets[_] =>
 			val sndr = sender
-
-			//TODO can remove the cast somehow?
-			val castSeq = msg.seq.asInstanceOf[Seq[Tagged[Scored[eState.model.ParameterSet]]]]
+			val castData = data.seq.asInstanceOf[Seq[Tagged[Scored[eState.model.ParameterSet]]]]
+			val newEState = stateEngine.add(eState, abcParams, sndr)(castData)
 			
-			val newEState = stateEngine.add(eState, abcParams, sndr)(castSeq)
-			become(busy(newEState))
-			checkIfDone(newEState)
-		case Mix =>
+			if(stateEngine.numberAccumulated(newEState) < abcParams.job.numParticles)
+				become(gathering(newEState))	//Continue gathering particles
+			else {
+				workerRouter ! Abort
+				become(finalisingGeneration)
+
+				implicit val executionContext = context.system.dispatchers.lookup("sampler.work-dispatcher")
+				
+				Future{
+					import newEState.state._
+					val numGenerations = abcParams.job.numGenerations
+					log.info("Generation {}/{} complete", currentIteration, numGenerations)
+					
+					if(currentIteration == numGenerations){
+						if(abcParams.cluster.terminateAtTargetGenerations) Finished(newEState)
+						else NextGeneration(stateEngine.flushGeneration(newEState, abcParams.job.numParticles))
+					} 
+					else NextGeneration(stateEngine.flushGeneration(newEState, abcParams.job.numParticles))
+				}.pipeTo(self)
+			}
+		case Mix => 
 			val payload = stateEngine.getMixPayload(eState, abcParams)
 			payload.foreach{message =>
 				broadcaster ! message
 			}
-		case msg => log.error("Unexpected message of type {}",msg.getClass())
+		case msg => log.error("Unexpected message of type {} when in Gathering state",msg.getClass())
+		
 	}
 	
-	def checkIfDone(eState: EncapsulatedState) {
-		val numGenerations = abcParams.job.numGenerations
-		
-		if(stateEngine.numberAccumulated(eState) >= abcParams.job.numParticles){
-			import eState.state._
-			log.info("Generation {}/{} complete", currentIteration, numGenerations)
-			if(currentIteration == numGenerations){
-				val result: Seq[eState.model.ParameterSet] = weightedParameterSets.map(_.value).take(abcParams.job.numParticles) 
-				client ! result
-				log.info("Number of required generations completed and reported to requestor")
-				if(abcParams.cluster.terminateAtTargetGenerations) workerRouter ! Abort
-				else startNextRun(eState)
-			} else{
-				startNextRun(eState)
-			}
-		}
-	}
-		
-	def startNextRun(eState: EncapsulatedState){
-		val newEState = stateEngine.flushGeneration(eState, abcParams.job.numParticles)
-		become(busy(newEState))
-		
-		workerRouter ! Job(newEState.state.weightedParameterSets, abcParams)
+	def finalisingGeneration(): Receive = {
+		case _: TaggedAndScoredParameterSets[_] => //Ignored
+		case Mix => //Ignored
+			//TODO in future may accumulate
+		case Finished(eState) => 
+			workerRouter ! Abort
+
+			val result: Seq[eState.model.ParameterSet] = eState.state.weightedParameterSets.map(_.value).take(abcParams.job.numParticles) 
+			eState.state.client ! result
+			log.info("Number of required generations completed and reported to requestor")
+		case NextGeneration(eState) => 
+			become(gathering(eState))
+			workerRouter ! Job(eState.state.weightedParameterSets, abcParams)
+		case msg => log.error("Unexpected message of type {} when in FinalisingGeneration state",msg.getClass())
 	}
 }

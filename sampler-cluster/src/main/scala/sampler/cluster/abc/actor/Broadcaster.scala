@@ -107,10 +107,10 @@ class Broadcaster(abcParams: ABCParameters) extends Actor with ActorLogging{
   				val responseTime = test.durationSince
   				val expired = responseTime > testTimeout
   				if(!expired){
-  					log.debug("Pre-message test passed after {}, sent data to {}", responseTime, who)
+  					log.debug("Pre-mix passed after {}, sent data to {}", responseTime, who)
 	  				who ! test.msg
   				}
-  				else log.warning("Pre-message test failed after {}>{} ms for {}", responseTime, testTimeout, who)
+  				else log.warning("Pre-mix FAILED: {}>{} ms for {}", responseTime, testTimeout, who)
   			}
   			preMixingTests = preMixingTests - who
   		case CheckPreMixingTests =>
@@ -118,7 +118,7 @@ class Broadcaster(abcParams: ABCParameters) extends Actor with ActorLogging{
   			preMixingTests = preMixingTests.filter{case (recipient, test) =>
   				val responseTime = test.durationSince
   				val expired = responseTime > testTimeout
-  				if(expired) log.warning("Pre-message test timed out after {}>{} ms for {}", responseTime, testTimeout, recipient)
+  				if(expired) log.warning("Pre-mix FAILED: {}>{} ms for {}", responseTime, testTimeout, recipient)
   				!expired
   			}
   		case msg: TaggedAndScoredParameterSets[_] =>
@@ -140,10 +140,10 @@ class Broadcaster(abcParams: ABCParameters) extends Actor with ActorLogging{
 		import scala.concurrent.duration._
 		
 		var numWorkers: Option[Int] = None
-		context.system.scheduler.schedule(5.second, 5.second, self, Tick)
+		context.system.scheduler.schedule(5.second, 20.second, self, Tick)
 		def receive = {
 			case Tick => 
-				numWorkers.foreach(n => log.info("{} other system(s) in the cluster", n))
+				numWorkers.foreach(n => log.info("# remote nodes = {}", n))
 			case NumWorkers(n) => numWorkers = Some(n)
 		}
 	}))

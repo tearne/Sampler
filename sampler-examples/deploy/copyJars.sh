@@ -1,4 +1,4 @@
-PROJ_DIR=~/workspace/Sampler
+PROJ_DIR=~/Sampler
 TARGET_DIR=$PROJ_DIR/sampler-examples/deploy/lib
 
 find $PROJ_DIR/lib_managed -name '*.jar' -exec cp '{}' $TARGET_DIR \;

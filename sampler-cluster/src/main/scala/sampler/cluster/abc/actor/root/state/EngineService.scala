@@ -30,6 +30,8 @@ import sampler.cluster.abc.actor.TaggedAndScoredParameterSets
 import sampler.cluster.abc.actor.root.State
 import sampler.cluster.abc.actor.root.EncapsulatedState
 import sampler.cluster.abc.parameters.ABCParameters
+import sampler.Implicits._
+import sampler.math.Random
 
 trait StateEngineService 
 	extends StateEngineComponent 
@@ -43,6 +45,8 @@ trait StateEngineComponent{
 		with ToleranceCalculatorComponent
 		with Logging =>
 	
+	implicit val r = Random
+			
 	def init(model: ABCModel, abcParameters: ABCParameters): EncapsulatedState = {
 		EncapsulatedState(model){
 			import model._
@@ -100,10 +104,14 @@ trait StateEngineComponent{
 		if(inBox.size > 0)
 			Some(TaggedAndScoredParameterSets(inBox
 				.toSeq
-				.map{case Tagged(weighted, origin) =>
-					Tagged(weighted.scored, origin)
+				.map{case Tagged(weighted, uid) =>
+					Tagged(weighted.scored, uid) -> 1
 				}
-				.takeRight(abcParameters.cluster.mixPayloadSize)
+				.toMap
+				.draw(math.min(inBox.size, abcParameters.cluster.mixPayloadSize))
+				._2		//TODO, this is all a bit nasty
+				.keys
+				.toSeq
 			))
 		else None
 	}
@@ -116,15 +124,16 @@ trait StateEngineComponent{
 			taggedAndScoredParamSets: Seq[Tagged[Scored[eState.model.ParameterSet]]]
 	): EncapsulatedState = {
 		import eState.state._
+		
 		type T = Tagged[Weighted[eState.model.ParameterSet]]
-		val weighedAndTagged = {
+		val weighedAndTagged: Seq[T] = {
 			val t:Seq[Option[T]] = taggedAndScoredParamSets
 				.filter(tagged => !idsObserved.contains(tagged.id))
-				.map{case Tagged(scored, address) =>
+				.map{case Tagged(scored, id) =>
 					val cast: Scored[eState.model.ParameterSet] = scored.asInstanceOf[Scored[eState.model.ParameterSet]]
 					weigher
 						.filterAndWeighScoredParameterSet(eState.model)(cast, weightsTable, currentTolerance)
-						.map{weighted => Tagged(weighted, System.currentTimeMillis())}
+						.map{weighted => Tagged(weighted, id)}
 				}
 			
 			t.flatten
@@ -133,11 +142,12 @@ trait StateEngineComponent{
 		val newInBox = inBox ++ weighedAndTagged
 		
 		log.info(
-				"Received {} samples, kept {}, accumulated {}: sender:{}", 
+				"+ {} => {} = {}/{} ({})", 
 				taggedAndScoredParamSets.size.toString, 
 				weighedAndTagged.size.toString, 
 				newInBox.size.toString,
-				sender
+				abcParameters.job.numParticles.toString,
+				sender.path
 		)
 		
 		val newIdsObserved = {

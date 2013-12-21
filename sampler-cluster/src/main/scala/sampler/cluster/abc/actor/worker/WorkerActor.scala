@@ -73,7 +73,8 @@ class Worker(modelRunnerFactory: AbortableModelRunnerFactory)
 	
 	def waitingForAbortComfirmation(nextContract: Option[Contract]): Receive = {
 		case newJob: Job =>
-			log.error("Overrieding previously queued work request (still waiting for last job to abort)")
+			if(nextContract.isDefined) 
+				log.error("Overrieding previously queued work request (still waiting for last job to abort)")
 			val newClient = sender
 			become(waitingForAbortComfirmation(Some(Contract(newJob,newClient))))
 		case out: Try[_] => 

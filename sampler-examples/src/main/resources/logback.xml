@@ -2,21 +2,21 @@
 <configuration>
 	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
 	    <encoder>
-	    	<pattern>%-5level %logger{0} %X{akkaSource} - %msg%n</pattern>
+	    	<pattern>%-5level %logger{0} %X{akkaSource} %msg%n</pattern>
 	    </encoder>
 	</appender>
 	     
 	<appender name="APPLICATION_FILE" class="ch.qos.logback.core.FileAppender">
 	    <File>log/Application.log</File>
 		<encoder>
-			<pattern>%d{HH:mm:ss:SSS} %-5level %logger{0} %X{akkaSource} - %msg%n</pattern>
+			<pattern>%d{HH:mm:ss:SSS} %-5level %logger{0} %X{akkaSource} %msg%n</pattern>
 		</encoder>
 	</appender>
 	
 	<appender name="FRAMEWORK_FILE" class="ch.qos.logback.core.FileAppender">
 	    <File>log/Framework.log</File>
 		<encoder>
-			<pattern>%d{HH:mm:ss:SSS} %-5level %logger{0} %X{akkaSource} - %msg%n</pattern>
+			<pattern>%d{HH:mm:ss:SSS} %-5level %logger{0} %X{akkaSource} %msg%n</pattern>
 		</encoder>
 	</appender>
 	
