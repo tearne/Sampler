@@ -20,7 +20,7 @@ package sampler.example.abc
 import java.nio.file.Files
 import java.nio.file.Paths
 import org.apache.commons.math3.distribution.NormalDistribution
-import sampler.Implicits.RichFractionalSeq
+import sampler.Implicits._
 import sampler.data.Distribution
 import sampler.math.Probability
 import sampler.math.Random
@@ -73,9 +73,9 @@ object LocalUnfairCoin extends App{
 	)
 	
 	val finalPopulation = ABCMethod(
-			CoinModel, 
-			parameters, 
-			LocalPopulationBuilder, 
+			CoinModel,
+			parameters,
+			LocalPopulationBuilder,
 			Random
 	).get
 
