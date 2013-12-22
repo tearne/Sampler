@@ -47,7 +47,7 @@ trait AbortableModelRunner extends Logging{
 	
 	def run(job: Job): Try[Seq[Scored[ParameterSet]]] = Try{
 		val prevPopulation = job.population.asInstanceOf[Seq[Weighted[ParameterSet]]]
-		val weightsTable = prevPopulation.groupBy(_.value).map{case (k,v) => (k, v.map(_.weight).sum)}.toIndexedSeq
+		val weightsTable = prevPopulation.groupBy(_.params).map{case (k,v) => (k, v.map(_.weight).sum)}.toIndexedSeq
 		val (parameterSets, weights) = weightsTable.unzip
 		val samplablePopulation = Distribution.fromPartition(parameterSets, Partition.fromWeights(weights))
 		val maxParticleRetries = job.abcParams.algorithm.maxParticleRetries

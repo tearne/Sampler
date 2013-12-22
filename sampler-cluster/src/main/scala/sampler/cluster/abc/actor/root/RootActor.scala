@@ -135,7 +135,7 @@ class RootActor(
 		case Finished(eState) => 
 			workerRouter ! Abort
 
-			val result: Seq[eState.model.ParameterSet] = eState.state.weightedParameterSets.map(_.value).take(abcParams.job.numParticles) 
+			val result: Seq[eState.model.ParameterSet] = eState.state.weightedParameterSets.map(_.params).take(abcParams.job.numParticles) 
 			eState.state.client ! result
 			log.info("Number of required generations completed and reported to requestor")
 		case NextGeneration(eState) => 

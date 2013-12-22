@@ -58,7 +58,7 @@ trait StateEngineComponent{
 				.seq
 				
 			val weightsTable = generationZero
-				.map{weighed => (weighed.value, weighed.weight)}
+				.map{weighed => (weighed.params, weighed.weight)}
 				.toMap
 				
 			State(
@@ -126,6 +126,18 @@ trait StateEngineComponent{
 		import eState.state._
 		
 		type T = Tagged[Weighted[eState.model.ParameterSet]]
+		
+		//TODO 
+		/*
+		 * It's possible that the same parameters are sampled twice,
+		 * leading to add being called on two separate occasions, and 
+		 * weighted parameters being calculated separately, rather than
+		 * together.  
+		 * 
+		 * Can we just aggregate scored (& tagged) parameters, leaving 
+		 * weights calculation until the generation is finalised? 
+		 */ 
+		
 		val weighedAndTagged: Seq[T] = {
 			val t:Seq[Option[T]] = taggedAndScoredParamSets
 				.filter(tagged => !idsObserved.contains(tagged.id))

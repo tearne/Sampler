@@ -57,7 +57,7 @@ protected[abc] trait IterateComponent {
 							loop(ePop, generationsRemaining - 1, previousTolerance, previousTolerance)
 						case Some(newEPop) =>
 							//Next tolerance is the median of the previous best for each particle
-							val fit = newEPop.population.map(_.meanScore)
+							val fit = newEPop.population.map(_.meanRepScore)
 							val medianMeanFit = statistics.quantile(fit.toEmpiricalSeq, Probability(0.5))
 							val newTolerance = 
 								if(medianMeanFit == 0) {

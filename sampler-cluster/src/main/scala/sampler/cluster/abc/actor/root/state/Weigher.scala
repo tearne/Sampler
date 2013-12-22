@@ -37,10 +37,10 @@ trait WeigherComponent {
 				): Option[Weighted[model.ParameterSet]] = {
 			import model._
 			def getWeight(scored: Scored[ParameterSet]): Option[Double] = {
-				val fHat = scored.runScores.filter(_ < tolerance).size.toDouble
-						val numerator = fHat * prior.density(scored.value)
+				val fHat = scored.repScores.filter(_ < tolerance).size.toDouble
+						val numerator = fHat * prior.density(scored.params)
 						val denominator = previousParamsWithWeights.map{case (params0, weight) => 
-						weight * params0.perturbDensity(scored.value)
+						weight * params0.perturbDensity(scored.params)
 				}.sum
 				if(numerator > 0 && denominator > 0) Some(numerator / denominator)
 				else None
@@ -51,7 +51,7 @@ trait WeigherComponent {
 		
 		def consolidateToWeightsTable(model: ABCModel)(population: Seq[Weighted[model.ParameterSet]]): Map[model.ParameterSet, Double] = {
 			population
-			.groupBy(_.value)
+			.groupBy(_.params)
 			.map{case (k,v) => (k, v.map(_.weight).sum)}
 		}
 	}

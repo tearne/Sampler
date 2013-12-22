@@ -51,7 +51,7 @@ trait ParticleBuilderComponent{
 			import model._
 			implicit val r = random
 			
-			val weightsTable = prevPopulation.groupBy(_.value).map{case (k,v) => (k, v.map(_.weight).sum)}.toIndexedSeq
+			val weightsTable = prevPopulation.groupBy(_.params).map{case (k,v) => (k, v.map(_.weight).sum)}.toIndexedSeq
 			val (parameters, weights) = weightsTable.unzip
 			val samplablePopulation = Distribution.fromPartition(parameters, Partition.fromWeights(weights))
 			
@@ -78,11 +78,21 @@ trait ParticleBuilderComponent{
 						else None
 					}
 					
+					//TODO 
+					/*
+					 * It's possible that the same parameters are sampled twice,
+					 * leading to add being called on two separate occasions, and 
+					 * weighted parameters being calculated separately, rather than
+					 * together.  
+					 * 
+					 * Can we just aggregate scored (& tagged) parameters, leaving 
+					 * weights calculation until the generation is finalised? 
+					 */ 
+					
 					val res: Option[Weighted[ParameterSet]] = for{
 						params <- Some(samplablePopulation.sample().perturb()) if prior.density(params) > 0
 						fitScores <- Some(getScores(params))
 						weight <- getWeight(params, fitScores) 
-//						meanFit = fitScores.sum.toDouble / fitScores.size
 					} yield Weighted(Scored(params, fitScores), weight)
 					
 					res match {

@@ -23,11 +23,11 @@ import sampler.data.Distribution
 trait Prior[A] extends Distribution[A]{
 	def density(value: A): Double
 }
-case class Scored[+A](value: A, runScores: Seq[Double])
+case class Scored[+A](params: A, repScores: Seq[Double])
 case class Weighted[+A](scored: Scored[A], weight: Double){
-	def value = scored.value
-	def runScores = scored.runScores
-	def meanScore = runScores.sum.toDouble / runScores.size
+	def params = scored.params
+	def repScores = scored.repScores
+	def meanRepScore = repScores.sum.toDouble / repScores.size
 }
 
 trait ABCModel{
@@ -48,11 +48,4 @@ trait ABCModel{
 	val prior: Prior[ParameterSet]
 
 	def modelDistribution(p: ParameterSet): Distribution[Simulated]
-	
-//	case class Scored(parameterSet: ParameterSet, runScores: Seq[Double])
-//	case class Weighted(scored: Scored, weight: Double){
-//		def parameterSet = scored.parameterSet
-//		def runScores = scored.runScores
-//		def meanScore = runScores.sum.toDouble / runScores.size
-//	}
 }
