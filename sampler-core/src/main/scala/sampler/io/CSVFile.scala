@@ -68,7 +68,6 @@ object CSVFile {
 			writer.newLine()
 		}
 		writer.close
-		
 	}
 	
 	private def checkHeader(expected: Seq[String], actual: String) = {

@@ -35,6 +35,11 @@ import sampler.cluster.run.slave.Abort
 import sampler.cluster.run.slave.WorkConfirmed
 import sampler.cluster.run.slave.WorkRejected
 import sampler.cluster.run.slave.WorkerIdle
+import akka.actor.ActorSelection
+import scala.concurrent.duration._
+import scala.language.postfixOps
+import akka.util.Timeout
+import scala.concurrent.Await
 
 class Supervisor extends Actor with ActorLogging {
 	val confirmationTimeout = 1.second
@@ -78,9 +83,14 @@ class Supervisor extends Actor with ActorLogging {
 		context.stop(self)
 	}
 	
-	private def clusterMemberLost(myWorker:ActorRef, member: Member, request: Request){
+	private def investigateClusterMemberLost(myWorker:ActorRef, member: Member, request: Request){
 		val workerPath = Seq("user", "worker")
-		val potentialWorker = context.actorFor(RootActorPath(member.address) / workerPath)
+		val potentialWorker = Await.result(context
+			.actorSelection(RootActorPath(member.address) / workerPath)
+			.resolveOne(5 seconds),
+			5 seconds
+		)
+		
 		if(myWorker == potentialWorker) {
 			log.warning("Cluster member lost during calculation")
 			confirmationFailed(request)
@@ -89,7 +99,7 @@ class Supervisor extends Actor with ActorLogging {
 	
 	def awaitingResults(worker: ActorRef, request: Request): Receive = {
 		def behaviour: Receive = {
-			case MemberRemoved(m, previousStatus) => clusterMemberLost(worker, m, request)
+			case MemberRemoved(m, previousStatus) => investigateClusterMemberLost(worker, m, request)
 			case Abort =>
 				worker ! Abort
 				context.stop(self)

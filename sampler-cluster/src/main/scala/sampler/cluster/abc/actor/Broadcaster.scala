@@ -39,6 +39,7 @@ import scala.concurrent.duration._
 import akka.actor.ActorSelection.toScala
 import akka.cluster.ClusterEvent.ClusterDomainEvent
 import sampler.cluster.abc.parameters.ABCParameters
+import scala.language.existentials
 
 class Broadcaster(abcParams: ABCParameters) extends Actor with ActorLogging{
 	val cluster = Cluster(context.system)
@@ -72,7 +73,7 @@ class Broadcaster(abcParams: ABCParameters) extends Actor with ActorLogging{
 	def attemptWorkerHandshake(root: RootActorPath){
 		val path = root / recipientPath
 		log.debug("Attempting handshake with potential node: {}", path)
-		context.system.actorSelection(path) ! Identify(None)
+		context.actorSelection(path) ! Identify(None)
 	}
 	
 	def receive = {

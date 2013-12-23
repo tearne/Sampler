@@ -26,6 +26,7 @@ import akka.actor.actorRef2Scala
 import sampler.cluster.run.master.dispatch.Job
 import sampler.cluster.run.slave.WorkerIdle
 import sampler.cluster.run.slave.Abort
+import scala.language.existentials
 
 case class Request(job: Job[_], requestor: ActorRef, jobID: Long)
 case class WorkAvailable()

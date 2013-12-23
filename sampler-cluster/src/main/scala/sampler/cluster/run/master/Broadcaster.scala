@@ -66,7 +66,7 @@ class Broadcaster extends Actor with ActorLogging{
 	val workerPath = Seq("user", "workerroot")
 	
 	def attemptWorkerHandshake(m: Member){
-		val workerCandidate = context.actorFor(RootActorPath(m.address) / workerPath)
+		val workerCandidate = context.actorSelection(RootActorPath(m.address) / workerPath)
 		workerCandidate ! StatusRequest
 		log.debug("Attempting handshake with potential worker {}", workerCandidate)
 	}

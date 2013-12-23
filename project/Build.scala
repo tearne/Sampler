@@ -5,7 +5,7 @@ import AssemblyKeys._
 import com.typesafe.sbteclipse.plugin.EclipsePlugin.EclipseKeys
 
 object SamplerBuild extends Build{
-	val buildOrganization 	= "ahvla"
+	val buildOrganization 	= "org.tearne"
 	val buildVersion 	= "0.0.21"
 	val buildScalaVersion	= "2.10.3"
 	
@@ -71,7 +71,7 @@ object SamplerBuild extends Build{
 		mappings in (Compile,packageBin) ~= { (ms: Seq[(File, String)]) =>
 			ms filter { case (file, toPath) =>
 				if(toPath.contains(".xml") || toPath.contains(".config")){
-					println("=== excluding: "+toPath)
+					println("> excluding: "+toPath)
 					false
 				}
 				else true
@@ -84,7 +84,8 @@ object SamplerBuild extends Build{
 		version		 := buildVersion,
 		scalaVersion := buildScalaVersion,
 
-		scalacOptions ++= Seq("-deprecation", "-feature"),
+		scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature"),
+//		scalacOptions ++= Seq("-encoding", "UTF-8", "-Xlint", "-deprecation", "-unchecked", "-feature"),
 		
 		//Copies all dependencies to lib_managed
 		retrieveManaged	:= true,
@@ -98,7 +99,7 @@ object SamplerBuild extends Build{
 		libraryDependencies ++= Seq(
 			"com.typesafe" % "config" % "1.0.2",
 			"junit" % "junit" % "4.8" % "test->default",
-			"org.scalatest" % "scalatest_2.10" % "2.0.M5b" % "test",
+			"org.scalatest" % "scalatest_2.10" % "2.0" % "test",
 			"org.specs2" %% "specs2" % "1.13" % "test",
 			"org.mockito" % "mockito-all" % "1.9.0" %"test->default",
 			"ch.qos.logback" % "logback-classic" % "1.0.12",
