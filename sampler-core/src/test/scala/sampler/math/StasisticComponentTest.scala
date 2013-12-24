@@ -5,9 +5,9 @@ import org.junit.Assert._
 import org.junit.Before
 import org.junit.Test
 import sampler.Implicits._
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.Matchers
 
-class StasisticComponentTest extends AssertionsForJUnit with StatisticsComponent with ShouldMatchers {
+class StasisticComponentTest extends AssertionsForJUnit with StatisticsComponent with Matchers {
 
   implicit val r = Random
   val tolerance = 1e-8
@@ -28,13 +28,13 @@ class StasisticComponentTest extends AssertionsForJUnit with StatisticsComponent
   @Test def calculatesEmpiricalSeqMean {
     val empSeq = IndexedSeq[Double](1,2,3,4).toEmpiricalSeq
 	
-    mean(empSeq) should be(2.5 plusOrMinus tolerance)
+    mean(empSeq) should be(2.5 +- tolerance)
   }
   
   @Test def calculatesEmpiricalTableMean {
     val empTable = IndexedSeq[Double](1,2,3,4).toEmpiricalTable
     
-    mean(empTable) should be(2.5 plusOrMinus tolerance)
+    mean(empTable) should be(2.5 +- tolerance)
   }
 
   @Test def quantileSmallExampleEmpiricalSeq {
@@ -112,6 +112,6 @@ class StasisticComponentTest extends AssertionsForJUnit with StatisticsComponent
     val instance1 = IndexedSeq(1,2,3,4).toEmpiricalSeq 
 	val instance2 = IndexedSeq(1,2,2,2).toEmpiricalSeq // biggest distance 4
 			
-	maxDistance(instance1, instance2) should be(0.5 plusOrMinus tolerance)
+	maxDistance(instance1, instance2) should be(0.5 +- tolerance)
   }
 }

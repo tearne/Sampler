@@ -5,11 +5,11 @@ import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Assert._
 import org.junit.Before
 import org.junit.Test
-import org.scalatest.matchers.ShouldMatchers
 import sampler.math.Random
 import sampler._
+import org.scalatest.Matchers
 
-class EmpiricalSeqTest extends AssertionsForJUnit with ShouldMatchers {
+class EmpiricalSeqTest extends AssertionsForJUnit with Matchers {
 
   implicit var r: Random = _
   var es: EmpiricalSeq[Int] = _
@@ -34,10 +34,10 @@ class EmpiricalSeqTest extends AssertionsForJUnit with ShouldMatchers {
   @Test def empiricalSeqGivesCorrectProbabilities {
     val probs = es.probabilityTable
     
-    probs(1).value should be(0.25 plusOrMinus tolerance)
-    probs(2).value should be(0.25 plusOrMinus tolerance)
-    probs(3).value should be(0.25 plusOrMinus tolerance)
-    probs(4).value should be(0.25 plusOrMinus tolerance)
+    probs(1).value should be(0.25 +- tolerance)
+    probs(2).value should be(0.25 +- tolerance)
+    probs(3).value should be(0.25 +- tolerance)
+    probs(4).value should be(0.25 +- tolerance)
   }
   
   @Test def empiricalSeqCanBeAddedTo {
@@ -46,8 +46,8 @@ class EmpiricalSeqTest extends AssertionsForJUnit with ShouldMatchers {
     
     assert(es2.supportSize === 8)
     assert(es2.size === 16)
-    probs(1).value should be (0.125 plusOrMinus tolerance)
-    probs(5).value should be (0.125 plusOrMinus tolerance)
+    probs(1).value should be (0.125 +- tolerance)
+    probs(5).value should be (0.125 +- tolerance)
   }
   
   @Test def empiricalSeqCanEqualAnotherEmpSeqOnly {

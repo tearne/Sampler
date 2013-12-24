@@ -24,13 +24,13 @@ import java.io.File
 import sampler.math._
 import java.nio.file.Files
 import org.scalatest.junit.AssertionsForJUnit
-import org.scalatest.matchers.ShouldMatchers
 import org.junit.Before
 import org.junit.Test
 import java.nio.file.Path
 import sampler.r.QuickPlot._
+import org.scalatest.Matchers
 
-class QuickPlotTest extends AssertionsForJUnit with ShouldMatchers {
+class QuickPlotTest extends AssertionsForJUnit with Matchers {
   
   implicit var r: Random = _
   var path: Path = _

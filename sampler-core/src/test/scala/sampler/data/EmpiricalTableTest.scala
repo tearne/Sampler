@@ -4,11 +4,11 @@ import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Assert._
 import org.junit.Before
 import org.junit.Test
-import org.scalatest.matchers.ShouldMatchers
 import sampler.math.Random
 import sampler.Implicits._
+import org.scalatest.Matchers
 
-class EmpiricalTableTest extends AssertionsForJUnit with ShouldMatchers {
+class EmpiricalTableTest extends AssertionsForJUnit with Matchers {
 
   implicit val r = Random
   var tolerance: Double = 1e-6
@@ -45,9 +45,9 @@ class EmpiricalTableTest extends AssertionsForJUnit with ShouldMatchers {
     val e2 = 1.0/6.0
     val e3 = 1.0/7.0
     
-    d1.probabilityTable(4).value should be(e1 plusOrMinus tolerance)
-    d2.probabilityTable(4).value should be(e2 plusOrMinus tolerance)
-    d3.probabilityTable(4).value should be(e3 plusOrMinus tolerance)
+    d1.probabilityTable(4).value should be(e1 +- tolerance)
+    d2.probabilityTable(4).value should be(e2 +- tolerance)
+    d3.probabilityTable(4).value should be(e3 +- tolerance)
   }
   
   @Test def calculatesMapOfCountsForEachObservation {
@@ -61,7 +61,7 @@ class EmpiricalTableTest extends AssertionsForJUnit with ShouldMatchers {
     val d4 = d1 ++ s1
     
     assert(d4.supportSize === 3)
-    d4.probabilityTable(6).value should be(0.5 plusOrMinus tolerance)
+    d4.probabilityTable(6).value should be(0.5 +- tolerance)
     assert(d4.freqTable === Map(4 -> 1, 5 -> 1, 6 ->2))
   }
   

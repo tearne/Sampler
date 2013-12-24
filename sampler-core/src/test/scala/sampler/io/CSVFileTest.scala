@@ -18,7 +18,6 @@
 package sampler.io
 
 import org.scalatest.junit.AssertionsForJUnit
-import org.scalatest.matchers.ShouldMatchers
 import org.junit.Before
 import org.junit.After
 import java.nio.file.Paths
@@ -29,8 +28,9 @@ import sampler.math.Probability
 import java.nio.file.Files
 import scala.io.Source
 import java.nio.file.StandardOpenOption
+import org.scalatest.Matchers
 
-class CSVFileTest extends AssertionsForJUnit with ShouldMatchers {
+class CSVFileTest extends AssertionsForJUnit with Matchers {
   val dir = Paths.get("src", "test", "resources", "data")
   
   case class Row(i: Int, b: Boolean, s: String, p: Probability, d: Double)

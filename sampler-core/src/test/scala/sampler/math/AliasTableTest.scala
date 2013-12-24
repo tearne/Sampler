@@ -4,10 +4,10 @@ import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Assert._
 import org.junit.Before
 import org.junit.Test
-import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.mock.MockitoSugar
+import org.scalatest.Matchers
 
-class AliasTableTest extends AssertionsForJUnit with ShouldMatchers with MockitoSugar {
+class AliasTableTest extends AssertionsForJUnit with Matchers with MockitoSugar {
 
   val rawProbSeq = Partition.fromWeights(IndexedSeq(0.1, 0.2, 0.3, 0.4))
   val myAlias = new AliasTable(rawProbSeq)
@@ -19,10 +19,10 @@ class AliasTableTest extends AssertionsForJUnit with ShouldMatchers with Mockito
     	
     val expectedProbs = Array(0.4, 0.8, 1.0, 0.8)
     
-    probs(0) should be(expectedProbs(0) plusOrMinus tolerance)
-    probs(1) should be(expectedProbs(1) plusOrMinus tolerance)
-    probs(2) should be(expectedProbs(2) plusOrMinus tolerance)
-    probs(3) should be(expectedProbs(3) plusOrMinus tolerance)
+    probs(0) should be(expectedProbs(0) +- tolerance)
+    probs(1) should be(expectedProbs(1) +- tolerance)
+    probs(2) should be(expectedProbs(2) +- tolerance)
+    probs(3) should be(expectedProbs(3) +- tolerance)
   }
   
   @Test def generatesCorrectAliasTable {
@@ -69,13 +69,13 @@ class AliasTableTest extends AssertionsForJUnit with ShouldMatchers with Mockito
           
     val probs = new AliasTable(anotherPartition).probability
 
-    probs(0) should be(0.77 plusOrMinus tolerance)
-    probs(1) should be(0.35 plusOrMinus tolerance)
-    probs(2) should be(1.0 plusOrMinus tolerance)
-    probs(3) should be(0.71 plusOrMinus tolerance)
-    probs(4) should be(0.56 plusOrMinus tolerance)
-    probs(5) should be(0.96 plusOrMinus tolerance)
-    probs(6) should be(0.63 plusOrMinus tolerance)
+    probs(0) should be(0.77 +- tolerance)
+    probs(1) should be(0.35 +- tolerance)
+    probs(2) should be(1.0 +- tolerance)
+    probs(3) should be(0.71 +- tolerance)
+    probs(4) should be(0.56 +- tolerance)
+    probs(5) should be(0.96 +- tolerance)
+    probs(6) should be(0.63 +- tolerance)
   }
   
   @Test def generatesCorrectAliasTableComplicatedExample {
@@ -98,11 +98,11 @@ class AliasTableTest extends AssertionsForJUnit with ShouldMatchers with Mockito
     
     val expectedAlias = Array(4,0,4,0,3)
     
-    probs(0) should be(0.5 plusOrMinus tolerance)
-    probs(1) should be(1.0 plusOrMinus tolerance)
-    probs(2) should be(0.0 plusOrMinus tolerance)
-    probs(3) should be(1.0 plusOrMinus tolerance)
-    probs(4) should be(0.5 plusOrMinus tolerance)
+    probs(0) should be(0.5 +- tolerance)
+    probs(1) should be(1.0 +- tolerance)
+    probs(2) should be(0.0 +- tolerance)
+    probs(3) should be(1.0 +- tolerance)
+    probs(4) should be(0.5 +- tolerance)
 
     assert(alias === expectedAlias)
   }
@@ -131,10 +131,10 @@ class AliasTableTest extends AssertionsForJUnit with ShouldMatchers with Mockito
 
     val errorRange = 40
     
-    zero should be(100 plusOrMinus errorRange)
-    one should be(200 plusOrMinus errorRange)
-    two should be(0 plusOrMinus errorRange)
-    three should be(300 plusOrMinus errorRange)
-    four should be(400 plusOrMinus errorRange)
+    zero should be(100 +- errorRange)
+    one should be(200 +- errorRange)
+    two should be(0 +- errorRange)
+    three should be(300 +- errorRange)
+    four should be(400 +- errorRange)
   }
 }

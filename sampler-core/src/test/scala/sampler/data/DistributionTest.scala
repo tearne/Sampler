@@ -5,10 +5,10 @@ import org.junit.Before
 import org.junit.Test
 import sampler.math.Probability
 import sampler.math.Random
-import org.scalatest.matchers.ShouldMatchers
 import sampler.math.Partition
+import org.scalatest.Matchers
 
-class DistributionTest extends AssertionsForJUnit with ShouldMatchers {
+class DistributionTest extends AssertionsForJUnit with Matchers {
 
   var instance: Distribution[Int] = _
   var instance2: Distribution[Int] = _
@@ -137,8 +137,8 @@ class DistributionTest extends AssertionsForJUnit with ShouldMatchers {
     val results = (1 to 10000).map(_ => model.sample)
     
     assert(results.count(_ >= 0.4) === 10000)
-    results.count(_ >= 1.4) should be (1000 plusOrMinus 200)
-    results.count(_ <= 0.6) should be (1000 plusOrMinus 200)
+    results.count(_ >= 1.4) should be (1000 +- 200)
+    results.count(_ <= 0.6) should be (1000 +- 200)
   }
 
   @Test def uniformDistributionWithIntParameters {
@@ -146,16 +146,16 @@ class DistributionTest extends AssertionsForJUnit with ShouldMatchers {
     
     val results = (1 to 10000).map(_ => model.sample)
     
-    results.count(_ == 1) should be (1000 plusOrMinus 200)
-    results.count(_ == 2) should be (1000 plusOrMinus 200)
-    results.count(_ == 3) should be (1000 plusOrMinus 200)
-    results.count(_ == 4) should be (1000 plusOrMinus 200)
-    results.count(_ == 5) should be (1000 plusOrMinus 200)
-    results.count(_ == 6) should be (1000 plusOrMinus 200)
-    results.count(_ == 7) should be (1000 plusOrMinus 200)
-    results.count(_ == 8) should be (1000 plusOrMinus 200)
-    results.count(_ == 9) should be (1000 plusOrMinus 200)
-    results.count(_ == 10) should be (1000 plusOrMinus 200)
+    results.count(_ == 1) should be (1000 +- 200)
+    results.count(_ == 2) should be (1000 +- 200)
+    results.count(_ == 3) should be (1000 +- 200)
+    results.count(_ == 4) should be (1000 +- 200)
+    results.count(_ == 5) should be (1000 +- 200)
+    results.count(_ == 6) should be (1000 +- 200)
+    results.count(_ == 7) should be (1000 +- 200)
+    results.count(_ == 8) should be (1000 +- 200)
+    results.count(_ == 9) should be (1000 +- 200)
+    results.count(_ == 10) should be (1000 +- 200)
   }
 
   @Test def iterableUniform {
@@ -165,9 +165,9 @@ class DistributionTest extends AssertionsForJUnit with ShouldMatchers {
     
     val results = (1 to 2000).map(_ => model.sample)
     
-    results.count(_ == 2) should be (500 plusOrMinus 100)
-    results.count(_ == 4) should be (500 plusOrMinus 100)
-    results.count(_ == 6) should be (500 plusOrMinus 100)
+    results.count(_ == 2) should be (500 +- 100)
+    results.count(_ == 4) should be (500 +- 100)
+    results.count(_ == 6) should be (500 +- 100)
   }
 
   @Test def withoutReplacementNeverSamplesSameObjectTwice {
@@ -189,9 +189,9 @@ class DistributionTest extends AssertionsForJUnit with ShouldMatchers {
     
     val results = (1 to 1000).map(_ => model.sample)
     
-    results.count(_.contains(2)) should be (500 plusOrMinus 100)
-    results.count(_.contains(4)) should be (500 plusOrMinus 100)
-    results.count(_.contains(6)) should be (500 plusOrMinus 100)
+    results.count(_.contains(2)) should be (500 +- 100)
+    results.count(_.contains(4)) should be (500 +- 100)
+    results.count(_.contains(6)) should be (500 +- 100)
   }
   
   @Test def sampleInfectedFromBinaryPopulation {
@@ -199,7 +199,7 @@ class DistributionTest extends AssertionsForJUnit with ShouldMatchers {
     
     val results = (1 to 10000).map(_ => model.sample)
     
-    results.count(_ == true) should be (500 plusOrMinus 100)
+    results.count(_ == true) should be (500 +- 100)
   }
   
   @Test def bernouliTrialWithProbabilityOne {
@@ -223,7 +223,7 @@ class DistributionTest extends AssertionsForJUnit with ShouldMatchers {
 		    
 	val result = (1 to 1000).map(_ => model.sample)
 		    
-	result.count(_ == true) should be (800 plusOrMinus 50)
+	result.count(_ == true) should be (800 +- 50)
   }
   
   @Test def coinTossIsFair {
@@ -231,7 +231,7 @@ class DistributionTest extends AssertionsForJUnit with ShouldMatchers {
 		  
     val result = (1 to 1000).map(_ => model.sample)
 		  
-	result.count(_ == true) should be (500 plusOrMinus 50)
+	result.count(_ == true) should be (500 +- 50)
   }
   
   @Test def samplesFromItemsBasedOnPartitionProbabilities {
@@ -242,10 +242,10 @@ class DistributionTest extends AssertionsForJUnit with ShouldMatchers {
     
     val result = (1 to 1000).map(_ => model.sample)
     
-    result.count(_ == 1) should be (100 plusOrMinus 50)
-    result.count(_ == 2) should be (200 plusOrMinus 50)
-    result.count(_ == 3) should be (300 plusOrMinus 50)
-    result.count(_ == 4) should be (400 plusOrMinus 50)
+    result.count(_ == 1) should be (100 +- 50)
+    result.count(_ == 2) should be (200 +- 50)
+    result.count(_ == 3) should be (300 +- 50)
+    result.count(_ == 4) should be (400 +- 50)
   }
   
   @Test def errorWhenPartitionLengthDoesntMatchSequenceLength {

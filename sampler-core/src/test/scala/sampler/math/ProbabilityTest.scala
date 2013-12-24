@@ -4,9 +4,9 @@ import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Assert._
 import org.junit.Before
 import org.junit.Test
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.Matchers
 
-class ProbabilityTest extends AssertionsForJUnit with ShouldMatchers{
+class ProbabilityTest extends AssertionsForJUnit with Matchers{
 
   var p1: Probability = _
   var p2: Probability = _
@@ -42,10 +42,10 @@ class ProbabilityTest extends AssertionsForJUnit with ShouldMatchers{
 	val p3 = Probability(0.4)
 	val tolerance = 1e-8
     
-    (p1 + p2).value should be (0.5 plusOrMinus tolerance)
-	(p1 - p2).value should be (0.1 plusOrMinus tolerance)
-	(p1 * p2).value should be (0.06 plusOrMinus tolerance)
-	(p2 / p3).value should be (0.5 plusOrMinus tolerance)
+    (p1 + p2).value should be (0.5 +- tolerance)
+	(p1 - p2).value should be (0.1 +- tolerance)
+	(p1 * p2).value should be (0.06 +- tolerance)
+	(p2 / p3).value should be (0.5 +- tolerance)
   }
   
   @Test def implicitToDoubleValue {
@@ -61,11 +61,11 @@ class ProbabilityTest extends AssertionsForJUnit with ShouldMatchers{
     assert(frac.compare(p2, p1) < 0)
     assert(frac.compare(p2, p2) === 0)
     
-    frac.plus(p1, p2).value should be(0.5 plusOrMinus tolerance)
-    frac.minus(p1, p2).value should be(0.1 plusOrMinus tolerance)
+    frac.plus(p1, p2).value should be(0.5 +- tolerance)
+    frac.minus(p1, p2).value should be(0.1 +- tolerance)
     
-    frac.times(p1, p2).value should be(0.06 plusOrMinus tolerance)
-    frac.div(p2, Probability(0.4)).value should be(0.5 plusOrMinus tolerance)
+    frac.times(p1, p2).value should be(0.06 +- tolerance)
+    frac.div(p2, Probability(0.4)).value should be(0.5 +- tolerance)
     
     assert(frac.negate(Probability(0.0)) === Probability(0.0))
     intercept[AssertionError] {
