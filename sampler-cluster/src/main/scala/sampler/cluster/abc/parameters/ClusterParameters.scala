@@ -29,7 +29,6 @@ case class ClusterParameters(
 )
 
 object ClusterParameters{
-	//TODO test
 	def fromConfig(c: Config) = {
 		val subC = c.getConfig("sampler.abc.cluster")
 		ClusterParameters(
