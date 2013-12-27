@@ -33,6 +33,7 @@ import sampler.abc.Scored
 import sampler.abc.Weighted
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.parallel.ThreadPoolTaskSupport
+import sampler.data.Distribution
 
 trait AbortableModelRunner extends Logging{
 	val model: ABCModel
@@ -46,10 +47,11 @@ trait AbortableModelRunner extends Logging{
 	def reset() { aborted.set(false) }
 	
 	def run(job: Job): Try[Seq[Scored[ParameterSet]]] = Try{
-		val prevPopulation = job.population.asInstanceOf[Seq[Weighted[ParameterSet]]]
-		val weightsTable = prevPopulation.groupBy(_.params).map{case (k,v) => (k, v.map(_.weight).sum)}.toIndexedSeq
-		val (parameterSets, weights) = weightsTable.unzip
-		val samplablePopulation = Distribution.fromPartition(parameterSets, Partition.fromWeights(weights))
+		val paramDist: Distribution[ParameterSet] =  {
+			val weightsTable = job.population.asInstanceOf[Map[ParameterSet, Double]]
+			Distribution.fromProbabilityTable(weightsTable)
+		}
+		
 		val maxParticleRetries = job.abcParams.algorithm.maxParticleRetries
 		
 		@tailrec
@@ -63,7 +65,7 @@ trait AbortableModelRunner extends Logging{
 				}
 				
 				val res: Option[Scored[ParameterSet]] = for{
-					params <- Some(samplablePopulation.sample().perturb()) if prior.density(params) > 0
+					params <- Some(paramDist.sample().perturb()) if prior.density(params) > 0
 					fitScores <- Some(getScores(params))
 				} yield Scored(params, fitScores)
 				

@@ -30,23 +30,23 @@ trait WeigherComponent {
 	val weigher: Weigher
 	
 	trait Weigher extends Logging{
-		def filterAndWeighScoredParameterSet(model: ABCModel)(
-				newScoredParam: Scored[model.ParameterSet],
+		def weighScoredParticle(model: ABCModel)(
+				scoredParticle: Scored[model.ParameterSet],
 				previousParamsWithWeights: Map[model.ParameterSet, Double],
 				tolerance: Double
-				): Option[Weighted[model.ParameterSet]] = {
+		): Option[Weighted[model.ParameterSet]] = {
 			import model._
-			def getWeight(scored: Scored[ParameterSet]): Option[Double] = {
-				val fHat = scored.repScores.filter(_ < tolerance).size.toDouble
-						val numerator = fHat * prior.density(scored.params)
-						val denominator = previousParamsWithWeights.map{case (params0, weight) => 
-						weight * params0.perturbDensity(scored.params)
+			def getWeight(particle: Scored[ParameterSet]): Option[Double] = {
+				val fHat = particle.repScores.filter(_ < tolerance).size.toDouble
+				val numerator = fHat * prior.density(particle.params)
+				val denominator = previousParamsWithWeights.map{case (params0, weight) => 
+					weight * params0.perturbDensity(particle.params)
 				}.sum
 				if(numerator > 0 && denominator > 0) Some(numerator / denominator)
 				else None
 			}
 			
-			getWeight(newScoredParam).map{wt => Weighted(newScoredParam, wt)}
+			getWeight(scoredParticle).map{wt => Weighted(scoredParticle, wt)}
 		}
 		
 		def consolidateToWeightsTable(model: ABCModel)(population: Seq[Weighted[model.ParameterSet]]): Map[model.ParameterSet, Double] = {

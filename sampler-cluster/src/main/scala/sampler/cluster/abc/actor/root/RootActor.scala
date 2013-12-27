@@ -46,6 +46,7 @@ import akka.routing.FromConfig
 import sampler.cluster.abc.actor.Receiver
 import scala.concurrent.Future
 import akka.pattern.pipe
+import sampler.data.Distribution
 
 class RootActor(
 		val model0: ABCModel, 
@@ -66,7 +67,6 @@ class RootActor(
 	val receiver = context.actorOf(Props[Receiver], "receiver")
 	val workerRouter = context.actorOf(FromConfig.props(Props(classOf[Worker],modelRunnerFactory)), "work-router")
 	
-	
 	case class Finished(eState: EncapsulatedState)
 	case class NextGeneration(eState: EncapsulatedState)
 	
@@ -82,10 +82,7 @@ class RootActor(
 	def idle: Receive = {
 		case Start(eState) =>
 			val client = sender
-			val population = eState.state.weightsTable.keysIterator
-				.map{value => Weighted(Scored(value, Nil), 1.0)}
-				.toSeq
-			workerRouter ! Job(population, abcParams)
+			workerRouter ! Job(eState.state.prevWeightsTable, abcParams)
 			
 			val sndr = sender
 			become(gathering(stateEngine.setClient(eState, sndr)))
@@ -108,15 +105,15 @@ class RootActor(
 				implicit val executionContext = context.system.dispatchers.lookup("sampler.work-dispatcher")
 				
 				Future{
-					import newEState.state._
+					val flushed = stateEngine.flushGeneration(newEState, abcParams.job.numParticles)
+					import flushed.state._
 					val numGenerations = abcParams.job.numGenerations
 					log.info("Generation {}/{} complete", currentIteration, numGenerations)
 					
-					if(currentIteration == numGenerations){
-						if(abcParams.cluster.terminateAtTargetGenerations) Finished(newEState)
-						else NextGeneration(stateEngine.flushGeneration(newEState, abcParams.job.numParticles))
-					} 
-					else NextGeneration(stateEngine.flushGeneration(newEState, abcParams.job.numParticles))
+					if(currentIteration == numGenerations && abcParams.cluster.terminateAtTargetGenerations)
+						Finished(flushed)
+					else 
+						NextGeneration(flushed)
 				}.pipeTo(self)
 			}
 		case Mix => 
@@ -131,16 +128,19 @@ class RootActor(
 	def finalisingGeneration(): Receive = {
 		case _: TaggedAndScoredParameterSets[_] => //Ignored
 		case Mix => //Ignored
-			//TODO in future may accumulate
+			//TODO in future may accumulate while running the finalisation future
 		case Finished(eState) => 
 			workerRouter ! Abort
 
-			val result: Seq[eState.model.ParameterSet] = eState.state.weightedParameterSets.map(_.params).take(abcParams.job.numParticles) 
+			val result: Seq[eState.model.ParameterSet] = Distribution
+				.fromProbabilityTable(eState.state.prevWeightsTable)
+				.until(_.size == abcParams.job.numParticles)
+				.sample
 			eState.state.client ! result
 			log.info("Number of required generations completed and reported to requestor")
 		case NextGeneration(eState) => 
 			become(gathering(eState))
-			workerRouter ! Job(eState.state.weightedParameterSets, abcParams)
+			workerRouter ! Job(eState.state.prevWeightsTable, abcParams)
 		case msg => log.error("Unexpected message of type {} when in FinalisingGeneration state",msg.getClass())
 	}
 }

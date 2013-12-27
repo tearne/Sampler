@@ -22,10 +22,9 @@ import sampler.abc.Weighted
 
 case class State[P](
 	client: ActorRef,
-	inBox: Set[Tagged[Weighted[P]]],
+	particleInBox: Set[Tagged[Weighted[P]]],
 	idsObserved: SortedSet[Long],
 	currentTolerance: Double,
 	currentIteration: Int,
-	weightsTable: Map[P, Double],
-	weightedParameterSets: Seq[Weighted[P]]
+	prevWeightsTable: Map[P, Double]
 )

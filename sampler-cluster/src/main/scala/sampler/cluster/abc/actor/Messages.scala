@@ -22,11 +22,12 @@ import sampler.abc.Weighted
 import sampler.cluster.abc.actor.root.EncapsulatedState
 import sampler.cluster.abc.actor.root.Tagged
 import sampler.cluster.abc.parameters.ABCParameters
+import scala.language.existentials
 
 case class Start(eState: EncapsulatedState)
 case class Result(params: Seq[ABCModel#ParameterSet])
 
-case class Job(population: Seq[Weighted[_]], abcParams: ABCParameters)
+case class Job(population: Map[_, Double], abcParams: ABCParameters)
 
 case class TaggedAndScoredParameterSets[T](seq: Seq[Tagged[T]])
 

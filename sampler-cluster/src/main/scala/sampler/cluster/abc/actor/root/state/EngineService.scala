@@ -50,15 +50,11 @@ trait StateEngineComponent{
 	def init(model: ABCModel, abcParameters: ABCParameters): EncapsulatedState = {
 		EncapsulatedState(model){
 			import model._
-			val generationZero = (1 to abcParameters.job.numParticles)
+			val uniformProb = 1.0 / abcParameters.job.numParticles
+			val weightsTable = (1 to abcParameters.job.numParticles)
 				.par
-				.map(i => 
-					Weighted(Scored(prior.sample(), Nil), 1.0)
-				)
+				.map(i => prior.sample() -> uniformProb)
 				.seq
-				
-			val weightsTable = generationZero
-				.map{weighed => (weighed.params, weighed.weight)}
 				.toMap
 				
 			State(
@@ -67,13 +63,12 @@ trait StateEngineComponent{
 				SortedSet.empty[Long],
 				Double.MaxValue,
 				0,
-				weightsTable,
-				Nil
+				weightsTable
 			)
 		}
 	}
 	
-	def numberAccumulated(eState: EncapsulatedState) = eState.state.inBox.size
+	def numberAccumulated(eState: EncapsulatedState) = eState.state.particleInBox.size
 	
 	def setClient(eState: EncapsulatedState, client: ActorRef) = {
 		EncapsulatedState(eState.model){
@@ -83,17 +78,17 @@ trait StateEngineComponent{
 	
 	def flushGeneration(eState: EncapsulatedState, numParticles: Int): EncapsulatedState = {
 		import eState.state._
-		assert(numParticles <= inBox.size)
-		val seqWeighted = inBox.toSeq.map(_.value)
+		assert(numParticles <= particleInBox.size)
+		val seqWeighted = particleInBox.toSeq.map(_.value)
 		val newTolerance = toleranceCalculator(seqWeighted, currentTolerance / 2)
 		log.info("New tolerance: {}", newTolerance)
 		
 		val newState = copy(
-			inBox = Set.empty[Tagged[Weighted[eState.model.ParameterSet]]],
+			particleInBox = Set.empty[Tagged[Weighted[eState.model.ParameterSet]]],
 			currentTolerance = newTolerance,
 			currentIteration = currentIteration + 1,
-			weightsTable = weigher.consolidateToWeightsTable(eState.model)(seqWeighted),
-			weightedParameterSets = seqWeighted
+			prevWeightsTable = weigher.consolidateToWeightsTable(eState.model)(seqWeighted)//,
+			//prevWeighedParticles = seqWeighted
 		)
 		
 		EncapsulatedState(eState.model)(newState)
@@ -101,14 +96,14 @@ trait StateEngineComponent{
 	
 	def getMixPayload(eState: EncapsulatedState, abcParameters: ABCParameters): Option[TaggedAndScoredParameterSets[Scored[eState.model.ParameterSet]]] = {
 		import eState.state._
-		if(inBox.size > 0)
-			Some(TaggedAndScoredParameterSets(inBox
+		if(particleInBox.size > 0)
+			Some(TaggedAndScoredParameterSets(particleInBox
 				.toSeq
 				.map{case Tagged(weighted, uid) =>
 					Tagged(weighted.scored, uid) -> 1
 				}
 				.toMap
-				.draw(math.min(inBox.size, abcParameters.cluster.mixPayloadSize))
+				.draw(math.min(particleInBox.size, abcParameters.cluster.mixPayloadSize))
 				._2		//TODO, this is all a bit nasty
 				.keys
 				.toSeq
@@ -144,14 +139,14 @@ trait StateEngineComponent{
 				.map{case Tagged(scored, id) =>
 					val cast: Scored[eState.model.ParameterSet] = scored.asInstanceOf[Scored[eState.model.ParameterSet]]
 					weigher
-						.filterAndWeighScoredParameterSet(eState.model)(cast, weightsTable, currentTolerance)
+						.weighScoredParticle(eState.model)(cast, prevWeightsTable, currentTolerance)
 						.map{weighted => Tagged(weighted, id)}
 				}
 			
 			t.flatten
 		}
 		
-		val newInBox = inBox ++ weighedAndTagged
+		val newInBox = particleInBox ++ weighedAndTagged
 		
 		log.info(
 				"+ {} => {} = {}/{} ({})", 
@@ -171,7 +166,7 @@ trait StateEngineComponent{
 		
 		EncapsulatedState(eState.model)(
 			copy(
-				inBox = newInBox,
+				particleInBox = newInBox,
 				idsObserved = newIdsObserved
 			)
 		)

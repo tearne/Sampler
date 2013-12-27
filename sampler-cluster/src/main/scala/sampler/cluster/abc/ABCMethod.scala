@@ -53,7 +53,8 @@ trait ABCMethod extends Logging{
 		log.info("Mix response threshold {} MS",params.cluster.mixResponseTimeoutMS)
 		log.info("Futures timeout {} MS",params.cluster.futuresTimeoutMS)
 		log.info("Particle memory generations: {}",params.cluster.particleMemoryGenerations)
-		log.info("Ternimate at target generations: {}",params.cluster.terminateAtTargetGenerations)
+		log.info("Terminate at target generations: {}",params.cluster.terminateAtTargetGenerations)
+		log.info("Number of workers (router configured): {}", ConfigFactory.load().getInt("akka.actor.deployment./root/work-router.nr-of-instances"))
 		
 		val modelRunner = AbortableModelRunnerFactory(model)
 		val targetParticleMemory = params.cluster.particleMemoryGenerations * params.job.numParticles
