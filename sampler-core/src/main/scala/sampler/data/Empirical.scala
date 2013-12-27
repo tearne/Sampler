@@ -77,14 +77,6 @@ trait Empirical[A] extends Serializable{
 	override def hashCode() = probabilityTable.hashCode
 }
 
-/*
- * TODO The user has to remember to import the contents of this object for the
- * pimps to work.  
- * import sampler.data.Empirical._
- * 
- * Is there a better way to achieve the same thing? 
- */
-
 /** Factory for creating Empirical instances
  *  
  *  Allows Empiricals to be created from standard collections

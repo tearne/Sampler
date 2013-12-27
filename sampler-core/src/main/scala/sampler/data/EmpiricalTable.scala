@@ -23,7 +23,7 @@ import sampler.math.Probability
 import sampler.math.AliasTable
 import sampler.math.Partition
 
-/** Empirical implementation which is backed by a Map which counts occurences of observations.
+/** Empirical implementation which is backed by a Map which counts occurrences of observations.
  * 
  * Ideal for sampling from discrete distributions where many repeated observations are expected
  */

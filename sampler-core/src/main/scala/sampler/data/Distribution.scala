@@ -226,6 +226,7 @@ object Distribution{
 	  def sample() = r.nextBoolean(Probability(0.5))
 	}
 	
+	//TODO do we really need this, given the map version below?
 	/** Builds a new [[sampler.data.Distribution]] which allows a set of items to be sampled according 
 	 *  to a given set of probabilities
 	 *  
@@ -239,5 +240,11 @@ object Distribution{
 	  
 	  val aliasTable = new AliasTable(p)
 	  def sample() = items(aliasTable.next(r))
+	}
+	
+	//TODO test and comment
+	def fromProbabilityTable[T](pTable: Map[T, Double])(implicit r: Random): Distribution[T] = {
+		val (parameterSets, weights) = pTable.toIndexedSeq.unzip
+		fromPartition(parameterSets, Partition.fromWeights(weights))
 	}
 }
