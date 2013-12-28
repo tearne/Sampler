@@ -21,7 +21,7 @@ import scala.collection.immutable.SortedSet
 import sampler.abc.Weighted
 
 case class State[P](
-	client: ActorRef,
+	client: Option[ActorRef],
 	particleInBox: Set[Tagged[Weighted[P]]],
 	idsObserved: SortedSet[Long],
 	currentTolerance: Double,

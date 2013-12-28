@@ -58,7 +58,7 @@ trait StateEngineComponent{
 				.toMap
 				
 			State(
-				null,
+				None,
 				Set.empty[Tagged[Weighted[ParameterSet]]],
 				SortedSet.empty[Long],
 				Double.MaxValue,
@@ -72,7 +72,7 @@ trait StateEngineComponent{
 	
 	def setClient(eState: EncapsulatedState, client: ActorRef) = {
 		EncapsulatedState(eState.model){
-			eState.state.copy(client = client)
+			eState.state.copy(client = Some(client))
 		}
 	}
 	

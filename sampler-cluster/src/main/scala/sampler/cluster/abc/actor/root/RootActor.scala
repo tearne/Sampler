@@ -136,7 +136,7 @@ class RootActor(
 				.fromProbabilityTable(eState.state.prevWeightsTable)
 				.until(_.size == abcParams.job.numParticles)
 				.sample
-			eState.state.client ! result
+			eState.state.client.foreach(_ ! result)
 			log.info("Number of required generations completed and reported to requestor")
 		case NextGeneration(eState) => 
 			become(gathering(eState))
