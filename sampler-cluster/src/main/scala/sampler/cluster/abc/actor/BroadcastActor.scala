@@ -41,7 +41,7 @@ import akka.cluster.ClusterEvent.ClusterDomainEvent
 import sampler.cluster.abc.parameters.ABCParameters
 import scala.language.existentials
 
-class Broadcaster(abcParams: ABCParameters) extends Actor with ActorLogging{
+class BroadcastActor(abcParams: ABCParameters) extends Actor with ActorLogging{
 	val cluster = Cluster(context.system)
 	implicit val r = Random
 	

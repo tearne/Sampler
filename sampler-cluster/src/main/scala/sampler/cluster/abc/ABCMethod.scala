@@ -21,26 +21,23 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import akka.util.Timeout
 import akka.actor.Props
-import sampler.cluster.abc.actor.worker.AbortableModelRunner
-import sampler.cluster.abc.actor.root.RootActor
 import sampler.cluster.actor.PortFallbackSystemFactory
 import sampler.abc.ABCModel
 import com.typesafe.config.ConfigFactory
 import sampler.io.Logging
 import sampler.cluster.abc.actor.Start
-import sampler.cluster.abc.actor.root.state.StateEngineService
 import sampler.math.Statistics
 import akka.pattern.ask
 import akka.actor.ActorSystem
 import java.util.concurrent.TimeUnit
 import sampler.cluster.abc.parameters.ABCParameters
-import sampler.cluster.abc.actor.worker.AbortableModelRunnerFactory
+import sampler.cluster.abc.actor.root.RootActor
+import sampler.cluster.abc.state.EncapsulatedState
+import sampler.cluster.abc.actor.root.RootActorImpl
+import akka.actor.ActorRef
 
 trait ABCMethod extends Logging{
-	val stateEngineService: StateEngineService
-	val system: ActorSystem
-
-	def apply(model: ABCModel, params: ABCParameters) = {
+	def run(abcActor: ActorRef, model: ABCModel, params: ABCParameters): Seq[model.ParameterSet] = {
 		implicit val timeout = Timeout(params.cluster.futuresTimeoutMS, TimeUnit.MILLISECONDS)
 		
 		log.info("Num generations: {}",params.job.numGenerations)
@@ -56,17 +53,24 @@ trait ABCMethod extends Logging{
 		log.info("Terminate at target generations: {}",params.cluster.terminateAtTargetGenerations)
 		log.info("Number of workers (router configured): {}", ConfigFactory.load().getInt("akka.actor.deployment./root/work-router.nr-of-instances"))
 		
-		val modelRunner = AbortableModelRunnerFactory(model)
-		val targetParticleMemory = params.cluster.particleMemoryGenerations * params.job.numParticles
-		
-		val abcActor = system.actorOf(
-				Props(new RootActor(model, params, modelRunner, stateEngineService)), 
-				"root"
-		)
 		
 		import akka.pattern.ask
-		val future = (abcActor ? Start(stateEngineService.init(model, params))).mapTo[Seq[model.ParameterSet]]
-		val result = Await.result(future, Duration.Inf)
+		val future = (abcActor ? Start(EncapsulatedState.init(model, params)))
+				.mapTo[Seq[model.ParameterSet]]
+		Await.result(future, Duration.Inf)
+	}
+}
+
+object ABCMethod extends ABCMethod with Logging{
+	def apply(model: ABCModel, params: ABCParameters): Seq[model.ParameterSet] = {
+		val system = PortFallbackSystemFactory("ABC")
+		
+		val abcActor = system.actorOf(
+			Props(classOf[RootActorImpl],model, params), 
+			"root"
+		)
+		
+		val result = run(abcActor, model, params)
 		
 		if(params.cluster.terminateAtTargetGenerations){
 			log.info("Terminating actor system")
@@ -75,14 +79,4 @@ trait ABCMethod extends Logging{
 		
 		result
 	}
-}
-
-object ABCMethod extends ABCMethod with Logging{
-	val stateEngineService =  new StateEngineService{
-		val statistics = Statistics
-		val toleranceCalculator = new ToleranceCalculator{}
-		val weigher = new Weigher{}
-	}
-	
-	val system = PortFallbackSystemFactory("ABC")
 }

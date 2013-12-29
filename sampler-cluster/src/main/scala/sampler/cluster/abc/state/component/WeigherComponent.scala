@@ -15,17 +15,16 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.actor.root.state
+package sampler.cluster.abc.state.component
 
 import sampler.abc.ABCModel
-import sampler.io.Logging
-import sampler.math.StatisticsComponent
-import sampler.Implicits._
 import sampler.abc.Scored
 import sampler.abc.Weighted
+import sampler.io.Logging
+import sampler.math.StatisticsComponent
 
 trait WeigherComponent {
-	self: StatisticsComponent =>
+	this: StatisticsComponent =>
 	
 	val weigher: Weigher
 	

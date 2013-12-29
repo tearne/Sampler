@@ -19,8 +19,7 @@ package sampler.cluster.abc.actor
 
 import sampler.abc.ABCModel
 import sampler.abc.Weighted
-import sampler.cluster.abc.actor.root.EncapsulatedState
-import sampler.cluster.abc.actor.root.Tagged
+import sampler.cluster.abc.state.EncapsulatedState
 import sampler.cluster.abc.parameters.ABCParameters
 import scala.language.existentials
 

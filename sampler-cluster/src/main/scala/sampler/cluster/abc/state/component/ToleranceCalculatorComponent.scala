@@ -15,16 +15,17 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.actor.root.state
+package sampler.cluster.abc.state.component
 
-import sampler.math.StatisticsComponent
-import sampler.math.Probability
-import sampler.Implicits._
+import akka.actor.Actor
+import akka.actor.ActorLogging
+import sampler.Implicits.RichIndexedSeq
 import sampler.abc.Weighted
-import sampler.io.Logging
+import sampler.math.Probability
+import sampler.math.StatisticsComponent
 
 trait ToleranceCalculatorComponent {
-	self: StatisticsComponent with Logging=>
+	self: StatisticsComponent with Actor with ActorLogging=>
 		
 	val toleranceCalculator: ToleranceCalculator
 	
@@ -32,7 +33,7 @@ trait ToleranceCalculatorComponent {
 		def apply[P](weighedParameters: Seq[Weighted[P]], fallBackTolerance: Double): Double = {
 			val medianMeanScore = statistics.quantile(weighedParameters.map{_.meanRepScore}.toEmpiricalSeq, Probability(0.5))
 			if(medianMeanScore == 0) {
-				log.warn("Median of mean scores from last generation evaluated to 0, using fallback tolerance: {}", fallBackTolerance)
+				log.warning("Median of mean scores from last generation evaluated to 0, using fallback tolerance: {}", fallBackTolerance)
 				fallBackTolerance
 			}
 			else math.min(medianMeanScore, fallBackTolerance)

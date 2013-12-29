@@ -17,55 +17,51 @@
 
 package sampler.cluster.abc.actor.root
 
-import scala.concurrent.duration._
-import scala.concurrent.duration.DurationInt
-import com.typesafe.config.ConfigFactory
+import scala.concurrent.Future
+import scala.concurrent.duration.DurationLong
+
 import akka.actor.Actor
 import akka.actor.ActorLogging
-import akka.actor.Props
 import akka.actor.actorRef2Scala
-import akka.cluster.Cluster
+import akka.pattern.pipe
 import sampler.abc.ABCModel
 import sampler.abc.Scored
 import sampler.cluster.abc.actor.Abort
-import sampler.cluster.abc.actor.Broadcaster
 import sampler.cluster.abc.actor.Job
 import sampler.cluster.abc.actor.Start
-import sampler.cluster.abc.actor.root.state.StateEngineService
+import sampler.cluster.abc.actor.Tagged
 import sampler.cluster.abc.actor.TaggedAndScoredParameterSets
-import sampler.cluster.abc.actor.worker.AbortableModelRunner
-import sampler.cluster.abc.actor.worker.Worker
+import sampler.cluster.abc.parameters.ABCParameters
+import sampler.cluster.abc.state.EncapsulatedState
+import sampler.cluster.abc.state.StateEngineComponent
+import sampler.cluster.abc.state.component.ToleranceCalculatorComponent
+import sampler.cluster.abc.state.component.WeigherComponent
+import sampler.data.Distribution
 import sampler.math.Random
 import sampler.math.Statistics
 import sampler.math.StatisticsComponent
-import sampler.abc.Weighted
-import sampler.cluster.abc.parameters.ABCParameters
-import akka.routing.BroadcastRouter
-import sampler.cluster.abc.actor.worker.AbortableModelRunnerFactory
-import akka.routing.FromConfig
-import sampler.cluster.abc.actor.Receiver
-import scala.concurrent.Future
-import akka.pattern.pipe
-import sampler.data.Distribution
 
-class RootActor(
-		val model0: ABCModel, 
-		abcParams: ABCParameters, 
-		modelRunnerFactory: AbortableModelRunnerFactory,
-		stateEngine: StateEngineService
-) 
+class RootActorImpl(
+		val model: ABCModel,
+		val abcParams: ABCParameters
+) extends RootActor {
+	val childrenActors = new ChildrenActors{}
+	val weigher = new Weigher{}
+	val toleranceCalculator = new ToleranceCalculator{}
+	val stateEngine = new StateEngine{}
+	val statistics = Statistics
+	val random = Random
+}
+
+abstract class RootActor
 		extends Actor 
 		with ActorLogging
+		with ChildrenActorsComponent
+		with StateEngineComponent
 {
-	val model = model0
-	val statistics = Statistics
-	
 	import model._
 	import context._
-	
-	val broadcaster = context.actorOf(Props(classOf[Broadcaster], abcParams), "broadcaster")
-	val receiver = context.actorOf(Props[Receiver], "receiver")
-	val workerRouter = context.actorOf(FromConfig.props(Props(classOf[Worker],modelRunnerFactory)), "work-router")
+	import childrenActors._
 	
 	case class Finished(eState: EncapsulatedState)
 	case class NextGeneration(eState: EncapsulatedState)
@@ -74,7 +70,6 @@ class RootActor(
 	val mixPeriod = abcParams.cluster.mixRateMS.millisecond
 	context.system.scheduler.schedule(mixPeriod * 10, mixPeriod, self, Mix)
 
-	
 	implicit val r = Random
 	
 	def receive = idle
@@ -108,7 +103,7 @@ class RootActor(
 					val flushed = stateEngine.flushGeneration(newEState, abcParams.job.numParticles)
 					import flushed.state._
 					val numGenerations = abcParams.job.numGenerations
-					log.info("Generation {}/{} complete", currentIteration, numGenerations)
+					log.info("Generation {}/{} complete, new tolerance {}", currentIteration, numGenerations, currentTolerance)
 					
 					if(currentIteration == numGenerations && abcParams.cluster.terminateAtTargetGenerations)
 						Finished(flushed)

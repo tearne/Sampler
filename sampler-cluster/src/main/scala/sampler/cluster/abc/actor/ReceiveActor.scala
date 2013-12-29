@@ -11,7 +11,7 @@ import akka.actor.ActorLogging
  *    load testing.  Using the root actor directly would introduce
  *    unnecessary lag as it processes payloads.
  */
-class Receiver extends Actor with ActorLogging {
+class ReceiveActor extends Actor with ActorLogging {
 	def receive = {
 		case msg => 
 		  context.parent.forward(msg)

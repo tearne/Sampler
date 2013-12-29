@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.actor.root
+package sampler.cluster.abc.state
 import akka.actor.ActorRef
 import scala.collection.immutable.SortedSet
 import sampler.abc.Weighted
+import sampler.cluster.abc.actor.Tagged
 
 case class State[P](
 	client: Option[ActorRef],

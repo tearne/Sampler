@@ -15,22 +15,10 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.actor.root
+package sampler.cluster.abc.actor
 
-import sampler.abc.ABCModel
-
-trait EncapsulatedState extends Serializable {
-	type M <: ABCModel
-	val model: M
-	import model._
-	
-	val state: State[model.ParameterSet]
-}
-object EncapsulatedState {
-  def apply[M <: ABCModel](model0 : M)(state0 : State[model0.ParameterSet]) =
-    new EncapsulatedState {
-      type M = model0.type	//Why do we need this when it's defined in the type bounds of apply?
-      val model : M = model0
-      val state = state0
-    }
+//A value wrapped together with a pseudo-unique id
+case class Tagged[T](value: T, id: Long)
+object Tagged{
+	def apply[T](value: T): Tagged[T] = Tagged(value, System.currentTimeMillis + 3*value.hashCode())
 }

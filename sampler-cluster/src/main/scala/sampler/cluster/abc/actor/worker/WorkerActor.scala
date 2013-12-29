@@ -30,20 +30,26 @@ import sampler.cluster.abc.actor.Abort
 import sampler.cluster.abc.actor.Aborted
 import sampler.cluster.abc.actor.Job
 import sampler.cluster.abc.actor.TaggedAndScoredParameterSets
-import sampler.cluster.abc.actor.root.Tagged
+import sampler.cluster.abc.actor.Tagged
 import scala.collection.parallel.CompositeThrowable
 import scala.concurrent.duration._
 import scala.concurrent.duration.DurationInt
 import akka.actor.ActorRef
+import sampler.abc.ABCModel
+import sampler.math.Random
 
-class Worker(modelRunnerFactory: AbortableModelRunnerFactory) 
-		extends Actor 
+class WorkerActorImpl(val model: ABCModel) extends WorkerActor {
+	implicit val random = Random
+	val modelRunner = new ModelRunner{}
+}
+
+abstract class WorkerActor
+		extends Actor
 		with ActorLogging
-		 {
+		with ModelRunnerComponent {
+	
 	import context.become
-	
-	val modelRunner = modelRunnerFactory.getNew
-	
+		
 	def receive = idle
 	
 	case class Contract(job: Job, client: ActorRef)
@@ -68,7 +74,7 @@ class Worker(modelRunnerFactory: AbortableModelRunnerFactory)
 			startWork(contract.job)
 		case Aborted => 
 			become(idle)
-		case msg => log.error("Unexpected message of type {}",msg.getClass())
+		case msg => log.error("Unexpected message when 'working': {}",msg.getClass())
 	}
 	
 	def waitingForAbortComfirmation(nextContract: Option[Contract]): Receive = {
@@ -91,7 +97,7 @@ class Worker(modelRunnerFactory: AbortableModelRunnerFactory)
 					log.debug("Abort confirmed, becoming idle")
 					become(idle)
 			}
-		case msg => log.error("Unexpected message of type {}",msg.getClass())
+		case msg => log.error("Unexpected message when 'waiting for abort confirmation': {}",msg.getClass())
 	}
 	
 	def idle(): Receive = {
@@ -103,7 +109,8 @@ class Worker(modelRunnerFactory: AbortableModelRunnerFactory)
 			become(working(Contract(job, client)))
 		case msg: Aborted => 
 			throw new UnexpectedException("Not expected in idle state: "+msg)
-		case msg => log.error("Unexpected message of type {}",msg.getClass())
+		case Abort => //ignore
+		case msg => log.error("Unexpected message when 'idle': {}",msg.getClass())
 	}
 	
 	def startWork(job: Job){
