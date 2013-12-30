@@ -28,7 +28,6 @@ case class ABCParameters(
 )
 
 object ABCParameters{
-	//TODO test
 	def fromConfig(c: Config) = ABCParameters(
 		JobParameters.fromConfig(c),
 		AlgorithmParameters.fromConfig(c),

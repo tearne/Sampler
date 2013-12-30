@@ -33,19 +33,38 @@ import sampler.cluster.abc.state.component.WeigherComponent
 import sampler.math.Random
 import sampler.math.StatisticsComponent
 
-trait StateEngineComponent 
-	extends ToleranceCalculatorComponent 
-	with WeigherComponent 
-	with StatisticsComponent 
-	with Actor
-	with ActorLogging {
-	//TODO will need to separate the above later for testing
+trait StateEngineComponent {
+	val stateEngine: StateEngine
+}
+
+trait StateEngine {
+	def numberAccumulated(eState: EncapsulatedState): Int
+	def setClient(eState: EncapsulatedState, client: ActorRef): EncapsulatedState
+	def flushGeneration(eState: EncapsulatedState, numParticles: Int): EncapsulatedState
+	def getMixPayload(eState: EncapsulatedState, abcParameters: ABCParameters): 
+		Option[TaggedAndScoredParameterSets[Scored[eState.model.ParameterSet]]]
+	def add(
+			eState: EncapsulatedState,
+			abcParameters: ABCParameters,
+			sender: ActorRef
+		)(
+			taggedAndScoredParamSets: Seq[Tagged[Scored[eState.model.ParameterSet]]]
+		): EncapsulatedState
+}
+
+trait StateEngineComponentImpl extends StateEngineComponent{
+	this: ToleranceCalculatorComponent 
+		with WeigherComponent
+		with StatisticsComponent
+		with Actor
+		with ActorLogging =>
 	
 	val stateEngine: StateEngine
 	
-	trait StateEngine{
+	trait StateEngineImpl extends StateEngine {
 		implicit val r = Random
 		
+		def weightsTable(eState: EncapsulatedState) = eState.state.prevWeightsTable
 		def numberAccumulated(eState: EncapsulatedState) = eState.state.particleInBox.size
 		
 		def setClient(eState: EncapsulatedState, client: ActorRef) = {
@@ -65,7 +84,6 @@ trait StateEngineComponent
 				currentTolerance = newTolerance,
 				currentIteration = currentIteration + 1,
 				prevWeightsTable = weigher.consolidateToWeightsTable(eState.model)(seqWeighted)//,
-				//prevWeighedParticles = seqWeighted
 			)
 			
 			EncapsulatedState(eState.model)(newState)
@@ -98,17 +116,6 @@ trait StateEngineComponent
 			import eState.state._
 			
 			type T = Tagged[Weighted[eState.model.ParameterSet]]
-			
-			//TODO 
-			/*
-			 * It's possible that the same parameters are sampled twice,
-			 * leading to add being called on two separate occasions, and 
-			 * weighted parameters being calculated separately, rather than
-			 * together.  
-			 * 
-			 * Can we just aggregate scored (& tagged) parameters, leaving 
-			 * weights calculation until the generation is finalised? 
-			 */ 
 			
 			val weighedAndTagged: Seq[T] = {
 				val t:Seq[Option[T]] = taggedAndScoredParamSets

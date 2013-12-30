@@ -19,7 +19,6 @@ package sampler.cluster.abc.actor.root
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationLong
-
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.actorRef2Scala
@@ -40,15 +39,22 @@ import sampler.data.Distribution
 import sampler.math.Random
 import sampler.math.Statistics
 import sampler.math.StatisticsComponent
+import sampler.cluster.abc.state.StateEngineComponentImpl
+import akka.actor.Cancellable
 
 class RootActorImpl(
 		val model: ABCModel,
 		val abcParams: ABCParameters
-) extends RootActor {
+) extends RootActor 
+		with ChildrenActorsComponent
+		with StateEngineComponentImpl 
+		with WeigherComponent
+		with ToleranceCalculatorComponent 
+		with StatisticsComponent {
 	val childrenActors = new ChildrenActors{}
 	val weigher = new Weigher{}
 	val toleranceCalculator = new ToleranceCalculator{}
-	val stateEngine = new StateEngine{}
+	val stateEngine = new StateEngineImpl{}
 	val statistics = Statistics
 	val random = Random
 }
@@ -56,9 +62,10 @@ class RootActorImpl(
 abstract class RootActor
 		extends Actor 
 		with ActorLogging
-		with ChildrenActorsComponent
-		with StateEngineComponent
 {
+	this: ChildrenActorsComponent
+		with StateEngineComponent =>
+	
 	import model._
 	import context._
 	import childrenActors._
@@ -67,8 +74,18 @@ abstract class RootActor
 	case class NextGeneration(eState: EncapsulatedState)
 	
 	case class Mix()
-	val mixPeriod = abcParams.cluster.mixRateMS.millisecond
-	context.system.scheduler.schedule(mixPeriod * 10, mixPeriod, self, Mix)
+	
+	var cancellable: Option[Cancellable] = None
+	
+//	override def preStart{
+//		val mixPeriod = mixRateMSLens.get(abcParams).milliseconds
+//		cancellable = Some(
+//			context.system.scheduler.schedule(mixPeriod * 10, mixPeriod, self, Mix)
+//		)
+//	}
+//	override def postStop{
+//		cancellable.foreach(_.cancel)
+//	}
 
 	implicit val r = Random
 	
