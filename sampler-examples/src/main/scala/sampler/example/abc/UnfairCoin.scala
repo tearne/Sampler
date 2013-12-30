@@ -25,26 +25,20 @@ import sampler.data.Distribution
 import sampler.math.Probability
 import sampler.math.Random
 import sampler.r.QuickPlot.writeDensity
-import sampler.abc.builder.local.LocalPopulationBuilder
-import sampler.abc.ABCMethod
-import sampler.abc.builder.PopulationBuilder
-import sampler.abc.generation.InitialiseComponent
-import sampler.abc.ABCModel
-import sampler.abc.Prior
 import com.typesafe.config.ConfigFactory
-import sampler.abc.parameters.JobParameters
-import sampler.abc.parameters.AlgorithmParameters
+import sampler.cluster.abc.Model
+import sampler.cluster.abc.Prior
+import sampler.cluster.abc.ABCMethod
+import sampler.cluster.abc.parameters.ABCParameters
 
-object ClusteredUnfairCoin extends App with InitialiseComponent{
-	val initialise = new Initialise{}
-
+object ClusteredUnfairCoin extends App {
 	/*
 	 * ABCParameters loaded from application.conf
 	 */
 	val config = ConfigFactory.load()
-	val parameters = sampler.cluster.abc.parameters.ABCParameters.fromConfig(config)
+	val parameters = ABCParameters.fromConfig(config)
 	
-	val result = sampler.cluster.abc.ABCMethod(CoinModel, parameters)
+	val result = ABCMethod(CoinModel, parameters)
 	val headsDensity = result.map(_.pHeads)
 	
 	val wd = Paths.get("results", "UnfairCoin")
@@ -57,101 +51,36 @@ object ClusteredUnfairCoin extends App with InitialiseComponent{
 	)
 }
 
-object LocalUnfairCoin extends App{
-	/*
-	 * ABCParameters hard coded
-	 */
-	val numParticles = 10000
-	val numReplicates = 1000
-	val numGenerations = 100
-	val	particleRetries = 100
-	val	particleChunkSize = 300
-	
-	val parameters = sampler.abc.parameters.ABCParameters(
-		JobParameters(numParticles, numReplicates, numGenerations),
-		AlgorithmParameters(particleRetries, particleChunkSize)
-	)
-	
-	val finalPopulation = ABCMethod(
-			CoinModel,
-			parameters,
-			LocalPopulationBuilder,
-			Random
-	).get
+case class CoinParams(pHeads: Double) extends Serializable
 
-	val headsDensity = finalPopulation.map(_.pHeads)
-	
-	val wd = Paths.get("results", "UnfairCoin")
-	Files.createDirectories(wd)
-	
-	writeDensity(
-		wd, 
-		"posterior", 
-		headsDensity.continuous("P[Heads]")
-	)
-}
+object CoinModel extends Model[CoinParams] {
+	implicit val abcRandom = Random
+  	val modelRandom = Random
 
-//trait ABCParametersComponent{
-//	val abcParams = new ABCParameters(
-//    	numReplicates = 1000,
-//		numParticles = 10000,
-//		numGenerations = 100,
-//		particleRetries = 100,
-//		particleChunkSize = 300
-//	)
-//}
+  	val observed = Observed(10,7)
 
-object CoinModel extends CoinModelBase{
-  val abcRandom = Random
-  val modelRandom = Random
-}
-
-//TODO Remove some of the serializable?
-trait CoinModelBase extends ABCModel with Serializable{
-	implicit val abcRandom: Random
-  	val modelRandom: Random
-
-	val observed = Observed(10,7)
-	
-    case class ParameterSet(pHeads: Double) extends ParameterSetBase with Serializable{
-	  val normal = new NormalDistribution(0,0.5)
-      def perturb() = ParameterSet(pHeads + normal.sample)
-      def perturbDensity(that: ParameterSet) = normal.density(pHeads - that.pHeads)
-    }
-
-    case class Observed(numTrials: Int, numHeads: Int) extends Serializable{
-    	assert(numTrials >= numHeads)
-    	def proportionHeads = numHeads.asInstanceOf[Double] / numTrials
-    }
-    
-    case class Simulated(res: Observed) extends SimulatedBase{
-      def distanceToObserved: Double = {
-    	assert(res.numTrials == observed.numTrials)
-    	val t = math.abs(res.numHeads - observed.numHeads)
-    	//println("fit is "+t+" raw is "+res)
-      	t.toDouble
-      }
-    }
-    
-    def modelDistribution(p: ParameterSet) = new Distribution[Simulated] with Serializable{
-      val r = modelRandom
-      override def sample() = {
-        def coinToss() = r.nextBoolean(Probability(p.pHeads))
-        Simulated(Observed(
-        		observed.numTrials, 
-        		(1 to observed.numTrials)
-        			.map(i => coinToss)
-        			.count(identity)
-        ))
-      }
-    }
-    
-    val prior = new Prior[ParameterSet] with Serializable{
-	    def density(p: ParameterSet) = {
+	val prior = new Prior[CoinParams] with Serializable{
+	    def density(p: CoinParams) = {
 	      if(p.pHeads > 1 || p.pHeads < 0) 0.0
 	      else 1.0
 	    }
 	    
-	    def sample() = ParameterSet(abcRandom.nextDouble(0.0, 1.0))
+	    def sample() = CoinParams(abcRandom.nextDouble(0.0, 1.0))
+    }
+	
+    case class Observed(numTrials: Int, numHeads: Int) extends Serializable
+    
+    private val normal = new NormalDistribution(0,0.5)
+	def perturb(parameters: CoinParams) = CoinParams(parameters.pHeads + normal.sample)
+  	def perturbDensity(a: CoinParams, b: CoinParams) = normal.density(a.pHeads - b.pHeads)
+    
+    def distanceToObservations(p: CoinParams) = new Distribution[Double] with Serializable{
+    	override def sample() = {
+    		def coinToss() = modelRandom.nextBoolean(Probability(p.pHeads))
+    		val simulatedHeads = (1 to observed.numTrials)
+    			.map(i => coinToss)
+    			.count(identity)
+    		math.abs(simulatedHeads - observed.numHeads)
+    	}
     }
 }

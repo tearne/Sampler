@@ -32,47 +32,47 @@ import akka.actor.ActorSystem
 import java.util.concurrent.TimeUnit
 import sampler.cluster.abc.parameters.ABCParameters
 import sampler.cluster.abc.actor.root.RootActor
-import sampler.cluster.abc.state.EncapsulatedState
 import sampler.cluster.abc.actor.root.RootActorImpl
 import akka.actor.ActorRef
+import sampler.cluster.abc.state.State
 
 trait ABCMethod extends Logging{
-	def run(abcActor: ActorRef, model: ABCModel, params: ABCParameters): Seq[model.ParameterSet] = {
-		implicit val timeout = Timeout(params.cluster.futuresTimeoutMS, TimeUnit.MILLISECONDS)
+	def run[P](abcActor: ActorRef, model: Model[P], abcParams: ABCParameters): Seq[P] = {
+		implicit val timeout = Timeout(abcParams.cluster.futuresTimeoutMS, TimeUnit.MILLISECONDS)
 		
-		log.info("Num generations: {}",params.job.numGenerations)
-		log.info("Num particles: {}",params.job.numParticles)
-		log.info("Num replicates: {}",params.job.numReplicates)
-		log.info("Max particle retrys: {}",params.algorithm.maxParticleRetries)
-		log.info("Particle chunk size: {}",params.algorithm.particleChunkSize)
-		log.info("Mix rate {} MS",params.cluster.mixRateMS)
-		log.info("Mix payload: {}",params.cluster.mixPayloadSize)
-		log.info("Mix response threshold {} MS",params.cluster.mixResponseTimeoutMS)
-		log.info("Futures timeout {} MS",params.cluster.futuresTimeoutMS)
-		log.info("Particle memory generations: {}",params.cluster.particleMemoryGenerations)
-		log.info("Terminate at target generations: {}",params.cluster.terminateAtTargetGenerations)
+		log.info("Num generations: {}",abcParams.job.numGenerations)
+		log.info("Num particles: {}",abcParams.job.numParticles)
+		log.info("Num replicates: {}",abcParams.job.numReplicates)
+		log.info("Max particle retrys: {}",abcParams.algorithm.maxParticleRetries)
+		log.info("Particle chunk size: {}",abcParams.algorithm.particleChunkSize)
+		log.info("Mix rate {} MS",abcParams.cluster.mixRateMS)
+		log.info("Mix payload: {}",abcParams.cluster.mixPayloadSize)
+		log.info("Mix response threshold {} MS",abcParams.cluster.mixResponseTimeoutMS)
+		log.info("Futures timeout {} MS",abcParams.cluster.futuresTimeoutMS)
+		log.info("Particle memory generations: {}",abcParams.cluster.particleMemoryGenerations)
+		log.info("Terminate at target generations: {}",abcParams.cluster.terminateAtTargetGenerations)
 		log.info("Number of workers (router configured): {}", ConfigFactory.load().getInt("akka.actor.deployment./root/work-router.nr-of-instances"))
 		
 		
 		import akka.pattern.ask
-		val future = (abcActor ? Start(EncapsulatedState.init(model, params)))
-				.mapTo[Seq[model.ParameterSet]]
+		val future = (abcActor ? Start(State.init(model, abcParams)))
+				.mapTo[Seq[P]]
 		Await.result(future, Duration.Inf)
 	}
 }
 
 object ABCMethod extends ABCMethod with Logging{
-	def apply(model: ABCModel, params: ABCParameters): Seq[model.ParameterSet] = {
+	def apply[P](model: Model[P], abcParams: ABCParameters): Seq[P] = {
 		val system = PortFallbackSystemFactory("ABC")
 		
 		val abcActor = system.actorOf(
-			Props(classOf[RootActorImpl],model, params), 
+			Props(classOf[RootActorImpl[P]],model, abcParams), 
 			"root"
 		)
 		
-		val result = run(abcActor, model, params)
+		val result = run(abcActor, model, abcParams)
 		
-		if(params.cluster.terminateAtTargetGenerations){
+		if(abcParams.cluster.terminateAtTargetGenerations){
 			log.info("Terminating actor system")
 			system.shutdown
 		}

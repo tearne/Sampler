@@ -18,22 +18,20 @@
 package sampler.cluster.abc.actor.worker
 
 import java.util.concurrent.atomic.AtomicBoolean
-
 import scala.annotation.tailrec
 import scala.util.Try
-
-import sampler.abc.ABCModel
 import sampler.abc.MaxRetryException
-import sampler.abc.Scored
 import sampler.cluster.abc.actor.Job
 import sampler.data.Distribution
 import sampler.data.SerialSampler
 import sampler.io.Logging
 import sampler.math.Random
 import sampler.run.DetectedAbortionException
+import sampler.cluster.abc.Model
+import sampler.cluster.abc.Scored
 
-trait ModelRunnerComponent {
-	val model: ABCModel
+trait ModelRunnerComponent[P] {
+	val model: Model[P]
 	val modelRunner: ModelRunner
 	implicit val random: Random
 	
@@ -46,26 +44,26 @@ trait ModelRunnerComponent {
 		def isAborted = aborted.get
 		def reset() { aborted.set(false) }
 		
-		def run(job: Job): Try[Seq[Scored[ParameterSet]]] = Try{
-			val paramDist: Distribution[ParameterSet] =  {
-				val weightsTable = job.population.asInstanceOf[Map[ParameterSet, Double]]
+		def run(job: Job[P]): Try[Seq[Scored[P]]] = Try{
+			val paramDist: Distribution[P] =  {
+				val weightsTable = job.population.asInstanceOf[Map[P, Double]]
 				Distribution.fromProbabilityTable(weightsTable)
 			}
 			
 			val maxParticleRetries = job.abcParams.algorithm.maxParticleRetries
 			
 			@tailrec
-			def getScoredParameter(failures: Int = 0): Scored[ParameterSet] = {
+			def getScoredParameter(failures: Int = 0): Scored[P] = {
 				if(isAborted) throw new DetectedAbortionException("Abort flag was set")
 				else if(failures >= maxParticleRetries) throw new MaxRetryException(s"Aborted after $failures failed particle draws from previous population")
 				else{
-					def getScores(params: ParameterSet): IndexedSeq[Double] = {
-						val modelWithMetric = modelDistribution(params).map(_.distanceToObserved)
+					def getScores(params: P): IndexedSeq[Double] = {
+						val modelWithMetric = model.distanceToObservations(params)
 						SerialSampler(modelWithMetric)(_.size == job.abcParams.job.numReplicates)
 					}
 					
-					val res: Option[Scored[ParameterSet]] = for{
-						params <- Some(paramDist.sample().perturb()) if prior.density(params) > 0
+					val res: Option[Scored[P]] = for{
+						params <- Some(model.perturb(paramDist.sample())) if prior.density(params) > 0
 						fitScores <- Some(getScores(params))
 					} yield Scored(params, fitScores)
 					

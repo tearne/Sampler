@@ -19,16 +19,18 @@ package sampler.cluster.abc.actor
 
 import sampler.abc.ABCModel
 import sampler.abc.Weighted
-import sampler.cluster.abc.state.EncapsulatedState
 import sampler.cluster.abc.parameters.ABCParameters
 import scala.language.existentials
+import sampler.cluster.abc.state.State
+import sampler.cluster.abc.Model
+import sampler.cluster.abc.Scored
 
-case class Start(eState: EncapsulatedState)
-case class Result(params: Seq[ABCModel#ParameterSet])
+case class Start[P](state: State[P])
+case class Result[P](params: Seq[P])
 
-case class Job(population: Map[_, Double], abcParams: ABCParameters)
+case class Job[P](population: Map[P, Double], abcParams: ABCParameters)
 
-case class TaggedAndScoredParameterSets[T](seq: Seq[Tagged[T]])
+case class TaggedScoreSeq[P](seq: Seq[Tagged[Scored[P]]])
 
 case class Abort()
 case class Aborted()

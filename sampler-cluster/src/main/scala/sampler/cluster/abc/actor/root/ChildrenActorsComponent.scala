@@ -3,18 +3,18 @@ package sampler.cluster.abc.actor.root
 import akka.actor.Actor
 import akka.actor.Props
 import akka.routing.FromConfig
-import sampler.abc.ABCModel
 import sampler.cluster.abc.actor.BroadcastActor
 import sampler.cluster.abc.actor.ReceiveActor
 import sampler.cluster.abc.actor.worker.WorkerActorImpl
 import sampler.cluster.abc.parameters.ABCParameters
+import sampler.cluster.abc.Model
 
-trait ChildrenActorsComponent {
+trait ChildrenActorsComponent[P] {
 	this: Actor =>
 		
 	val childrenActors: ChildrenActors
 	val abcParams: ABCParameters
-	val model: ABCModel
+	val model: Model[P]
 
 	trait ChildrenActors {
 		val broadcaster = context.actorOf(
@@ -26,7 +26,7 @@ trait ChildrenActorsComponent {
 			"receiver"
 		)
 		val workerRouter = context.actorOf(
-			FromConfig.props(Props(new WorkerActorImpl(model))), 
+			FromConfig.props(Props(new WorkerActorImpl[P](model))), 
 			"work-router"
 		)
 	}

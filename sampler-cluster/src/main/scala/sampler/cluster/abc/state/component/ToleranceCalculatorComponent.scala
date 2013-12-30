@@ -20,7 +20,7 @@ package sampler.cluster.abc.state.component
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import sampler.Implicits.RichIndexedSeq
-import sampler.abc.Weighted
+import sampler.cluster.abc.Weighted
 import sampler.math.Probability
 import sampler.math.StatisticsComponent
 

@@ -16,12 +16,16 @@
  */
 
 package sampler.cluster.abc.state
+
 import akka.actor.ActorRef
 import scala.collection.immutable.SortedSet
-import sampler.abc.Weighted
+import sampler.cluster.abc.Weighted
 import sampler.cluster.abc.actor.Tagged
+import sampler.cluster.abc.Model
+import sampler.cluster.abc.parameters.ABCParameters
 
 case class State[P](
+	model: Model[P],
 	client: Option[ActorRef],
 	particleInBox: Set[Tagged[Weighted[P]]],
 	idsObserved: SortedSet[Long],
@@ -29,3 +33,24 @@ case class State[P](
 	currentIteration: Int,
 	prevWeightsTable: Map[P, Double]
 )
+
+object State {
+	def init[P](model: Model[P], abcParameters: ABCParameters): State[P] = {
+		val uniformProb = 1.0 / abcParameters.job.numParticles
+		val weightsTable = (1 to abcParameters.job.numParticles)
+			.par
+			.map(i => model.prior.sample() -> uniformProb)
+			.seq
+			.toMap
+			
+		State(
+			model,
+			None,
+			Set.empty[Tagged[Weighted[P]]],
+			SortedSet.empty[Long],
+			Double.MaxValue,
+			0,
+			weightsTable
+		)
+	}
+}

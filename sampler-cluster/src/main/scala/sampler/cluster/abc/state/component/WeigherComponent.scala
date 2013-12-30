@@ -17,11 +17,11 @@
 
 package sampler.cluster.abc.state.component
 
-import sampler.abc.ABCModel
-import sampler.abc.Scored
-import sampler.abc.Weighted
+import sampler.cluster.abc.Scored
+import sampler.cluster.abc.Weighted
 import sampler.io.Logging
 import sampler.math.StatisticsComponent
+import sampler.cluster.abc.Model
 
 trait WeigherComponent {
 	this: StatisticsComponent =>
@@ -29,17 +29,18 @@ trait WeigherComponent {
 	val weigher: Weigher
 	
 	trait Weigher extends Logging{
-		def weighScoredParticle(model: ABCModel)(
-				scoredParticle: Scored[model.ParameterSet],
-				previousParamsWithWeights: Map[model.ParameterSet, Double],
+		//TODO can remove R
+		def weighScoredParticle[P](
+				model: Model[P],
+				scoredParticle: Scored[P],
+				previousParamsWithWeights: Map[P, Double],
 				tolerance: Double
-		): Option[Weighted[model.ParameterSet]] = {
-			import model._
-			def getWeight(particle: Scored[ParameterSet]): Option[Double] = {
+		): Option[Weighted[P]] = {
+			def getWeight(particle: Scored[P]): Option[Double] = {
 				val fHat = particle.repScores.filter(_ < tolerance).size.toDouble
-				val numerator = fHat * prior.density(particle.params)
+				val numerator = fHat * model.prior.density(particle.params)
 				val denominator = previousParamsWithWeights.map{case (params0, weight) => 
-					weight * params0.perturbDensity(particle.params)
+					weight * model.perturbDensity(params0, particle.params)
 				}.sum
 				if(numerator > 0 && denominator > 0) Some(numerator / denominator)
 				else None
@@ -48,7 +49,7 @@ trait WeigherComponent {
 			getWeight(scoredParticle).map{wt => Weighted(scoredParticle, wt)}
 		}
 		
-		def consolidateToWeightsTable(model: ABCModel)(population: Seq[Weighted[model.ParameterSet]]): Map[model.ParameterSet, Double] = {
+		def consolidateToWeightsTable[P](model: Model[P], population: Seq[Weighted[P]]): Map[P, Double] = {
 			population
 			.groupBy(_.params)
 			.map{case (k,v) => (k, v.map(_.weight).sum)}

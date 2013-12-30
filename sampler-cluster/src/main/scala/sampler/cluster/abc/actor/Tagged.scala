@@ -20,5 +20,5 @@ package sampler.cluster.abc.actor
 //A value wrapped together with a pseudo-unique id
 case class Tagged[T](value: T, id: Long)
 object Tagged{
-	def apply[T](value: T): Tagged[T] = Tagged(value, System.currentTimeMillis + 3*value.hashCode())
+	def apply[T](value: T): Tagged[T] = Tagged(value, System.currentTimeMillis + value.hashCode())
 }

@@ -23,15 +23,13 @@ import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.actorRef2Scala
 import akka.pattern.pipe
-import sampler.abc.ABCModel
-import sampler.abc.Scored
+import sampler.cluster.abc.Scored
 import sampler.cluster.abc.actor.Abort
 import sampler.cluster.abc.actor.Job
 import sampler.cluster.abc.actor.Start
 import sampler.cluster.abc.actor.Tagged
-import sampler.cluster.abc.actor.TaggedAndScoredParameterSets
+import sampler.cluster.abc.actor.TaggedScoreSeq
 import sampler.cluster.abc.parameters.ABCParameters
-import sampler.cluster.abc.state.EncapsulatedState
 import sampler.cluster.abc.state.StateEngineComponent
 import sampler.cluster.abc.state.component.ToleranceCalculatorComponent
 import sampler.cluster.abc.state.component.WeigherComponent
@@ -41,12 +39,14 @@ import sampler.math.Statistics
 import sampler.math.StatisticsComponent
 import sampler.cluster.abc.state.StateEngineComponentImpl
 import akka.actor.Cancellable
+import sampler.cluster.abc.Model
+import sampler.cluster.abc.state.State
 
-class RootActorImpl(
-		val model: ABCModel,
+class RootActorImpl[P](
+		val model: Model[P],
 		val abcParams: ABCParameters
-) extends RootActor 
-		with ChildrenActorsComponent
+) extends RootActor[P]
+		with ChildrenActorsComponent[P]
 		with StateEngineComponentImpl 
 		with WeigherComponent
 		with ToleranceCalculatorComponent 
@@ -59,57 +59,59 @@ class RootActorImpl(
 	val random = Random
 }
 
-abstract class RootActor
+abstract class RootActor[P]
 		extends Actor 
 		with ActorLogging
 {
-	this: ChildrenActorsComponent
+	this: ChildrenActorsComponent[P]
 		with StateEngineComponent =>
 	
 	import model._
 	import context._
 	import childrenActors._
 	
-	case class Finished(eState: EncapsulatedState)
-	case class NextGeneration(eState: EncapsulatedState)
+	type S = State[P]
+	
+	case class Finished(state: S)
+	case class NextGeneration(state: S)
 	
 	case class Mix()
 	
 	var cancellable: Option[Cancellable] = None
 	
-//	override def preStart{
-//		val mixPeriod = mixRateMSLens.get(abcParams).milliseconds
-//		cancellable = Some(
-//			context.system.scheduler.schedule(mixPeriod * 10, mixPeriod, self, Mix)
-//		)
-//	}
-//	override def postStop{
-//		cancellable.foreach(_.cancel)
-//	}
+	override def preStart{
+		val mixPeriod = abcParams.cluster.mixRateMS.milliseconds
+		cancellable = Some(
+			context.system.scheduler.schedule(mixPeriod * 10, mixPeriod, self, Mix)
+		)
+	}
+	override def postStop{
+		cancellable.foreach(_.cancel)
+	}
 
 	implicit val r = Random
 	
 	def receive = idle
 	
 	def idle: Receive = {
-		case Start(eState) =>
+		case s:Start[P] =>
 			val client = sender
-			workerRouter ! Job(eState.state.prevWeightsTable, abcParams)
+			workerRouter ! Job(s.state.prevWeightsTable, abcParams)
 			
 			val sndr = sender
-			become(gathering(stateEngine.setClient(eState, sndr)))
+			become(gathering(stateEngine.setClient(s.state, sndr)))
 		case msg => log.error("Unexpected message of type {} when in Idle state",msg.getClass())
 	}
 	
 	
-	def gathering(eState: EncapsulatedState): Receive = {
-		case data: TaggedAndScoredParameterSets[_] =>
+	def gathering(state: S): Receive = {
+		case data: TaggedScoreSeq[P] =>
 			val sndr = sender
-			val castData = data.seq.asInstanceOf[Seq[Tagged[Scored[eState.model.ParameterSet]]]]
-			val newEState = stateEngine.add(eState, abcParams, sndr)(castData)
+			val castData = data.seq.asInstanceOf[Seq[Tagged[Scored[P]]]]
+			val newState: S = stateEngine.add(state, abcParams, castData, sndr)
 			
-			if(stateEngine.numberAccumulated(newEState) < abcParams.job.numParticles)
-				become(gathering(newEState))	//Continue gathering particles
+			if(stateEngine.numberAccumulated(newState) < abcParams.job.numParticles)
+				become(gathering(newState))	//Continue gathering particles
 			else {
 				workerRouter ! Abort
 				become(finalisingGeneration)
@@ -117,8 +119,8 @@ abstract class RootActor
 				implicit val executionContext = context.system.dispatchers.lookup("sampler.work-dispatcher")
 				
 				Future{
-					val flushed = stateEngine.flushGeneration(newEState, abcParams.job.numParticles)
-					import flushed.state._
+					val flushed = stateEngine.flushGeneration(newState, abcParams.job.numParticles)
+					import flushed._
 					val numGenerations = abcParams.job.numGenerations
 					log.info("Generation {}/{} complete, new tolerance {}", currentIteration, numGenerations, currentTolerance)
 					
@@ -129,7 +131,7 @@ abstract class RootActor
 				}.pipeTo(self)
 			}
 		case Mix => 
-			val payload = stateEngine.getMixPayload(eState, abcParams)
+			val payload = stateEngine.getMixPayload(state, abcParams)
 			payload.foreach{message =>
 				broadcaster ! message
 			}
@@ -138,21 +140,21 @@ abstract class RootActor
 	}
 	
 	def finalisingGeneration(): Receive = {
-		case _: TaggedAndScoredParameterSets[_] => //Ignored
+		case _: TaggedScoreSeq[P] => //Ignored
 		case Mix => //Ignored
 			//TODO in future may accumulate while running the finalisation future
-		case Finished(eState) => 
+		case Finished(state) => 
 			workerRouter ! Abort
 
-			val result: Seq[eState.model.ParameterSet] = Distribution
-				.fromProbabilityTable(eState.state.prevWeightsTable)
+			val result: Seq[P] = Distribution
+				.fromProbabilityTable(state.prevWeightsTable)
 				.until(_.size == abcParams.job.numParticles)
 				.sample
-			eState.state.client.foreach(_ ! result)
+			state.client.foreach(_ ! result)
 			log.info("Number of required generations completed and reported to requestor")
-		case NextGeneration(eState) => 
-			become(gathering(eState))
-			workerRouter ! Job(eState.state.prevWeightsTable, abcParams)
+		case NextGeneration(state) => 
+			become(gathering(state))
+			workerRouter ! Job(state.prevWeightsTable, abcParams)
 		case msg => log.error("Unexpected message of type {} when in FinalisingGeneration state",msg.getClass())
 	}
 }
