@@ -31,7 +31,7 @@ import sampler.cluster.abc.Prior
 import sampler.cluster.abc.ABC
 import sampler.cluster.abc.config.ABCConfig
 
-object ClusteredUnfairCoin extends App {
+object UnfairCoin extends App {
 	/*
 	 * ABCParameters loaded from application.conf
 	 */
@@ -54,19 +54,18 @@ case class CoinParams(pHeads: Double) extends Serializable
 object CoinModel extends Model[CoinParams] {
   	val random = Random
 
-  	val observed = Observed(10,7)
+	case class Observed(numTrials: Int, numHeads: Int) extends Serializable
+  	val observedData = Observed(10,7)
 
 	val prior = new Prior[CoinParams] with Serializable{
 	    def density(p: CoinParams) = {
-	      if(p.pHeads > 1 || p.pHeads < 0) 0.0
+	      if(p.pHeads >= 1 || p.pHeads <= 0) 0.0
 	      else 1.0
 	    }
 	    
 	    def sample() = CoinParams(random.nextDouble(0.0, 1.0))
     }
-	
-    case class Observed(numTrials: Int, numHeads: Int) extends Serializable
-    
+  	
     private val normal = new NormalDistribution(0,0.5)
 	def perturb(params: CoinParams) = CoinParams(params.pHeads + normal.sample)
   	def perturbDensity(a: CoinParams, b: CoinParams) = normal.density(a.pHeads - b.pHeads)
@@ -74,10 +73,12 @@ object CoinModel extends Model[CoinParams] {
     def distanceToObservations(p: CoinParams) = new Distribution[Double] with Serializable{
     	override def sample() = {
     		def coinToss() = random.nextBoolean(Probability(p.pHeads))
-    		val simulatedHeads = (1 to observed.numTrials)
+    		val simulatedHeads = (1 to observedData.numTrials)
     			.map(i => coinToss)
     			.count(identity)
-    		math.abs(simulatedHeads - observed.numHeads)
+//    		if(simulatedHeads == observedData.numHeads) 0
+//    		else 1
+    		math.abs(simulatedHeads - observedData.numHeads)
     	}
     }
 }

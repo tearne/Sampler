@@ -30,14 +30,14 @@ trait WeigherComponent {
 	
 	trait Weigher extends Logging{
 		//TODO can remove R
-		def weighScoredParticle[P](
+		def getWeightOption[P](
 				model: Model[P],
 				scoredParticle: Scored[P],
 				previousParamsWithWeights: Map[P, Double],
 				tolerance: Double
 		): Option[Weighted[P]] = {
 			def getWeight(particle: Scored[P]): Option[Double] = {
-				val fHat = particle.repScores.filter(_ < tolerance).size.toDouble
+				val fHat = particle.repScores.filter(_ < tolerance).size.toDouble / particle.numReps
 				val numerator = fHat * model.prior.density(particle.params)
 				val denominator = previousParamsWithWeights.map{case (params0, weight) => 
 					weight * model.perturbDensity(params0, particle.params)

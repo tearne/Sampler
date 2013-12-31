@@ -30,13 +30,13 @@ trait ToleranceCalculatorComponent {
 	val toleranceCalculator: ToleranceCalculator
 	
 	trait ToleranceCalculator {
-		def apply[P](weighedParameters: Seq[Weighted[P]], fallBackTolerance: Double): Double = {
+		def apply[P](weighedParameters: Seq[Weighted[P]], currentTolerance: Double): Double = {
 			val medianMeanScore = statistics.quantile(weighedParameters.map{_.meanRepScore}.toEmpiricalSeq, Probability(0.5))
 			if(medianMeanScore == 0) {
-				log.warning("Median of mean scores from last generation evaluated to 0, using fallback tolerance: {}", fallBackTolerance)
-				fallBackTolerance
+				log.warning("Median of mean scores from last generation evaluated to 0, using old tolerance again.")
+				currentTolerance
 			}
-			else math.min(medianMeanScore, fallBackTolerance)
+			else medianMeanScore
 		}
 	}
 }

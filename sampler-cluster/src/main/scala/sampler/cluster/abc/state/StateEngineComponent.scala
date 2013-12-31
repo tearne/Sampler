@@ -79,7 +79,7 @@ trait StateEngineComponentImpl extends StateEngineComponent{
 			import state._
 			assert(numParticles <= particleInBox.size)
 			val seqWeighted = particleInBox.toSeq.map(_.value)
-			val newTolerance = toleranceCalculator(seqWeighted, currentTolerance / 2)
+			val newTolerance = toleranceCalculator(seqWeighted, currentTolerance)
 			
 			val newState = state.copy(
 				particleInBox = Set.empty[Tagged[Weighted[P]]],
@@ -123,10 +123,9 @@ trait StateEngineComponentImpl extends StateEngineComponent{
 				val t:Seq[Option[T]] = taggedAndScoredParamSets
 					.filter(tagged => !idsObserved.contains(tagged.id))
 					.map{case Tagged(scored, id) =>
-						val cast: Scored[P] = scored.asInstanceOf[Scored[P]]
-						weigher.weighScoredParticle(
+						weigher.getWeightOption(
 								model, 
-								cast, 
+								scored, 
 								prevWeightsTable, 
 								currentTolerance
 						).map{weighted => Tagged(weighted, id)}

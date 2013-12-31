@@ -20,7 +20,9 @@ package sampler.cluster.abc
 import sampler.math.{ Random, StatisticsComponent }
 import sampler.data.Distribution
 
-case class Scored[+A](params: A, repScores: Seq[Double])
+case class Scored[+A](params: A, repScores: Seq[Double]){
+	def numReps = repScores.size.toDouble
+}
 case class Weighted[+A](scored: Scored[A], weight: Double){
 	def params = scored.params
 	def repScores = scored.repScores
