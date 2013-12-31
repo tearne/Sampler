@@ -15,7 +15,30 @@
  * limitations under the License.
  */
 
-package sampler.abc
+package sampler.cluster.abc.config
 
-class MaxRetryException(message: String = null, cause: Throwable = null) 
-	extends RuntimeException(message, cause)
+import com.typesafe.config.Config
+
+case class ClusterParameters(
+		terminateAtTargetGenerations: Boolean,
+		particleMemoryGenerations: Int,
+		futuresTimeoutMS: Long,
+		mixPayloadSize: Int,
+		mixRateMS: Long,
+		mixResponseTimeoutMS: Long
+)
+
+object ClusterParameters{
+	def fromConfig(c: Config) = {
+		val subConf = c.getConfig("abc.cluster")
+		import subConf._
+		ClusterParameters(
+			getBoolean("terminate-at-target-generation"),
+			getInt("particle-memory-generations"),
+			getMilliseconds("futures-timeout"),
+			getInt("mixing.num-particles"),
+			getMilliseconds("mixing.rate"),
+			getMilliseconds("mixing.response-threshold")
+		)
+	}
+}

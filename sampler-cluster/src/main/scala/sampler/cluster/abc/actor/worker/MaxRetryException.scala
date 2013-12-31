@@ -15,22 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.parameters
+package sampler.cluster.abc.actor.worker
 
-import sampler.abc.parameters.AlgorithmParameters
-import sampler.abc.parameters.JobParameters
-import com.typesafe.config.Config
-
-case class ABCParameters(
-		job: JobParameters,
-		algorithm: AlgorithmParameters,
-		cluster: ClusterParameters
-)
-
-object ABCParameters{
-	def fromConfig(c: Config) = ABCParameters(
-		JobParameters.fromConfig(c),
-		AlgorithmParameters.fromConfig(c),
-		ClusterParameters.fromConfig(c)
-	)
-}
+class MaxRetryException(message: String = null, cause: Throwable = null) 
+	extends RuntimeException(message, cause)

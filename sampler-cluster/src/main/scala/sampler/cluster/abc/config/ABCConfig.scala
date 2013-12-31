@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2012 Crown Copyright 
- *                    Animal Health and Veterinary Laboratories Agency
+ * Copyright (c) 2012-13 Crown Copyright 
+ *                       Animal Health and Veterinary Laboratories Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,27 +15,23 @@
  * limitations under the License.
  */
 
-package sampler.abc.parameters
+package sampler.cluster.abc.config
 
 import com.typesafe.config.Config
-import scalaz._
-import Scalaz._
 
-case class JobParameters(
-	numParticles: Int,
-	numReplicates: Int,
-	numGenerations: Int
+case class ABCConfig(
+		job: JobParameters,
+		algorithm: AlgorithmParameters,
+		cluster: ClusterParameters
 )
-object JobParameters{
-	//TODO test
-	def fromConfig(c: Config) = JobParameters(
-		c.getInt("sampler.abc.job.particles"),
-		c.getInt("sampler.abc.job.replicates"),
-		c.getInt("sampler.abc.job.generations")
-	)
-	
-	val numParticlesLens = Lens.lensu[JobParameters, Int](
-		(o,v) => o.copy(numParticles = v),
-		_.numParticles
-	)
+
+object ABCConfig{
+	def fromConfig(c: Config, name: String) = {
+		val subConfig = c.getConfig(name)
+		ABCConfig(
+			JobParameters.fromConfig(subConfig),
+			AlgorithmParameters.fromConfig(subConfig),
+			ClusterParameters.fromConfig(subConfig)
+		)
+	}
 }

@@ -29,7 +29,7 @@ import sampler.cluster.abc.actor.Job
 import sampler.cluster.abc.actor.Start
 import sampler.cluster.abc.actor.Tagged
 import sampler.cluster.abc.actor.TaggedScoreSeq
-import sampler.cluster.abc.parameters.ABCParameters
+import sampler.cluster.abc.config.ABCConfig
 import sampler.cluster.abc.state.StateEngineComponent
 import sampler.cluster.abc.state.component.ToleranceCalculatorComponent
 import sampler.cluster.abc.state.component.WeigherComponent
@@ -44,7 +44,7 @@ import sampler.cluster.abc.state.State
 
 class RootActorImpl[P](
 		val model: Model[P],
-		val abcParams: ABCParameters
+		val abcParams: ABCConfig
 ) extends RootActor[P]
 		with ChildrenActorsComponent[P]
 		with StateEngineComponentImpl 

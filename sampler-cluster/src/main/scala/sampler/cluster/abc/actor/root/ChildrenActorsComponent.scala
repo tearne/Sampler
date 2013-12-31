@@ -6,14 +6,14 @@ import akka.routing.FromConfig
 import sampler.cluster.abc.actor.BroadcastActor
 import sampler.cluster.abc.actor.ReceiveActor
 import sampler.cluster.abc.actor.worker.WorkerActorImpl
-import sampler.cluster.abc.parameters.ABCParameters
+import sampler.cluster.abc.config.ABCConfig
 import sampler.cluster.abc.Model
 
 trait ChildrenActorsComponent[P] {
 	this: Actor =>
 		
 	val childrenActors: ChildrenActors
-	val abcParams: ABCParameters
+	val abcParams: ABCConfig
 	val model: Model[P]
 
 	trait ChildrenActors {

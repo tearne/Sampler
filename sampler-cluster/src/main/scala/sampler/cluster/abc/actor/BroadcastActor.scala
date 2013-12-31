@@ -38,10 +38,10 @@ import com.typesafe.config.ConfigFactory
 import scala.concurrent.duration._
 import akka.actor.ActorSelection.toScala
 import akka.cluster.ClusterEvent.ClusterDomainEvent
-import sampler.cluster.abc.parameters.ABCParameters
+import sampler.cluster.abc.config.ABCConfig
 import scala.language.existentials
 
-class BroadcastActor(abcParams: ABCParameters) extends Actor with ActorLogging{
+class BroadcastActor(abcParams: ABCConfig) extends Actor with ActorLogging{
 	val cluster = Cluster(context.system)
 	implicit val r = Random
 	

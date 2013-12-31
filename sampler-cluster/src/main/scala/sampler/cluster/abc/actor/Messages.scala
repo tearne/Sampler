@@ -17,9 +17,8 @@
 
 package sampler.cluster.abc.actor
 
-import sampler.abc.ABCModel
-import sampler.abc.Weighted
-import sampler.cluster.abc.parameters.ABCParameters
+import sampler.cluster.abc.Weighted
+import sampler.cluster.abc.config.ABCConfig
 import scala.language.existentials
 import sampler.cluster.abc.state.State
 import sampler.cluster.abc.Model
@@ -28,7 +27,7 @@ import sampler.cluster.abc.Scored
 case class Start[P](state: State[P])
 case class Result[P](params: Seq[P])
 
-case class Job[P](population: Map[P, Double], abcParams: ABCParameters)
+case class Job[P](population: Map[P, Double], abcParams: ABCConfig)
 
 case class TaggedScoreSeq[P](seq: Seq[Tagged[Scored[P]]])
 

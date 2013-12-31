@@ -15,33 +15,26 @@
  * limitations under the License.
  */
 
-package sampler.abc.parameters
+package sampler.cluster.abc.config
 
 import com.typesafe.config.Config
 import scalaz._
 import Scalaz._
 
-case class AlgorithmParameters(
-	maxParticleRetries: Int,
-	particleChunkSize: Int
+case class JobParameters(
+	numParticles: Int,
+	numReplicates: Int,
+	numGenerations: Int
 )
-object AlgorithmParameters{
-	val default = AlgorithmParameters(
-		100,
-		500
-	)
-	//TODO test
-	def fromConfig(c: Config) = AlgorithmParameters(
-		c.getInt("sampler.abc.algorithm.particle-retries"),
-		c.getInt("sampler.abc.algorithm.particle-chunk-size")
+object JobParameters{
+	def fromConfig(c: Config) = JobParameters(
+		c.getInt("abc.job.particles"),
+		c.getInt("abc.job.replicates"),
+		c.getInt("abc.job.generations")
 	)
 	
-	val maxParticleRetriesLens = Lens.lensu[AlgorithmParameters, Int](
-		(o,v) => o.copy(maxParticleRetries = v),
-		_.maxParticleRetries
-	)
-	val particleChunkSizeLens = Lens.lensu[AlgorithmParameters, Int](
-		(o,v) => o.copy(particleChunkSize = v),
-		_.particleChunkSize
+	val numParticlesLens = Lens.lensu[JobParameters, Int](
+		(o,v) => o.copy(numParticles = v),
+		_.numParticles
 	)
 }

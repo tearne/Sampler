@@ -26,18 +26,18 @@ import org.apache.commons.math3.ode.nonstiff.DormandPrince853Integrator
 import org.apache.commons.math3.ode.sampling.FixedStepHandler
 import org.apache.commons.math3.ode.sampling.StepNormalizer
 import sampler.Implicits._
-import sampler.abc.ABCModel
-import sampler.abc.Prior
 import sampler.data.Distribution
 import sampler.io.CSVFile
 import sampler.math.Probability
 import sampler.math.Random
 import sampler.r.ScriptRunner
 import scala.language.existentials
-import sampler.abc.builder.local.LocalPopulationBuilder
-import sampler.abc.ABCMethod
 import sampler.math.Statistics
-import sampler.abc.parameters._
+import sampler.cluster.abc.Model
+import sampler.cluster.abc.Prior
+import sampler.cluster.abc.config.ABCConfig
+import com.typesafe.config.ConfigFactory
+import sampler.cluster.abc.ABC
 
 object FlockMortality extends App {
 	import FlockMortalityModel._
@@ -53,17 +53,12 @@ object FlockMortality extends App {
 	val	particleRetries = 1000
 	val	particleChunkSize = 50
 	
-	val abcParams = ABCParameters(
-		JobParameters(numParticles, numReplicates, numGenerations),
-		AlgorithmParameters(particleRetries, particleChunkSize)
+	val abcParams = ABCConfig.fromConfig(
+		ConfigFactory.load,
+		"flock-mortality-example"
 	)
 	
-	val posterior = ABCMethod(
-			FlockMortalityModel, 
-			abcParams, 
-			LocalPopulationBuilder, 
-			Random
-	).get
+	val posterior = ABC(FlockMortalityModel, abcParams)
 	
 	val posteriors = Map(
 		"Beta" -> posterior.map(_.beta).toEmpiricalSeq,
@@ -97,8 +92,8 @@ object FlockMortality extends App {
 	val medSigma2 = quantile(posterior.map(_.sigma2).toEmpiricalSeq, half)
 	val medOffset = quantile(posterior.map(_.offset).map(_.toDouble).toEmpiricalTable, half).toInt
 	
-	val medParams = ParameterSet(medBeta, medEta, medGamma, medDelta, medSigma, medSigma2, medOffset)
-	val fitted = modelDistribution(medParams).sample
+	val medianParams = FlockMortalityParams(medBeta, medEta, medGamma, medDelta, medSigma, medSigma2, medOffset)
+	val fitted = modelDistribution(medianParams).sample
 	
 	val days = 0 until observed.dailyDead.size
 	println(days)
@@ -154,8 +149,20 @@ dev.off()
 	
 }
 
-object FlockMortalityModel extends ABCModel {
-	implicit val abcRandom = Random
+case class FlockMortalityParams(
+			beta: Double, 
+			eta: Double, 
+			gamma: Double, 
+			delta: Double, 
+			sigma: Double, 
+			sigma2: Double, 
+			offset: Int
+){
+	def toCSV = s"$beta, $eta, $gamma, $delta, $sigma, $sigma2, $offset" 
+}
+
+object FlockMortalityModel extends Model[FlockMortalityParams] {
+	val random = Random
 	val modelRandom = Random
 	val statistics = sampler.math.Statistics
 	
@@ -167,24 +174,17 @@ object FlockMortalityModel extends ABCModel {
 	val flockSize = 3000
 	val eggCoef = 2200.0 / 3000.0
 	
-	case class ParameterSet(
-			beta: Double, 
-			eta: Double, 
-			gamma: Double, 
-			delta: Double, 
-			sigma: Double, 
-			sigma2: Double, 
-			offset: Int
-	) extends ParameterSetBase {
-		val kernel = new Prior[Double] with Distribution[Double]{
-			val normal = new NormalDistribution(0,0.1)
-			def sample = normal.sample
-			def density(at: Double) = normal.density(at)
-		}
-		val threeDie = Distribution.uniform(IndexedSeq(-1,0,1))
-		private def threeDensity(v: Int) = if(v <= 1 || v >= -1) 1.0 / 3 else 0
-		
-		def perturb = ParameterSet(
+	val kernel = new Prior[Double] with Distribution[Double]{
+		val normal = new NormalDistribution(0,0.1)
+		def sample = normal.sample
+		def density(at: Double) = normal.density(at)
+	}
+	val threeDie = Distribution.uniform(IndexedSeq(-1,0,1))(random)
+	private def threeDensity(v: Int) = if(v <= 1 || v >= -1) 1.0 / 3 else 0
+	
+	def perturb(p: FlockMortalityParams) = {
+		import p._
+		FlockMortalityParams(
 			beta + kernel.sample,
 			eta + kernel.sample,
 			gamma + kernel.sample,
@@ -193,24 +193,24 @@ object FlockMortalityModel extends ABCModel {
 			sigma2 + kernel.sample,
 			offset + threeDie.sample
 		)
-		def perturbDensity(that: ParameterSet) = 
-			kernel.density(beta - that.beta) *
-			kernel.density(eta - that.eta) *
-			kernel.density(gamma - that.gamma) *
-			kernel.density(delta - that.delta) *
-			kernel.density(sigma - that.sigma) *
-			kernel.density(sigma2 - that.sigma2) *
-			threeDensity(offset - that.offset)
-			
-		def toCSV = s"$beta, $eta, $gamma, $delta, $sigma, $sigma2, $offset" 
 	}
+	def perturbDensity(a: FlockMortalityParams, b: FlockMortalityParams) = 
+		kernel.density(a.beta - b.beta) *
+		kernel.density(a.eta - b.eta) *
+		kernel.density(a.gamma - b.gamma) *
+		kernel.density(a.delta - b.delta) *
+		kernel.density(a.sigma - b.sigma) *
+		kernel.density(a.sigma2 - b.sigma2) *
+		threeDensity(a.offset - b.offset)
 	object Parameters{
 		val header = Seq("Beta", "Eta", "Gamma", "Delta", "Sigma", "Sigma2", "Offset")
 	}
-	case class Observed(dailyEggs: List[Int], dailyDead: List[Int])
 	
-	case class Simulated(dayStates: Map[Int, ODEState]) extends SimulatedBase{
-		def distanceToObserved = {
+	def distanceToObservations(p: FlockMortalityParams) = modelDistribution(p).map(_.distanceToObserved)
+	
+	case class Observed(dailyEggs: List[Int], dailyDead: List[Int])
+	case class Simulated(dayStates: Map[Int, ODEState]) {
+		def distanceToObserved: Double = {
 			val accumulatedSimDead = (0 until observed.dailyDead.length).map(i => dayStates(i).d.toInt) //No Sum since already accumulated when simulated
 		    val accumulatedObsDead = observed.dailyDead.scanLeft(0){case (a,v)=> a + v.toInt}.tail
 		    
@@ -236,7 +236,7 @@ object FlockMortalityModel extends ABCModel {
 		}
 	}
 	
-	def modelDistribution(p: ParameterSet) = {
+	def modelDistribution(p: FlockMortalityParams) = {
 		import p._
 		val days = 0 until observed.dailyDead.length
 		
@@ -247,7 +247,7 @@ object FlockMortalityModel extends ABCModel {
 			val y0 = Array((flockSize-1).toDouble, 1.0, 0.0, 0.0, 0.0) //S, E, I, R, D
 			val numDays = observed.dailyDead.size	
 			
-			class ODE(p: ParameterSet) extends FirstOrderDifferentialEquations {
+			class ODE(p: FlockMortalityParams) extends FirstOrderDifferentialEquations {
 				import p._
 				
 			    def getDimension() = 5
@@ -304,12 +304,12 @@ object FlockMortalityModel extends ABCModel {
 			Simulated(shiftedResultsMap)
 		}
 		
-		//Deterministic model will always give the same answer
+		//Deterministic model will always return the same answer
 		Distribution.continually(solve)
 	}
 	
-	val prior = new Prior[ParameterSet]{
-		def density(p: ParameterSet) = {
+	val prior = new Prior[FlockMortalityParams]{
+		def density(p: FlockMortalityParams) = {
 			def unitRange(d: Double) = if(d > 1.0 || d < 0.0) 0.0 else 1.0
 			def tenRange(i: Int) = if(i < 0 || i > 10) 0.0 else 1.0
 			
@@ -326,7 +326,7 @@ object FlockMortalityModel extends ABCModel {
 		}
 		
 		//TODO can use random in the model?
-		def sample = ParameterSet(
+		def sample = FlockMortalityParams(
 			beta = modelRandom.nextDouble(0, 1),
 			eta = modelRandom.nextDouble(0, 1),
 			gamma = modelRandom.nextDouble(0, 1),

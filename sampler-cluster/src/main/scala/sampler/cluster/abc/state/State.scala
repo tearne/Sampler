@@ -22,7 +22,7 @@ import scala.collection.immutable.SortedSet
 import sampler.cluster.abc.Weighted
 import sampler.cluster.abc.actor.Tagged
 import sampler.cluster.abc.Model
-import sampler.cluster.abc.parameters.ABCParameters
+import sampler.cluster.abc.config.ABCConfig
 
 case class State[P](
 	model: Model[P],
@@ -35,7 +35,7 @@ case class State[P](
 )
 
 object State {
-	def init[P](model: Model[P], abcParameters: ABCParameters): State[P] = {
+	def init[P](model: Model[P], abcParameters: ABCConfig): State[P] = {
 		val uniformProb = 1.0 / abcParameters.job.numParticles
 		val weightsTable = (1 to abcParameters.job.numParticles)
 			.par

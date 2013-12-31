@@ -1,13 +1,12 @@
-package sampler.cluster.abc.parameters
+package sampler.cluster.abc.config
 
 import org.scalatest.FreeSpec
 import com.typesafe.config.ConfigFactory
 import scala.concurrent.duration._
 
 class ABCParametersTest extends FreeSpec {
-
 	val fullConfig = ConfigFactory.parseString("""
-		sampler.abc {
+		my-test-config.abc {
 			job {
 				replicates = 1000
 				particles = 2000
@@ -30,31 +29,33 @@ class ABCParametersTest extends FreeSpec {
 		}	
 	""")
 	
-	val instance = ABCParameters.fromConfig(fullConfig)
-	val altInstance = ABCParameters.fromConfig(
+	val instance = ABCConfig.fromConfig(fullConfig, "my-test-config")
+	val altInstance = ABCConfig.fromConfig(
 		ConfigFactory.parseString(
-			"sampler.abc.cluster.terminate-at-target-generation = false"
-		).withFallback(fullConfig)
+			"my-test-config.abc.cluster.terminate-at-target-generation = false"
+		).withFallback(fullConfig),
+		"my-test-config"
 	)
 	
 	"Should parse" - {
+		"Algorithm parameters" in {
+			assertResult(100)(instance.algorithm.maxParticleRetries)
+			assertResult(200)(instance.algorithm.particleChunkSize)
+		}
 		"Job parameters" in {
 			assertResult(1000)(instance.job.numReplicates)
 			assertResult(2000)(instance.job.numParticles)
 			assertResult(50)(instance.job.numGenerations)
 		}
-		"Algorithm parameters" in {
-			assertResult(100)(instance.algorithm.maxParticleRetries)
-			assertResult(200)(instance.algorithm.particleChunkSize)
-		}
 		"Cluster parameters" in {
 			assertResult(2)(instance.cluster.particleMemoryGenerations)
 			assertResult(true)(instance.cluster.terminateAtTargetGenerations)
-			assertResult(false)(altInstance.cluster.terminateAtTargetGenerations)
 			assertResult(10.hour.toMillis)(instance.cluster.futuresTimeoutMS)
 			assertResult(500)(instance.cluster.mixRateMS)
 			assertResult(150)(instance.cluster.mixPayloadSize)
 			assertResult(400)(instance.cluster.mixResponseTimeoutMS)
+
+			assertResult(false)(altInstance.cluster.terminateAtTargetGenerations)
 		}
 	}
 }

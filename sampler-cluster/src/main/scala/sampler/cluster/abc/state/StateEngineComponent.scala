@@ -26,7 +26,7 @@ import sampler.cluster.abc.Scored
 import sampler.cluster.abc.Weighted
 import sampler.cluster.abc.actor.Tagged
 import sampler.cluster.abc.actor.TaggedScoreSeq
-import sampler.cluster.abc.parameters.ABCParameters
+import sampler.cluster.abc.config.ABCConfig
 import sampler.cluster.abc.state.component.ToleranceCalculatorComponent
 import sampler.cluster.abc.state.component.WeigherComponent
 import sampler.math.Random
@@ -41,11 +41,11 @@ trait StateEngine {
 	def numberAccumulated(state: State[_]): Int
 	def setClient[P](state: State[P], client: ActorRef): State[P]
 	def flushGeneration[P](state: State[P], numParticles: Int): State[P]
-	def getMixPayload[P](state: State[P], abcParameters: ABCParameters): 
+	def getMixPayload[P](state: State[P], abcParameters: ABCConfig): 
 		Option[TaggedScoreSeq[P]]
 	def add[P](
 			state: State[P],
-			abcParameters: ABCParameters,
+			abcParameters: ABCConfig,
 			taggedAndScoredParamSets: Seq[Tagged[Scored[P]]],
 			sender: ActorRef
 		): State[P]
@@ -92,7 +92,7 @@ trait StateEngineComponentImpl extends StateEngineComponent{
 		}
 		
 		//TODO can we simplify tagged and scored parm sets?
-		def getMixPayload[P](state: State[P], abcParameters: ABCParameters): Option[TaggedScoreSeq[P]] = {
+		def getMixPayload[P](state: State[P], abcParameters: ABCConfig): Option[TaggedScoreSeq[P]] = {
 			import state._
 			if(particleInBox.size > 0)
 				Some(TaggedScoreSeq(particleInBox
@@ -111,7 +111,7 @@ trait StateEngineComponentImpl extends StateEngineComponent{
 		
 		def add[P](
 				state: State[P],
-				abcParameters: ABCParameters,
+				abcParameters: ABCConfig,
 				taggedAndScoredParamSets: Seq[Tagged[Scored[P]]],
 				sender: ActorRef
 		): State[P] = {

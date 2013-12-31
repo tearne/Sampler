@@ -22,7 +22,6 @@ import scala.concurrent.duration._
 import akka.util.Timeout
 import akka.actor.Props
 import sampler.cluster.actor.PortFallbackSystemFactory
-import sampler.abc.ABCModel
 import com.typesafe.config.ConfigFactory
 import sampler.io.Logging
 import sampler.cluster.abc.actor.Start
@@ -30,14 +29,14 @@ import sampler.math.Statistics
 import akka.pattern.ask
 import akka.actor.ActorSystem
 import java.util.concurrent.TimeUnit
-import sampler.cluster.abc.parameters.ABCParameters
+import sampler.cluster.abc.config.ABCConfig
 import sampler.cluster.abc.actor.root.RootActor
 import sampler.cluster.abc.actor.root.RootActorImpl
 import akka.actor.ActorRef
 import sampler.cluster.abc.state.State
 
-trait ABCMethod extends Logging{
-	def run[P](abcActor: ActorRef, model: Model[P], abcParams: ABCParameters): Seq[P] = {
+trait ABC extends Logging{
+	def run[P](abcActor: ActorRef, model: Model[P], abcParams: ABCConfig): Seq[P] = {
 		implicit val timeout = Timeout(abcParams.cluster.futuresTimeoutMS, TimeUnit.MILLISECONDS)
 		
 		log.info("Num generations: {}",abcParams.job.numGenerations)
@@ -61,8 +60,8 @@ trait ABCMethod extends Logging{
 	}
 }
 
-object ABCMethod extends ABCMethod with Logging{
-	def apply[P](model: Model[P], abcParams: ABCParameters): Seq[P] = {
+object ABC extends ABC with Logging {
+	def apply[P](model: Model[P], abcParams: ABCConfig): Seq[P] = {
 		val system = PortFallbackSystemFactory("ABC")
 		
 		val abcActor = system.actorOf(

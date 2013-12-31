@@ -20,7 +20,6 @@ package sampler.cluster.abc.actor.worker
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.tailrec
 import scala.util.Try
-import sampler.abc.MaxRetryException
 import sampler.cluster.abc.actor.Job
 import sampler.data.Distribution
 import sampler.data.SerialSampler
