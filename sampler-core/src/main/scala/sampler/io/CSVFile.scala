@@ -25,7 +25,30 @@ import java.nio.file.StandardOpenOption._
 
 object CSVFile {
 	lazy val newLine = System.getProperty("line.separator")
+	
+	//TODO test me
+	def transpose(inFile: Path, outFile: Path, options: OpenOption*) {
+		val matrix = Source.fromFile(inFile.toFile).getLines.map(line => line.split(',').map(_.trim).toList).toList
+		write(outFile, matrix.transpose, options: _*)
+	}
+	
+	def write(file: Path, valuesByLine: Traversable[Traversable[Any]], options: OpenOption*) {
+		val writer = Files.newBufferedWriter(
+				file, 
+				Charset.defaultCharset(), 
+				options:_*
+		)
 		
+		valuesByLine.foreach{line =>
+			writer.write(line.mkString(","))
+			writer.newLine()
+		}
+		
+		writer.close
+	}
+	
+	//----------------------------------------------------------
+	
 	def header(filePath: Path): IndexedSeq[String] = {
 		Source.fromFile(filePath.toFile).getLines.next.split(',').map(_.trim)
 	}
@@ -63,7 +86,7 @@ object CSVFile {
 		)
 		
 		lines.foreach{line =>
-			assert(header.size == line.split(',').size, "Encountered line of different length to header: "+line)
+			assert(header.isEmpty || header.size == line.split(',').size, "Encountered line of different length to header: "+header+"--/--"+line)
 			writer.append(line)
 			writer.newLine()
 		}

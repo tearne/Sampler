@@ -41,16 +41,20 @@ import sampler.cluster.abc.state.StateEngineComponentImpl
 import akka.actor.Cancellable
 import sampler.cluster.abc.Model
 import sampler.cluster.abc.state.State
+import akka.actor.ActorRef
+import sampler.cluster.abc.actor.Lenses
 
 class RootActorImpl[P](
 		val model: Model[P],
-		val abcParams: ABCConfig
+		val config: ABCConfig
 ) extends RootActor[P]
+		with ModelAndConfig[P]
 		with ChildrenActorsComponent[P]
 		with StateEngineComponentImpl 
 		with WeigherComponent
 		with ToleranceCalculatorComponent 
-		with StatisticsComponent {
+		with StatisticsComponent 
+		with Lenses {
 	val childrenActors = new ChildrenActors{}
 	val weigher = new Weigher{}
 	val toleranceCalculator = new ToleranceCalculator{}
@@ -64,7 +68,9 @@ abstract class RootActor[P]
 		with ActorLogging
 {
 	this: ChildrenActorsComponent[P]
-		with StateEngineComponent =>
+		with ModelAndConfig[P]
+		with StateEngineComponent
+		with Lenses =>
 	
 	import model._
 	import context._
@@ -80,7 +86,7 @@ abstract class RootActor[P]
 	var cancellable: Option[Cancellable] = None
 	
 	override def preStart{
-		val mixPeriod = abcParams.cluster.mixRateMS.milliseconds
+		val mixPeriod = mixRateMS.get(config).milliseconds
 		cancellable = Some(
 			context.system.scheduler.schedule(mixPeriod * 10, mixPeriod, self, Mix)
 		)
@@ -96,42 +102,40 @@ abstract class RootActor[P]
 	def idle: Receive = {
 		case s:Start[P] =>
 			val client = sender
-			workerRouter ! Job(s.state.prevWeightsTable, abcParams)
-			
-			val sndr = sender
-			become(gathering(stateEngine.setClient(s.state, sndr)))
+			workerRouter ! Job(s.init.prevWeightsTable, config)
+			become(gathering(s.init, client))
 		case msg => log.error("Unexpected message of type {} when in Idle state",msg.getClass())
 	}
 	
 	
-	def gathering(state: S): Receive = {
+	def gathering(state: S, requestor: ActorRef): Receive = {
 		case data: TaggedScoreSeq[P] =>
 			val sndr = sender
 			val castData = data.seq.asInstanceOf[Seq[Tagged[Scored[P]]]]
-			val newState: S = stateEngine.add(state, abcParams, castData, sndr)
+			val newState: S = stateEngine.add(state, config, castData, sndr)
 			
-			if(stateEngine.numberAccumulated(newState) < abcParams.job.numParticles)
-				become(gathering(newState))	//Continue gathering particles
+			if(stateEngine.numberAccumulated(newState) < config.job.numParticles)
+				become(gathering(newState, requestor))	//Continue gathering particles
 			else {
 				workerRouter ! Abort
-				become(finalisingGeneration)
+				become(finalisingGeneration(requestor))
 
 				implicit val executionContext = context.system.dispatchers.lookup("sampler.work-dispatcher")
 				
 				Future{
-					val flushed = stateEngine.flushGeneration(newState, abcParams.job.numParticles)
+					val flushed = stateEngine.flushGeneration(newState, config.job.numParticles)
 					import flushed._
-					val numGenerations = abcParams.job.numGenerations
+					val numGenerations = config.job.numGenerations
 					log.info("Generation {}/{} complete, new tolerance {}", currentIteration, numGenerations, currentTolerance)
 					
-					if(currentIteration == numGenerations && abcParams.cluster.terminateAtTargetGenerations)
+					if(currentIteration == numGenerations && config.cluster.terminateAtTargetGenerations)
 						Finished(flushed)
 					else 
 						NextGeneration(flushed)
 				}.pipeTo(self)
 			}
 		case Mix => 
-			val payload = stateEngine.getMixPayload(state, abcParams)
+			val payload = stateEngine.buildMixPayload(state, config)
 			payload.foreach{message =>
 				broadcaster ! message
 			}
@@ -139,22 +143,21 @@ abstract class RootActor[P]
 		
 	}
 	
-	def finalisingGeneration(): Receive = {
-		case _: TaggedScoreSeq[P] => //Ignored
-		case Mix => //Ignored
-			//TODO in future may accumulate while running the finalisation future
+	def finalisingGeneration(client: ActorRef): Receive = {
+		case _: TaggedScoreSeq[P] => 	//Ignored
+		case Mix => 					//Ignored
 		case Finished(state) => 
 			workerRouter ! Abort
-
-			val result: Seq[P] = Distribution
-				.fromProbabilityTable(state.prevWeightsTable)
-				.until(_.size == abcParams.job.numParticles)
-				.sample
-			state.client.foreach(_ ! result)
+			report(client, state, true)
 			log.info("Number of required generations completed and reported to requestor")
 		case NextGeneration(state) => 
-			become(gathering(state))
-			workerRouter ! Job(state.prevWeightsTable, abcParams)
+			report(client, state, false)
+			become(gathering(state, client))
+			workerRouter ! Job(state.prevWeightsTable, config)
 		case msg => log.error("Unexpected message of type {} when in FinalisingGeneration state",msg.getClass())
+	}
+	
+	def report(client: ActorRef, state: State[P], finalReport: Boolean){
+		client ! stateEngine.buildReport(state, config, finalReport)
 	}
 }

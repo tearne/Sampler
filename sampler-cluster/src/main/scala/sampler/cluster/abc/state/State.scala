@@ -26,7 +26,6 @@ import sampler.cluster.abc.config.ABCConfig
 
 case class State[P](
 	model: Model[P],
-	client: Option[ActorRef],
 	particleInBox: Set[Tagged[Weighted[P]]],
 	idsObserved: SortedSet[Long],
 	currentTolerance: Double,
@@ -45,7 +44,6 @@ object State {
 			
 		State(
 			model,
-			None,
 			Set.empty[Tagged[Weighted[P]]],
 			SortedSet.empty[Long],
 			Double.MaxValue,

@@ -18,6 +18,7 @@
 package sampler.cluster.abc.config
 
 import com.typesafe.config.Config
+import scalaz.Lens._
 
 case class ClusterParameters(
 		terminateAtTargetGenerations: Boolean,
@@ -41,4 +42,9 @@ object ClusterParameters{
 			getMilliseconds("mixing.response-threshold")
 		)
 	}
+	
+	val mixRateMSLens = lensu[ClusterParameters, Long](
+			(o,v) => o.copy(mixRateMS = v),
+			_.mixRateMS
+	)
 }

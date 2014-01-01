@@ -34,44 +34,74 @@ import sampler.cluster.abc.actor.root.RootActor
 import sampler.cluster.abc.actor.root.RootActorImpl
 import akka.actor.ActorRef
 import sampler.cluster.abc.state.State
+import akka.pattern.ask
+import sampler.cluster.abc.actor.report._
+import sampler.cluster.abc.actor.Report
 
-trait ABC extends Logging{
-	def run[P](abcActor: ActorRef, model: Model[P], abcParams: ABCConfig): Seq[P] = {
-		implicit val timeout = Timeout(abcParams.cluster.futuresTimeoutMS, TimeUnit.MILLISECONDS)
-		
-		log.info("Num generations: {}",abcParams.job.numGenerations)
-		log.info("Num particles: {}",abcParams.job.numParticles)
-		log.info("Num replicates: {}",abcParams.job.numReplicates)
-		log.info("Max particle retrys: {}",abcParams.algorithm.maxParticleRetries)
-		log.info("Particle chunk size: {}",abcParams.algorithm.particleChunkSize)
-		log.info("Mix rate {} MS",abcParams.cluster.mixRateMS)
-		log.info("Mix payload: {}",abcParams.cluster.mixPayloadSize)
-		log.info("Mix response threshold {} MS",abcParams.cluster.mixResponseTimeoutMS)
-		log.info("Futures timeout {} MS",abcParams.cluster.futuresTimeoutMS)
-		log.info("Particle memory generations: {}",abcParams.cluster.particleMemoryGenerations)
-		log.info("Terminate at target generations: {}",abcParams.cluster.terminateAtTargetGenerations)
-		log.info("Number of workers (router configured): {}", ConfigFactory.load().getInt("akka.actor.deployment./root/work-router.nr-of-instances"))
-		
-		
-		import akka.pattern.ask
-		val future = (abcActor ? Start(State.init(model, abcParams)))
-				.mapTo[Seq[P]]
-		Await.result(future, Duration.Inf)
-	}
+trait ABC {
+	val system: ActorSystem
+	def entryPointActor[P](
+			model: Model[P], 
+			abcParams: ABCConfig, 
+			reporting: Option[Report[P] => Unit]
+	): ActorRef 
 }
 
-object ABC extends ABC with Logging {
-	def apply[P](model: Model[P], abcParams: ABCConfig): Seq[P] = {
-		val system = PortFallbackSystemFactory("ABC")
-		
-		val abcActor = system.actorOf(
-			Props(classOf[RootActorImpl[P]],model, abcParams), 
-			"root"
+trait ABCImpl extends ABC{
+	val system = PortFallbackSystemFactory("ABC")
+	
+	def abcActor[P](model: Model[P], config: ABCConfig) = system.actorOf(
+		Props(classOf[RootActorImpl[P]], model, config), 
+		"root"
+	)
+	
+	def entryPointActor[P](
+			model: Model[P], 
+			config: ABCConfig, 
+			reportAction: Option[Report[P] => Unit]
+	) = system.actorOf(
+		Props(
+			classOf[ReportingActor[P]], 
+			abcActor(model, config), 
+			reportAction
 		)
+	)
+}
+
+object ABC extends ABCImpl with Logging {
+	def apply[P](
+			model: Model[P], 
+			config: ABCConfig, 
+			reporting: Report[P] => Unit
+	): Seq[P] = apply(model, config, Some(reporting))
+	
+	def apply[P](
+			model: Model[P], 
+			config: ABCConfig, 
+			reporting: Option[Report[P] => Unit] = None
+	): Seq[P] = {
 		
-		val result = run(abcActor, model, abcParams)
+		log.info("Num generations: {}",config.job.numGenerations)
+		log.info("Num particles: {}",config.job.numParticles)
+		log.info("Num replicates: {}",config.job.numReplicates)
+		log.info("Max particle retrys: {}",config.algorithm.maxParticleRetries)
+		log.info("Particle chunk size: {}",config.algorithm.particleChunkSize)
+		log.info("Mix rate {} MS",config.cluster.mixRateMS)
+		log.info("Mix payload: {}",config.cluster.mixPayloadSize)
+		log.info("Mix response threshold {} MS",config.cluster.mixResponseTimeoutMS)
+		log.info("Futures timeout {} MS",config.cluster.futuresTimeoutMS)
+		log.info("Particle memory generations: {}",config.cluster.particleMemoryGenerations)
+		log.info("Terminate at target generations: {}",config.cluster.terminateAtTargetGenerations)
+		log.info("Number of workers (router configured): {}", ConfigFactory.load().getInt("akka.actor.deployment./root/work-router.nr-of-instances"))
 		
-		if(abcParams.cluster.terminateAtTargetGenerations){
+		val initState = State.init(model, config)
+		val actor = entryPointActor(model, config, reporting)
+		
+		implicit val timeout = Timeout(config.cluster.futuresTimeoutMS, TimeUnit.MILLISECONDS)
+		val future = (actor ? initState).mapTo[Report[P]]
+		val result = Await.result(future, Duration.Inf).posterior
+		
+		if(config.cluster.terminateAtTargetGenerations){
 			log.info("Terminating actor system")
 			system.shutdown
 		}

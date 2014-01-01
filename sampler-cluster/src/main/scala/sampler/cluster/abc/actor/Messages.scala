@@ -20,14 +20,18 @@ package sampler.cluster.abc.actor
 import sampler.cluster.abc.Weighted
 import sampler.cluster.abc.config.ABCConfig
 import scala.language.existentials
-import sampler.cluster.abc.state.State
 import sampler.cluster.abc.Model
 import sampler.cluster.abc.Scored
+import akka.actor.ActorRef
+import sampler.cluster.abc.state.State
 
-case class Start[P](state: State[P])
-case class Result[P](params: Seq[P])
+//TODO comment who sends what to whom
 
-case class Job[P](population: Map[P, Double], abcParams: ABCConfig)
+case class Start[P](init: State[P])
+case class Report[P](generationId: Int, tolerance: Double, posterior: Seq[P], isFinalReport: Boolean)
+case class Finished()
+
+case class Job[P](population: Map[P, Double], config: ABCConfig)
 
 case class TaggedScoreSeq[P](seq: Seq[Tagged[Scored[P]]])
 

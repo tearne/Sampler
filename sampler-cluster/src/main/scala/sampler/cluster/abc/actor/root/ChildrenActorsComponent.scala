@@ -10,15 +10,13 @@ import sampler.cluster.abc.config.ABCConfig
 import sampler.cluster.abc.Model
 
 trait ChildrenActorsComponent[P] {
-	this: Actor =>
+	this: Actor with ModelAndConfig[P] =>
 		
 	val childrenActors: ChildrenActors
-	val abcParams: ABCConfig
-	val model: Model[P]
 
 	trait ChildrenActors {
 		val broadcaster = context.actorOf(
-			Props(classOf[BroadcastActor], abcParams), 
+			Props(classOf[BroadcastActor], config), 
 			"broadcaster"
 		)
 		val receiver = context.actorOf(

@@ -19,37 +19,67 @@ package sampler.example.abc
 
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.nio.file.StandardOpenOption.APPEND
+import java.nio.file.StandardOpenOption.CREATE
 import org.apache.commons.math3.distribution.NormalDistribution
-import sampler.Implicits._
+import com.typesafe.config.ConfigFactory
+import sampler.Implicits.RichFractionalSeq
+import sampler.cluster.abc.ABC
+import sampler.cluster.abc.Model
+import sampler.cluster.abc.Prior
+import sampler.cluster.abc.actor.Report
+import sampler.cluster.abc.actor.report.Writable
+import sampler.cluster.abc.config.ABCConfig
 import sampler.data.Distribution
+import sampler.io.CSVFile
 import sampler.math.Probability
 import sampler.math.Random
 import sampler.r.QuickPlot.writeDensity
-import com.typesafe.config.ConfigFactory
-import sampler.cluster.abc.Model
-import sampler.cluster.abc.Prior
-import sampler.cluster.abc.ABC
-import sampler.cluster.abc.config.ABCConfig
+import sampler.r.ScriptRunner
 
 object UnfairCoin extends App {
 	/*
 	 * ABCParameters loaded from application.conf
 	 */
-	val parameters = ABCConfig.fromConfig(ConfigFactory.load(), "unfair-coin-example")
-	
-	val headsDensity = ABC(CoinModel, parameters).map(_.pHeads)
-	
 	val wd = Paths.get("results", "UnfairCoin")
 	Files.createDirectories(wd)
 	
+	val tempCSV = Files.createTempFile("", "")
+	tempCSV.toFile().deleteOnExit
+	
+	val abcParameters = ABCConfig.fromConfig(ConfigFactory.load(), "unfair-coin-example")
+	val abcReporting = { report: Report[CoinParams] =>
+		val line = s"Gen${report.generationId},"+report.posterior.map(_.pHeads).mkString(",")
+		CSVFile.write(tempCSV, Seq(line), Seq.empty[String], APPEND, CREATE)
+	}
+	
+	val finalGeneration = ABC(CoinModel, abcParameters, abcReporting).map(_.pHeads)
+	
+	// Make plot of final generation (posterior)
 	writeDensity(
 		wd, 
 		"posterior", 
-		headsDensity.continuous("P[Heads]")
+		finalGeneration.continuous("P[Heads]")
 	)
+	
+	
+	// Make plot showing all generations
+	CSVFile.transpose(tempCSV, wd.resolve("output.csv"))
+	
+	val rScript = s"""
+lapply(c("ggplot2", "reshape"), require, character.only=T)
+data = read.csv("output.csv")
+pdf("generations.pdf", width=4.13, height=2.91) #A7 landscape paper
+ggplot(melt(data), aes(x=value, colour=variable)) + geom_density()
+dev.off()	
+"""
+	ScriptRunner.apply(rScript, wd.resolve("script.r"))
 }
 
-case class CoinParams(pHeads: Double) extends Serializable
+case class CoinParams(pHeads: Double) extends Writable with Serializable{
+	def fieldNames = Seq("PHeads")
+	def fields = Seq(pHeads.toString)
+}
 
 object CoinModel extends Model[CoinParams] {
   	val random = Random
@@ -76,9 +106,8 @@ object CoinModel extends Model[CoinParams] {
     		val simulatedHeads = (1 to observedData.numTrials)
     			.map(i => coinToss)
     			.count(identity)
-//    		if(simulatedHeads == observedData.numHeads) 0
-//    		else 1
-    		math.abs(simulatedHeads - observedData.numHeads)
+    		if(simulatedHeads == observedData.numHeads) 0
+    		else 1
     	}
     }
 }

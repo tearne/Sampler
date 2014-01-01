@@ -32,6 +32,9 @@ import sampler.cluster.abc.state.component.WeigherComponent
 import sampler.math.Random
 import sampler.math.StatisticsComponent
 import sampler.cluster.abc.Model
+import sampler.cluster.abc.actor.Report
+import sampler.data.Distribution
+import sampler.cluster.abc.actor.Lenses
 
 trait StateEngineComponent {
 	val stateEngine: StateEngine
@@ -39,9 +42,9 @@ trait StateEngineComponent {
 
 trait StateEngine {
 	def numberAccumulated(state: State[_]): Int
-	def setClient[P](state: State[P], client: ActorRef): State[P]
+	def buildReport[P](state: State[P], config: ABCConfig, finalReport: Boolean): Report[P]
 	def flushGeneration[P](state: State[P], numParticles: Int): State[P]
-	def getMixPayload[P](state: State[P], abcParameters: ABCConfig): 
+	def buildMixPayload[P](state: State[P], abcParameters: ABCConfig): 
 		Option[TaggedScoreSeq[P]]
 	def add[P](
 			state: State[P],
@@ -61,7 +64,8 @@ trait StateEngineComponentImpl extends StateEngineComponent{
 		with WeigherComponent
 		with StatisticsComponent
 		with Actor
-		with ActorLogging =>
+		with ActorLogging
+		with Lenses =>
 	
 	val stateEngine: StateEngine
 	
@@ -71,8 +75,18 @@ trait StateEngineComponentImpl extends StateEngineComponent{
 		def weightsTable[S <: State[_]](state: S) = state.prevWeightsTable
 		def numberAccumulated(state: State[_]) = state.particleInBox.size
 		
-		def setClient[P](state: State[P], client: ActorRef): State[P] = {
-			state.copy(client = Some(client))
+		def buildReport[P](state: State[P], config: ABCConfig, finalReport: Boolean): Report[P] = {
+			val samples: Seq[P] = Distribution
+				.fromProbabilityTable(state.prevWeightsTable)
+				.until(_.size == numParticles.get(config))
+				.sample
+			
+			Report(
+					state.currentIteration,
+					state.currentTolerance,
+					samples,
+					finalReport
+			)
 		}
 		
 		def flushGeneration[P](state: State[P], numParticles: Int): State[P] = {
@@ -92,7 +106,7 @@ trait StateEngineComponentImpl extends StateEngineComponent{
 		}
 		
 		//TODO can we simplify tagged and scored parm sets?
-		def getMixPayload[P](state: State[P], abcParameters: ABCConfig): Option[TaggedScoreSeq[P]] = {
+		def buildMixPayload[P](state: State[P], abcParameters: ABCConfig): Option[TaggedScoreSeq[P]] = {
 			import state._
 			if(particleInBox.size > 0)
 				Some(TaggedScoreSeq(particleInBox

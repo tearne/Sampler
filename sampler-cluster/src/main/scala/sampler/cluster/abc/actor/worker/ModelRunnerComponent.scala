@@ -49,7 +49,7 @@ trait ModelRunnerComponent[P] {
 				Distribution.fromProbabilityTable(weightsTable)
 			}
 			
-			val maxParticleRetries = job.abcParams.algorithm.maxParticleRetries
+			val maxParticleRetries = job.config.algorithm.maxParticleRetries
 			
 			@tailrec
 			def getScoredParameter(failures: Int = 0): Scored[P] = {
@@ -58,7 +58,7 @@ trait ModelRunnerComponent[P] {
 				else{
 					def getScores(params: P): IndexedSeq[Double] = {
 						val modelWithMetric = model.distanceToObservations(params)
-						SerialSampler(modelWithMetric)(_.size == job.abcParams.job.numReplicates)
+						SerialSampler(modelWithMetric)(_.size == job.config.job.numReplicates)
 					}
 					
 					val res: Option[Scored[P]] = for{
@@ -73,7 +73,7 @@ trait ModelRunnerComponent[P] {
 				}
 			}
 			
-			(1 to job.abcParams.algorithm.particleChunkSize).map(i => getScoredParameter())
+			(1 to job.config.algorithm.particleChunkSize).map(i => getScoredParameter())
 		}
 	}
 }

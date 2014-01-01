@@ -18,6 +18,7 @@
 package sampler.cluster.abc.config
 
 import com.typesafe.config.Config
+import scalaz.Lens._
 
 case class ABCConfig(
 		job: JobParameters,
@@ -34,4 +35,19 @@ object ABCConfig{
 			ClusterParameters.fromConfig(subConfig)
 		)
 	}
+	
+	val jobLens = lensu[ABCConfig, JobParameters](
+			(o,v) => o.copy(job = v),
+			_.job
+	)
+	
+	val algorithmLens = lensu[ABCConfig, AlgorithmParameters](
+			(o,v) => o.copy(algorithm = v),
+			_.algorithm
+	)
+	
+	val clusterLens = lensu[ABCConfig, ClusterParameters](
+			(o,v) => o.copy(cluster = v),
+			_.cluster
+	)
 }
