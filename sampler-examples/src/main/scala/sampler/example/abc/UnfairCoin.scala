@@ -31,11 +31,12 @@ import sampler.cluster.abc.actor.Report
 import sampler.cluster.abc.actor.report.Writable
 import sampler.cluster.abc.config.ABCConfig
 import sampler.data.Distribution
-import sampler.io.CSVFile
 import sampler.math.Probability
 import sampler.math.Random
 import sampler.r.QuickPlot.writeDensity
 import sampler.r.ScriptRunner
+import sampler.io.CSV
+import sampler.io.CSV
 
 object UnfairCoin extends App {
 	/*
@@ -44,13 +45,18 @@ object UnfairCoin extends App {
 	val wd = Paths.get("results", "UnfairCoin")
 	Files.createDirectories(wd)
 	
-	val tempCSV = Files.createTempFile("", "")
+	
+	val tempCSV = Files.createTempFile(null, null)
 	tempCSV.toFile().deleteOnExit
 	
 	val abcParameters = ABCConfig.fromConfig(ConfigFactory.load(), "unfair-coin-example")
 	val abcReporting = { report: Report[CoinParams] =>
-		val line = s"Gen${report.generationId},"+report.posterior.map(_.pHeads).mkString(",")
-		CSVFile.write(tempCSV, Seq(line), Seq.empty[String], APPEND, CREATE)
+		val lineToks = s"Gen${report.generationId}" +: report.posterior.map(_.pHeads)
+		CSV.writeLine(
+				tempCSV, 
+				lineToks,
+				APPEND, CREATE
+		)
 	}
 	
 	val finalGeneration = ABC(CoinModel, abcParameters, abcReporting).map(_.pHeads)
@@ -64,7 +70,7 @@ object UnfairCoin extends App {
 	
 	
 	// Make plot showing all generations
-	CSVFile.transpose(tempCSV, wd.resolve("output.csv"))
+	CSV.transpose(tempCSV, wd.resolve("output.csv"))
 	
 	val rScript = s"""
 lapply(c("ggplot2", "reshape"), require, character.only=T)

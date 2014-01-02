@@ -27,7 +27,6 @@ import org.apache.commons.math3.ode.sampling.FixedStepHandler
 import org.apache.commons.math3.ode.sampling.StepNormalizer
 import sampler.Implicits._
 import sampler.data.Distribution
-import sampler.io.CSVFile
 import sampler.math.Probability
 import sampler.math.Random
 import sampler.r.ScriptRunner
@@ -38,6 +37,7 @@ import sampler.cluster.abc.Prior
 import sampler.cluster.abc.config.ABCConfig
 import com.typesafe.config.ConfigFactory
 import sampler.cluster.abc.ABC
+import sampler.io.CSV
 
 object FlockMortality extends App {
 	import FlockMortalityModel._
@@ -70,16 +70,14 @@ object FlockMortality extends App {
 	
 	val csvName = "results.csv"
 	
-	CSVFile.write(
+	CSV.writeLines(
 			wd.resolve("obseravtions.csv"), 
-			observed.dailyEggs.zip(observed.dailyEggs).map{case (e,d) => s"$e,$d"}, 
-			header = Seq("Eggs", "Dead")
+			Seq("Eggs", "Dead") +: observed.dailyEggs.zip(observed.dailyEggs).map(_.productIterator.toSeq) 
 	)
 	
-	CSVFile.write(
+	CSV.writeLines(
 			wd.resolve(csvName),
-			posterior.map{_.toCSV},
-			header = Parameters.header
+			Parameters.header +: posterior.map(_.toSeq)
 	)
 	
 	//Get median fit data
@@ -100,7 +98,7 @@ object FlockMortality extends App {
 	val cumulativeObsDead = observed.dailyDead.scanLeft(0){case (a,v)=> a + v.toInt}.tail
 	
 	case class Fitted(day: Int, fitEggs: Double, fitDead: Double, obsEggs: Int, obsDead: Int){
-		def toCSV = s"$day, $fitEggs, $fitDead, $obsEggs, $obsDead"
+		def toSeq = Seq(day, fitEggs, fitDead, obsEggs, obsDead)
 	}
 	object Fitted{
 		def header = Seq("Day", "FitEggs", "FitDead", "ObsEggs", "ObsDead")
@@ -114,10 +112,9 @@ object FlockMortality extends App {
 		cumulativeObsDead(day)
 	)}
 	
-	CSVFile.write(
+	CSV.writeLines(
 			wd.resolve("fitted.csv"),
-			fittedData.map(_.toCSV),
-			header = Fitted.header
+			Fitted.header +: fittedData.map(_.toSeq)
 	)
 	
 	val rScript = 
@@ -158,7 +155,7 @@ case class FlockMortalityParams(
 			sigma2: Double, 
 			offset: Int
 ){
-	def toCSV = s"$beta, $eta, $gamma, $delta, $sigma, $sigma2, $offset" 
+	def toSeq = Seq(beta, eta, gamma, delta, sigma, sigma2, offset) 
 }
 
 object FlockMortalityModel extends Model[FlockMortalityParams] {

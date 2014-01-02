@@ -17,13 +17,10 @@
 
 package sampler.r
 
-import java.nio.file.Path
 import java.io.FileWriter
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import scala.io.Source
+import java.nio.file.Path
 
-// Should QuickPlot be in companion object?
+import scala.sys.process.stringSeqToProcess
 
 /** A class to allow the running of an R script from within the Scala environment*/
 class ScriptRunner {

@@ -1,13 +1,10 @@
 package sampler.r
 
-import sampler.data.Empirical
-import java.nio.file.Paths
 import java.nio.file.Path
-import sampler.data.EmpiricalSeq
-import sampler.math.Probability
-import sampler.data.EmpiricalTable
-import sampler.io.CSVFile
+
 import scala.language.implicitConversions
+
+import sampler.io.CSV
 
 object QuickPlot {
   private def buildScript(fileName: String, lines: String*) = {
@@ -32,14 +29,14 @@ object QuickPlot {
    *  @param data The data set(s) to be plotted
    */
   def writeDensity[T: Fractional](path: Path, fileName: String, data: NamedSeqFractional[T]*) = {
-	val header = Seq("variable", "value")
+	val header = Seq[Any]("variable", "value")
     import Numeric.Implicits._
 	
-	def melted(data: Seq[NamedSeqFractional[T]]) = {
-	  data.flatMap{case NamedSeqFractional(dist, name) => dist.map{name + "," + _.toDouble}}
+	def melted(data: Seq[NamedSeqFractional[T]]): Seq[Seq[Any]] = {
+	  data.flatMap{case NamedSeqFractional(distSeq, name) => distSeq.map{value => Seq(name,value)}}
 	}
 	
-	CSVFile.write(path.resolve(fileName+".csv"), melted(data), header)
+	CSV.writeLines(path.resolve(fileName+".csv"), header +: melted(data))
 	  
 	val line1 = "data <- read.csv(\"" + fileName + ".csv\")\n"
 	val line2 = "ggplot(data, aes(x=value, colour=variable)) + geom_density()\n"
@@ -56,13 +53,13 @@ object QuickPlot {
    *  @param data The data set(s) to be plotted
    */
   def writeDiscrete[T: Integral](path: Path, fileName: String, data: NamedSeqIntegral[T]*) = {
-    val header = Seq("variable", "value")
+    val header = Seq[Any]("variable", "value")
     
-    def melted(data: Seq[NamedSeqIntegral[T]]) = {
-	  data.flatMap{case NamedSeqIntegral(dist, name) => dist.map{name + "," + _}}
+    def melted(data: Seq[NamedSeqIntegral[T]]): Seq[Seq[Any]] = {
+	  data.flatMap{case NamedSeqIntegral(distSeq, name) => distSeq.map{value => Seq(name,value)}}
 	}
     
-    CSVFile.write(path.resolve(fileName+".csv"), melted(data), header)
+    CSV.writeLines(path.resolve(fileName+".csv"),header +: melted(data))
 
     val line1 = "data <- read.csv(\"" + fileName + ".csv\")\n"
     val line2 = "ggplot(data, aes(x=value, fill = variable)) + geom_bar(position=\"dodge\")\n"
