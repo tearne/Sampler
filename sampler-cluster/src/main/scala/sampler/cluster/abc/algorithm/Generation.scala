@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.state
+package sampler.cluster.abc.algorithm
 
 import akka.actor.ActorRef
 import scala.collection.immutable.SortedSet
@@ -24,7 +24,7 @@ import sampler.cluster.abc.actor.Tagged
 import sampler.cluster.abc.Model
 import sampler.cluster.abc.config.ABCConfig
 
-case class State[P](
+case class Generation[P](
 	model: Model[P],
 	particleInBox: Set[Tagged[Weighted[P]]],
 	idsObserved: SortedSet[Long],
@@ -33,8 +33,8 @@ case class State[P](
 	prevWeightsTable: Map[P, Double]
 )
 
-object State {
-	def init[P](model: Model[P], abcParameters: ABCConfig): State[P] = {
+object Generation {
+	def init[P](model: Model[P], abcParameters: ABCConfig): Generation[P] = {
 		val uniformProb = 1.0 / abcParameters.job.numParticles
 		val weightsTable = (1 to abcParameters.job.numParticles)
 			.par
@@ -42,7 +42,7 @@ object State {
 			.seq
 			.toMap
 			
-		State(
+		Generation(
 			model,
 			Set.empty[Tagged[Weighted[P]]],
 			SortedSet.empty[Long],

@@ -33,10 +33,10 @@ import sampler.cluster.abc.config.ABCConfig
 import sampler.cluster.abc.actor.root.RootActor
 import sampler.cluster.abc.actor.root.RootActorImpl
 import akka.actor.ActorRef
-import sampler.cluster.abc.state.State
 import akka.pattern.ask
 import sampler.cluster.abc.actor.report._
 import sampler.cluster.abc.actor.Report
+import sampler.cluster.abc.algorithm.Generation
 
 trait ABC {
 	val system: ActorSystem
@@ -94,7 +94,7 @@ object ABC extends ABCImpl with Logging {
 		log.info("Terminate at target generations: {}",config.cluster.terminateAtTargetGenerations)
 		log.info("Number of workers (router configured): {}", ConfigFactory.load().getInt("akka.actor.deployment./root/work-router.nr-of-instances"))
 		
-		val initState = State.init(model, config)
+		val initState = Generation.init(model, config)
 		val actor = entryPointActor(model, config, reporting)
 		
 		implicit val timeout = Timeout(config.cluster.futuresTimeoutMS, TimeUnit.MILLISECONDS)

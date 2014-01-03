@@ -23,11 +23,11 @@ import scala.language.existentials
 import sampler.cluster.abc.Model
 import sampler.cluster.abc.Scored
 import akka.actor.ActorRef
-import sampler.cluster.abc.state.State
+import sampler.cluster.abc.algorithm.Generation
 
 //TODO comment who sends what to whom
 
-case class Start[P](init: State[P])
+case class Start[P](generationZero: Generation[P])
 case class Report[P](generationId: Int, tolerance: Double, posterior: Seq[P], isFinalReport: Boolean)
 case class Finished()
 

@@ -3,16 +3,16 @@ package sampler.cluster.abc.actor.report
 import akka.actor.ActorLogging
 import akka.actor.Actor
 import akka.actor.ActorRef
-import sampler.cluster.abc.state.State
 import akka.actor.actorRef2Scala
 import sampler.cluster.abc.actor.Report
 import sampler.cluster.abc.actor.Start
+import sampler.cluster.abc.algorithm.Generation
 
 class ReportingActor[P](algorithmRoot: ActorRef, action: Option[Report[P] => Unit]) extends Actor with ActorLogging {
 	def receive = idle
 	
 	def idle: Receive = {
-		case init: State[P] => 
+		case init: Generation[P] => 
 			val client = sender
 			algorithmRoot ! Start(init)
 			context.become(working(client))

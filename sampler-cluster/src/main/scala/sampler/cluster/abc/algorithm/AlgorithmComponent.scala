@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.state
+package sampler.cluster.abc.algorithm
 
 import scala.Option.option2Iterable
 import akka.actor.Actor
@@ -36,22 +36,22 @@ import sampler.cluster.abc.actor.Report
 import sampler.data.Distribution
 import sampler.cluster.abc.actor.Lenses
 
-trait StateEngineComponent {
-	val stateEngine: StateEngine
+trait AlgorithmComponent {
+	val algorithm: Algorithm
 }
 
-trait StateEngine {
-	def numberAccumulated(state: State[_]): Int
-	def buildReport[P](state: State[P], config: ABCConfig, finalReport: Boolean): Report[P]
-	def flushGeneration[P](state: State[P], numParticles: Int): State[P]
-	def buildMixPayload[P](state: State[P], abcParameters: ABCConfig): 
+trait Algorithm {
+	def numberAccumulated(gen: Generation[_]): Int
+	def buildReport[P](gen: Generation[P], config: ABCConfig, finalReport: Boolean): Report[P]
+	def flushGeneration[P](gen: Generation[P], numParticles: Int): Generation[P]
+	def buildMixPayload[P](gen: Generation[P], abcParameters: ABCConfig): 
 		Option[TaggedScoreSeq[P]]
 	def add[P](
-			state: State[P],
-			abcParameters: ABCConfig,
+			gen: Generation[P],
 			taggedAndScoredParamSets: Seq[Tagged[Scored[P]]],
-			sender: ActorRef
-		): State[P]
+			sender: ActorRef,
+			abcParameters: ABCConfig
+		): Generation[P]
 }
 
 
@@ -59,7 +59,7 @@ trait StateEngine {
  * Use of a base trait and Impl allows us to strip out all the 
  * self typing and simplify mocking
  */
-trait StateEngineComponentImpl extends StateEngineComponent{
+trait AlgorithmComponentImpl extends AlgorithmComponent{
 	this: ToleranceCalculatorComponent 
 		with WeigherComponent
 		with StatisticsComponent
@@ -67,47 +67,47 @@ trait StateEngineComponentImpl extends StateEngineComponent{
 		with ActorLogging
 		with Lenses =>
 	
-	val stateEngine: StateEngine
+	val algorithm: Algorithm
 	
-	trait StateEngineImpl extends StateEngine {
+	trait AlgorithmImpl extends Algorithm {
 		implicit val r = Random
 		
-		def weightsTable[S <: State[_]](state: S) = state.prevWeightsTable
-		def numberAccumulated(state: State[_]) = state.particleInBox.size
+		def weightsTable[G <: Generation[_]](gen: G) = gen.prevWeightsTable
+		def numberAccumulated(gen: Generation[_]) = gen.particleInBox.size
 		
-		def buildReport[P](state: State[P], config: ABCConfig, finalReport: Boolean): Report[P] = {
+		def buildReport[P](gen: Generation[P], config: ABCConfig, finalReport: Boolean): Report[P] = {
 			val samples: Seq[P] = Distribution
-				.fromProbabilityTable(state.prevWeightsTable)
+				.fromProbabilityTable(gen.prevWeightsTable)
 				.until(_.size == numParticles.get(config))
 				.sample
 			
 			Report(
-					state.currentIteration,
-					state.currentTolerance,
+					gen.currentIteration,
+					gen.currentTolerance,
 					samples,
 					finalReport
 			)
 		}
 		
-		def flushGeneration[P](state: State[P], numParticles: Int): State[P] = {
-			import state._
+		def flushGeneration[P](gen: Generation[P], numParticles: Int): Generation[P] = {
+			import gen._
 			assert(numParticles <= particleInBox.size)
 			val seqWeighted = particleInBox.toSeq.map(_.value)
 			val newTolerance = toleranceCalculator(seqWeighted, currentTolerance)
 			
-			val newState = state.copy(
+			val newGeneration = gen.copy(
 				particleInBox = Set.empty[Tagged[Weighted[P]]],
 				currentTolerance = newTolerance,
 				currentIteration = currentIteration + 1,
 				prevWeightsTable = weigher.consolidateToWeightsTable(model, seqWeighted)
 			)
 			
-			newState
+			newGeneration
 		}
 		
 		//TODO can we simplify tagged and scored parm sets?
-		def buildMixPayload[P](state: State[P], abcParameters: ABCConfig): Option[TaggedScoreSeq[P]] = {
-			import state._
+		def buildMixPayload[P](gen: Generation[P], abcParameters: ABCConfig): Option[TaggedScoreSeq[P]] = {
+			import gen._
 			if(particleInBox.size > 0)
 				Some(TaggedScoreSeq(particleInBox
 					.toSeq
@@ -124,12 +124,12 @@ trait StateEngineComponentImpl extends StateEngineComponent{
 		}
 		
 		def add[P](
-				state: State[P],
-				abcParameters: ABCConfig,
+				gen: Generation[P],
 				taggedAndScoredParamSets: Seq[Tagged[Scored[P]]],
-				sender: ActorRef
-		): State[P] = {
-			import state._
+				sender: ActorRef,
+				abcParameters: ABCConfig
+		): Generation[P] = {
+			import gen._
 			
 			type T = Tagged[Weighted[P]]
 			
@@ -159,7 +159,7 @@ trait StateEngineComponentImpl extends StateEngineComponent{
 				else union
 			}
 			
-			state.copy(
+			gen.copy(
 					particleInBox = newInBox,
 					idsObserved = newIdsObserved
 			)
