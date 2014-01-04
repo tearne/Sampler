@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.state.component
+package sampler.cluster.abc.algorithm.component
 
 import akka.actor.Actor
 import akka.actor.ActorLogging
-import sampler.Implicits.RichIndexedSeq
 import sampler.cluster.abc.Weighted
 import sampler.math.Probability
 import sampler.math.StatisticsComponent
+import sampler.Implicits._
 
 trait ToleranceCalculatorComponent {
 	self: StatisticsComponent with Actor with ActorLogging=>

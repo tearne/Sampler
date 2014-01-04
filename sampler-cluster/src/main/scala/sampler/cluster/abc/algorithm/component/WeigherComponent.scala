@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.cluster.abc.state.component
+package sampler.cluster.abc.algorithm.component
 
 import sampler.cluster.abc.Scored
 import sampler.cluster.abc.Weighted

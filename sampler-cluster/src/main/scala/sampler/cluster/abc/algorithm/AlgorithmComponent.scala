@@ -27,14 +27,15 @@ import sampler.cluster.abc.Weighted
 import sampler.cluster.abc.actor.Tagged
 import sampler.cluster.abc.actor.TaggedScoreSeq
 import sampler.cluster.abc.config.ABCConfig
-import sampler.cluster.abc.state.component.ToleranceCalculatorComponent
-import sampler.cluster.abc.state.component.WeigherComponent
+import sampler.cluster.abc.algorithm.component.ToleranceCalculatorComponent
+import sampler.cluster.abc.algorithm.component.WeigherComponent
 import sampler.math.Random
 import sampler.math.StatisticsComponent
 import sampler.cluster.abc.Model
 import sampler.cluster.abc.actor.Report
 import sampler.data.Distribution
-import sampler.cluster.abc.actor.Lenses
+import sampler.cluster.abc.actor.root.Getters
+import sampler.cluster.abc.actor.root.GettersComponent
 
 trait AlgorithmComponent {
 	val algorithm: Algorithm
@@ -65,7 +66,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent{
 		with StatisticsComponent
 		with Actor
 		with ActorLogging
-		with Lenses =>
+		with GettersComponent =>
 	
 	val algorithm: Algorithm
 	
@@ -78,7 +79,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent{
 		def buildReport[P](gen: Generation[P], config: ABCConfig, finalReport: Boolean): Report[P] = {
 			val samples: Seq[P] = Distribution
 				.fromProbabilityTable(gen.prevWeightsTable)
-				.until(_.size == numParticles.get(config))
+				.until(_.size == getters.getNumParticles(config))
 				.sample
 			
 			Report(

@@ -19,44 +19,40 @@ package sampler.cluster.abc.actor.root
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationLong
+
 import akka.actor.Actor
 import akka.actor.ActorLogging
+import akka.actor.ActorRef
+import akka.actor.Cancellable
+import akka.actor.FSM
 import akka.actor.actorRef2Scala
 import akka.pattern.pipe
-import sampler.cluster.abc.Scored
+import sampler.cluster.abc.Model
 import sampler.cluster.abc.actor.Abort
 import sampler.cluster.abc.actor.Job
 import sampler.cluster.abc.actor.Start
-import sampler.cluster.abc.actor.Tagged
 import sampler.cluster.abc.actor.TaggedScoreSeq
+import sampler.cluster.abc.algorithm.AlgorithmComponent
+import sampler.cluster.abc.algorithm.AlgorithmComponentImpl
+import sampler.cluster.abc.algorithm.Generation
+import sampler.cluster.abc.algorithm.component.ToleranceCalculatorComponent
+import sampler.cluster.abc.algorithm.component.WeigherComponent
 import sampler.cluster.abc.config.ABCConfig
-import sampler.cluster.abc.state.component.ToleranceCalculatorComponent
-import sampler.cluster.abc.state.component.WeigherComponent
-import sampler.data.Distribution
 import sampler.math.Random
 import sampler.math.Statistics
 import sampler.math.StatisticsComponent
-import akka.actor.Cancellable
-import sampler.cluster.abc.Model
-import akka.actor.ActorRef
-import sampler.cluster.abc.actor.Lenses
-import sampler.cluster.abc.algorithm.AlgorithmComponentImpl
-import sampler.cluster.abc.algorithm.Generation
-import sampler.cluster.abc.algorithm.AlgorithmComponent
-import akka.actor.FSM
 
 class RootActorImpl[P](
 		val model: Model[P],
 		val config: ABCConfig
 ) extends RootActor[P]
-		with ModelAndConfig[P]
 		with ChildrenActorsComponent[P]
 		with AlgorithmComponentImpl 
 		with WeigherComponent
 		with ToleranceCalculatorComponent 
 		with StatisticsComponent 
-		with Lenses {
-	val childrenActors = new ChildrenActors{}
+		with GettersComponent {
+	val childActors = new ChildActors{}
 	val weigher = new Weigher{}
 	val toleranceCalculator = new ToleranceCalculator{}
 	val algorithm = new AlgorithmImpl{}
@@ -68,12 +64,11 @@ sealed trait Status
 case object Idle extends Status
 case object Gathering extends Status
 case object Flushing extends Status
-case object Finished extends Status
 
 sealed trait Data
 case object Uninitialized extends Data
-case class Progress[P](generation: Generation[P], client: ActorRef) extends Data
-case class Requestor(client: ActorRef) extends Data
+case class Progress[P](generation: Generation[P], actorRef: ActorRef) extends Data
+case class Client(actorRef: ActorRef) extends Data
 
 abstract class RootActor[P]
 		extends FSM[Status, Data] 
@@ -81,26 +76,25 @@ abstract class RootActor[P]
 		with ActorLogging
 {
 	this: ChildrenActorsComponent[P]
-		with ModelAndConfig[P]
 		with AlgorithmComponent
-		with Lenses =>
+		with GettersComponent =>
 	
+	val config: ABCConfig
+	val model: Model[P]
+			
 	import model._
 	import context._
-	import childrenActors._
+	import childActors._
 	
 	type G = Generation[P]
 	
-//	case class Finished(generation: G)
-//	case class NextGeneration(generation: G)
 	case class FlushComplete(generation: G)
-	
 	case object MixNow
 	
 	var cancellable: Option[Cancellable] = None
 	
 	override def preStart{
-		val mixPeriod = mixRateMS.get(config).milliseconds
+		val mixPeriod = getters.getMixRateMS(config).milliseconds
 		cancellable = Some(
 			context.system.scheduler.schedule(mixPeriod * 10, mixPeriod, self, MixNow)
 		)
@@ -123,38 +117,36 @@ abstract class RootActor[P]
 	
 	when(Gathering) {
 		case Event(data: TaggedScoreSeq[P], p: Progress[P]) =>
-			import p._
 			val sndr = sender
-			
-			val newGen: G = algorithm.add(generation, data.seq, sndr, config)
+			val newGen: G = algorithm.add(p.generation, data.seq, sndr, config)
 			
 			if(algorithm.numberAccumulated(newGen) < config.job.numParticles){
-				goto(Gathering) using Progress(newGen, client)
+				goto(Gathering) using Progress(newGen, p.actorRef)
 				stay using p.copy(generation = newGen) 	//Continue gathering 
 			} else {
 				workerRouter ! Abort
 
 				implicit val executionContext = context.system.dispatchers.lookup("sampler.work-dispatcher")
-				
 				Future{
 					val flushedGen = algorithm.flushGeneration(newGen, config.job.numParticles)
 					FlushComplete(flushedGen)
 				}.pipeTo(self)
-				goto(Flushing) using Requestor(client)
+				
+				goto(Flushing) using Client(p.actorRef)
 			}
-		case  Event(MixNow, p: Progress[P]) => 
-			import p._
-			val payload = algorithm.buildMixPayload(generation, config)
+		case Event(MixNow, p: Progress[P]) => 
+			val payload = algorithm.buildMixPayload(p.generation, config)
 			payload.foreach{message =>
 				broadcaster ! message
 			}
+			
 			stay
 	}
 	
 	when(Flushing) {
 		case Event(_: TaggedScoreSeq[P], _) => stay //Ignored
 		case Event(MixNow, _) => stay				//Ignored
-		case Event(FlushComplete(generation), Requestor(client)) =>
+		case Event(FlushComplete(generation), Client(client)) =>
 			import generation._
 			val numGenerations = config.job.numGenerations
 			log.info("Generation {}/{} complete, new tolerance {}", currentIteration, numGenerations, currentTolerance)
