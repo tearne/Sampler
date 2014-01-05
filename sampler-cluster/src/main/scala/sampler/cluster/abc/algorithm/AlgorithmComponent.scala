@@ -27,7 +27,7 @@ import sampler.cluster.abc.Weighted
 import sampler.cluster.abc.actor.Tagged
 import sampler.cluster.abc.actor.TaggedScoreSeq
 import sampler.cluster.abc.config.ABCConfig
-import sampler.cluster.abc.algorithm.component.ToleranceCalculatorComponent
+import sampler.cluster.abc.algorithm.component.ToleranceComponent
 import sampler.cluster.abc.algorithm.component.WeigherComponent
 import sampler.math.Random
 import sampler.math.StatisticsComponent
@@ -61,7 +61,7 @@ trait Algorithm {
  * self typing and simplify mocking
  */
 trait AlgorithmComponentImpl extends AlgorithmComponent{
-	this: ToleranceCalculatorComponent 
+	this: ToleranceComponent 
 		with WeigherComponent
 		with StatisticsComponent
 		with Actor

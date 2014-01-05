@@ -24,7 +24,7 @@ import sampler.math.Probability
 import sampler.math.StatisticsComponent
 import sampler.Implicits._
 
-trait ToleranceCalculatorComponent {
+trait ToleranceComponent {
 	self: StatisticsComponent with Actor with ActorLogging=>
 		
 	val toleranceCalculator: ToleranceCalculator

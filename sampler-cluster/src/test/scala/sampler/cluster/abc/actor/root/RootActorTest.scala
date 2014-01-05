@@ -20,56 +20,56 @@ import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class RootActorTest 
-		extends TestKit(ActorSystem("testSystem"))
+		extends TestKit(ActorSystem("ABC"))
 		with FreeSpecLike
 		with BeforeAndAfter
 		with MockitoSugar {
 	
-	val oneSecond = 1000
+	val oneSecond = 1000l
 	
 	case class DullParams()
 	
 	class TestSubject(
 			val model: Model[DullParams], 
-			val config: ABCConfig
+			val config: ABCConfig,
+			override val getters: Getters
 	) extends RootActor[DullParams]
 			with AlgorithmComponent
-			with ChildrenActorsComponent[DullParams]
+			with ChildrenActorsComponent[DullParams] 
 			with GettersComponent {
 		val childActors = mock[ChildActors]
-		val algorithm = mock[Algorithm]
-		override val getters = mock[Getters]
+		val algorithm = mock[Algorithm]		
 	}
 	
 	after {
 		TestKit.shutdownActorSystem(system)
 	}
 	
-	"Inisialisation should" - {
-		"send job to work router then become 'Gathering'" in {
+	"RootActor should" - {
+		"start 'Idle'" in pending
+		"send job to work router then become 'Gathering' upon Start msg" in {
 			val model = mock[Model[DullParams]]
 			val config = mock[ABCConfig]
+			val getters = mock[Getters]; when(getters.getMixRateMS(config)).thenReturn(oneSecond)
 			
-			val actorRef = TestFSMRef(
-				new TestSubject(model, config)
-			)
+			val instanceRef = TestFSMRef(new TestSubject(model, config, getters))
+			
 			val routerProbe = TestProbe()
 			val clientProbs = TestProbe()
 			
-			val actorObject = actorRef.underlyingActor
-			when(actorObject.childActors.workerRouter).thenReturn(routerProbe.ref)
-			when(actorObject.getters.getMixRateMS(config)).thenReturn(oneSecond)
+			val instanceObject = instanceRef.underlyingActor
+			when(instanceObject.childActors.workerRouter).thenReturn(routerProbe.ref)
 			
 			val generation0 = Generation(null, null, null, 0, 0, Map[DullParams, Double]())
 			
-			actorRef.tell(Start(generation0), clientProbs.ref)
+			instanceRef.tell(Start(generation0), clientProbs.ref)
 			
-			routerProbe.expectMsg(
-					Job(generation0.prevWeightsTable, config))
-			assertResult(Gathering)(
-					actorRef.stateName)
-			assertResult(Progress(generation0, clientProbs.ref))(
-					actorRef.stateData)
+			routerProbe.expectMsg(Job(generation0.prevWeightsTable, config))
+			assertResult(Gathering)(instanceRef.stateName)
+			assertResult(generation0)(instanceRef.stateData match {
+				case gd: GatheringData[_] => gd.generation
+				case d => fail("Unexpected StateData type: "+d.getClass())
+			})
 		}
 	}
 	"Lifecycle test" in {

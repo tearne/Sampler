@@ -35,7 +35,7 @@ import sampler.cluster.abc.actor.TaggedScoreSeq
 import sampler.cluster.abc.algorithm.AlgorithmComponent
 import sampler.cluster.abc.algorithm.AlgorithmComponentImpl
 import sampler.cluster.abc.algorithm.Generation
-import sampler.cluster.abc.algorithm.component.ToleranceCalculatorComponent
+import sampler.cluster.abc.algorithm.component.ToleranceComponent
 import sampler.cluster.abc.algorithm.component.WeigherComponent
 import sampler.cluster.abc.config.ABCConfig
 import sampler.math.Random
@@ -49,7 +49,7 @@ class RootActorImpl[P](
 		with ChildrenActorsComponent[P]
 		with AlgorithmComponentImpl 
 		with WeigherComponent
-		with ToleranceCalculatorComponent 
+		with ToleranceComponent 
 		with StatisticsComponent 
 		with GettersComponent {
 	val childActors = new ChildActors{}
@@ -65,10 +65,24 @@ case object Idle extends Status
 case object Gathering extends Status
 case object Flushing extends Status
 
-sealed trait Data
+sealed trait Data{
+	val mixCallback: Option[Cancellable] = None
+}
 case object Uninitialized extends Data
-case class Progress[P](generation: Generation[P], actorRef: ActorRef) extends Data
-case class Client(actorRef: ActorRef) extends Data
+case class GatheringData[P](
+		generation: Generation[P], 
+		client: ActorRef, 
+		cancellableMixing: Option[Cancellable]
+		) extends Data{
+	def toFlushingData = FlushingData(client, cancellableMixing)
+}
+case class FlushingData(
+		client: ActorRef, 
+		cancellableMixing: Option[Cancellable]
+		) extends Data {
+	def toGatheringData[P](generation: Generation[P]) = 
+		GatheringData(generation, client, cancellableMixing)
+}
 
 abstract class RootActor[P]
 		extends FSM[Status, Data] 
@@ -82,84 +96,90 @@ abstract class RootActor[P]
 	val config: ABCConfig
 	val model: Model[P]
 			
-	import model._
-	import context._
 	import childActors._
-	
 	type G = Generation[P]
 	
 	case class FlushComplete(generation: G)
 	case object MixNow
 	
-	var cancellable: Option[Cancellable] = None
-	
-	override def preStart{
-		val mixPeriod = getters.getMixRateMS(config).milliseconds
-		cancellable = Some(
-			context.system.scheduler.schedule(mixPeriod * 10, mixPeriod, self, MixNow)
-		)
-	}
-	override def postStop{
-		cancellable.foreach(_.cancel)
+	startWith(Idle, Uninitialized)
+
+	onTermination{
+		case se: StopEvent => se.stateData.mixCallback.foreach(_.cancel)
 	}
 
-	implicit val r = Random
-	
-	startWith(Idle, Uninitialized)
-	
+	onTransition{
+		case _ -> Idle => stateData.mixCallback.foreach(_.cancel)
+	}
+		
 	when(Idle) {
 		case Event(s:Start[P], Uninitialized) =>
 			val client = sender
 			import s._
-			workerRouter ! Job(generationZero.prevWeightsTable, config) //TODO Lens here
-			goto(Gathering) using Progress(generationZero, client)
+			
+			workerRouter ! Job(generationZero.prevWeightsTable, config)
+			
+			val mixMS = getters.getMixRateMS(config)
+			assert(mixMS > 0l, "Mixing rate must be strictly positive")
+			val cancellableMixing = Some(
+				context.system.scheduler.schedule(
+						mixMS.milliseconds * 10,
+						mixMS.milliseconds, 
+						self, 
+						MixNow)(
+						context.dispatcher)
+			)
+			
+			goto(Gathering) using GatheringData(generationZero, client, cancellableMixing)
 	}
 	
 	when(Gathering) {
-		case Event(data: TaggedScoreSeq[P], p: Progress[P]) =>
+		case Event(data: TaggedScoreSeq[P], stateData: GatheringData[P]) =>
 			val sndr = sender
-			val newGen: G = algorithm.add(p.generation, data.seq, sndr, config)
+			val newGen: G = algorithm.add(stateData.generation, data.seq, sndr, config)
 			
 			if(algorithm.numberAccumulated(newGen) < config.job.numParticles){
-				goto(Gathering) using Progress(newGen, p.actorRef)
-				stay using p.copy(generation = newGen) 	//Continue gathering 
+				//Continue gathering 
+				stay using stateData.copy(generation = newGen) 	
 			} else {
+				//Flush the current generation
 				workerRouter ! Abort
-
-				implicit val executionContext = context.system.dispatchers.lookup("sampler.work-dispatcher")
+				
+				implicit val workDispatcher = context.system.dispatchers.lookup("sampler.work-dispatcher")
 				Future{
 					val flushedGen = algorithm.flushGeneration(newGen, config.job.numParticles)
 					FlushComplete(flushedGen)
 				}.pipeTo(self)
 				
-				goto(Flushing) using Client(p.actorRef)
+				goto(Flushing) using stateData.toFlushingData
 			}
-		case Event(MixNow, p: Progress[P]) => 
+		case Event(MixNow, p: GatheringData[P]) => 
 			val payload = algorithm.buildMixPayload(p.generation, config)
-			payload.foreach{message =>
-				broadcaster ! message
-			}
+			payload.foreach{message => broadcaster ! message}
 			
 			stay
 	}
 	
 	when(Flushing) {
-		case Event(_: TaggedScoreSeq[P], _) => stay //Ignored
-		case Event(MixNow, _) => stay				//Ignored
-		case Event(FlushComplete(generation), Client(client)) =>
+		case Event(_: TaggedScoreSeq[P], _) => 	stay //Ignore, since too late to add to the current generation
+		case Event(MixNow, _) => 				stay //Ignore, since concentrating on flushing
+		case Event(FlushComplete(generation), stateData: FlushingData) =>
 			import generation._
 			val numGenerations = config.job.numGenerations
 			log.info("Generation {}/{} complete, new tolerance {}", currentIteration, numGenerations, currentTolerance)
 			
 			if(currentIteration == numGenerations && config.cluster.terminateAtTargetGenerations){
+				// Stop work
 				workerRouter ! Abort
-				report(client, generation, true)
+				report(stateData.client, generation, true)
 				log.info("Number of required generations completed and reported to requestor")
+				
 				goto(Idle) using Uninitialized
 			} else {
+				// Report and start next generation
 				workerRouter ! Job(generation.prevWeightsTable, config)
-				report(client, generation, false)
-				goto(Gathering) using Progress(generation, client)
+				report(stateData.client, generation, false)
+				goto(Gathering) using stateData.toGatheringData(generation)
 			}
 	}
 	

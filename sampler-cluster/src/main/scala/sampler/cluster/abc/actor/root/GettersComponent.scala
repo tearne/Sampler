@@ -3,10 +3,6 @@ package sampler.cluster.abc.actor.root
 import sampler.cluster.abc.actor.Lenses
 import sampler.cluster.abc.config.ABCConfig
 
-//trait GettersComponentImpl extends GettersComponent{
-//	val getters = new Getters{}
-//}
-
 trait GettersComponent{
 	val getters: Getters = new Getters{}
 }
