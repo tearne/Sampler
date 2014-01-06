@@ -25,7 +25,8 @@ case class AWSProperties(
 	accessKey: String,
 	secretKey: String,
 	endpoint: String, 
-	instanceFilter: Tag,
+	clusterFilter: Tag,
+	terminalFilter: Tag,
 	instanceUserName: String,
 	s3Bucket: String,
 	s3CfgPath: Path,
@@ -47,7 +48,8 @@ object AWSProperties {
 			props.getProperty("accessKey"),
 			props.getProperty("secretKey"),
 			props.getProperty("endpoint"),
-			new Tag(props.getProperty("tagFilterName"),props.getProperty("tagFilterValue")),
+			new Tag(props.getProperty("tagName"),props.getProperty("clusterTag")),
+			new Tag(props.getProperty("tagName"),props.getProperty("terminalTag")),
 			props.getProperty("instanceUserName"),
 			props.getProperty("s3Bucket"),
 			resolve(propertiesPath, props.getProperty("s3cfgPath")),
@@ -81,10 +83,18 @@ class AWS(props: AWSProperties) extends Logging{
 		
 	def clusterNodes = {
 		val nodes = runningInstances
-			.filter(_.getTags().contains(props.instanceFilter))
+			.filter(_.getTags().contains(props.clusterFilter))
 			.toList
 		if(nodes.size == 0) log.warn("No instances running")
 		nodes
+	}
+	
+	def terminalNode = {
+		val nodes = runningInstances
+			.filter(_.getTags().contains(props.terminalFilter))
+			.toList
+		assert(nodes == 1, s"Expected precisely one terminal node, found ${nodes.size}")
+		nodes.head
 	}
 			
 	def directUpload(path: Path, node: Instance){
