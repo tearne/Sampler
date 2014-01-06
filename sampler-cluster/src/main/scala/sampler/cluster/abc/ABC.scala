@@ -38,7 +38,7 @@ import sampler.cluster.abc.actor.report._
 import sampler.cluster.abc.actor.Report
 import sampler.cluster.abc.algorithm.Generation
 
-trait ABC {
+trait ABCActors {
 	val system: ActorSystem
 	def entryPointActor[P](
 			model: Model[P], 
@@ -47,28 +47,31 @@ trait ABC {
 	): ActorRef 
 }
 
-trait ABCImpl extends ABC{
+trait ABCActorsImpl extends ABCActors{
 	val system = PortFallbackSystemFactory("ABC")
-	
-	def abcActor[P](model: Model[P], config: ABCConfig) = system.actorOf(
-		Props(classOf[RootActorImpl[P]], model, config), 
-		"root"
-	)
 	
 	def entryPointActor[P](
 			model: Model[P], 
 			config: ABCConfig, 
-			reportAction: Option[Report[P] => Unit]
-	) = system.actorOf(
-		Props(
-			classOf[ReportingActor[P]], 
-			abcActor(model, config), 
-			reportAction
+			reportAction: Option[Report[P] => Unit]) = {
+		
+		def abcActor[P](model: Model[P], config: ABCConfig) = 
+			system.actorOf(
+					Props(classOf[RootActorImpl[P]], model, config), 
+					"root"
+			)
+		
+		system.actorOf(
+			Props(
+				classOf[ReportingActor[P]], 
+				abcActor(model, config), 
+				reportAction
+			)
 		)
-	)
+	}
 }
 
-object ABC extends ABCImpl with Logging {
+object ABC extends ABCActorsImpl with Logging {
 	def apply[P](
 			model: Model[P], 
 			config: ABCConfig, 
