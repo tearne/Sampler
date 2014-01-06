@@ -93,7 +93,7 @@ class AWS(props: AWSProperties) extends Logging{
 		val nodes = runningInstances
 			.filter(_.getTags().contains(props.terminalFilter))
 			.toList
-		assert(nodes == 1, s"Expected precisely one terminal node, found ${nodes.size}")
+		assert(nodes.size == 1, s"Expected precisely one terminal node, found ${nodes.size}")
 		nodes.head
 	}
 			
