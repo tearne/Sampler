@@ -27,7 +27,7 @@ object SamplerBuild extends Build{
 		base = file("sampler-examples"),
 		settings = buildSettings ++ assySettings ++ packageSettings ++ Seq(
 			libraryDependencies ++= Seq(
-				"org.apache.commons" % "commons-math3" % "3.0"
+				"org.apache.commons" % "commons-math3" % "3.2"
 			)
 		)
 	) dependsOn(core, cluster)
@@ -37,7 +37,7 @@ object SamplerBuild extends Build{
 		base = file("sampler-spike"),
 		settings = buildSettings ++ Seq(
 			libraryDependencies ++= Seq(
-				"org.apache.commons" % "commons-math3" % "3.0"
+				"org.apache.commons" % "commons-math3" % "3.2"
 			)
 		)
 	) dependsOn core
@@ -52,7 +52,7 @@ object SamplerBuild extends Build{
 				"com.typesafe.akka" %% "akka-cluster" % "2.3-M2",
 				"com.typesafe.akka" %% "akka-slf4j" % "2.3-M2", 
 				"com.typesafe.akka" %% "akka-testkit" % "2.3-M2" % "test",
-				"org.apache.commons" % "commons-math3" % "3.0",
+				"org.apache.commons" % "commons-math3" % "3.2",
 				"com.amazonaws" % "aws-java-sdk" % "1.4.0.1",
 				"net.schmizz" % "sshj" % "0.9.0"
 			)
