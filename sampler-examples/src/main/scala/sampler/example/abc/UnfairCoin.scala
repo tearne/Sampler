@@ -19,8 +19,7 @@ package sampler.example.abc
 
 import java.nio.file.Files
 import java.nio.file.Paths
-import java.nio.file.StandardOpenOption.APPEND
-import java.nio.file.StandardOpenOption.CREATE
+import java.nio.file.StandardOpenOption.{APPEND,CREATE}
 import org.apache.commons.math3.distribution.NormalDistribution
 import com.typesafe.config.ConfigFactory
 import sampler.Implicits.RichFractionalSeq
@@ -28,7 +27,6 @@ import sampler.cluster.abc.ABC
 import sampler.cluster.abc.Model
 import sampler.cluster.abc.Prior
 import sampler.cluster.abc.actor.Report
-import sampler.cluster.abc.actor.report.Writable
 import sampler.cluster.abc.config.ABCConfig
 import sampler.data.Distribution
 import sampler.math.Probability
@@ -37,6 +35,8 @@ import sampler.r.QuickPlot.writeDensity
 import sampler.r.ScriptRunner
 import sampler.io.CSV
 import sampler.io.CSV
+import org.apache.commons.math3.random.SynchronizedRandomGenerator
+import org.apache.commons.math3.random.MersenneTwister
 
 object UnfairCoin extends App {
 	/*
@@ -82,7 +82,7 @@ dev.off()
 	ScriptRunner.apply(rScript, wd.resolve("script.r"))
 }
 
-case class CoinParams(pHeads: Double) extends Writable with Serializable{
+case class CoinParams(pHeads: Double){
 	def fieldNames = Seq("PHeads")
 	def fields = Seq(pHeads.toString)
 }
@@ -102,7 +102,10 @@ object CoinModel extends Model[CoinParams] {
 	    def sample() = CoinParams(random.nextDouble(0.0, 1.0))
     }
   	
-    private val normal = new NormalDistribution(0,0.5)
+    private val normal = {
+    	val syncRand = new SynchronizedRandomGenerator(new MersenneTwister())
+		new NormalDistribution(syncRand, 0, 0.5, NormalDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY)
+    }
 	def perturb(params: CoinParams) = CoinParams(params.pHeads + normal.sample)
   	def perturbDensity(a: CoinParams, b: CoinParams) = normal.density(a.pHeads - b.pHeads)
     

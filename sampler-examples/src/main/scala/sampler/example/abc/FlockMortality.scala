@@ -38,6 +38,10 @@ import sampler.cluster.abc.config.ABCConfig
 import com.typesafe.config.ConfigFactory
 import sampler.cluster.abc.ABC
 import sampler.io.CSV
+import org.apache.commons.math3.random.SynchronizedRandomGenerator
+import org.apache.commons.math3.random.RandomGenerator
+import org.apache.commons.math3.random.RandomDataImpl
+import org.apache.commons.math3.random.MersenneTwister
 
 object FlockMortality extends App {
 	import FlockMortalityModel._
@@ -171,10 +175,56 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 	val flockSize = 3000
 	val eggCoef = 2200.0 / 3000.0
 	
-	val kernel = new Prior[Double] with Distribution[Double]{
-		val normal = new NormalDistribution(0,0.1)
-		def sample = normal.sample
-		def density(at: Double) = normal.density(at)
+	val prior = new Prior[FlockMortalityParams]{
+		def density(p: FlockMortalityParams) = {
+			def unitRange(d: Double) = if(d > 1.0 || d < 0.0) 0.0 else 1.0
+			def tenRange(i: Int) = if(i < 0 || i > 10) 0.0 else 1.0
+			
+			import p._
+			unitRange(beta) *
+			unitRange(eta) *
+			unitRange(gamma) *
+			unitRange(delta) *
+			unitRange(sigma) *
+			unitRange(sigma2) *
+			tenRange(offset)
+		}
+		
+		//TODO can use random in the model?
+		def sample = FlockMortalityParams(
+			beta = modelRandom.nextDouble(0, 1),
+			eta = modelRandom.nextDouble(0, 1),
+			gamma = modelRandom.nextDouble(0, 1),
+			delta = modelRandom.nextDouble(0, 1),
+			sigma = modelRandom.nextDouble(0, 1),
+			sigma2 = modelRandom.nextDouble(0, 1),
+			offset = modelRandom.nextInt(10)
+		)
+	}
+	
+	private val kernel = new Prior[Double] with Distribution[Double]{
+		/*
+		 * The Mersenne Twister is a fast generator with very good properties well suited for Monte-Carlo simulation
+		 * http://commons.apache.org/proper/commons-math/userguide/random.html
+		 */
+		val normal = {
+			val syncRand: RandomGenerator = new SynchronizedRandomGenerator(new MersenneTwister())
+			new NormalDistribution(syncRand, 0, 0.1, NormalDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY)
+		}
+		def sample = {
+			val r = normal.sample
+			
+			if(r.isNaN() || r.isInfinite()) {
+				val e = new Exception("here... r = "+r)
+				e.printStackTrace()
+				throw e
+			}
+			
+			r
+		}
+		def density(at: Double) = {
+			normal.density(at)
+		}
 	}
 	val threeDie = Distribution.uniform(IndexedSeq(-1,0,1))(random)
 	private def threeDensity(v: Int) = if(v <= 1 || v >= -1) 1.0 / 3 else 0
@@ -234,7 +284,6 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 	}
 	
 	def modelDistribution(p: FlockMortalityParams) = {
-		import p._
 		val days = 0 until observed.dailyDead.length
 		
 		def solve(): Simulated = {
@@ -244,11 +293,11 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 			val y0 = Array((flockSize-1).toDouble, 1.0, 0.0, 0.0, 0.0) //S, E, I, R, D
 			val numDays = observed.dailyDead.size	
 			
-			class ODE(p: FlockMortalityParams) extends FirstOrderDifferentialEquations {
-				import p._
+			class ODE() extends FirstOrderDifferentialEquations {
 				
 			    def getDimension() = 5
 			    def computeDerivatives(time: Double, y: Array[Double], yDot: Array[Double]) {
+			    	import p._
 			    	yDot(0) = -beta * y(0) * y(2) 						//S: -beta S I
 					yDot(1) = beta * y(0) * y(2) - eta * y(1)			//E: beta S I - gamma E
 					yDot(2) = eta * y(1) - gamma * y(2) - delta * y(2)	//I: eta I - gamma I - delta I
@@ -269,7 +318,7 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 			        		rounded(2), 
 			        		rounded(3), 
 			        		rounded(4), 
-			        		eggCoef*(rounded(0)+rounded(1))+sigma*rounded(2)+sigma2*rounded(3)
+			        		eggCoef*(rounded(0)+rounded(1))+p.sigma*rounded(2)+p.sigma2*rounded(3)
 			        )
 			    	steps.append(state)
 			    }
@@ -277,21 +326,22 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 			val stepNormaliser = new StepNormalizer(1.0, stepHandler)
 			
 			val dp853 = new DormandPrince853Integrator(minStep, maxStep, absTol, relTol)
-			var out = Array[Double](0,0,0,0,0) //Not really used, since the step hander gets the output
+			val out = Array[Double](0,0,0,0,0) //Not really used, since the step hander gets the output
 			dp853.addStepHandler(stepNormaliser)
-			dp853.integrate(new ODE(p), 0.0, y0, numDays, out)
-		
+			dp853.integrate(new ODE(), 0.0, y0, numDays, out)
+			val integrated = steps.toList
+			
 			val unshiftedResultsMap = days.foldLeft(Map[Int, ODEState]()){case (map, day) =>
-				map.updated(day,steps(day))			 
+				map.updated(day,integrated(day))			 
 			}
 					  
 			val shiftedResultsMap =
-				if(offset == 0) unshiftedResultsMap
-				else if(offset > 0){
+				if(p.offset == 0) unshiftedResultsMap
+				else if(p.offset > 0){
 					val tmp = unshiftedResultsMap.map{case (key, value) =>
-						(key + offset) -> value
+						(key + p.offset) -> value
 					}
-					val additions = (0 until offset).foldLeft(Map[Int, ODEState]()){case (map, day) =>
+					val additions = (0 until p.offset).foldLeft(Map[Int, ODEState]()){case (map, day) =>
 						map.updated(day, ODEState(flockSize,0,0,0,0,observed.dailyEggs(0)))
 					}
 					tmp.++(additions)
@@ -303,35 +353,6 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 		
 		//Deterministic model will always return the same answer
 		Distribution.continually(solve)
-	}
-	
-	val prior = new Prior[FlockMortalityParams]{
-		def density(p: FlockMortalityParams) = {
-			def unitRange(d: Double) = if(d > 1.0 || d < 0.0) 0.0 else 1.0
-			def tenRange(i: Int) = if(i < 0 || i > 10) 0.0 else 1.0
-			
-			import p._
-			val d = unitRange(beta) *
-			unitRange(eta) *
-			unitRange(gamma) *
-			unitRange(delta) *
-			unitRange(sigma) *
-			unitRange(sigma2) *
-			tenRange(offset)
-			
-			d
-		}
-		
-		//TODO can use random in the model?
-		def sample = FlockMortalityParams(
-			beta = modelRandom.nextDouble(0, 1),
-			eta = modelRandom.nextDouble(0, 1),
-			gamma = modelRandom.nextDouble(0, 1),
-			delta = modelRandom.nextDouble(0, 1),
-			sigma = modelRandom.nextDouble(0, 1),
-			sigma2 = modelRandom.nextDouble(0, 1),
-			offset = modelRandom.nextInt(10)
-		)
 	}
 }
 
