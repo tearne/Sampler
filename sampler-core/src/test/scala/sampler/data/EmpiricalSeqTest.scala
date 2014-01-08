@@ -34,10 +34,10 @@ class EmpiricalSeqTest extends AssertionsForJUnit with Matchers {
   @Test def empiricalSeqGivesCorrectProbabilities {
     val probs = es.probabilityTable
     
-    probs(1).value should be(0.25 +- tolerance)
-    probs(2).value should be(0.25 +- tolerance)
-    probs(3).value should be(0.25 +- tolerance)
-    probs(4).value should be(0.25 +- tolerance)
+    probs(1) should be(0.25 +- tolerance)
+    probs(2) should be(0.25 +- tolerance)
+    probs(3) should be(0.25 +- tolerance)
+    probs(4) should be(0.25 +- tolerance)
   }
   
   @Test def empiricalSeqCanBeAddedTo {
@@ -46,8 +46,8 @@ class EmpiricalSeqTest extends AssertionsForJUnit with Matchers {
     
     assert(es2.supportSize === 8)
     assert(es2.size === 16)
-    probs(1).value should be (0.125 +- tolerance)
-    probs(5).value should be (0.125 +- tolerance)
+    probs(1) should be (0.125 +- tolerance)
+    probs(5) should be (0.125 +- tolerance)
   }
   
   @Test def empiricalSeqCanEqualAnotherEmpSeqOnly {

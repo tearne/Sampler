@@ -45,9 +45,9 @@ class EmpiricalTableTest extends AssertionsForJUnit with Matchers {
     val e2 = 1.0/6.0
     val e3 = 1.0/7.0
     
-    d1.probabilityTable(4).value should be(e1 +- tolerance)
-    d2.probabilityTable(4).value should be(e2 +- tolerance)
-    d3.probabilityTable(4).value should be(e3 +- tolerance)
+    d1.probabilityTable(4) should be(e1 +- tolerance)
+    d2.probabilityTable(4) should be(e2 +- tolerance)
+    d3.probabilityTable(4) should be(e3 +- tolerance)
   }
   
   @Test def calculatesMapOfCountsForEachObservation {
@@ -61,7 +61,7 @@ class EmpiricalTableTest extends AssertionsForJUnit with Matchers {
     val d4 = d1 ++ s1
     
     assert(d4.supportSize === 3)
-    d4.probabilityTable(6).value should be(0.5 +- tolerance)
+    d4.probabilityTable(6) should be(0.5 +- tolerance)
     assert(d4.freqTable === Map(4 -> 1, 5 -> 1, 6 ->2))
   }
   

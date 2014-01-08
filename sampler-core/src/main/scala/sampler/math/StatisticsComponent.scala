@@ -24,28 +24,29 @@ trait StatisticsComponent{
 }
 
 trait Statistics{
-  /** Returns the proportion (probability) of items in Empirical which are greater than or equal to supplied value
+	
+  /** Returns the proportion (0-1 range) of items in Empirical which are greater than or equal to supplied value
    *  
    *  @param e
    *  @param itemInclusive The value of interest, return value is inclusive of this value
    *  @return a new Probability giving the right tail
    *  */
-	def rightTail[A](e: Empirical[A], itemInclusive: A)(implicit o: Ordering[A]): Probability = {
-    import e._
+	def rightTail[A](e: Empirical[A], itemInclusive: A)(implicit o: Ordering[A]): Double = {
+		import e._
 		val value = probabilityTable.keys.toList.sorted(o).dropWhile(i => o.lt(i,itemInclusive)).foldLeft(0.0){
-			case (acc, i) => acc + probabilityTable(i).value
+			case (acc, i) => acc + probabilityTable(i)
 		}
-		Probability(value)
+		value
 	}
 	
-	//TODO take seq of probability and give seq of results
+	//TODO take seq of probability and give seq of results (like R does)
 	/** Returns quantile values from an Empirical given a specified probability
 	 *  
 	 *  @param e
 	 *  @param prob The required quantile value
 	 *  @return The value at the requested quantile
 	 */
-	def quantile[A](e: Empirical[A], prob: Probability)(implicit f: Fractional[A]): A = {
+	def quantile[A](e: Empirical[A], prob: Double)(implicit f: Fractional[A]): A = {
 		import e._
 
 		val probabilities = e.probabilityTable
@@ -54,10 +55,11 @@ trait Statistics{
 		
 		assert(ordered.length > 0, "Cannot work out quantiles of an Empirical object with zero values")
 
-		val cumulativeProbability = ordered.map(value => probabilities(value).value).scanLeft(0.0)(_ + _).tail
+		val cumulativeProbability = ordered.map(value => probabilities(value)).scanLeft(0.0)(_ + _).tail
 		
+		// TODO, make comment a bit clearer? (R type 1)
 		// Added tolerance in condition to account for rounding error and ensure consistency with R Type 1
-		val index = cumulativeProbability.zipWithIndex.find(_._1 >= (prob.value - 1e-6)).get._2		
+		val index = cumulativeProbability.zipWithIndex.find(_._1 >= (prob - 1e-6)).get._2		
 		
 		ordered(index)
 	}
@@ -70,7 +72,7 @@ trait Statistics{
 	def mean[A](e: Empirical[A])(implicit num: Fractional[A]) = {
 		import num._
 		e.probabilityTable.foldLeft(0.0){case (acc, (v,p)) => {
-			acc + v.toDouble * p.value
+			acc + v.toDouble * p
 		}}
 	}
 	
@@ -103,11 +105,11 @@ trait Statistics{
 	def maxDistance[A](a: Empirical[A], b: Empirical[A]): Double = {
 		val indexes = a.probabilityTable.keySet ++ b.probabilityTable.keySet
 		def distAtIndex(i: A) = math.abs(
-			a.probabilityTable.get(i).map(_.value).getOrElse(0.0) -
-			b.probabilityTable.get(i).map(_.value).getOrElse(0.0)
+			a.probabilityTable.get(i).getOrElse(0.0) -
+			b.probabilityTable.get(i).getOrElse(0.0)
 		)
 		indexes.map(distAtIndex(_)).max
-  }
+	}
 }
 
 object Statistics extends Statistics with Serializable

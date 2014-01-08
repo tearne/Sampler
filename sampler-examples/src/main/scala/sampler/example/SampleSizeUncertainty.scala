@@ -7,8 +7,6 @@ import org.apache.commons.math3.distribution.NormalDistribution
 import sampler.Implicits.RichIndexedSeq
 import sampler.data.Distribution
 import sampler.data.ParallelSampler
-import sampler.math.Probability
-import sampler.math.Probability.toDouble
 import sampler.math.Random
 import sampler.math.Statistics.maxDistance
 
@@ -23,7 +21,7 @@ import sampler.math.Statistics.maxDistance
 object SampleSizeUncertainty extends App{
 	implicit val random = Random
 	
-	def calcSampleSize(testPerformanceDistribution: Distribution[Double], requiredSensitivity: Probability) = {
+	def calcSampleSize(testPerformanceDistribution: Distribution[Double], requiredSensitivity: Double) = {
 		// Transform the samples into a probability of detection given a sample size
 		def testingApproachDistribution(numSamples: Int): Distribution[Boolean] = {
 			testPerformanceDistribution.map{se => 
@@ -51,7 +49,7 @@ object SampleSizeUncertainty extends App{
 				dist.probabilityTable(true)
 			}
 			
-			println(f" - Sample Size $currentSampleSize => Sensitivity ${se.value}%.2f")
+			println(f" - Sample Size $currentSampleSize => Sensitivity $se%.2f")
 			
 			if(se > requiredSensitivity) currentSampleSize
 			else loop(currentSampleSize + 1)
@@ -60,7 +58,7 @@ object SampleSizeUncertainty extends App{
 		loop()
 	}
 	
-	val requiredSensitivity = Probability(0.95)
+	val requiredSensitivity = 0.95
 		
 	/* Generate some fake performance data.  In general this may be generated externally
 	 * and loaded, for example using the [[sampler.io.ChainReader]].

@@ -28,8 +28,9 @@ import scala.annotation.tailrec
  */
 
 class AliasTable(p: Partition) extends Serializable{
-    val (probability, alias) = construct(p.probabilities.map(_.value))
+    val (probability, alias) = construct(p.probabilities)
 	
+    //TODO test any probability exceptions which should be thrown here?
     def construct(probs: IndexedSeq[Double]): (Array[Double], Array[Int]) = {
 	  val arraySize = p.size
 	
@@ -78,7 +79,7 @@ class AliasTable(p: Partition) extends Serializable{
       val small = p.probabilities.zipWithIndex.filter(_._1 < average).map(_._2).toArray
       val large = p.probabilities.zipWithIndex.filter(_._1 >= average).map(_._2).toArray
       
-      loop(small, large, initialProbability, initialAlias,  p.probabilities.map(_.value))
+      loop(small, large, initialProbability, initialAlias,  p.probabilities)
     }
     
     /** Return a random value drawn from the distribution */

@@ -27,7 +27,6 @@ import org.apache.commons.math3.ode.sampling.FixedStepHandler
 import org.apache.commons.math3.ode.sampling.StepNormalizer
 import sampler.Implicits._
 import sampler.data.Distribution
-import sampler.math.Probability
 import sampler.math.Random
 import sampler.r.ScriptRunner
 import scala.language.existentials
@@ -85,7 +84,7 @@ object FlockMortality extends App {
 	)
 	
 	//Get median fit data
-	val half = Probability(0.5)
+	val half = 0.5
 	val medBeta = quantile(posterior.map(_.beta).toEmpiricalSeq, half)
 	val medEta = quantile(posterior.map(_.eta).toEmpiricalSeq, half)
 	val medGamma = quantile(posterior.map(_.gamma).toEmpiricalSeq, half)

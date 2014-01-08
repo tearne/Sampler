@@ -19,7 +19,6 @@ package sampler.data
 
 import sampler.math.Random
 import scala.collection.GenTraversableOnce
-import sampler.math.Probability
 
 /** Empirical implementation which is backed by an IndexedSeq.
  * 
@@ -33,7 +32,7 @@ class EmpiricalSeq[A](val values: IndexedSeq[A]) extends Empirical[A]{ self =>
     /** A map from each observation to the probability of seeing that value */
     lazy val probabilityTable = {
 		val sizeAsDouble = values.size.asInstanceOf[Double]
-		values.groupBy(identity).map{case (k,v) => (k, Probability(v.size / sizeAsDouble))}
+		values.groupBy(identity).map{case (k,v) => (k, v.size / sizeAsDouble)}
 	}
 	
     /** Returns a new Empirical containing all the observations in this instance plus those in the

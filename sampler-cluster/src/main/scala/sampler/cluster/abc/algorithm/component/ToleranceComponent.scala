@@ -20,7 +20,6 @@ package sampler.cluster.abc.algorithm.component
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import sampler.cluster.abc.Weighted
-import sampler.math.Probability
 import sampler.math.StatisticsComponent
 import sampler.Implicits._
 
@@ -31,7 +30,7 @@ trait ToleranceComponent {
 	
 	trait ToleranceCalculator {
 		def apply[P](weighedParameters: Seq[Weighted[P]], currentTolerance: Double): Double = {
-			val medianMeanScore = statistics.quantile(weighedParameters.map{_.meanRepScore}.toEmpiricalSeq, Probability(0.5))
+			val medianMeanScore = statistics.quantile(weighedParameters.map{_.meanRepScore}.toEmpiricalSeq, 0.5)
 			if(medianMeanScore == 0) {
 				log.warning("Median of mean scores from last generation evaluated to 0, using old tolerance again.")
 				currentTolerance

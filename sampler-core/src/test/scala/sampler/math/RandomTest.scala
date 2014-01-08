@@ -48,14 +48,14 @@ class RandomTest extends AssertionsForJUnit with Matchers{
   }
   
   @Test def generatesBoolenasInGivenProportion {
-    def booleanSample(samples: List[Boolean], p: Probability, currentIt: Int, numIts: Int): List[Boolean] = {
+    def booleanSample(samples: List[Boolean], p: Double, currentIt: Int, numIts: Int): List[Boolean] = {
 	  if(currentIt >= numIts) samples
       else {
 		booleanSample(samples.:+(random.nextBoolean(p)), p, currentIt+1, numIts)
 	  }
     }
 		    
-	val probability = new Probability(0.9)
+	val probability = 0.9
 	val requiredIterations = 1000
 		    
 	val sampledBooleans = booleanSample(List(), probability, 0, requiredIterations)

@@ -39,7 +39,7 @@ import scala.collection.GenMap
 trait Empirical[A] extends Serializable{
   
 	/** Relative frequency associated with each observation value */
-	val probabilityTable: Map[A, Probability]
+	val probabilityTable: Map[A, Double]
 
 	/** The number of observations
 	 *  

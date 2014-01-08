@@ -24,9 +24,13 @@ trait Random {
 	def nextInt(n: Int): Int
 	
 	def nextDouble(min: Double, max: Double): Double = 
-    (max - min) * nextDouble() + min
+    	(max - min) * nextDouble() + min
   
-    def nextBoolean(p: Probability): Boolean = math.random < p.value
+    //TODO test exception
+    def nextBoolean(p: Double): Boolean = {
+		RangeCheck.probability(p)
+		math.random < p
+	}
 }
 
 /** Instance of Random trait */

@@ -22,7 +22,6 @@ import scala.annotation.tailrec
 import scala.collection.GenSeq
 import scala.collection.parallel.ParSeq
 import scala.math.Numeric.DoubleIsFractional
-import sampler.math.Probability
 import sampler.math.Partition
 import sampler.math.AliasTable
 
@@ -217,13 +216,13 @@ object Distribution{
 	/** Builds a new [[sampler.data.Distribution]] which represents a Bernouli distribution.
 	 *  
 	 *  @param probSuccess the probability of success when sampling from this object */
-	def bernouliTrial(probSuccess: Probability)(implicit r: Random) = new Distribution[Boolean]{
+	def bernouliTrial(probSuccess: Double)(implicit r: Random) = new Distribution[Boolean]{
 	  def sample() = r.nextBoolean(probSuccess)
 	}
 	
 	/** Builds a new [[sampler.data.Distribution]] which represents a fair coin */
 	def coinToss()(implicit r: Random) = new Distribution[Boolean] {
-	  def sample() = r.nextBoolean(Probability(0.5))
+	  def sample() = r.nextBoolean(0.5)
 	}
 	
 	//TODO do we really need this, given the map version below?

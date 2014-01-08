@@ -19,7 +19,6 @@ package sampler.data
 
 import sampler.math.Random
 import scala.collection.GenTraversableOnce
-import sampler.math.Probability
 import sampler.math.AliasTable
 import sampler.math.Partition
 

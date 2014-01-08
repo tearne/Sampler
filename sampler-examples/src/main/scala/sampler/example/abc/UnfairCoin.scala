@@ -29,7 +29,6 @@ import sampler.cluster.abc.Prior
 import sampler.cluster.abc.actor.Report
 import sampler.cluster.abc.config.ABCConfig
 import sampler.data.Distribution
-import sampler.math.Probability
 import sampler.math.Random
 import sampler.r.QuickPlot.writeDensity
 import sampler.r.ScriptRunner
@@ -111,7 +110,7 @@ object CoinModel extends Model[CoinParams] {
     
     def distanceToObservations(p: CoinParams) = new Distribution[Double] with Serializable{
     	override def sample() = {
-    		def coinToss() = random.nextBoolean(Probability(p.pHeads))
+    		def coinToss() = random.nextBoolean(p.pHeads)
     		val simulatedHeads = (1 to observedData.numTrials)
     			.map(i => coinToss)
     			.count(identity)

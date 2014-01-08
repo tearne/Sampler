@@ -3,7 +3,6 @@ package sampler.data
 import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Before
 import org.junit.Test
-import sampler.math.Probability
 import sampler.math.Random
 import sampler.math.Partition
 import org.scalatest.Matchers
@@ -203,7 +202,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
   }
   
   @Test def bernouliTrialWithProbabilityOne {
-    val model = Distribution.bernouliTrial(Probability(1))
+    val model = Distribution.bernouliTrial(1)
     
     val result = (1 to 10).map(_ => model.sample)
     
@@ -211,7 +210,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
   }
   
   @Test def bernoiliTrialWithProbabilityZero {
-    val model = Distribution.bernouliTrial(Probability(0))
+    val model = Distribution.bernouliTrial(0)
     
     val result = (1 to 10).map(_ => model.sample)
     
@@ -219,7 +218,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
   }
 
   @Test def bernouliTrialWith80PercentProbability {
-    val model = Distribution.bernouliTrial(Probability(0.8))
+    val model = Distribution.bernouliTrial(0.8)
 		    
 	val result = (1 to 1000).map(_ => model.sample)
 		    
@@ -236,7 +235,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
   
   @Test def samplesFromItemsBasedOnPartitionProbabilities {
     val seq = IndexedSeq(1,2,3,4)
-    val partition = new Partition(IndexedSeq(0.1,0.2,0.3,0.4).map(Probability(_)))
+    val partition = new Partition(IndexedSeq(0.1,0.2,0.3,0.4))
     
     val model = Distribution.fromPartition(seq, partition)
     
@@ -250,7 +249,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
   
   @Test def errorWhenPartitionLengthDoesntMatchSequenceLength {
     val seq = IndexedSeq(1,2,3,4)
-    val partition = new Partition(IndexedSeq(0.25,0.25,0.5).map(Probability(_)))
+    val partition = new Partition(IndexedSeq(0.25,0.25,0.5))
     
     intercept[AssertionError] {
       val model = Distribution.fromPartition(seq, partition)

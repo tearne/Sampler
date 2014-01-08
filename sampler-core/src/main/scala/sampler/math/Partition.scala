@@ -27,14 +27,15 @@ package sampler.math
  * @param probabilities the probabilities used to form the Partition
  */
 
-case class Partition(val probabilities: IndexedSeq[Probability]) {
+case class Partition(val probabilities: IndexedSeq[Double]) {
   
   /* ensures the sum of the probabilities equals 1 */
 	private def isEqualOne(value: Double) = if(value > 1 - 1E-8 && value < 1 + 1E-8) true else false
 	
-	assert(isEqualOne(probabilities.map(_.value).sum), s"Expected probabilies to sum to 1, but got ${probabilities.map(_.value).sum}")
-	
-  /** the number of probabilties in the Partition */
+	assert(isEqualOne(probabilities.sum), s"Expected probabilies to sum to 1, but got ${probabilities.sum}")
+	probabilities.foreach{p => RangeCheck.probability(p)}
+
+	/** the number of probabilties in the Partition */
 	lazy val size = probabilities.size
 }
 
@@ -47,7 +48,6 @@ object Partition{
    *  */
 	def fromWeights(weights: IndexedSeq[Double]) = {
 		val totalWeight = weights.sum
-
-		Partition(weights.map(_ / totalWeight).to[IndexedSeq].map(Probability(_)))
+		Partition(weights.map(_ / totalWeight).to[IndexedSeq])
 	}
 }
