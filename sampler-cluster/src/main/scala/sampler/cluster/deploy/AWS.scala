@@ -6,8 +6,9 @@ import java.nio.file.Paths
 import java.util.Properties
 
 import scala.collection.JavaConversions.asScalaBuffer
-import scala.sys.process.Process
-import scala.sys.process.ProcessLogger
+import scala.sys.process._
+//import scala.sys.process.Process._
+//import scala.sys.process.ProcessLogger
 
 import com.amazonaws.auth.AWSCredentials
 import com.amazonaws.services.ec2.AmazonEC2Client
@@ -25,8 +26,8 @@ case class AWSProperties(
 	accessKey: String,
 	secretKey: String,
 	endpoint: String, 
-	clusterFilter: Tag,
-	terminalFilter: Tag,
+	masterTag: Tag,
+	workerTag: Tag,
 	instanceUserName: String,
 	s3Bucket: String,
 	s3CfgPath: Path,
@@ -48,8 +49,8 @@ object AWSProperties {
 			props.getProperty("accessKey"),
 			props.getProperty("secretKey"),
 			props.getProperty("endpoint"),
-			new Tag(props.getProperty("tagName"),props.getProperty("clusterTag")),
-			new Tag(props.getProperty("tagName"),props.getProperty("terminalTag")),
+			new Tag(props.getProperty("tagName"),props.getProperty("masterTag")),
+			new Tag(props.getProperty("tagName"),props.getProperty("workerTag")),
 			props.getProperty("instanceUserName"),
 			props.getProperty("s3Bucket"),
 			resolve(propertiesPath, props.getProperty("s3cfgPath")),
@@ -81,30 +82,32 @@ class AWS(props: AWSProperties) extends Logging{
 			.flatten
 			.filter(_.getState.getName == "running")
 		
-	def clusterNodes = {
+	
+	def masterNode = {
 		val nodes = runningInstances
-			.filter(_.getTags().contains(props.clusterFilter))
+			.filter(_.getTags().contains(props.masterTag))
+			.toList
+		assert(nodes.size == 1, s"Expected precisely one master node, found ${nodes.size}")
+		nodes.head
+	}
+			
+	def workerNodes = {
+		val nodes = runningInstances
+			.filter(_.getTags().contains(props.workerTag))
 			.toList
 		if(nodes.size == 0) log.warn("No instances running")
 		nodes
 	}
 	
-	def terminalNode = {
-		val nodes = runningInstances
-			.filter(_.getTags().contains(props.terminalFilter))
-			.toList
-		assert(nodes.size == 1, s"Expected precisely one terminal node, found ${nodes.size}")
-		nodes.head
+	def scpUpload(localPath: Path, node: Instance, remoteDestination: String){
+		val cmd = ssh.scpCommand(props.instanceUserName, node.getPublicDnsName(), localPath, remoteDestination)
+		log.info(cmd)
+		Process(cmd) ! ProcessLogger(line => log.info(line))
 	}
 			
-	def directUpload(path: Path, node: Instance){
-		import props._
-		ssh.scp(instanceUserName, node.getPublicDnsName(), path)
-	}
-			
-	def uploadToS3(localDir: Path){
+	def s3Upload(localDir: Path){
 		assert(Files.isDirectory(localDir))
-		val commandSeq = Seq[String](
+		val cmd = Seq[String](
 				"s3cmd",
 				"sync",
 				"-c",
@@ -114,14 +117,16 @@ class AWS(props: AWSProperties) extends Logging{
 				"--recursive",
 				localDir.toString+"/",
 				props.s3Bucket
-		)
-		log.info("Command: {}", commandSeq.map(_+" ").mkString)
-		Process(commandSeq) ! ProcessLogger(line => log.info(line))
+		).mkString(" ")
+		log.info(cmd)
+		Process(cmd) ! ProcessLogger(line => log.info(line))
 	}
 	
-	def instanceS3download(instance: Instance) {
-		val command = s"s3cmd sync ${props.s3Bucket} ."
-		ssh.forground(props.instanceUserName, instance.getPublicDnsName(), command)
-		log.info("done s3download")
+	def s3RemoteDownload(instance: Instance, remoteDir: String) {
+		val dirTrailingSlash = if(!remoteDir.endsWith("/")) remoteDir+"/" else remoteDir
+		val command = s"mkdir -p $dirTrailingSlash && s3cmd sync --delete-removed ${props.s3Bucket}/ $dirTrailingSlash"
+		val fullCmd = ssh.forgroundCommand(props.instanceUserName, instance.getPublicDnsName(), command)
+		log.info(fullCmd)
+		Process(fullCmd) ! ProcessLogger(line => log.debug(line))
 	}
 }

@@ -17,11 +17,9 @@
 
 package sampler.cluster.deploy
 
-import scala.sys.process.{Process, ProcessBuilder}
 import java.nio.file.Path
 import sampler.io.Logging
 import scala.language.postfixOps
-import scala.sys.process._
 
 class SSH(keyFile: Path) extends Logging{
 	private val keyFileArgs = List("-i", keyFile.toString)
@@ -31,7 +29,7 @@ class SSH(keyFile: Path) extends Logging{
 			"-o", "LogLevel=quiet"
 	)
 	
-	def forground(username: String, host: String, command: String) {
+	def forgroundCommand(username: String, host: String, command: String): String = {
 		val sshCommand = "ssh" ::
 			List("-t","-t") ::: 
 			keyFileArgs :::
@@ -41,10 +39,10 @@ class SSH(keyFile: Path) extends Logging{
 				command
 			)
 		
-		run(sshCommand)
+		sshCommand.mkString(" ")
 	}
 	
-	def background(username: String, host: String, command: String) {
+	def backgroundCommand(username: String, host: String, command: String): String = {
 		val sshCommand = "ssh" ::
 			List("-f","-n") ::: 
 			keyFileArgs ::: 
@@ -54,21 +52,16 @@ class SSH(keyFile: Path) extends Logging{
 				"""sh -c 'nohup """+command+""" > /dev/null 2>&1 &'"""
 			)
 		
-		run(sshCommand)
+		sshCommand.mkString(" ")
 	}
 	
-	def scp(username: String, host: String, file: Path){
+	def scpCommand(username: String, host: String, localPath: Path, remoteDestination: String): String = {
 		val scpCommand = 
 			"scp" ::
 			keyFileArgs ::: 
 			noHostFileArgs ::: 
-			List(s"$file", s"$username@$host:~")
+			List(s"$localPath", s"$username@$host:$remoteDestination")
 		
-		run(scpCommand)
-	}
-	
-	def run(command: Seq[String]){
-		log.info("Running: {}", command.map(_+" ").mkString)
-		Process(command) ! ProcessLogger(line => log.info(line))
+		scpCommand.mkString(" ")
 	}
 }

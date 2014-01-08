@@ -19,7 +19,6 @@ package sampler.cluster.abc.actor.worker
 
 import java.rmi.UnexpectedException
 import scala.collection.parallel.CompositeThrowable
-import scala.concurrent.Future
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -36,6 +35,7 @@ import sampler.cluster.abc.actor.TaggedScoreSeq
 import sampler.math.Random
 import sampler.run.DetectedAbortionException
 import sampler.cluster.abc.Scored
+import scala.concurrent.Future
 
 class WorkerActorImpl[P](val model: Model[P]) extends WorkerActor[P] {
 	implicit val random = Random
@@ -51,6 +51,7 @@ abstract class WorkerActor[P]
 	type T = Scored[P]
 		
 	def receive = idle
+	val executionContext = context.system.dispatchers.lookup("sampler.work-dispatcher")
 	
 	case class Contract(job: Job[P], client: ActorRef)
 
@@ -66,7 +67,6 @@ abstract class WorkerActor[P]
 			val newClient = sender
 			become(waitingForAbortComfirmation(None))
 		case Success(seq: Seq[T]) =>
-			log.debug("Result received, sending to {}, starting another job", contract.client)
 			contract.client ! TaggedScoreSeq(seq.map{Tagged(_)})
 			startWork(contract.job)
 		case Failure(exception) => 
@@ -74,13 +74,13 @@ abstract class WorkerActor[P]
 			startWork(contract.job)
 		case Aborted => 
 			become(idle)
-		case msg => log.error("Unexpected message when 'working': {}",msg.getClass())
+		case msg => log.error("Unexpected message from {} when 'working': {}",sender, msg.getClass())
 	}
 	
 	def waitingForAbortComfirmation(nextContract: Option[Contract]): Receive = {
 		case newJob: Job[P] =>
 			if(nextContract.isDefined) 
-				log.error("Overrieding previously queued work request (still waiting for last job to abort)")
+				log.error("Override previously queued work request (still waiting for last job to abort)")
 			val newClient = sender
 			become(waitingForAbortComfirmation(Some(Contract(newJob,newClient))))
 		case out: Try[_] => 
@@ -90,14 +90,12 @@ abstract class WorkerActor[P]
 			modelRunner.reset
 			nextContract match{
 				case Some(contract) =>
-					log.debug("Abort confirmed, moving to next job")
 					become(working(contract))
 					startWork(contract.job)
 				case None =>
-					log.debug("Abort confirmed, becoming idle")
 					become(idle)
 			}
-		case msg => log.error("Unexpected message when 'waiting for abort confirmation': {}",msg.getClass())
+		case msg => log.error("Unexpected message from {} when 'waiting for abort confirmation': {}",sender, msg.getClass())
 	}
 	
 	def idle(): Receive = {
@@ -105,7 +103,6 @@ abstract class WorkerActor[P]
 			startWork(job)
 			val size = job.population.size
 			val client = sender
-			log.debug("Worker starting up at the request of {}", client)
 			become(working(Contract(job, client)))
 		case msg: Aborted => 
 			throw new UnexpectedException("Not expected in idle state: "+msg)
@@ -115,7 +112,6 @@ abstract class WorkerActor[P]
 	
 	def startWork(job: Job[P]){
 		val me = self
-		implicit val executionContext = context.system.dispatchers.lookup("sampler.work-dispatcher")
 		Future{
 			log.debug("Started work future")
 			val result: Try[Seq[Scored[P]]] = modelRunner.run(job) 
@@ -127,6 +123,6 @@ abstract class WorkerActor[P]
 				case anythingElse =>
 					me ! anythingElse
 			}
-		}
+		}(executionContext)
 	}
 }

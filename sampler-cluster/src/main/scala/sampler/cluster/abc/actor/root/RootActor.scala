@@ -145,7 +145,7 @@ abstract class RootActor[P]
 				//Flush the current generation
 				workerRouter ! Abort
 				
-				implicit val workDispatcher = context.system.dispatchers.lookup("sampler.work-dispatcher")
+				implicit val ec = context.dispatcher
 				Future{
 					val flushedGen = algorithm.flushGeneration(newGen, config.job.numParticles)
 					FlushComplete(flushedGen)
@@ -177,6 +177,7 @@ abstract class RootActor[P]
 				goto(Idle) using Uninitialized
 			} else {
 				// Report and start next generation
+				log.debug("New job sending...")
 				workerRouter ! Job(generation.prevWeightsTable, config)
 				report(stateData.client, generation, false)
 				goto(Gathering) using stateData.toGatheringData(generation)

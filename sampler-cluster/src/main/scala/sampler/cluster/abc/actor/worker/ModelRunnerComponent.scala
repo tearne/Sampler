@@ -62,7 +62,7 @@ trait ModelRunnerComponent[P] {
 					}
 					
 					val res: Option[Scored[P]] = for{
-						params <- Some(model.perturb(paramDist.sample())) if prior.density(params) > 0
+						params <- Some(perturb(paramDist.sample())) if prior.density(params) > 0
 						fitScores <- Some(getScores(params))
 					} yield Scored(params, fitScores)
 					

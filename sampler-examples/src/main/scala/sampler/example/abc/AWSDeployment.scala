@@ -21,28 +21,111 @@ import sampler.cluster.deploy.AWSProperties
 import sampler.cluster.deploy.AWS
 import com.amazonaws.services.ec2.model.Instance
 
+/*
+ * Assuming a number of EC2 images with the base software (JRE7, R, etc)
+ * have already been spun up.  To do this see the notes in 
+ * sampler-examples/deploy/notes.txt
+ * 
+ * To run the deployment program set a property like the following
+ * in the run configuration
+ *     -DawsProperties=/mnt/hgfs/share/AWS/aws.properties.txt
+ *     
+ *     
+ * There are several places where the configuration is set:
+ * 
+ * 1) This file
+ *   - 'application' name, e.g. sampler.example.abc.FlockMortality
+ *   - 'tearDown' = true/false, to determine whether to add nodes to
+ *     an existing cluster, or destroy and re-deploy everything
+ *   - Deploy directory, e.g. "~/deploy/"
+ *   - Java 'runCommand', java -Xmx3g ...
+ * 
+ * 2) The awsProperties file
+ *   - accessKey = XXXXXXXXXXXXXXXXXXXX
+ *   - secretKey = XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+ *   - endpoint = ec2.eu-west-1.amazonaws.com
+ *   - tagName = Name
+ *   - masterTag = master
+ *   - workerTag = worker
+ *   - instanceUserName = ec2-user
+ *   - s3Bucket = s3://some-bucket
+ *   - s3cfgPath = s3cfg-file		
+ *   - sshKeyPath = sshKey.pem
+ * 
+ * 3) The s3cfg file (location described in awsProperties), which is copied 
+ *    over to the instances so they can download the deployment files
+ *   - Contains AWS-S3 access key
+ * 
+ * 3) deploy/application.config for the deployed application
+ *   - Degree of parallelism (akka.actor.deployment./root/work-router.nr-of-instances)
+ *   - Number of particles, generation, chunk size, mix rate, ...
+ *   - Log level for the Akka actors
+ * 
+ * 4) deploy/copyJars.sh to aggregate the deployment jars in the deployment 
+ *    directory, ready to upload to s3
+ * 
+ * 5) deploy/logging.xml for deployed application
+ *   - Log files and levels for non-Akka components
+ *  
+ * 
+ * How to Deploy
+ *  1) Run 'sbt package' on project to build jars
+ *  2) Run Sampler/sampler-examples/deploy/copyJars.sh to pull in all jars to
+ *     deploy/lib dir
+ *  3) Check application.conf and logback.xml
+ *  4) Check and run localTest.sh
+ *  5) Run this script
+ *  6) Log into a worker (not the master).  May need to stop the program and 
+ *     modify the application.conf, e.g. to set it to terminate and report at 
+ *     the right time.
+ * 
+ * 
+ * TODO
+ *  - If an instance isn't booted up yet the commands will silently fail
+ *    and it will look like everything worked fine.  Would be nicer to use
+ *    exit codes for reporting at the end.
+ *  - Config is too scattered (as above)
+ */
+
 trait CommonDeployment extends Logging{
-	val newLine = System.getProperty("line.separator")
+	val application: String = "sampler.example.abc.FlockMortality"
 	
-		def createRemoteRunScript(node: Instance, masterIP: String): String = {
+	def runRemoteScript(node: Instance, fileName: String){
+		val cmd = ssh.backgroundCommand(awsProps.instanceUserName, node.getPublicDnsName(), s"~/deploy/$fileName")
+		log.info(cmd)
+		Process(cmd).!
+	}
+	
+	def javaRunning(node: Instance): Boolean = {
+		val cmd = ssh.forgroundCommand(awsProps.instanceUserName, node.getPublicDnsName(), s"pgrep -f java")
+		val result = 0 == Process(cmd).!
+		log.info("Java running {}:  {}",result, cmd)
+		result
+	}
+	
+	def killJava(node: Instance){
+		val cmd = ssh.backgroundCommand(awsProps.instanceUserName, node.getPublicDnsName(), "killall java")
+		log.info(cmd)
+		Process(cmd).!
+	}
+		
+	def deployRemoteRunScript(node: Instance, masterIP: String): String = {
 		val publicDNS = node.getPublicDnsName
 		val privateIP = node.getPrivateIpAddress
 		
 		val runCommand = 
 s"""
-java -Xmx2g \\
+java -Xmx600m \\
 -Dakka.remote.netty.tcp.hostname=$privateIP \\
 -Dakka.cluster.seed-nodes.0=akka.tcp://ABC@$masterIP:2552 \\
--Dconfig.file=application.conf \\
--Dlogback.statusListenerClass=ch.qos.logback.core.status.OnConsoleStatusListener \\
--Dlogback.configurationFile=logback.xml \\
--cp "lib/*" \\
-sampler.example.abc.FlockMortality
+-Dconfig.file=deploy/application.conf \\
+-Dlogback.configurationFile=deploy/logback.xml \\
+-cp "deploy/lib/*" \\
+$application
 """
 
 		val tempFile = Files.createTempFile("run", ".sh")
 		tempFile.toFile().deleteOnExit
-		log.info("Temp file path is {}", tempFile)
 		Files.setPosixFilePermissions(tempFile, Set(
 				PosixFilePermission.OWNER_EXECUTE,
 				PosixFilePermission.OWNER_READ,
@@ -56,19 +139,10 @@ sampler.example.abc.FlockMortality
 		writer.write(runCommand)
 		writer.close
 		
-		ssh.scp(awsProps.instanceUserName, publicDNS, tempFile)	
+		aws.scpUpload(tempFile, node, "~/deploy/"+tempFile.getFileName())	
 		tempFile.getFileName().toString
 	}
 
-	/*
-	 * 
-	 * To prepare the deployment directory
-	 *  1) run 'sbt package' on project to build jars
-	 *  2) run Sampler/sampler-examples/deploy/copyJars.sh to pull in all jars to deploy/lib dir
-	 *  3) Check application.conf and logback.xml
-	 *  4) Check and run localTest.sh
-	 * 
-	 */
 	val localDeployDir = Paths.get(System.getProperty("user.home")).resolve("Sampler/sampler-examples/deploy/")
 	assert(Files.exists(localDeployDir))	
 	log.info("localDeployDir: {}", localDeployDir)
@@ -79,64 +153,38 @@ sampler.example.abc.FlockMortality
 	log.info(""+awsProps)
 	
 	log.info("Account Confirmed: {}", aws.getUserDetails)
-	aws.uploadToS3(localDeployDir)	//Does a diff
+	aws.s3Upload(localDeployDir.toAbsolutePath)
 }
 
 object ClusterDeployment extends App with CommonDeployment {
-	/*
-	 * Assuming a number of EC2 images with the base software (JRE7, R, etc)
-	 * have already been spun up.
-	 * 
-	 * Set:
-	 *     -DawsProperties=/mnt/hgfs/share/AWS/aws.properties.txt
-	 */
-	
 	import awsProps._
 	
-	def runRemoteScript(node: Instance, fileName: String){
-		ssh.background(instanceUserName, node.getPublicDnsName(), s"./$fileName")
-	}
+	val tearDown = false
 	
-	/*
-	 * 
-	 * Run Commands
-	 * 
-	 */
-	aws.clusterNodes.foreach{node => 
-		ssh.background(instanceUserName, node.getPublicDnsName(), "killall java")
+	if(tearDown){
+		// Stop everything
+		(aws.masterNode +: aws.workerNodes).foreach(node => killJava(node))
 	}
 
-	val master = aws.clusterNodes.head
-	val masterPrivateIp = master.getPrivateIpAddress()
+	val masterNode = aws.masterNode
+	val masterPrivateIp = masterNode.getPrivateIpAddress()
 	
-	aws.clusterNodes.foreach{node => 
-		aws.directUpload(s3CfgPath, node)
-		
-		aws.instanceS3download(node)
-		
-		val scriptName = createRemoteRunScript(node, masterPrivateIp)
-		runRemoteScript(node, scriptName)
-		println("started application on "+node.getPrivateIpAddress())
+	def deploy(node: Instance){
+		if(tearDown || !javaRunning(node)){
+			aws.scpUpload(s3CfgPath, node, "~/.s3cmd")
+			aws.s3RemoteDownload(node, "~/deploy/")
+			val runScriptName = deployRemoteRunScript(node, masterPrivateIp)
+			runRemoteScript(node, runScriptName)
+			log.info("started application on "+node.getPrivateIpAddress())
+		}
 	}
 	
-	log.info(s"Cluster ready captain.")
-	log.info(s"    Connect using ssh -i ${awsProps.sshKeyPath} ec2-user@${master.getPublicDnsName}")
-}
-
-object TerminalNodeDeployment extends App with CommonDeployment {
-	/*
-	 *     -DawsProperties=/mnt/hgfs/share/AWS/aws.properties.txt
-	 */
+	(masterNode +: aws.workerNodes).foreach{node => deploy(node)}
 	
-	val terminalNode = aws.terminalNode
-	
-	aws.directUpload(awsProps.s3CfgPath, terminalNode)	
-	aws.instanceS3download(terminalNode)
-	//TODO undo
-	val scriptName = createRemoteRunScript(terminalNode, aws.clusterNodes.head.getPrivateIpAddress())
-	
-	log.info(s"Terminal ready captain.")
-	log.info(s"    Connect using ssh -i ${awsProps.sshKeyPath} ec2-user@${terminalNode.getPublicDnsName}")
-	log.info(s"    Run script name: $scriptName")
+	log.info(s"----==== Cluster ready captain ====----")
+	aws.workerNodes.foreach{node =>
+		log.info(s"      Worker: ssh -i ${awsProps.sshKeyPath} ec2-user@${node.getPublicDnsName}")
+	}
+	log.info(s" ***  Master: ssh -i ${awsProps.sshKeyPath} ec2-user@${masterNode.getPublicDnsName}")
 }
 
