@@ -25,7 +25,6 @@ import sampler.data.Distribution
 import sampler.data.SerialSampler
 import sampler.io.Logging
 import sampler.math.Random
-import sampler.run.DetectedAbortionException
 import sampler.cluster.abc.Model
 import sampler.cluster.abc.Scored
 

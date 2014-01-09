@@ -33,7 +33,6 @@ import sampler.cluster.abc.actor.Job
 import sampler.cluster.abc.actor.Tagged
 import sampler.cluster.abc.actor.TaggedScoreSeq
 import sampler.math.Random
-import sampler.run.DetectedAbortionException
 import sampler.cluster.abc.Scored
 import scala.concurrent.Future
 

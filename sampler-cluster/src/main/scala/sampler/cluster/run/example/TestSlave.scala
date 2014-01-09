@@ -17,10 +17,10 @@
 
 package sampler.cluster.run.example
 
-import sampler.run.DetectedAbortionException
 import sampler.io.Logging
 import sampler.cluster.run.ClusterNode
 import sampler.cluster.run.slave.Executor
+import sampler.cluster.abc.actor.worker.DetectedAbortionException
 
 object TestSlave extends App{
 	/*

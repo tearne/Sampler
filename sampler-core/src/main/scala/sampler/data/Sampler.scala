@@ -29,6 +29,7 @@ object SerialSampler extends Sampler with Serializable{
 		distribution.until(condition).sample()
 }
 
+//TODO test me
 class ParallelSampler(chunkSize: Int) extends Sampler{
 	def apply[T](distribution: Distribution[T])(condition: GenSeq[T] => Boolean) = {
 		def takeMore(previous: ParSeq[T]): ParSeq[T] = {
@@ -41,3 +42,5 @@ class ParallelSampler(chunkSize: Int) extends Sampler{
 		takeMore(kickstart)
 	}
 }
+
+//TODO cluster sampler?

@@ -15,27 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.run
+package sampler.cluster.abc.actor.worker
 
-import scala.util.Try
-import scala.annotation.tailrec
-
-class SerialRunner(aborter: Aborter) extends Runner{
-	def apply[T](jobs: Seq[Abortable[T]]): Seq[Try[T]] = {
-		val indexedJobs = jobs.toIndexedSeq
-		
-		@tailrec
-		def doJobsFrom(idx: Int, acc: Seq[Try[T]]): Seq[Try[T]] = {
-			if(idx == jobs.size) acc.reverse
-			else {
-				doJobsFrom(idx + 1, Try(indexedJobs(idx).run(aborter)) +: acc)
-			}
-		}
-		
-		doJobsFrom(0, Nil)
-	}
-}
-
-object SerialRunner{
-	def apply() = new SerialRunner(Aborter())
-}
+class DetectedAbortionException(message: String = null, cause: Throwable = null) 
+	extends Exception(message, cause)
