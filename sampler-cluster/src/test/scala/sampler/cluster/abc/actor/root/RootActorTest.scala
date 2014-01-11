@@ -24,6 +24,7 @@ import sampler.cluster.abc.Scored
 import sampler.cluster.abc.Weighted
 import sampler.cluster.abc.config.ClusterParameters
 import sampler.cluster.abc.config.JobParameters
+import sampler.cluster.abc.actor.Report
 		
 @RunWith(classOf[JUnitRunner])
 class RootActorTest 
@@ -33,7 +34,10 @@ class RootActorTest
 		with MockitoSugar {
 	
 	val oneSecond = 1000l
-	val fiveParticles = 5
+	val hundredParticles = 100
+	val fiveGenerations = 5
+	val isFinal = true
+	val terminateAtTargetGen = true
 	
 	case class DullParams()
 	
@@ -56,122 +60,124 @@ class RootActorTest
 	def getInstance = {
 		val model = mock[Model[DullParams]]
 		val config = ABCConfig(
-				JobParameters(fiveParticles, 0, 0),
+				JobParameters(hundredParticles, 0, fiveGenerations),
 				null,
-				ClusterParameters(false, 0, 0l, 0, oneSecond, 0l)
+				ClusterParameters(terminateAtTargetGen, 0, 0l, 0, oneSecond, 0l)
 		)
 		val getters = mock[Getters]; when(getters.getMixRateMS(config)).thenReturn(oneSecond)
 			
 		TestFSMRef(new TestSubject(model, config, getters))
 	}
 	
-	"RootActor should" - {
-		"start 'Idle'" in {
-			assertResult(Idle)(getInstance.stateName)
-		}
-		"send initial job to work router and start gathering" in {
-			val instanceRef = getInstance
-			val instanceObj = instanceRef.underlyingActor
-			
-			val routerProbe = TestProbe()
-			val clientProbe = TestProbe()
-			val generation0 = Generation(null, null, null, 0, 0, Map[DullParams, Double]())
-			
-			when(instanceObj.childActors.workerRouter).thenReturn(routerProbe.ref)
-			
-			instanceRef.tell(Start(generation0), clientProbe.ref)
-			
-			routerProbe.expectMsg(Job(generation0.prevWeightsTable, instanceObj.config))
-			assertResult(Gathering)(instanceRef.stateName)
-			assertResult(generation0)(instanceRef.stateData match {
-				case gd: GatheringData[_] => gd.generation
-				case d => fail("Unexpected StateData type: "+d.getClass())
-			})
-		}
-		"stay gathering if not enough particles" in {
-			val instanceRef = getInstance
-			val instanceObj = instanceRef.underlyingActor
-
-			/*
-			 *  Setup (Idle -> Gathering)
-			 */
-			val clientProbe = TestProbe()
-			val gen0 = Generation(null, null, null, 0, 0, Map[DullParams, Double]())
-			when(instanceObj.childActors.workerRouter).thenReturn(TestProbe().ref)
-			instanceRef tell(Start(gen0), clientProbe.ref)
-			
-			/*
-			 * Send payload from worker to instance
-			 */ 
-			val workerProbe = TestProbe()
-			val genUpdated = mock[Generation[DullParams]]
-			val newParticles = Seq.empty[Tagged[Scored[DullParams]]]
-			when(instanceObj.algorithm.add(
-					gen0, 
-					newParticles, 
-					workerProbe.ref, 
-					instanceObj.config
-			)).thenReturn(genUpdated)
-			// Still more to gather before finalising the generation
-			when(instanceObj.algorithm.numberAccumulated(genUpdated)).thenReturn(2)
-			val newDataMsg = TaggedScoreSeq[DullParams](newParticles)
-			
-			instanceRef tell(newDataMsg, workerProbe.ref)
-			
-			assertResult(Gathering)(instanceRef.stateName)
-			val stateData = instanceRef.stateData.asInstanceOf[GatheringData[DullParams]]
-			assertResult(genUpdated)(stateData.generation)
-			assertResult(clientProbe.ref)(stateData.client)
-		}
-		"flush new generation when enough particles" in {
-			val instanceRef = getInstance
-			val instanceObj = instanceRef.underlyingActor
-
-			/*
-			 *  Setup (Idle -> Gathering)
-			 */
-			val clientProbe = TestProbe()
-			val gen0 = Generation(null, null, null, 0, 0, Map[DullParams, Double]())
-			when(instanceObj.childActors.workerRouter).thenReturn(TestProbe().ref)
-			instanceRef tell(Start(gen0), clientProbe.ref)
-			
-			/*
-			 * Send payload from worker to instance
-			 */ 
-			val workerProbe = TestProbe()
-			val genUpdated = mock[Generation[DullParams]]
-			val newParticles = Seq.empty[Tagged[Scored[DullParams]]]
-			when(instanceObj.algorithm.add(
-					gen0, 
-					newParticles, 
-					workerProbe.ref, 
-					instanceObj.config
-			)).thenReturn(genUpdated)
-			// Pretend we've collected enough particles to flush
-			when(instanceObj.algorithm.numberAccumulated(genUpdated)).thenReturn(6)
-			val genFlushed = mock[Generation[DullParams]]
-			when(instanceObj.algorithm.flushGeneration(genUpdated, fiveParticles)).thenReturn(genFlushed)
-			val newDataMsg = TaggedScoreSeq[DullParams](newParticles)
-			
-			
-			// todo finish ... need to handle the flushing stuff
-			
-			instanceRef tell(newDataMsg, workerProbe.ref)
-//			
-//			assertResult(Gathering)(instanceRef.stateName)
-//			val stateData = instanceRef.stateData.asInstanceOf[GatheringData[DullParams]]
-//			assertResult(genUpdated)(stateData.generation)
-//			assertResult(clientProbe.ref)(stateData.client)
-		}
-	}
+	"Mixing test" in pending
+	
 	"Lifecycle test" in {
-		pending
-//		assertResult(Idle)(actorRef.stateName)
-//		assertResult(Gathering)(actorRef.stateName)
-//		assertResult(Gathering)(actorRef.stateName)
-//		assertResult(Flushing)(actorRef.stateName)
-//		assertResult(Gathering)(actorRef.stateName)
-//		assertResult(Flushing)(actorRef.stateName)
-//		assertResult(Idle)(actorRef.stateName)
+		val instanceRef = getInstance
+		val instanceObj = instanceRef.underlyingActor
+
+		/*
+		 *  Start (Idle -> Gathering)
+		 */
+		// Setup
+		val routerProbe = TestProbe()
+		val clientProbe = TestProbe()
+		val gen0 = Generation(null, null, null, 0, 0, Map[DullParams, Double]())
+		when(instanceObj.childActors.workerRouter).thenReturn(routerProbe.ref)
+		
+		// Action
+		instanceRef tell(Start(gen0), clientProbe.ref)
+		
+		// Started assertions
+		routerProbe.expectMsg(Job(gen0.prevWeightsTable, instanceObj.config))
+		assertResult(Gathering)(instanceRef.stateName)
+		assertResult(gen0)(instanceRef.stateData match {
+			case gd: GatheringData[_] => gd.generation
+			case d => fail("Unexpected StateData type: "+d.getClass())
+		})
+		
+		
+		/*
+		 * Send payload from worker to instance, and wait for
+		 * more before finalising the generation
+		 */ 
+		// Setup
+		val workerProbe = TestProbe()
+		val gen1 = Generation(null, null, null, 0, 0, Map[DullParams, Double]())
+		val newParticles1 = Seq.empty[Tagged[Scored[DullParams]]]
+		when(instanceObj.algorithm.add(
+				gen0, 
+				newParticles1, 
+				workerProbe.ref, 
+				instanceObj.config
+		)).thenReturn(gen1)
+		when(instanceObj.algorithm.numberAccumulated(gen1)).thenReturn(hundredParticles - 1)
+		val newDataMsg1 = TaggedScoreSeq[DullParams](newParticles1)
+		
+		// Action
+		instanceRef tell(newDataMsg1, workerProbe.ref)
+		
+		// Assertions
+		assertResult(Gathering)(instanceRef.stateName)
+		val stateData1 = instanceRef.stateData.asInstanceOf[GatheringData[DullParams]]
+		assertResult(gen1)(stateData1.generation)
+		assertResult(clientProbe.ref)(stateData1.client)
+		
+		
+		/*
+		 * Payload which triggers generation flushing
+		 */
+		// Setup
+		val gen2 = Generation(null, null, null, 0, 0, Map[DullParams, Double]())
+		val newParticles2 = Seq.empty[Tagged[Scored[DullParams]]]
+		when(instanceObj.algorithm.add(
+				gen1, 
+				newParticles2, 
+				workerProbe.ref, 
+				instanceObj.config
+		)).thenReturn(gen2)
+		when(instanceObj.algorithm.numberAccumulated(gen2)).thenReturn(hundredParticles)
+		val gen3 = Generation(null, null, null, 0, 0, Map[DullParams, Double]())
+		when(instanceObj.algorithm.flushGeneration(gen2, hundredParticles)).thenReturn(gen3)
+		val report1 = mock[Report[DullParams]]
+		when(instanceObj.algorithm.buildReport(gen3, instanceObj.config, !isFinal)).thenReturn(report1)
+		val newDataMsg2 = TaggedScoreSeq[DullParams](newParticles2)
+		
+		// Action
+		instanceRef tell(newDataMsg2, workerProbe.ref)
+		
+		// Assertions (back to gathering when flush complete)
+		assertResult(Gathering)(instanceRef.stateName)
+		val stateData2 = instanceRef.stateData.asInstanceOf[GatheringData[DullParams]]
+		assertResult(gen3)(stateData2.generation)
+		assertResult(clientProbe.ref)(stateData2.client)
+		clientProbe.expectMsg(report1)	//Evidence that the flush took place
+		
+		/*
+		 * Payload which drives generation buffer above the required
+		 * number of particles and finishes the final generation
+		 */
+		// Setup
+		val gen4 = Generation(null, null, null, 0, 0, Map[DullParams, Double]())
+		val newParticles3 = Seq.empty[Tagged[Scored[DullParams]]]
+		when(instanceObj.algorithm.add(
+				gen3, 
+				newParticles3, 
+				workerProbe.ref, 
+				instanceObj.config
+		)).thenReturn(gen4)
+		when(instanceObj.algorithm.numberAccumulated(gen4)).thenReturn(hundredParticles + 1)
+		val gen5 = Generation(null, null, null, 0, fiveGenerations, Map[DullParams, Double]())
+		when(instanceObj.algorithm.flushGeneration(gen4, hundredParticles)).thenReturn(gen5)
+		val report2 = mock[Report[DullParams]]
+		when(instanceObj.algorithm.buildReport(gen5, instanceObj.config, isFinal)).thenReturn(report2)
+		val newDataMsg3 = TaggedScoreSeq[DullParams](newParticles2)
+		
+		// Action
+		instanceRef tell(newDataMsg3, workerProbe.ref)
+		
+		// Assertions
+		assertResult(Idle)(instanceRef.stateName)
+		assertResult(Uninitialized)(instanceRef.stateData)
+		clientProbe.expectMsg(report2)
 	}
 }
