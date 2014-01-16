@@ -40,15 +40,23 @@ import akka.actor.ActorSelection.toScala
 import akka.cluster.ClusterEvent.ClusterDomainEvent
 import sampler.cluster.abc.config.ABCConfig
 import scala.language.existentials
+import scala.concurrent.duration._
+import akka.cluster.ClusterEvent.ReachableMember
+import akka.cluster.ClusterEvent.UnreachableMember
+import akka.cluster.Member
 
 class BroadcastActor(abcParams: ABCConfig) extends Actor with ActorLogging{
-	val cluster = Cluster(context.system)
 	implicit val r = Random
 	
 	case class FoundNode(ref: ActorRef)
 
-	override def preStart(): Unit = cluster.subscribe(self, classOf[ClusterDomainEvent])
+	val cluster = Cluster(context.system)
+
+	override def preStart(): Unit = {
+		cluster.subscribe(self, classOf[ClusterDomainEvent])
+	}
 	override def postStop(): Unit = {
+		val cluster = Cluster(context.system)
 		cluster.unsubscribe(self)
 		log.info("Post stop")
 	}
@@ -76,31 +84,39 @@ class BroadcastActor(abcParams: ABCConfig) extends Actor with ActorLogging{
 		context.actorSelection(path) ! Identify(None)
 	}
 	
+	def nodeUp(member: Member){
+		val rootPath = RootActorPath(member.address)
+	  	if(
+	  		member.address != selfAddress
+	  		&&
+	  		!nodes.exists(ref => ref.path.root == rootPath)
+	  	){ 
+	  		attemptWorkerHandshake(rootPath)
+	  	}
+	}
+	
+	def nodeDown(member: Member){
+		log.warning(s"Node DOWN: $member")
+		val down = nodes.filter(_.path.address == member.address)
+		nodes --= down
+	  	reportingActor ! NumWorkers(nodes.size)
+	}
+	
 	def receive = {
 		case state: CurrentClusterState => 
   		  	state.members.filter(_.status == MemberStatus.Up).foreach(m => 
   		  		attemptWorkerHandshake(RootActorPath(m.address))
   		  	)
-  		case MemberUp(m) => 
-  		  	val rootPath = RootActorPath(m.address)
-  		  	log.debug("{} is 'up'", m)
-  		  	if(
-  		  		m.address != selfAddress
-	  			&&
-	  			!nodes.exists(ref => ref.path.root == rootPath)
-  		  	) 
-  		  	attemptWorkerHandshake(rootPath)
-  		case MemberRemoved(member, previousStatus) =>
-  			val down = nodes.filter(_.path.address == member.address)
-  			nodes --= down
-  		  	log.warning(s"Node down {}, previous status {}", down, previousStatus)
-  		  	reportingActor ! NumWorkers(nodes.size)
+		case MemberUp(member) => 			nodeUp(member)
+		case ReachableMember(member) => 	nodeUp(member)
+		case MemberRemoved(member, _) => 	nodeDown(member)
+		case UnreachableMember(member) =>	nodeDown(member)
   		case ActorIdentity(None, Some(actorRef)) =>
   			// A handshake response
   			val remoteNode = actorRef
   			nodes += remoteNode
   			reportingActor ! NumWorkers(nodes.size)
-  			log.info("Handshake completed with: {}",remoteNode)
+  			log.info("Handshake complete: {}",remoteNode)
   		case ActorIdentity(_: Long, Some(who)) =>
   			// A response to a pre-message test
   			if(preMixingTests.contains(who)){

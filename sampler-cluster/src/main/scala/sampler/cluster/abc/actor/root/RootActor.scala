@@ -95,6 +95,17 @@ abstract class RootActor[P]
 	
 	val config: ABCConfig
 	val model: Model[P]
+	
+	case class MailboxCheck()
+	case class Time(sentTime: Long)
+	context.system.scheduler.schedule(
+						5000.millisecond,
+						5000.millisecond, 
+						self, 
+						MailboxCheck)(
+						context.dispatcher)
+	
+	implicit val executionContext = context.system.dispatchers.lookup("sampler.work-dispatcher")
 			
 	import childActors._
 	type G = Generation[P]
@@ -134,6 +145,14 @@ abstract class RootActor[P]
 	}
 	
 	when(Gathering) {
+		case Event(MailboxCheck, _) =>
+			self ! Time(System.currentTimeMillis())
+			stay
+		case Event(Time(sent: Long), _) =>
+			val timeDiff = System.currentTimeMillis() - sent
+			if(timeDiff > 1000) log.error(s"Mailbox delay too big: $timeDiff ms")
+			stay
+		
 		case Event(data: TaggedScoreSeq[P], stateData: GatheringData[P]) =>
 			val sndr = sender
 			val newGen: G = algorithm.add(stateData.generation, data.seq, sndr, config)
@@ -144,8 +163,6 @@ abstract class RootActor[P]
 			} else {
 				//Flush the current generation
 				workerRouter ! Abort
-				
-				implicit val ec = context.dispatcher
 				Future{
 					val flushedGen = algorithm.flushGeneration(newGen, config.job.numParticles)
 					FlushComplete(flushedGen)
@@ -161,8 +178,11 @@ abstract class RootActor[P]
 	}
 	
 	when(Flushing) {
-		case Event(_: TaggedScoreSeq[P], _) => 	stay //Ignore, since too late to add to the current generation
-		case Event(MixNow, _) => 				stay //Ignore, since concentrating on flushing
+		case Event(_: TaggedScoreSeq[P], _) => 	stay
+		case Event(MixNow, _) => 				stay
+		case Event(MailboxCheck, _) =>			stay 
+		case Event(Time(_), _) =>				stay
+		// Above are ignored while concentrating on flushing
 		case Event(FlushComplete(generation), stateData: FlushingData) =>
 			import generation._
 			val numGenerations = config.job.numGenerations
