@@ -19,7 +19,6 @@ package sampler.cluster.abc.actor.root
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationLong
-
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
@@ -41,6 +40,8 @@ import sampler.cluster.abc.config.ABCConfig
 import sampler.math.Random
 import sampler.math.Statistics
 import sampler.math.StatisticsComponent
+import sampler.cluster.abc.actor.Tagged
+import sampler.cluster.abc.Scored
 
 class RootActorImpl[P](
 		val model: Model[P],
@@ -63,6 +64,8 @@ class RootActorImpl[P](
 sealed trait Status
 case object Idle extends Status
 case object Gathering extends Status
+case object Adding extends Status
+case object Backlogged extends Status
 case object Flushing extends Status
 
 sealed trait Data{
@@ -74,14 +77,16 @@ case class GatheringData[P](
 		client: ActorRef, 
 		cancellableMixing: Option[Cancellable]
 		) extends Data{
-	def toFlushingData = FlushingData(client, cancellableMixing)
+	def toWaitingData = WaitingData(client, cancellableMixing, Seq.empty[Tagged[Scored[P]]])
 }
-case class FlushingData(
+case class WaitingData[P](
 		client: ActorRef, 
-		cancellableMixing: Option[Cancellable]
+		cancellableMixing: Option[Cancellable],
+		queued: Seq[Tagged[Scored[P]]]
 		) extends Data {
 	def toGatheringData[P](generation: Generation[P]) = 
 		GatheringData(generation, client, cancellableMixing)
+	def emptyQueue = copy(queued = Seq.empty[Tagged[Scored[P]]])
 }
 
 abstract class RootActor[P]
@@ -96,21 +101,13 @@ abstract class RootActor[P]
 	val config: ABCConfig
 	val model: Model[P]
 	
-	case class MailboxCheck()
-	case class Time(sentTime: Long)
-	context.system.scheduler.schedule(
-						5000.millisecond,
-						5000.millisecond, 
-						self, 
-						MailboxCheck)(
-						context.dispatcher)
-	
 	implicit val executionContext = context.system.dispatchers.lookup("sampler.work-dispatcher")
 			
 	import childActors._
 	type G = Generation[P]
 	
 	case class FlushComplete(generation: G)
+	case class AddComplete(generation: G)
 	case object MixNow
 	
 	startWith(Idle, Uninitialized)
@@ -145,31 +142,16 @@ abstract class RootActor[P]
 	}
 	
 	when(Gathering) {
-		case Event(MailboxCheck, _) =>
-			self ! Time(System.currentTimeMillis())
-			stay
-		case Event(Time(sent: Long), _) =>
-			val timeDiff = System.currentTimeMillis() - sent
-			if(timeDiff > 1000) log.error(s"Mailbox delay too big: $timeDiff ms")
-			stay
-		
-		case Event(data: TaggedScoreSeq[P], stateData: GatheringData[P]) =>
+		case Event(newData: TaggedScoreSeq[P], gData: GatheringData[P]) =>
 			val sndr = sender
-			val newGen: G = algorithm.add(stateData.generation, data.seq, sndr, config)
 			
-			if(algorithm.numberAccumulated(newGen) < config.job.numParticles){
-				//Continue gathering 
-				stay using stateData.copy(generation = newGen) 	
-			} else {
-				//Flush the current generation
-				workerRouter ! Abort
-				Future{
-					val flushedGen = algorithm.flushGeneration(newGen, config.job.numParticles)
-					FlushComplete(flushedGen)
-				}.pipeTo(self)
-				
-				goto(Flushing) using stateData.toFlushingData
-			}
+			Future{
+				val newGen: G = algorithm.add(gData.generation, newData.seq, config)
+				AddComplete(newGen)
+			}.pipeTo(self)
+			
+			goto(Adding) using gData.toWaitingData
+			
 		case Event(MixNow, p: GatheringData[P]) => 
 			val payload = algorithm.buildMixPayload(p.generation, config)
 			payload.foreach{message => broadcaster ! message}
@@ -177,13 +159,67 @@ abstract class RootActor[P]
 			stay
 	}
 	
+	when(Adding){
+		case Event(tss: TaggedScoreSeq[P], data: WaitingData[P]) => 	
+			val newData = data.copy(queued = data.queued ++ tss.seq)
+			log.info("Queue paylod, size = {}", newData.queued.size)
+			stay using newData
+		case Event(MixNow, _) => 
+			log.info("Ignore mix request"); 	
+			stay
+		case Event(AddComplete(generation), waitingData: WaitingData[P]) =>
+			if(algorithm.numberAccumulated(generation) < config.job.numParticles){
+				if(waitingData.queued.size > 3 * config.algorithm.particleChunkSize){
+					workerRouter ! Abort
+					val queue = waitingData.queued
+					log.warning(s"OVERLOAD, work aborted. Q size ${queue.size}")
+					Future{
+						val newGen: G = algorithm.add(generation, queue, config)
+						AddComplete(newGen)
+					}.pipeTo(self)
+					goto(Backlogged) using waitingData.emptyQueue
+				} else {
+					self ! TaggedScoreSeq(waitingData.queued)	//Send the queued stuff back to the mailbox
+					goto(Gathering) using waitingData.toGatheringData(generation) 	
+				}
+				
+			} else {
+				//Flush the current generation
+				workerRouter ! Abort
+				Future{
+					val flushedGen = algorithm.flushGeneration(generation, config.job.numParticles)
+					FlushComplete(flushedGen)
+				}.pipeTo(self)
+				
+				goto(Flushing) using waitingData
+			}
+	}
+	
+	when(Backlogged) {
+		case Event(_: TaggedScoreSeq[P], _) => 	log.info("Ignore new paylod from {}", sender); stay
+		case Event(MixNow, _) => 				log.info("Ignore mix request"); 	stay
+		
+		case Event(AddComplete(generation), waitingData: WaitingData[P]) =>
+			// Backlog cleared, start work and gathering again
+			if(algorithm.numberAccumulated(generation) < config.job.numParticles){
+				workerRouter ! Job(generation.prevWeightsTable, config)
+				goto(Gathering) using waitingData.toGatheringData(generation) 	
+			} else {
+				//Flush the current generation
+				workerRouter ! Abort
+				Future{
+					val flushedGen = algorithm.flushGeneration(generation, config.job.numParticles)
+					FlushComplete(flushedGen)
+				}.pipeTo(self)
+				
+				goto(Flushing) using waitingData.emptyQueue
+			}
+	}
+	
 	when(Flushing) {
-		case Event(_: TaggedScoreSeq[P], _) => 	stay
-		case Event(MixNow, _) => 				stay
-		case Event(MailboxCheck, _) =>			stay 
-		case Event(Time(_), _) =>				stay
-		// Above are ignored while concentrating on flushing
-		case Event(FlushComplete(generation), stateData: FlushingData) =>
+		case Event(_: TaggedScoreSeq[P], _) => 	log.info("Ignore new paylod"); 		stay
+		case Event(MixNow, _) => 				log.info("Ignore mix request"); 	stay
+		case Event(FlushComplete(generation), data: WaitingData[P]) =>
 			import generation._
 			val numGenerations = config.job.numGenerations
 			log.info("Generation {}/{} complete, new tolerance {}", currentIteration, numGenerations, currentTolerance)
@@ -191,7 +227,7 @@ abstract class RootActor[P]
 			if(currentIteration == numGenerations && config.cluster.terminateAtTargetGenerations){
 				// Stop work
 				workerRouter ! Abort
-				report(stateData.client, generation, true)
+				report(data.client, generation, true)
 				log.info("Number of required generations completed and reported to requestor")
 				
 				goto(Idle) using Uninitialized
@@ -199,8 +235,8 @@ abstract class RootActor[P]
 				// Report and start next generation
 				log.debug("New job sending...")
 				workerRouter ! Job(generation.prevWeightsTable, config)
-				report(stateData.client, generation, false)
-				goto(Gathering) using stateData.toGatheringData(generation)
+				report(data.client, generation, false)
+				goto(Gathering) using data.toGatheringData(generation)
 			}
 	}
 	

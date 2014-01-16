@@ -50,7 +50,6 @@ trait Algorithm {
 	def add[P](
 			gen: Generation[P],
 			taggedAndScoredParamSets: Seq[Tagged[Scored[P]]],
-			sender: ActorRef,
 			abcParameters: ABCConfig
 		): Generation[P]
 }
@@ -127,7 +126,6 @@ trait AlgorithmComponentImpl extends AlgorithmComponent{
 		def add[P](
 				gen: Generation[P],
 				taggedAndScoredParamSets: Seq[Tagged[Scored[P]]],
-				sender: ActorRef,
 				abcParameters: ABCConfig
 		): Generation[P] = {
 			import gen._
@@ -151,7 +149,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent{
 			
 			val newInBox = particleInBox ++ weighedAndTagged
 			
-			log.info(s"+ ${taggedAndScoredParamSets.size} => ${weighedAndTagged.size} = ${newInBox.size}/${abcParameters.job.numParticles} (${sender.path})")
+			log.info(s"+ ${taggedAndScoredParamSets.size} => ${weighedAndTagged.size} = ${newInBox.size}/${abcParameters.job.numParticles}")
 			
 			val newIdsObserved = {
 				val union = idsObserved ++ weighedAndTagged.map(_.id)
