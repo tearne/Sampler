@@ -246,7 +246,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
 	result.count(_ == true) should be (500 +- 50)
   }
   
-  @Test def samplesFromItemsBasedOnPartitionProbabilities {
+  @Test def buildingDistributionFromPartition {
     val seq = IndexedSeq(1,2,3,4)
     val partition = new Partition(IndexedSeq(0.1,0.2,0.3,0.4))
     
@@ -267,5 +267,18 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
     intercept[AssertionError] {
       val model = Distribution.fromPartition(seq, partition)
     }
+  }
+  
+  @Test def buildingDistributionFromProbabilityTable {
+    val probTable = Map(1 -> 0.1, 2 -> 0.2, 3 -> 0.3, 4 -> 0.4)
+    
+    val model = Distribution.fromProbabilityTable(probTable)
+    
+    val result = (1 to 1000).map(_ => model.sample)
+    
+    result.count(_ == 1) should be (100 +- 50)
+    result.count(_ == 2) should be (200 +- 50)
+    result.count(_ == 3) should be (300 +- 50)
+    result.count(_ == 4) should be (400 +- 50)
   }
 }

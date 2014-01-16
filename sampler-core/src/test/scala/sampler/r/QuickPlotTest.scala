@@ -35,10 +35,6 @@ class QuickPlotTest extends AssertionsForJUnit with Matchers {
   implicit var r: Random = _
   var path: Path = _
   
-  // TODO consider mocking of script runner
-  
-  // TODO should QuickPlot delete everything other than the pdf?
-  
   @Before def initialise {
     r = Random
     path = Paths.get("src", "test", "resources", "data")

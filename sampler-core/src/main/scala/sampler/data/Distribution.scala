@@ -25,8 +25,6 @@ import scala.math.Numeric.DoubleIsFractional
 import sampler.math.Partition
 import sampler.math.AliasTable
 
-//TODO flatten on samplable
-
 /** Trait for objects from which we can draw samples
  * 
  *  Can be used for analytical distributions or bootstrapping from a data set of observations, 
@@ -225,8 +223,7 @@ object Distribution{
 	  def sample() = r.nextBoolean(0.5)
 	}
 	
-	//TODO do we really need this, given the map version below?
-	/** Builds a new [[sampler.data.Distribution]] which allows a set of items to be sampled according 
+	/** Takes a [[sampler.math.Partition]] and builds a new [[sampler.data.Distribution]] which allows a set of items to be sampled according 
 	 *  to a given set of probabilities
 	 *  
 	 *  @param items the items which are to be sampled
@@ -241,7 +238,12 @@ object Distribution{
 	  def sample() = items(aliasTable.next(r))
 	}
 	
-	//TODO test and comment
+	/** Takes a map from T to Double (probability) and builds a new [[sampler.data.Distribution]] which allows a set of items to be sampled according 
+	 *  to the given set of probabilities
+	 *  
+	 *  @param items the items which are to be sampled
+	 *  @param p [[sampler.math.Partition]] containing the probabilities of sampling each object
+	 */ 
 	def fromProbabilityTable[T](pTable: Map[T, Double])(implicit r: Random): Distribution[T] = {
 		val (parameterSets, weights) = pTable.toIndexedSeq.unzip
 		fromPartition(parameterSets, Partition.fromWeights(weights))

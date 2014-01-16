@@ -63,4 +63,14 @@ class RandomTest extends AssertionsForJUnit with Matchers{
 	sampledBooleans.count(_ == true) should be(900 +- 50)
     sampledBooleans.count(_ == false) should be(100 +- 50)
   }
+  
+  @Test def exceptionWhenInvalidProbabilityToNextBoolean {
+    intercept[RangeException[Double]] {
+      random.nextBoolean(1.5)
+    }
+
+    intercept[RangeException[Double]] {
+    	random.nextBoolean(-0.5)
+    }
+  }
 }

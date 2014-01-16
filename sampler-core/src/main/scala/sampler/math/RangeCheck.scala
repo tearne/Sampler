@@ -1,7 +1,5 @@
 package sampler.math
 
-//TODO test this stuff
-
 class RangeException[N: Numeric](actual: N, lower: N, upper: N) 
 	extends RuntimeException(s"$actual not in range [$lower, $upper]")
 

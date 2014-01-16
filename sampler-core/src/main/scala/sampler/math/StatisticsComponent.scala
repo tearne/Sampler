@@ -48,7 +48,7 @@ trait Statistics{
 	def quantile[A](e: Empirical[A], probs: Seq[Double])(implicit f: Fractional[A]): Seq[A] = {
 		import e._
 
-		probs.map(RangeCheck.probability(_))
+		probs.foreach{p => RangeCheck.probability(p)}
 		
 		val probabilities = e.probabilityTable
 		
