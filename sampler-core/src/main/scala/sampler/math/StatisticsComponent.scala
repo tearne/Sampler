@@ -39,16 +39,17 @@ trait Statistics{
 		value
 	}
 	
-	//TODO take seq of probability and give seq of results (like R does)
-	/** Returns quantile values from an Empirical given a specified probability
+	/** Takes a sequence of probabilities and returns the associated quantile values from an Empirical
 	 *  
 	 *  @param e
-	 *  @param prob The required quantile value
-	 *  @return The value at the requested quantile
+	 *  @param prob The required quantile values
+	 *  @return A sequence of the quantile values
 	 */
-	def quantile[A](e: Empirical[A], prob: Double)(implicit f: Fractional[A]): A = {
+	def quantile[A](e: Empirical[A], probs: Seq[Double])(implicit f: Fractional[A]): Seq[A] = {
 		import e._
 
+		probs.map(RangeCheck.probability(_))
+		
 		val probabilities = e.probabilityTable
 		
 		val ordered = probabilities.keys.toIndexedSeq.sorted
@@ -57,11 +58,11 @@ trait Statistics{
 
 		val cumulativeProbability = ordered.map(value => probabilities(value)).scanLeft(0.0)(_ + _).tail
 		
-		// TODO, make comment a bit clearer? (R type 1)
-		// Added tolerance in condition to account for rounding error and ensure consistency with R Type 1
-		val index = cumulativeProbability.zipWithIndex.find(_._1 >= (prob - 1e-6)).get._2		
+		// Tolerance required to prevent incorrect results due to rounding errors
+		// Resulting quantiles are consistent with R type 1
+		val index = probs.map(prob => cumulativeProbability.zipWithIndex.find(_._1 >= (prob - 1e-6)).get._2)	
 		
-		ordered(index)
+		index.map(ordered(_))
 	}
 	
 	/** Returns the mean value of an Empirical

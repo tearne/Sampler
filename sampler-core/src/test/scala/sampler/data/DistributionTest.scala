@@ -90,7 +90,20 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
   }
   
   @Test def flatMap {
-    // TODO
+    def g(i: Int) = {
+      val l = List(i * 10)
+
+      new Distribution[Int] {
+        val it = l.iterator
+        def sample(): Int = it.next()
+      }
+    }
+    
+    val flatMapped = instance.flatMap(x => g(x))
+    
+    val sampleList = append(Seq(), flatMapped, 10)
+    
+    assert(sampleList === List(0,10,20,30,40,50,60,70,80,90))
   }
   
   @Test def combinedTwoDistributionsWithProduct {
