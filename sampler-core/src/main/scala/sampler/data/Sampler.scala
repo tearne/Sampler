@@ -42,5 +42,3 @@ class ParallelSampler(chunkSize: Int) extends Sampler{
 		takeMore(kickstart)
 	}
 }
-
-//TODO cluster sampler?

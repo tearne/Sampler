@@ -8,12 +8,25 @@ import scala.Array.canBuildFrom
 import scala.Array.fallbackCanBuildFrom
 import scala.io.Source
 
+/** Object for handling .csv files
+ *  
+ *  Can be used to read data from, write data to or perform operations on .csv files. 
+ */
 object CSV {
+  
+  /** Reads in the first line of a .csv file and returns a map of the header to its column index
+   * 
+   * @param filePath The path to the .csv file of interest
+   * @return Map from a String (the header) to an Integer (the column index of that header)
+   */
 	def header(filePath: Path): Map[String, Int] = {
 		val strings = Source.fromFile(filePath.toFile).getLines.next.split(',').map(_.trim)
 		strings.zipWithIndex.map{case (name, idx) => name -> idx}.toMap
 	}
 	
+	/** Read in the first line of a .csv file and checks it matches the headers of interest
+	 * 
+	 */
 	def assertHeader(filePath: Path, expected:String*) {
 		val strings = Source.fromFile(filePath.toFile).getLines.next.split(',').map(_.trim).toSeq
 		assert(strings == expected, {
@@ -31,7 +44,6 @@ s"""Headers in ${filePath.toAbsolutePath()} don't match.
 		writer.close()
 	}
 	
-	//TODO option to check that the file (including any existing data?) isn't ragged?
 	def writeLines(filePath: Path, lines: Traversable[Traversable[Any]], openOptions: OpenOption*) {
 		val writer = getWriter(filePath, openOptions: _*)
 		lines.foreach{line => 
@@ -47,8 +59,11 @@ s"""Headers in ${filePath.toAbsolutePath()} don't match.
 		strings
 	}
 	
-	def transpose(inPath: Path, outFile: Path, outputOpenOptions: OpenOption*) {
-		val matrix = Source.fromFile(inPath.toFile).getLines.map(line => line.split(',').map(_.trim).toList).toList
+	def transpose(inPath: Path, outFile: Path, removeHeader: Boolean, outputOpenOptions: OpenOption*) {
+		val matrix = removeHeader match {
+		  case true => Source.fromFile(inPath.toFile).getLines.drop(1).map(line => line.split(',').map(_.trim).toList).toList
+		  case false => Source.fromFile(inPath.toFile).getLines.map(line => line.split(',').map(_.trim).toList).toList
+		}
 		writeLines(outFile, matrix.transpose, outputOpenOptions: _*)
 	}
 	

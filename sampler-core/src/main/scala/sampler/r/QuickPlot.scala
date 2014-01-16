@@ -6,6 +6,8 @@ import scala.language.implicitConversions
 
 import sampler.io.CSV
 
+// TODO change signature to have only one filePath argument
+
 object QuickPlot {
   private def buildScript(fileName: String, lines: String*) = {
     val builder = new StringBuilder

@@ -34,12 +34,6 @@ class AliasTableTest extends AssertionsForJUnit with Matchers with MockitoSugar 
   }
   
   @Test def returnsCorrectIndexWhenSamplingFromMockedObject {
-//    TODO this code generates a class cast exception
-//    val r = mock[sampler.math.Random]
-//    import org.mockito.Mockito.when
-//    when(r.nextInt).thenReturn(0,1,2,3)
-
-    //TODO this is a bit excessive, but can't get the mocking to work
     import scala.collection.mutable.Queue
     val r = new Random{
       val ints = Queue(0,1,2,3)

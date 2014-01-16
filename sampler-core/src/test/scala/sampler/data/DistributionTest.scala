@@ -7,6 +7,8 @@ import sampler.math.Random
 import sampler.math.Partition
 import org.scalatest.Matchers
 
+// TODO shorten and tidy
+
 class DistributionTest extends AssertionsForJUnit with Matchers {
 
   var instance: Distribution[Int] = _
@@ -17,17 +19,24 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
   @Before def initialise {
     random = Random
     
-    instance = new Distribution[Int] {
-	  val it = List(0,1,2,3,4,5,6,7,8,9).iterator
-			
-	  def sample(): Int = it.next()
-	}
-    
-    instance2 = new Distribution[Int] {
+    instance = {
       val it = List(0,1,2,3,4,5,6,7,8,9).iterator
-      
-      def sample(): Int = it.next()
+      Distribution(it.next)
     }
+      
+//      new Distribution[Int] {
+//	  val it = List(0,1,2,3,4,5,6,7,8,9).iterator
+//			
+//	  def sample(): Int = it.next()
+//	}
+    
+    instance2 = {
+      val it = List(0,1,2,3,4,5,6,7,8,9).iterator
+      Distribution(it.next)
+    }
+      
+//      def sample(): Int = it.next()
+//    }
     
     alwaysOne = new Distribution[Int] {
       def sample = 1
@@ -90,16 +99,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
   }
   
   @Test def flatMap {
-    def g(i: Int) = {
-      val l = List(i * 10)
-
-      new Distribution[Int] {
-        val it = l.iterator
-        def sample(): Int = it.next()
-      }
-    }
-    
-    val flatMapped = instance.flatMap(x => g(x))
+    val flatMapped = instance.flatMap(x => Distribution.continually(x * 10))
     
     val sampleList = append(Seq(), flatMapped, 10)
     
