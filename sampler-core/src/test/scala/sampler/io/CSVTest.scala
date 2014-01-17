@@ -200,8 +200,6 @@ class CSVTest extends AssertionsForJUnit with Matchers {
   }
   
   @Test def exceptionIfToStringOnObjectResultsInStringContainingComma {
-//  	fail("todo")	// TODO could be problematic - 
-  	
   	val p1 = Partition(IndexedSeq(0.1, 0.9))		// Partitions should print with a comma
   	val p2 = Partition(IndexedSeq(0.5, 0.5))
   	

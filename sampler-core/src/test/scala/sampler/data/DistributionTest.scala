@@ -7,39 +7,22 @@ import sampler.math.Random
 import sampler.math.Partition
 import org.scalatest.Matchers
 
-// TODO shorten and tidy
-
 class DistributionTest extends AssertionsForJUnit with Matchers {
 
   var instance: Distribution[Int] = _
   var instance2: Distribution[Int] = _
-  var alwaysOne: Distribution[Int] = _
-  implicit var random: Random = _
+  val alwaysOne: Distribution[Int] = Distribution.continually(1)
+  implicit val random: Random = Random
   
   @Before def initialise {
-    random = Random
-    
     instance = {
       val it = List(0,1,2,3,4,5,6,7,8,9).iterator
       Distribution(it.next)
     }
-      
-//      new Distribution[Int] {
-//	  val it = List(0,1,2,3,4,5,6,7,8,9).iterator
-//			
-//	  def sample(): Int = it.next()
-//	}
     
     instance2 = {
       val it = List(0,1,2,3,4,5,6,7,8,9).iterator
       Distribution(it.next)
-    }
-      
-//      def sample(): Int = it.next()
-//    }
-    
-    alwaysOne = new Distribution[Int] {
-      def sample = 1
     }
   }
   
