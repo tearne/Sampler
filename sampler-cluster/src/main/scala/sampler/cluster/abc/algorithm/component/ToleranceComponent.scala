@@ -30,7 +30,7 @@ trait ToleranceComponent {
 	
 	trait ToleranceCalculator {
 		def apply[P](weighedParameters: Seq[Weighted[P]], currentTolerance: Double): Double = {
-			val medianMeanScore = statistics.quantile(weighedParameters.map{_.meanRepScore}.toEmpiricalSeq, 0.5)
+			val medianMeanScore = statistics.quantile(weighedParameters.map{_.meanRepScore}.toEmpiricalSeq, Seq(0.5)).head
 			if(medianMeanScore == 0) {
 				log.warning("Median of mean scores from last generation evaluated to 0, using old tolerance again.")
 				currentTolerance
