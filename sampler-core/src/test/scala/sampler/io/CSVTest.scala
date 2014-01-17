@@ -28,6 +28,7 @@ import java.nio.file.Files
 import scala.io.Source
 import java.nio.file.StandardOpenOption
 import org.scalatest.Matchers
+import sampler.math.Partition
 
 class CSVTest extends AssertionsForJUnit with Matchers {
   val dir = Paths.get("src", "test", "resources", "data")
@@ -124,10 +125,12 @@ class CSVTest extends AssertionsForJUnit with Matchers {
   		Seq(2 ,"Bee" ,true)
   	)
   	
-  	val testData2 = Seq(3,"Sea",false)
-
+  	val testData2 = Seq(
+  	    Seq(3,"Sea",false)
+  		)
+  	    
   	CSV.writeLines(tempFile, testData1)
-  	CSV.writeLine(tempFile, testData2, StandardOpenOption.APPEND)
+  	CSV.writeLines(tempFile, testData2, StandardOpenOption.APPEND)
 
   	val lines = Source.fromFile(tempFile.toFile()).getLines.toIndexedSeq
   	
@@ -197,6 +200,18 @@ class CSVTest extends AssertionsForJUnit with Matchers {
   }
   
   @Test def exceptionIfToStringOnObjectResultsInStringContainingComma {
-  	fail("todo")	// TODO could be problematic - 
+//  	fail("todo")	// TODO could be problematic - 
+  	
+  	val p1 = Partition(IndexedSeq(0.1, 0.9))		// Partitions should print with a comma
+  	val p2 = Partition(IndexedSeq(0.5, 0.5))
+  	
+  	val data = Seq(
+  			Seq("Head1", "Head2"),
+  			Seq(p1, p2)
+  	)
+  	
+  	intercept[AssertionError] {
+  	  CSV.writeLines(tempFile, data)
+  	}
   }
 }
