@@ -12,7 +12,6 @@ import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClient
 import java.util.concurrent.TimeUnit
 import java.nio.file.Path
 import scala.sys.process._
-import sampler.cluster.run.ClusterNode
 import sampler.cluster.deploy.SSH
 import java.nio.file.StandardOpenOption
 import java.nio.charset.Charset
@@ -88,7 +87,7 @@ import com.amazonaws.services.ec2.model.Instance
  */
 
 trait CommonDeployment extends Logging{
-	val application: String = "sampler.example.abc.FlockMortality"
+	val application: String = "sampler.example.abc.NetworkABC"
 	
 	def runRemoteScript(node: Instance, fileName: String){
 		val cmd = ssh.backgroundCommand(awsProps.instanceUserName, node.getPublicDnsName(), s"~/deploy/$fileName")
@@ -115,7 +114,7 @@ trait CommonDeployment extends Logging{
 		
 		val runCommand = 
 s"""
-java -Xmx600m \\
+java -Xmx3g \\
 -Dakka.remote.netty.tcp.hostname=$privateIP \\
 -Dakka.cluster.seed-nodes.0=akka.tcp://ABC@$masterIP:2552 \\
 -Dconfig.file=deploy/application.conf \\

@@ -25,7 +25,6 @@ import sampler.Implicits.SamplableMap
 import sampler.cluster.abc.Scored
 import sampler.cluster.abc.Weighted
 import sampler.cluster.abc.actor.Tagged
-import sampler.cluster.abc.actor.TaggedScoreSeq
 import sampler.cluster.abc.config.ABCConfig
 import sampler.cluster.abc.algorithm.component.ToleranceComponent
 import sampler.cluster.abc.algorithm.component.WeigherComponent
@@ -36,22 +35,22 @@ import sampler.cluster.abc.actor.Report
 import sampler.data.Distribution
 import sampler.cluster.abc.actor.root.Getters
 import sampler.cluster.abc.actor.root.GettersComponent
+import sampler.cluster.abc.actor.TaggedScoredSeq
+import sampler.cluster.abc.actor.TaggedWeighedSeq
 
 trait AlgorithmComponent {
 	val algorithm: Algorithm
 }
 
 trait Algorithm {
-	def numberAccumulated(gen: Generation[_]): Int
-	def buildReport[P](gen: Generation[P], config: ABCConfig, finalReport: Boolean): Report[P]
+	def addWeighted[P](incomingWeighted: TaggedWeighedSeq[P], gen: Generation[P], config: ABCConfig): Generation[P]
+	def filterAndQueueForWeighing[P](taggedAndScored: TaggedScoredSeq[P], gen: Generation[P]): Generation[P]
 	def flushGeneration[P](gen: Generation[P], numParticles: Int): Generation[P]
-	def buildMixPayload[P](gen: Generation[P], abcParameters: ABCConfig): 
-		Option[TaggedScoreSeq[P]]
-	def add[P](
-			gen: Generation[P],
-			taggedAndScoredParamSets: Seq[Tagged[Scored[P]]],
-			abcParameters: ABCConfig
-		): Generation[P]
+	def isEnoughParticles(gen: Generation[_], config: ABCConfig): Boolean
+	def emptyWeighingBuffer[P](gen: Generation[P]): Generation[P]
+	
+	def buildMixPayload[P](gen: Generation[P], abcParameters: ABCConfig): Option[TaggedScoredSeq[P]]
+	def buildReport[P](gen: Generation[P], config: ABCConfig, finalReport: Boolean): Report[P]
 }
 
 
@@ -61,7 +60,6 @@ trait Algorithm {
  */
 trait AlgorithmComponentImpl extends AlgorithmComponent{
 	this: ToleranceComponent 
-		with WeigherComponent
 		with StatisticsComponent
 		with Actor
 		with ActorLogging
@@ -72,9 +70,93 @@ trait AlgorithmComponentImpl extends AlgorithmComponent{
 	trait AlgorithmImpl extends Algorithm {
 		implicit val r = Random
 		
-		def weightsTable[G <: Generation[_]](gen: G) = gen.prevWeightsTable
-		def numberAccumulated(gen: Generation[_]) = gen.particleInBox.size
+		def addWeighted[P](
+				incoming: TaggedWeighedSeq[P],
+				gen: Generation[P],
+				config: ABCConfig
+		): Generation[P] = {
+			import gen._
+			
+			val newWeighted = weighted ++ incoming.seq
+			
+			gen.copy(
+					weighted = newWeighted
+			)
+		}
 		
+		def filterAndQueueForWeighing[P](
+			taggedAndScoredParamSets: TaggedScoredSeq[P],
+			gen: Generation[P]
+		): Generation[P] = {
+			val observedIds = gen.idsObserved
+			val filtered = taggedAndScoredParamSets.seq.filter(tagged => !observedIds.contains(tagged.id))
+			gen.copy(
+					dueWeighing = gen.dueWeighing ++ filtered,
+					idsObserved = observedIds ++ filtered.map(_.id)
+			)
+		}
+		
+		def flushGeneration[P](gen: Generation[P], numParticles: Int): Generation[P] = {
+			import gen._
+			assert(numParticles <= weighted.size)
+			val seqWeighted = weighted.toSeq.map(_.value) //Strip out tags
+			val newTolerance = toleranceCalculator(seqWeighted, currentTolerance)
+			
+			def consolidateToWeightsTable[P](model: Model[P], population: Seq[Weighted[P]]): Map[P, Double] = {
+				population
+				.groupBy(_.params)
+				.map{case (k,v) => (k, v.map(_.weight).sum)}
+			}
+			
+			val newGeneration = gen.copy(
+				weighted = Seq.empty[Tagged[Weighted[P]]],
+				currentTolerance = newTolerance,
+				currentIteration = currentIteration + 1,
+				prevWeightsTable = consolidateToWeightsTable(model, seqWeighted)
+			)
+			
+			newGeneration
+		}
+		
+		def isEnoughParticles(gen: Generation[_], config: ABCConfig): Boolean =
+			gen.weighted.size >= config.job.numParticles
+		
+		def emptyWeighingBuffer[P](gen: Generation[P]): Generation[P] = 
+			gen.copy(dueWeighing = Seq.empty[Tagged[Scored[P]]])
+			
+		def weightsTable[G <: Generation[_]](gen: G) = gen.prevWeightsTable
+//		def numberAccumulated(gen: Generation[_]) = gen.weighted.size
+		
+		//TODO can we simplify tagged and scored parm sets?
+		def buildMixPayload[P](gen: Generation[P], abcParameters: ABCConfig): Option[TaggedScoredSeq[P]] = {
+			import gen._
+			
+			val mixingSize = abcParameters.cluster.mixPayloadSize
+			
+			if(weighted.size > mixingSize) {
+				val oneOfEachParticle = 
+					weighted.toSeq
+						.map{case Tagged(weighted, uid) =>
+							Tagged(weighted.scored, uid) -> 1
+						}
+						.toMap
+					
+				val res = oneOfEachParticle.draw(mixingSize)
+					._2		//TODO, this is all a bit nasty
+					.keys
+					.toSeq
+				
+				Some(TaggedScoredSeq(res))
+			} else if(weighted.size > 0){
+				val res = weighted
+					.toSeq
+					.map{case Tagged(weighted, uid) =>
+						Tagged(weighted.scored, uid)
+					}
+				Some(TaggedScoredSeq(res))
+			} else None
+		}
+			
 		def buildReport[P](gen: Generation[P], config: ABCConfig, finalReport: Boolean): Report[P] = {
 			val samples: Seq[P] = Distribution
 				.fromProbabilityTable(gen.prevWeightsTable)
@@ -86,81 +168,6 @@ trait AlgorithmComponentImpl extends AlgorithmComponent{
 					gen.currentTolerance,
 					samples,
 					finalReport
-			)
-		}
-		
-		def flushGeneration[P](gen: Generation[P], numParticles: Int): Generation[P] = {
-			import gen._
-			assert(numParticles <= particleInBox.size)
-			val seqWeighted = particleInBox.toSeq.map(_.value)
-			val newTolerance = toleranceCalculator(seqWeighted, currentTolerance)
-			
-			val newGeneration = gen.copy(
-				particleInBox = Set.empty[Tagged[Weighted[P]]],
-				currentTolerance = newTolerance,
-				currentIteration = currentIteration + 1,
-				prevWeightsTable = weigher.consolidateToWeightsTable(model, seqWeighted)
-			)
-			
-			newGeneration
-		}
-		
-		//TODO can we simplify tagged and scored parm sets?
-		def buildMixPayload[P](gen: Generation[P], abcParameters: ABCConfig): Option[TaggedScoreSeq[P]] = {
-			import gen._
-			if(particleInBox.size > 0)
-				Some(TaggedScoreSeq(particleInBox
-					.toSeq
-					.map{case Tagged(weighted, uid) =>
-						Tagged(weighted.scored, uid) -> 1
-					}
-					.toMap
-					.draw(math.min(particleInBox.size, abcParameters.cluster.mixPayloadSize))
-					._2		//TODO, this is all a bit nasty
-					.keys
-					.toSeq
-				))
-			else None
-		}
-		
-		def add[P](
-				gen: Generation[P],
-				taggedAndScoredParamSets: Seq[Tagged[Scored[P]]],
-				abcParameters: ABCConfig
-		): Generation[P] = {
-			import gen._
-			
-			type T = Tagged[Weighted[P]]
-			
-			val weighedAndTagged: Seq[T] = {
-				val t:Seq[Option[T]] = taggedAndScoredParamSets
-					.filter(tagged => !idsObserved.contains(tagged.id))
-					.map{case Tagged(scored, id) =>
-						weigher.getWeightOption(
-								model, 
-								scored, 
-								prevWeightsTable, 
-								currentTolerance
-						).map{weighted => Tagged(weighted, id)}
-					}
-				
-				t.flatten
-			}
-			
-			val newInBox = particleInBox ++ weighedAndTagged
-			
-			log.info(s"+ ${taggedAndScoredParamSets.size} => ${weighedAndTagged.size} = ${newInBox.size}/${abcParameters.job.numParticles}")
-			
-			val newIdsObserved = {
-				val union = idsObserved ++ weighedAndTagged.map(_.id)
-				val memorySize = abcParameters.cluster.particleMemoryGenerations * abcParameters.job.numParticles
-				if(union.size > 1.5 * memorySize) union.drop(union.size - memorySize)
-				else union
-			}
-			
-			gen.copy(
-					particleInBox = newInBox,
-					idsObserved = newIdsObserved
 			)
 		}
 	}

@@ -24,6 +24,7 @@ import sampler.cluster.abc.Model
 import sampler.cluster.abc.Scored
 import akka.actor.ActorRef
 import sampler.cluster.abc.algorithm.Generation
+import sampler.cluster.abc.Weighted
 
 //TODO comment who sends what to whom
 
@@ -31,9 +32,14 @@ case class Start[P](generationZero: Generation[P])
 case class Report[P](generationId: Int, tolerance: Double, posterior: Seq[P], isFinalReport: Boolean)
 case class Finished()
 
-case class Job[P](population: Map[P, Double], config: ABCConfig)
+sealed trait Job[P]
+case class GenerateJob[P](population: Map[P, Double], config: ABCConfig) extends Job[P]
+case class WeighJob[P](scored: Seq[Tagged[Scored[P]]], previousPopulation: Map[P, Double], tolerance: Double) extends Job[P]
 
-case class TaggedScoreSeq[P](seq: Seq[Tagged[Scored[P]]])
+sealed trait Result[P]
+case class TaggedScoredSeq[P](seq: Seq[Tagged[Scored[P]]]) extends Result[P]
+case class TaggedWeighedSeq[P](seq: Seq[Tagged[Weighted[P]]]) extends Result[P]
+case object Failed
 
 case class Abort()
 case class Aborted()

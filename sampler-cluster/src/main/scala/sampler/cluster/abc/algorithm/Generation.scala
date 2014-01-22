@@ -23,15 +23,20 @@ import sampler.cluster.abc.Weighted
 import sampler.cluster.abc.actor.Tagged
 import sampler.cluster.abc.Model
 import sampler.cluster.abc.config.ABCConfig
+import sampler.cluster.abc.Weighted
+import sampler.cluster.abc.Scored
 
 case class Generation[P](
 	model: Model[P],
-	particleInBox: Set[Tagged[Weighted[P]]],
+	dueWeighing: Seq[Tagged[Scored[P]]],
+	weighted: Seq[Tagged[Weighted[P]]],
 	idsObserved: SortedSet[Long],
 	currentTolerance: Double,
 	currentIteration: Int,
 	prevWeightsTable: Map[P, Double]
-)
+){
+	def emptyWeighingBuffer = copy(dueWeighing = Seq.empty[Tagged[Scored[P]]])
+}
 
 object Generation {
 	def init[P](model: Model[P], abcParameters: ABCConfig): Generation[P] = {
@@ -44,7 +49,8 @@ object Generation {
 			
 		Generation(
 			model,
-			Set.empty[Tagged[Weighted[P]]],
+			Seq.empty[Tagged[Scored[P]]],
+			Seq.empty[Tagged[Weighted[P]]],
 			SortedSet.empty[Long],
 			Double.MaxValue,
 			0,

@@ -3,10 +3,11 @@ package sampler.cluster.abc.algorithm
 import sampler.cluster.abc.Model
 import sampler.cluster.abc.Scored
 import sampler.cluster.abc.Weighted
+import sampler.cluster.abc.actor.TaggedScoredSeq
 
 class Weigher[P](model: Model[P]) {
 	def weighAndFilter(
-			scoredSeq: Seq[Scored[P]],
+			scoredSeq: TaggedScoredSeq[P],
 			previousParamsWithWeights: Map[P, Double],
 			tolerance: Double
 	): Seq[Weighted[P]] = {
@@ -20,11 +21,12 @@ class Weigher[P](model: Model[P]) {
 			else None
 		}
 		
-		val res = scoredSeq.map{scored => 
-			val weightOption = doOne(scored)
-			weightOption.map(wt => Weighted(scored, wt))
-		}.flatten
-		
-		res
+//		val res = scoredSeq.seq.map{scored => 
+//			val weightOption = doOne(scored)
+//			weightOption.map(wt => Weighted(scored, wt))
+//		}.flatten
+//		
+//		res
+		null
 	}
 }

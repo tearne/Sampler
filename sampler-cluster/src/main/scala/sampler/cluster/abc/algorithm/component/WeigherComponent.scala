@@ -29,7 +29,6 @@ trait WeigherComponent {
 	val weigher: Weigher
 	
 	trait Weigher extends Logging{
-		//TODO can remove R
 		def getWeightOption[P](
 				model: Model[P],
 				scoredParticle: Scored[P],

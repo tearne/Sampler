@@ -29,99 +29,146 @@ import akka.actor.actorRef2Scala
 import sampler.cluster.abc.Model
 import sampler.cluster.abc.actor.Abort
 import sampler.cluster.abc.actor.Aborted
-import sampler.cluster.abc.actor.Job
 import sampler.cluster.abc.actor.Tagged
-import sampler.cluster.abc.actor.TaggedScoreSeq
+import sampler.cluster.abc.actor.TaggedScoredSeq
 import sampler.math.Random
 import sampler.cluster.abc.Scored
 import scala.concurrent.Future
+import sampler.cluster.abc.actor.Job
+import sampler.cluster.abc.config.ABCConfig
+import akka.actor.FSM
+import akka.pattern.pipe
+import sampler.cluster.abc.Weighted
+import sampler.cluster.abc.actor.GenerateJob
+import sampler.cluster.abc.actor.WeighJob
+import sampler.cluster.abc.actor.Failed
+import sampler.cluster.abc.actor.TaggedWeighedSeq
+import sampler.cluster.abc.actor.Result
 
 class WorkerActorImpl[P](val model: Model[P]) extends WorkerActor[P] {
 	implicit val random = Random
 	val modelRunner = new ModelRunner{}
+	val weigher = new Weigher{}
 }
+
+sealed trait State
+case object Idle extends State
+case object Working extends State
+case object AwaitingAbortConfirmation extends State
+
+sealed trait Data
+case object Uninitialised extends Data
+case class Client(actorRef: ActorRef) extends Data
+case class NextJob[P](job: Job[P], client: Client) extends Data
 
 abstract class WorkerActor[P]
 		extends Actor
+		with FSM[State, Data]
 		with ActorLogging
-		with ModelRunnerComponent[P] {
-	
-	import context.become
-	type T = Scored[P]
-		
-	def receive = idle
-	val executionContext = context.system.dispatchers.lookup("sampler.work-dispatcher")
-	
-	case class Contract(job: Job[P], client: ActorRef)
+		with ModelRunnerComponent[P] 
+		with WeigherComponent[P] {
 
-	def working(contract: Contract): Receive = {
-		case newJob: Job[P] =>
-			log.debug("New job recieved from {}", sender)
-			modelRunner.abort
-			val newClient = sender
-			become(waitingForAbortComfirmation(Some(Contract(newJob,newClient))))
-			log.debug("Abort signal sent, waiting for confirmation")
-		case Abort =>
-			modelRunner.abort
-			val newClient = sender
-			become(waitingForAbortComfirmation(None))
-		case Success(seq: Seq[T]) =>
-			contract.client ! TaggedScoreSeq(seq.map{Tagged(_)})
-			startWork(contract.job)
-		case Failure(exception) => 
-			log.error("Model threw exception, but will be run again: {}", exception)
-			startWork(contract.job)
-		case Aborted => 
-			become(idle)
-		case msg => log.error("Unexpected message from {} when 'working': {}",sender, msg.getClass())
+	implicit val executionContext = context.system.dispatchers.lookup("sampler.work-dispatcher")
+	
+	startWith(Idle, Uninitialised)
+	
+	onTransition{
+		case AwaitingAbortConfirmation -> _ => resetForNewWork
 	}
 	
-	def waitingForAbortComfirmation(nextContract: Option[Contract]): Receive = {
-		case newJob: Job[P] =>
-			if(nextContract.isDefined) 
-				log.error("Override previously queued work request (still waiting for last job to abort)")
-			val newClient = sender
-			become(waitingForAbortComfirmation(Some(Contract(newJob,newClient))))
-		case out: Try[_] => 
-			log.warning("Recieved result while waiting for abort comfirmation.  Assuming finished now", out)
-			self ! Aborted
-		case Aborted => 
-			modelRunner.reset
-			nextContract match{
-				case Some(contract) =>
-					become(working(contract))
-					startWork(contract.job)
-				case None =>
-					become(idle)
-			}
-		case msg => log.error("Unexpected message from {} when 'waiting for abort confirmation': {}",sender, msg.getClass())
+	when(Idle){
+		case Event(j: Job[P], Uninitialised) => 
+			startWork(j)
+			goto(Working) using Client(sender)
+		case Event(Abort, Uninitialised) =>
+			stay
 	}
 	
-	def idle(): Receive = {
-		case job: Job[P] =>
-			startWork(job)
-			val size = job.population.size
-			val client = sender
-			become(working(Contract(job, client)))
-		case msg: Aborted => 
-			throw new UnexpectedException("Not expected in idle state: "+msg)
-		case Abort => //ignore
-		case msg => log.error("Unexpected message when 'idle': {}",msg.getClass())
+	when(Working){
+		case Event(Abort, _) =>
+			abortWork
+			goto(AwaitingAbortConfirmation) using Uninitialised
+		case Event(j: Job[P], _) => 
+			abortWork
+			goto(AwaitingAbortConfirmation) using NextJob(j, Client(sender))
+		case Event(Success(result), Client(ref)) =>
+			ref ! result
+			goto(Idle) using Uninitialised
+		case Event(Failure(result), Client(ref)) =>
+			log.error("Failure encountered, will be reported to root actor but job won't be repeated")
+			ref ! Failed
+			goto(Idle) using Uninitialised
+	}
+	
+	when(AwaitingAbortConfirmation){
+		case Event(j: Job[P], _) => 
+			stay using NextJob(j, Client(sender))
+		case Event(Abort, _) => 
+			abortWork
+			stay using Uninitialised
+		
+		case Event(Aborted, nj: NextJob[P]) =>
+			startWork(nj.job)
+			goto(Working) using nj.client
+		case Event(Aborted, Uninitialised) =>	
+			goto(Idle) using Uninitialised
+		
+		case Event(t: Try[_], _) => 
+			self ! Aborted	//Don't care if success/fail since job was aborted
+			stay
+	}
+	
+	whenUnhandled{
+		case Event(msg, _) =>
+			log.error(s"Unhandled message ${msg.getClass} in state $stateName")
+			stay
+	}
+	
+	
+	def abortWork {
+		weigher.abort
+		modelRunner.abort
+	}
+	
+	def resetForNewWork {
+		weigher.reset
+		modelRunner.reset
 	}
 	
 	def startWork(job: Job[P]){
-		val me = self
+		job match {
+			case g: GenerateJob[P] => startGenerating(g)
+			case w: WeighJob[P] => startWeighing(w)
+		}
+	}
+	
+	def startGenerating(gJob: GenerateJob[P]) {
 		Future{
-			log.debug("Started work future")
-			val result: Try[Seq[Scored[P]]] = modelRunner.run(job) 
+			log.debug("Generating")
+			val result: Try[TaggedScoredSeq[P]] = modelRunner.run(gJob) 
 			result match{
 				case Failure(e: DetectedAbortionException) =>
-					self ! Aborted
+					Aborted
 				case Failure(e: CompositeThrowable) if e.throwables.exists(_.isInstanceOf[DetectedAbortionException]) =>
-					self ! Aborted
-				case anythingElse =>
-					me ! anythingElse
+					Aborted
+				case any =>
+					any // Could be any success or failure other than the above
 			}
-		}(executionContext)
+		}.pipeTo(self)
+	}
+	
+	def startWeighing(wJob: WeighJob[P]) {
+		Future{
+			log.debug("Weighing")
+			val result: Try[TaggedWeighedSeq[P]] = weigher.run(wJob) 
+			result match{
+				case Failure(e: DetectedAbortionException) =>
+					Aborted
+				case Failure(e: CompositeThrowable) if e.throwables.exists(_.isInstanceOf[DetectedAbortionException]) =>
+					Aborted
+				case any =>
+					any // Could be any success or failure other than the above
+			}
+		}.pipeTo(self)
 	}
 }

@@ -132,7 +132,7 @@ object NetworkModel extends Model[SpreadRates]{
 }
 
 object Test extends App{
-	val p = SpreadRates(0.,0.01)
+	val p = SpreadRates(0.1,0.01)
 	(1 to 1000).foreach{i => 
 		val inf = NetworkModel.infecteds(p).sample
 		val dist = NetworkModel.sizeDiffMetric(inf)

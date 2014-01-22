@@ -27,6 +27,9 @@ import sampler.io.Logging
 import sampler.math.Random
 import sampler.cluster.abc.Model
 import sampler.cluster.abc.Scored
+import sampler.cluster.abc.actor.Tagged
+import sampler.cluster.abc.actor.GenerateJob
+import sampler.cluster.abc.actor.TaggedScoredSeq
 
 trait ModelRunnerComponent[P] {
 	val model: Model[P]
@@ -39,10 +42,10 @@ trait ModelRunnerComponent[P] {
 		val aborted: AtomicBoolean = new AtomicBoolean(false)
 		
 		def abort() { aborted.set(true) }
-		def isAborted = aborted.get
 		def reset() { aborted.set(false) }
+		private def isAborted = aborted.get
 		
-		def run(job: Job[P]): Try[Seq[Scored[P]]] = Try{
+		def run(job: GenerateJob[P]): Try[TaggedScoredSeq[P]] = Try{
 			val paramDist: Distribution[P] =  {
 				val weightsTable = job.population.asInstanceOf[Map[P, Double]]
 				Distribution.fromProbabilityTable(weightsTable)
@@ -72,7 +75,8 @@ trait ModelRunnerComponent[P] {
 				}
 			}
 			
-			(1 to job.config.algorithm.particleChunkSize).map(i => getScoredParameter())
+			val seq = (1 to job.config.algorithm.particleChunkSize).map(i => Tagged(getScoredParameter()))
+			TaggedScoredSeq(seq)
 		}
 	}
 }
