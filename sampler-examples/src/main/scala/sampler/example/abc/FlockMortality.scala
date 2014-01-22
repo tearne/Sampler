@@ -84,14 +84,14 @@ object FlockMortality extends App {
 	)
 	
 	//Get median fit data
-	val half = 0.5
-	val medBeta = quantile(posterior.map(_.beta).toEmpiricalSeq, half)
-	val medEta = quantile(posterior.map(_.eta).toEmpiricalSeq, half)
-	val medGamma = quantile(posterior.map(_.gamma).toEmpiricalSeq, half)
-	val medDelta = quantile(posterior.map(_.delta).toEmpiricalSeq, half)
-	val medSigma = quantile(posterior.map(_.sigma).toEmpiricalSeq, half)
-	val medSigma2 = quantile(posterior.map(_.sigma2).toEmpiricalSeq, half)
-	val medOffset = quantile(posterior.map(_.offset).map(_.toDouble).toEmpiricalTable, half).toInt
+	val half = Seq(0.5)
+	val medBeta = quantile(posterior.map(_.beta).toEmpiricalSeq, half).head
+	val medEta = quantile(posterior.map(_.eta).toEmpiricalSeq, half).head
+	val medGamma = quantile(posterior.map(_.gamma).toEmpiricalSeq, half).head
+	val medDelta = quantile(posterior.map(_.delta).toEmpiricalSeq, half).head
+	val medSigma = quantile(posterior.map(_.sigma).toEmpiricalSeq, half).head
+	val medSigma2 = quantile(posterior.map(_.sigma2).toEmpiricalSeq, half).head
+	val medOffset = quantile(posterior.map(_.offset).map(_.toDouble).toEmpiricalTable, half).head.toInt
 	
 	val medianParams = FlockMortalityParams(medBeta, medEta, medGamma, medDelta, medSigma, medSigma2, medOffset)
 	val fitted = modelDistribution(medianParams).sample

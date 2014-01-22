@@ -32,24 +32,29 @@ import org.scalatest.Matchers
 
 class QuickPlotTest extends AssertionsForJUnit with Matchers {
   
-  implicit var r: Random = _
-  var path: Path = _
+  implicit val r: Random = Random
   
-  // TODO consider mocking of script runner
+  val fileName: String = "plot"
   
-  // TODO should QuickPlot delete everything other than the pdf?
+  val parentPath: Path = Paths.get("src", "test", "resources", "data")
+  val pdfPath: Path = parentPath.resolve(fileName + ".pdf")
+  val scriptPath: Path = parentPath.resolve(fileName)
   
-  @Before def initialise {
-    r = Random
-    path = Paths.get("src", "test", "resources", "data")
-  }
+//  @Before def initialise {
+//    r = Random
+//    
+//    fileName = "plot"
+//    
+//    parentPath = Paths.get("src", "test", "resources", "data")
+//    pdfPath = parentPath.resolve(fileName + ".pdf")
+//    scriptPath = parentPath.resolve(fileName)
+//  }
 
   def linesTheSame(i: String, j: String) = assert(i === j)
-
   
   private def discreteScript(name: String): Array[String] = {
     val script =
-"""setwd("/home/user/workspace/Sampler/sampler-core/src/test/resources/data")
+"""setwd("/home/user/Sampler/sampler-core/src/test/resources/data")
 require(ggplot2)
 require(reshape)
 pdf("""" + name + """.pdf", width=8.27, height=5.83)
@@ -62,7 +67,7 @@ dev.off()"""
   
   private def densityScript(name: String): Array[String] = {
 	val script =
-"""setwd("/home/user/workspace/Sampler/sampler-core/src/test/resources/data")
+"""setwd("/home/user/Sampler/sampler-core/src/test/resources/data")
 require(ggplot2)
 require(reshape)
 pdf("""" + name + """.pdf", width=8.27, height=5.83)
@@ -74,13 +79,11 @@ dev.off()"""
   }
   
   @Test def writesSingleDiscreteWithName {
-	val fileName = "namedDisc"
-			  
 	val seq = IndexedSeq(1,2,2,3,3,3,4,4,5)
 			  
-	QuickPlot.writeDiscrete(path, fileName, seq.discrete("Integers"))
-	
-	val writtenLines = Source.fromFile(new File(path.resolve(fileName).toString)).mkString.split("\n")
+	QuickPlot.writeDiscrete(pdfPath, seq.discrete("Integers"))
+
+	val writtenLines = Source.fromFile(new File(scriptPath.toString)).mkString.split("\n")
     val expectedLines = discreteScript(fileName)
     
     deleteRfiles(fileName)
@@ -88,30 +91,13 @@ dev.off()"""
     (0 until expectedLines.length).foreach(i => linesTheSame(writtenLines(i), expectedLines(i)))
   }
   
-//  @Test def writesSingleDiscreteWithoutName {
-//	val fileName = "unnamedDisc"
-//			  
-//	val seq = IndexedSeq(1,2,2,3,3,3,4,4,5)
-//			  
-//	QuickPlot.writeDiscrete(path, fileName, seq)
-//	
-//	val writtenLines = Source.fromFile(new File(path.resolve(fileName).toString)).mkString.split("\n")
-//    val expectedLines = discreteScript(fileName)
-//    
-//    deleteRfiles(fileName)
-//
-//    (0 until expectedLines.length).foreach(i => linesTheSame(writtenLines(i), expectedLines(i)))
-//  }
-  
   @Test def writesMultipleDiscretes {
-	val fileName = "twoDisc"
-			  
 	val seq1 = IndexedSeq(1,2,2,3,3,3,4,4,5)
 	val seq2 = IndexedSeq(3,4,4,5,5,5,6,6,7)
 			  
-	QuickPlot.writeDiscrete(path, fileName, seq1.discrete("s1"), seq2.discrete("s2"))
+	QuickPlot.writeDiscrete(pdfPath, seq1.discrete("s1"), seq2.discrete("s2"))
 	
-	val writtenLines = Source.fromFile(new File(path.resolve(fileName).toString)).mkString.split("\n")
+	val writtenLines = Source.fromFile(new File(scriptPath.toString)).mkString.split("\n")
     val expectedLines = discreteScript(fileName)
     
     deleteRfiles(fileName)
@@ -120,13 +106,11 @@ dev.off()"""
   }
   
   @Test def writesSingleDistributionWithName {
-    val fileName = "namedDist"
-      
     val seq = IndexedSeq(0.1,0.2,0.2,0.3,0.3,0.3,0.4,0.4,0.5)
     
-    QuickPlot.writeDensity(path, fileName, seq.continuous("Doubles"))
+    QuickPlot.writeDensity(pdfPath, seq.continuous("Doubles"))
     
-    val writtenLines = Source.fromFile(new File(path.resolve(fileName).toString)).mkString.split("\n")
+    val writtenLines = Source.fromFile(new File(scriptPath.toString)).mkString.split("\n")
     val expectedLines = densityScript(fileName)
     
     deleteRfiles(fileName)
@@ -134,44 +118,25 @@ dev.off()"""
     (0 until expectedLines.length).foreach(i => linesTheSame(writtenLines(i), expectedLines(i)))
   }
   
-//  @Test def writesSingleDistributionWithoutName {
-//    val fileName = "unnamedDist"
-//      
-//    val seq = IndexedSeq(0.1,0.2,0.2,0.3,0.3,0.3,0.4,0.4,0.5)
-//    
-//    QuickPlot.writeDensity(path, fileName, seq)
-//    
-//    val writtenLines = Source.fromFile(new File(path.resolve(fileName).toString)).mkString.split("\n")
-//      
-//    val expectedLines = densityScript(fileName)
-//    
-//    deleteRfiles(fileName)
-//
-//    (0 until expectedLines.length).foreach(i => linesTheSame(writtenLines(i), expectedLines(i)))
-//  }
-  
-  
   @Test def writesMultipleDistributions {
-    val fileName = "TwoDists"
-    			
     val seq1 = IndexedSeq(0.1,0.2,0.2,0.3,0.3,0.3,0.4,0.4,0.5)
     val seq2 = IndexedSeq(0.3,0.4,0.4,0.5,0.5,0.5,0.6,0.6,0.7)
     	
-    QuickPlot.writeDensity(path, fileName, seq1.continuous("s1"), seq2.continuous("s2"))
+    QuickPlot.writeDensity(pdfPath, seq1.continuous("s1"), seq2.continuous("s2"))
     	
-    val writtenLines = Source.fromFile(new File(path.resolve(fileName).toString)).mkString.split("\n")
+    val writtenLines = Source.fromFile(new File(scriptPath.toString)).mkString.split("\n")
       
     val expectedLines = densityScript(fileName)
         
     deleteRfiles(fileName)
 
-     (0 until expectedLines.length).foreach(i => linesTheSame(writtenLines(i), expectedLines(i)))
+    (0 until expectedLines.length).foreach(i => linesTheSame(writtenLines(i), expectedLines(i)))
   }
   
   private def deleteRfiles(fileName: String) = {
-    Files.deleteIfExists(path.resolve(fileName))
-    Files.deleteIfExists(path.resolve(fileName + ".csv"))
-    Files.deleteIfExists(path.resolve(fileName + ".Rout"))
-    Files.deleteIfExists(path.resolve(fileName + ".pdf"))
+    Files.deleteIfExists(scriptPath)
+    Files.deleteIfExists(parentPath.resolve(fileName + ".csv"))
+    Files.deleteIfExists(parentPath.resolve(fileName + ".Rout"))
+    Files.deleteIfExists(pdfPath)
   }
 }

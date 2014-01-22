@@ -26,7 +26,6 @@ trait Random {
 	def nextDouble(min: Double, max: Double): Double = 
     	(max - min) * nextDouble() + min
   
-    //TODO test exception
     def nextBoolean(p: Double): Boolean = {
 		RangeCheck.probability(p)
 		math.random < p

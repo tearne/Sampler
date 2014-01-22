@@ -40,64 +40,73 @@ class StasisticComponentTest extends AssertionsForJUnit with StatisticsComponent
   @Test def quantileSmallExampleEmpiricalSeq {
     val empSeq = IndexedSeq[Double](1,2,3,4).toEmpiricalSeq
     
-    assert(quantile(empSeq, 0.25) === 1.0)
-    assert(quantile(empSeq, 0.5) === 2.0)
-    assert(quantile(empSeq, 0.75) === 3.0)
+    val quantiles = quantile(empSeq, Seq(0.25, 0.5, 0.75))
+    assert(quantiles === Seq(1.0,2.0,3.0))
   }
   
   @Test def quantileSmallExampleEmpiricalTable {
     val empTable = IndexedSeq[Double](1,2,2,3,4).toEmpiricalTable
     
-    assert(quantile(empTable, 0.25) === 2.0)
-    assert(quantile(empTable, 0.5) === 2.0)
-    assert(quantile(empTable, 0.75) === 3.0)
+    val quantiles = quantile(empTable, Seq(0.25, 0.5, 0.75))
+    assert(quantiles === Seq(2.0,2.0,3.0))
   }
   
   @Test def quantileEmpiricalSeq12Primes {
     val empSeq = IndexedSeq[Double](2,3,5,7,11,13,17,19,23,27,31,37).toEmpiricalSeq
-    
-    assert(quantile(empSeq, 0.25) === 5.0)
-    assert(quantile(empSeq, 0.5) === 13.0)
-    assert(quantile(empSeq, 0.75) === 23.0)
+
+    val quantiles = quantile(empSeq, Seq(0.25, 0.5, 0.75))
+    assert(quantiles === Seq(5.0,13.0,23.0))
   }
 
   @Test def quantileEmpiricalTable11Primes {
 	val empTable = IndexedSeq[Double](2,3,5,7,11,13,17,19,23,27,31).toEmpiricalSeq
-			  
-	assert(quantile(empTable, 0.25) === 5.0)
-	assert(quantile(empTable, 0.5) === 13.0)
-	assert(quantile(empTable, 0.75) === 23.0)
+	
+	val quantiles = quantile(empTable, Seq(0.25, 0.5, 0.75))
+    assert(quantiles === Seq(5.0,13.0,23.0))
   }
 
   @Test def quantileEmpiricalSeq10Primes {
 	val empSeq = IndexedSeq[Double](2,3,5,7,11,13,17,19,23,27).toEmpiricalSeq
-			  
-	assert(quantile(empSeq, 0.25) === 5.0)
-	assert(quantile(empSeq, 0.5) === 11.0)
-	assert(quantile(empSeq, 0.75) === 19.0)
+	
+	val quantiles = quantile(empSeq, Seq(0.25, 0.5, 0.75))
+    assert(quantiles === Seq(5.0,11.0,19.0))
   }
 
   @Test def quantileEmpiricalTable9Primes {
 	val empTable = IndexedSeq[Double](2,3,5,7,11,13,17,19,23).toEmpiricalSeq
-			  
-	assert(quantile(empTable, 0.25) === 5.0)
-	assert(quantile(empTable, 0.5) === 11.0)
-	assert(quantile(empTable, 0.75) === 17.0)
+	
+	val quantiles = quantile(empTable, Seq(0.25, 0.5, 0.75))
+    assert(quantiles === Seq(5.0,11.0,17.0))
   }
   
   @Test def quantileAcceptSeqOfLengthOne {
     val empSeq = IndexedSeq[Double](1.0).toEmpiricalSeq
     
-    assert(quantile(empSeq, 0.25) === 1.0)
-	assert(quantile(empSeq, 0.5) === 1.0)
-	assert(quantile(empSeq, 0.75) === 1.0)
+    val quantiles = quantile(empSeq, Seq(0.25, 0.5, 0.75))
+    assert(quantiles === Seq(1.0,1.0,1.0))
   }
   
   @Test def quantileAssertionErrorWhenSeqOfLengthZero {
     val empSeq = IndexedSeq[Double]().toEmpiricalSeq
     
     intercept[AssertionError] {
-      quantile(empSeq, 0.25)
+      quantile(empSeq, Seq(0.25))
+    }
+  }
+  
+  @Test def exceptionWhenNegativeProbabilitySuppplied {
+    val empSeq = IndexedSeq[Double](1,2,3,4).toEmpiricalSeq
+    
+    intercept[RangeException[Double]] {
+      quantile(empSeq, Seq(0.25, -0.5))
+    }
+  }  
+
+  @Test def exceptionWhenProbabilityGreaterThanOneSuppplied {
+    val empSeq = IndexedSeq[Double](1,2,3,4).toEmpiricalSeq
+    
+    intercept[RangeException[Double]] {
+      quantile(empSeq, Seq(0.25, 5.0))
     }
   }
   

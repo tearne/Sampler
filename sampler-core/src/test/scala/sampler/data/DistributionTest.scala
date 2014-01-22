@@ -11,26 +11,18 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
 
   var instance: Distribution[Int] = _
   var instance2: Distribution[Int] = _
-  var alwaysOne: Distribution[Int] = _
-  implicit var random: Random = _
+  val alwaysOne: Distribution[Int] = Distribution.continually(1)
+  implicit val random: Random = Random
   
   @Before def initialise {
-    random = Random
-    
-    instance = new Distribution[Int] {
-	  val it = List(0,1,2,3,4,5,6,7,8,9).iterator
-			
-	  def sample(): Int = it.next()
-	}
-    
-    instance2 = new Distribution[Int] {
+    instance = {
       val it = List(0,1,2,3,4,5,6,7,8,9).iterator
-      
-      def sample(): Int = it.next()
+      Distribution(it.next)
     }
     
-    alwaysOne = new Distribution[Int] {
-      def sample = 1
+    instance2 = {
+      val it = List(0,1,2,3,4,5,6,7,8,9).iterator
+      Distribution(it.next)
     }
   }
   
@@ -90,7 +82,11 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
   }
   
   @Test def flatMap {
-    // TODO
+    val flatMapped = instance.flatMap(x => Distribution.continually(x * 10))
+    
+    val sampleList = append(Seq(), flatMapped, 10)
+    
+    assert(sampleList === List(0,10,20,30,40,50,60,70,80,90))
   }
   
   @Test def combinedTwoDistributionsWithProduct {
@@ -233,7 +229,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
 	result.count(_ == true) should be (500 +- 50)
   }
   
-  @Test def samplesFromItemsBasedOnPartitionProbabilities {
+  @Test def buildingDistributionFromPartition {
     val seq = IndexedSeq(1,2,3,4)
     val partition = new Partition(IndexedSeq(0.1,0.2,0.3,0.4))
     
@@ -254,5 +250,18 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
     intercept[AssertionError] {
       val model = Distribution.fromPartition(seq, partition)
     }
+  }
+  
+  @Test def buildingDistributionFromProbabilityTable {
+    val probTable = Map(1 -> 0.1, 2 -> 0.2, 3 -> 0.3, 4 -> 0.4)
+    
+    val model = Distribution.fromProbabilityTable(probTable)
+    
+    val result = (1 to 1000).map(_ => model.sample)
+    
+    result.count(_ == 1) should be (100 +- 50)
+    result.count(_ == 2) should be (200 +- 50)
+    result.count(_ == 3) should be (300 +- 50)
+    result.count(_ == 4) should be (400 +- 50)
   }
 }

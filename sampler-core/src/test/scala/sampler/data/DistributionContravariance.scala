@@ -2,17 +2,12 @@ package sampler.data
 
 import sampler.math.Random
 
-class DistributiContravariance {
+class DistributionContravariance {
   
-  // If this code compiles it is working TODO may need moving
+  // If this code compiles it is working 
   
   //Covariance and contravariance tests (for compilation only)
   object PlayingWithVariance{
-	class Random2 extends Random {   // Should this be being used somewhere?
-	  def nextDouble() = 0.4
-	  def nextInt(n: Int) = n-1
-	}
-
 	class T
 	class S extends T
 	

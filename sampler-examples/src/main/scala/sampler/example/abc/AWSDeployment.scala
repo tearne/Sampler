@@ -186,4 +186,3 @@ object ClusterDeployment extends App with CommonDeployment {
 	}
 	log.info(s" ***  Master: ssh -i ${awsProps.sshKeyPath} ec2-user@${masterNode.getPublicDnsName}")
 }
-

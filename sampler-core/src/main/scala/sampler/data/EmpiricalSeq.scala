@@ -54,8 +54,6 @@ class EmpiricalSeq[A](val values: IndexedSeq[A]) extends Empirical[A]{ self =>
      *  
      *  @return [[sampler.data.Samplable]] object */
 	def toDistribution(implicit r: Random): Distribution[A] = Distribution.uniform(values)
-	//TODO ask MS why the return type was necessary to allow mocking to work (Crosser.distribution.PlantEmpiricalTest)
-	//TODO do the same on the other Empiricals
 
 	override def canEqual(other: Any): Boolean = other.isInstanceOf[EmpiricalSeq[_]]
 }

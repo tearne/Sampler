@@ -30,8 +30,7 @@ import scala.annotation.tailrec
 class AliasTable(p: Partition) extends Serializable{
     val (probability, alias) = construct(p.probabilities)
 	
-    //TODO test any probability exceptions which should be thrown here?
-    def construct(probs: IndexedSeq[Double]): (Array[Double], Array[Int]) = {
+    private def construct(probs: IndexedSeq[Double]): (Array[Double], Array[Int]) = {
 	  val arraySize = p.size
 	
 	  val average = 1.0 / arraySize

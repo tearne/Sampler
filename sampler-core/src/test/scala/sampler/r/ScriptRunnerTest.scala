@@ -56,7 +56,7 @@ a
 //"""
 //
 //	  ScriptRunner(script, scriptPath)
-//	  val config = ConfigFactory.parseFile(jsonPath.toFile())	//TODO OT: jerkson?
+//	  val config = ConfigFactory.parseFile(jsonPath.toFile())	
 //	  val result = asScalaBuffer(config.getIntList("parameter"))
 //			
 //	  assert(result === List(2,4,6))
