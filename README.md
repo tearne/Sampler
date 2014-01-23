@@ -14,9 +14,7 @@ Sampler is currently in development at the Animal Health and Veterinary Laborato
 API
 ---
 
-[Sampler-0.0.21] [s0021]
-
-  [s0022]: http://tearne.github.io/Sampler/api/Sampler-0.0.21
+[Sampler-0.0.21](http://tearne.github.io/Sampler/api/Sampler-0.0.21)
 
 Examples
 --------
