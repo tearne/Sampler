@@ -95,7 +95,7 @@ abstract class WorkerActor[P]
 			ref ! result
 			goto(Idle) using Uninitialised
 		case Event(Failure(result), Client(ref)) =>
-			log.error("Failure encountered, will be reported to root actor but job won't be repeated")
+			log.error(result.getMessage())
 			ref ! Failed
 			goto(Idle) using Uninitialised
 	}

@@ -1,126 +1,130 @@
-//package sampler.cluster.abc.actor.root
-//
-//import org.mockito.Mockito.when
-//import org.scalatest.BeforeAndAfter
-//import org.scalatest.FreeSpecLike
-//import org.scalatest.mock.MockitoSugar
-//import akka.actor.ActorSystem
-//import akka.testkit.TestFSMRef
-//import akka.testkit.TestKit
-//import akka.testkit.TestProbe
-//import sampler.cluster.abc.Model
-//import sampler.cluster.abc.actor.Job
-//import sampler.cluster.abc.actor.Start
-//import sampler.cluster.abc.algorithm.Algorithm
-//import sampler.cluster.abc.algorithm.AlgorithmComponent
-//import sampler.cluster.abc.algorithm.Generation
-//import sampler.cluster.abc.config.ABCConfig
-//import org.junit.runner.RunWith
-//import org.scalatest.junit.JUnitRunner
-//import org.scalatest.BeforeAndAfterAll
-//import sampler.cluster.abc.actor.TaggedScoreSeq
-//import sampler.cluster.abc.actor.Tagged
-//import sampler.cluster.abc.Scored
-//import sampler.cluster.abc.Weighted
-//import sampler.cluster.abc.config.ClusterParameters
-//import sampler.cluster.abc.config.JobParameters
-//import sampler.cluster.abc.actor.Report
-//		
-//@RunWith(classOf[JUnitRunner])
-//class RootActorTest 
-//		extends TestKit(ActorSystem("ABC"))
-//		with FreeSpecLike
-//		with BeforeAndAfterAll
-//		with MockitoSugar {
-//	
-//	val oneSecond = 1000l
-//	val hundredParticles = 100
-//	val fiveGenerations = 5
-//	val isFinal = true
-//	val terminateAtTargetGen = true
-//	
-//	case class DullParams()
-//	
-//	class TestSubject(
-//			val model: Model[DullParams], 
-//			val config: ABCConfig,
-//			override val getters: Getters
-//	) extends RootActor[DullParams]
-//			with AlgorithmComponent
-//			with ChildrenActorsComponent[DullParams] 
-//			with GettersComponent {
-//		val childActors = mock[ChildActors]
-//		val algorithm = mock[Algorithm]		
-//	}
-//	
-//	override def afterAll {
-//		TestKit.shutdownActorSystem(system)
-//	}
-//	
-//	def getInstance = {
-//		val model = mock[Model[DullParams]]
-//		val config = ABCConfig(
-//				JobParameters(hundredParticles, 0, fiveGenerations),
-//				null,
-//				ClusterParameters(terminateAtTargetGen, 0, 0l, 0, oneSecond, 0l)
-//		)
-//		val getters = mock[Getters]; when(getters.getMixRateMS(config)).thenReturn(oneSecond)
-//			
-//		TestFSMRef(new TestSubject(model, config, getters))
-//	}
-//	
-//	"Mixing test" in pending
-//	
-//	"Lifecycle test" in {
-//		val instanceRef = getInstance
-//		val instanceObj = instanceRef.underlyingActor
-//
-//		/*
-//		 *  Start (Idle -> Gathering)
-//		 */
-//		// Setup
-//		val routerProbe = TestProbe()
-//		val clientProbe = TestProbe()
-//		val gen0 = Generation(null, null, null, 0, 0, Map[DullParams, Double]())
-//		when(instanceObj.childActors.workerRouter).thenReturn(routerProbe.ref)
-//		
-//		// Action
-//		instanceRef tell(Start(gen0), clientProbe.ref)
-//		
-//		// Started assertions
-//		routerProbe.expectMsg(Job(gen0.prevWeightsTable, instanceObj.config))
-//		assertResult(Gathering)(instanceRef.stateName)
-//		assertResult(gen0)(instanceRef.stateData match {
-//			case gd: GatheringData[_] => gd.generation
-//			case d => fail("Unexpected StateData type: "+d.getClass())
-//		})
-//		
-//		
-//		/*
-//		 * Send payload from worker to instance, and wait for
-//		 * more before finalising the generation
-//		 */ 
-//		// Setup
-//		val workerProbe = TestProbe()
-//		val gen1 = Generation(null, null, null, 0, 0, Map[DullParams, Double]())
-//		val newParticles1 = Seq.empty[Tagged[Scored[DullParams]]]
-//		when(instanceObj.algorithm.add(
-//				gen0, 
-//				newParticles1, 
-//				workerProbe.ref, 
-//				instanceObj.config
-//		)).thenReturn(gen1)
-//		when(instanceObj.algorithm.numberAccumulated(gen1)).thenReturn(hundredParticles - 1)
-//		val newDataMsg1 = TaggedScoreSeq[DullParams](newParticles1)
-//		
-//		// Action
-//		instanceRef tell(newDataMsg1, workerProbe.ref)
-//		
-//		// Assertions
-//		assertResult(Gathering)(instanceRef.stateName)
-//		val stateData1 = instanceRef.stateData.asInstanceOf[GatheringData[DullParams]]
-//		assertResult(gen1)(stateData1.generation)
-//		assertResult(clientProbe.ref)(stateData1.client)
+package sampler.cluster.abc.actor.root
+
+import org.mockito.Mockito.when
+import org.scalatest.BeforeAndAfter
+import org.scalatest.FreeSpecLike
+import org.scalatest.mock.MockitoSugar
+import akka.actor.ActorSystem
+import akka.testkit.TestFSMRef
+import akka.testkit.TestKit
+import akka.testkit.TestProbe
+import sampler.cluster.abc.Model
+import sampler.cluster.abc.actor.Job
+import sampler.cluster.abc.actor.Start
+import sampler.cluster.abc.algorithm.Algorithm
+import sampler.cluster.abc.algorithm.AlgorithmComponent
+import sampler.cluster.abc.algorithm.Generation
+import sampler.cluster.abc.config.ABCConfig
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
+import org.scalatest.BeforeAndAfterAll
+import sampler.cluster.abc.actor.TaggedScoredSeq
+import sampler.cluster.abc.actor.Tagged
+import sampler.cluster.abc.Scored
+import sampler.cluster.abc.Weighted
+import sampler.cluster.abc.config.ClusterParameters
+import sampler.cluster.abc.config.JobParameters
+import sampler.cluster.abc.actor.Report
+import sampler.cluster.abc.actor.GenerateJob
+import akka.routing.Broadcast
+import sampler.cluster.abc.actor.WeighJob
+		
+@RunWith(classOf[JUnitRunner])
+class RootActorTest 
+		extends TestKit(ActorSystem("ABC"))
+		with FreeSpecLike
+		with BeforeAndAfterAll
+		with MockitoSugar {
+	
+	val oneSecond = 1000l
+	val hundredParticles = 100
+	val fiveGenerations = 5
+	val isFinal = true
+	val terminateAtTargetGen = true
+	
+	case class DullParams()
+	
+	class TestSubject(
+			val model: Model[DullParams], 
+			val config: ABCConfig,
+			override val getters: Getters
+	) extends RootActor[DullParams]
+			with AlgorithmComponent
+			with ChildrenActorsComponent[DullParams] 
+			with WorkDispatcherComponent
+			with GettersComponent {
+		val childActors = mock[ChildActors]
+		val algorithm = mock[Algorithm]
+		val workDispatcher = context.dispatcher
+	}
+	
+	override def afterAll {
+		TestKit.shutdownActorSystem(system)
+	}
+	
+	def getInstance = {
+		val model = mock[Model[DullParams]]
+		val config = ABCConfig(
+				JobParameters(hundredParticles, 0, fiveGenerations),
+				null,
+				ClusterParameters(terminateAtTargetGen, 0, 0l, 0, oneSecond, 0l)
+		)
+		val getters = mock[Getters]; when(getters.getMixRateMS(config)).thenReturn(oneSecond)
+			
+		TestFSMRef(new TestSubject(model, config, getters))
+	}
+	
+	"Mixing test" in pending
+	
+	"Lifecycle test" in {
+		val instanceRef = getInstance
+		val instanceObj = instanceRef.underlyingActor
+
+		/*
+		 *  Start (Idle -> Gathering)
+		 */
+		// Setup
+		val routerProbe = TestProbe()
+		val clientProbe = TestProbe()
+		val gen0 = Generation(null, null, null, null, 0, 0, Map[DullParams, Double]())
+		when(instanceObj.childActors.workerRouter).thenReturn(routerProbe.ref)
+		
+		// Action
+		instanceRef tell(Start(gen0), clientProbe.ref)
+		
+		// Assertions
+		routerProbe.expectMsg(Broadcast(GenerateJob(gen0.prevWeightsTable, instanceObj.config)))
+		assertResult(Gathering)(instanceRef.stateName)
+		assertResult(gen0)(instanceRef.stateData match {
+			case gd: StateData[_] => gd.generation
+			case d => fail("Unexpected StateData type: "+d.getClass())
+		})
+		
+		
+		/*
+		 * Send payload from worker to instance, and expect to be asked to weigh particles
+		 */ 
+		// Setup
+		val workerProbe = TestProbe()
+		val dueWeighing = Seq.empty[Tagged[Scored[DullParams]]]
+		val prevWeightsTable = Map[DullParams, Double]()
+		val currentTolerance = 25
+		val gen1 = Generation(null, dueWeighing, null, null, currentTolerance, 0, prevWeightsTable)
+		val newScoredParticles = TaggedScoredSeq(Seq.empty[Tagged[Scored[DullParams]]])
+		when(instanceObj.algorithm.filterAndQueueForWeighing(
+				newScoredParticles,
+				gen0
+		)).thenReturn(gen1)
+		
+		// Action
+		instanceRef tell(newScoredParticles, workerProbe.ref)
+		
+		// Assertions
+		workerProbe.expectMsg(WeighJob(dueWeighing, prevWeightsTable, currentTolerance))
+		assertResult(Gathering)(instanceRef.stateName)
+		val stateData1 = instanceRef.stateData.asInstanceOf[StateData[DullParams]]
+		assertResult(gen1)(stateData1.generation)
+		assertResult(clientProbe.ref)(stateData1.client)
 //		
 //		
 //		/*
@@ -179,5 +183,5 @@
 //		assertResult(Idle)(instanceRef.stateName)
 //		assertResult(Uninitialized)(instanceRef.stateData)
 //		clientProbe.expectMsg(report2)
-//	}
-//}
+	}
+}

@@ -54,6 +54,7 @@ class RootActorImpl[P](
 		val config: ABCConfig
 ) extends RootActor[P]
 		with ChildrenActorsComponent[P]
+		with WorkDispatcherComponentImpl
 		with AlgorithmComponentImpl 
 		with WeigherComponent
 		with ToleranceComponent 
@@ -95,13 +96,12 @@ abstract class RootActor[P]
 {
 	this: ChildrenActorsComponent[P]
 		with AlgorithmComponent
-		with GettersComponent =>
+		with GettersComponent 
+		with WorkDispatcherComponent =>
 	
 	val config: ABCConfig
 	val model: Model[P]
 	
-	implicit val executionContext = context.system.dispatchers.lookup("sampler.work-dispatcher")
-			
 	import childActors._
 	type G = Generation[P]
 	
@@ -175,6 +175,7 @@ abstract class RootActor[P]
 				workerRouter ! Broadcast(Abort)
 				
 				//Flush the current generation
+				implicit val dispatcher = workDispatcher
 				Future{
 					val flushedGen = algorithm.flushGeneration(updatedGen, config.job.numParticles)
 					FlushComplete(flushedGen)
