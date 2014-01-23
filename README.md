@@ -11,7 +11,16 @@ Sampler is Scala library for simulation based modelling and analysis.  Core feat
 
 Sampler is currently in development at the Animal Health and Veterinary Laboratories Agency, with the aim of reducing build time for analyses where classical statistical approaches struggle due to assumption violation.
 
+API
+---
+
+[Sampler-0.0.21] [s0021]
+
+  [s0022]: http://tearne.github.io/Sampler/api/Sampler-0.0.21
+
 Examples
+--------
+
 * Optimisation/Experimental design
 	* TODO
 * Parameter inference
