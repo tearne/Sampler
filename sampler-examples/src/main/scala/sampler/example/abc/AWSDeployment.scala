@@ -85,8 +85,52 @@ import com.amazonaws.services.ec2.model.Instance
  *    exit codes for reporting at the end.
  *  - Config is too scattered (as above)
  */
+object ClusterDeployment extends App with CommonDeployTasks {
+	import awsProps._
+	
+	
+	/*
+	 * Configuration
+	 */
+	val tearDown = true
+	def getRunScript(localPrivateIP: String, masterPrivateIP: String) = s"""
+java -Xmx3g \\
+-Dakka.remote.netty.tcp.hostname=$localPrivateIP \\
+-Dakka.cluster.seed-nodes.0=akka.tcp://ABC@$masterPrivateIP:2552 \\
+-Dconfig.file=deploy/application.conf \\
+-Dlogback.configurationFile=deploy/logback.xml \\
+-cp "deploy/lib/*" \\
+$application
+"""
 
-trait CommonDeployment extends Logging{
+	if(tearDown){
+		// Stop everything
+		(aws.masterNode +: aws.workerNodes).foreach(node => killJava(node))
+	}
+
+	val masterNode = aws.masterNode
+	val masterPrivateIP = masterNode.getPrivateIpAddress()
+	
+	def deploy(node: Instance){
+		if(tearDown || !javaRunning(node)){
+			aws.scpUpload(s3CfgPath, node, "~/.s3cmd")
+			aws.s3RemoteDownload(node, "~/deploy/")
+			val runScriptName = uploadScript(node, getRunScript(node.getPrivateIpAddress(),	masterPrivateIP))
+			runRemoteScript(node, runScriptName)
+			log.info("started application on "+node.getPrivateIpAddress())
+		}
+	}
+	
+	(masterNode +: aws.workerNodes).foreach{node => deploy(node)}
+	
+	log.info(s"----==== Cluster ready captain ====----")
+	aws.workerNodes.foreach{node =>
+		log.info(s"      Worker: ssh -i ${awsProps.sshKeyPath} ec2-user@${node.getPublicDnsName}")
+	}
+	log.info(s" ***  Master: ssh -i ${awsProps.sshKeyPath} ec2-user@${masterNode.getPublicDnsName}")
+}
+
+trait CommonDeployTasks extends Logging{
 	val application: String = "sampler.example.abc.NetworkABC"
 	
 	def runRemoteScript(node: Instance, fileName: String){
@@ -108,21 +152,10 @@ trait CommonDeployment extends Logging{
 		Process(cmd).!
 	}
 		
-	def deployRemoteRunScript(node: Instance, masterIP: String): String = {
+	def uploadScript(node: Instance, script: String): String = {
 		val publicDNS = node.getPublicDnsName
 		val privateIP = node.getPrivateIpAddress
 		
-		val runCommand = 
-s"""
-java -Xmx3g \\
--Dakka.remote.netty.tcp.hostname=$privateIP \\
--Dakka.cluster.seed-nodes.0=akka.tcp://ABC@$masterIP:2552 \\
--Dconfig.file=deploy/application.conf \\
--Dlogback.configurationFile=deploy/logback.xml \\
--cp "deploy/lib/*" \\
-$application
-"""
-
 		val tempFile = Files.createTempFile("run", ".sh")
 		tempFile.toFile().deleteOnExit
 		Files.setPosixFilePermissions(tempFile, Set(
@@ -135,7 +168,7 @@ $application
 		
 		val writer = Files.newBufferedWriter(tempFile, Charset.defaultCharset())
 		writer.write("#!/bin/bash")
-		writer.write(runCommand)
+		writer.write(script)
 		writer.close
 		
 		aws.scpUpload(tempFile, node, "~/deploy/"+tempFile.getFileName())	
@@ -153,36 +186,4 @@ $application
 	
 	log.info("Account Confirmed: {}", aws.getUserDetails)
 	aws.s3Upload(localDeployDir.toAbsolutePath)
-}
-
-object ClusterDeployment extends App with CommonDeployment {
-	import awsProps._
-	
-	val tearDown = false
-	
-	if(tearDown){
-		// Stop everything
-		(aws.masterNode +: aws.workerNodes).foreach(node => killJava(node))
-	}
-
-	val masterNode = aws.masterNode
-	val masterPrivateIp = masterNode.getPrivateIpAddress()
-	
-	def deploy(node: Instance){
-		if(tearDown || !javaRunning(node)){
-			aws.scpUpload(s3CfgPath, node, "~/.s3cmd")
-			aws.s3RemoteDownload(node, "~/deploy/")
-			val runScriptName = deployRemoteRunScript(node, masterPrivateIp)
-			runRemoteScript(node, runScriptName)
-			log.info("started application on "+node.getPrivateIpAddress())
-		}
-	}
-	
-	(masterNode +: aws.workerNodes).foreach{node => deploy(node)}
-	
-	log.info(s"----==== Cluster ready captain ====----")
-	aws.workerNodes.foreach{node =>
-		log.info(s"      Worker: ssh -i ${awsProps.sshKeyPath} ec2-user@${node.getPublicDnsName}")
-	}
-	log.info(s" ***  Master: ssh -i ${awsProps.sshKeyPath} ec2-user@${masterNode.getPublicDnsName}")
 }
