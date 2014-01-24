@@ -8,15 +8,46 @@ import scala.Array.canBuildFrom
 import scala.Array.fallbackCanBuildFrom
 import scala.io.Source
 
-/** Object for handling .csv files
+/** Facilitates the reading and writing of csv files
  *  
- *  Can be used to read data from, write data to or perform operations on .csv files. 
+ *  <h3>Reading files</h3>
+ *  This object provides methods to read in data from csv files and also query the header line, 
+ *  including the ability to match the header to expected content
+ *  {{{
+ *  val file = java.nio.file.Paths.get("test.csv")
+ *  CSV.header(file)
+ *  }}}
+ *  Running the above code in the Scala interpreter would yield:
+ *  {{{res: Map[String,Int] = Map(Col1 -> 0, Col2 -> 1, Col3 -> 2)}}}
+ *     
+ *  Files can be read in either in their entirety, or part thereof based on requested column headers. 
+ *  {{{
+ *  val file = java.nio.file.Paths.get("test.csv")
+ *  val wholeFile = CSV.read(file)
+ *  val selectedColumns = CSV.readByHeader(file, "Col1", "Col3")
+ *  }}}
+ *  Running the above in the Scala interpreter would yield:
+ *  {{{
+ *  > wholeFile.toIndexedSeq
+ *  res: IndexedSeq[IndexedSeq[String]] = Vector(ArraySeq(Col1, Col2, Col3), ArraySeq(1, 2, 3), ArraySeq(4, 5, 6))
+ *  > selectedColumns.toIndexedSeq
+ *  res: IndexedSeq[IndexedSeq[String]] = Vector(ArraySeq(Col1, Col3), ArraySeq(1, 3), ArraySeq(4, 6))
+ *  }}}
+ *  
+ *  <h3>Writing files</h3>
+ *  Data, in the form of a Traversable of Traversables, can be written to disk given a path to a file. The
+ *  file writing methods use the Java.nio StandardOpenOptions to define how a file should be written.
+ *  {{{
+ *  val outFile = java.nio.file.Paths.get("testOut.csv")
+ *  val outData = Seq(Seq("Col1", "Col2", "Col3"),Seq(1,2,3),Seq(4,5,6))
+ *  CSV.writeLines(outFile, outData, StandardOpenOption.CREATE)
+ *  }}}
  */
 object CSV {
   
-  /** Reads in the first line of a .csv file and returns a map of the header to its column index
+  /** Reads in the first line of a csv file and returns a map of the header to its column index
    * 
-   * @param filePath The path to the .csv file of interest
+   * @param filePath The path to the csv file of interest
    * @return Map from a String (the header) to an Integer (the column index of that header)
    */
 	def header(filePath: Path): Map[String, Int] = {
@@ -24,9 +55,9 @@ object CSV {
 		strings.zipWithIndex.map{case (name, idx) => name -> idx}.toMap
 	}
 	
-	/** Read in the first line of a .csv file and checks it matches the headers of interest
+	/** Read in the first line of a csv file and checks it matches the headers of interest
 	 * 
-	 * @param filePath The path to the .csv file of interest
+	 * @param filePath The path to the csv file of interest
 	 * @param expected The strings expected in the header
 	 */
 	def assertHeader(filePath: Path, expected: String*) {
@@ -39,9 +70,9 @@ s"""Headers in ${filePath.toAbsolutePath()} don't match.
 """})
 	}
 	
-	/** Write a single line to a .csv file
+	/** Write a single line to a csv file
 	 * 
-	 * @param filePath The path to the .csv file of interest
+	 * @param filePath The path to the csv file of interest
 	 * @param line The data to be written to the file
 	 * @param openOptions Options specifying how the file is opened
 	 */
@@ -52,9 +83,9 @@ s"""Headers in ${filePath.toAbsolutePath()} don't match.
 		writer.close()
 	}
 	
-	/** Write multiples lines to a .csv file
+	/** Write multiples lines to a csv file
 	 * 
-	 * @param filePath The path to the .csv file of interest
+	 * @param filePath The path to the csv file of interest
 	 * @param lines The data to be written to the file
 	 * @param openOptions Options specifying how the file is opened
 	 */
@@ -73,10 +104,10 @@ s"""Headers in ${filePath.toAbsolutePath()} don't match.
 		strings
 	}
 	
-	/** Reads in a .csv file, transposes the data and writes to another .csv
+	/** Reads in a csv file, transposes the data and writes to another csv
 	 * 
-	 * @param inPath The path to the .csv file containing the data to be transposed
-	 * @param outFile The path to the .csv file to write the transposed data to
+	 * @param inPath The path to the csv file containing the data to be transposed
+	 * @param outFile The path to the csv file to write the transposed data to
 	 * @param removeHeader Set to true if the data file contains a header line that needs removing before transposition
 	 * @param openOptions Options specifying how the file is opened
 	 */
@@ -88,9 +119,9 @@ s"""Headers in ${filePath.toAbsolutePath()} don't match.
 		writeLines(outFile, matrix.transpose, outputOpenOptions: _*)
 	}
 	
-	/** Reads in the data in a .csv file
+	/** Reads in the data in a csv file
 	 *  
-	 *  @param filePath The path to the .csv file to be read in
+	 *  @param filePath The path to the csv file to be read in
 	 *  @return An iterator which contains each line of data as a IndexedSeq of Strings
 	 */
 	def read(filePath: Path): Iterator[IndexedSeq[String]] = {
@@ -99,9 +130,9 @@ s"""Headers in ${filePath.toAbsolutePath()} don't match.
 		}
 	}
 	
-	/** Reads in selected columns from a .csv file
+	/** Reads in selected columns from a csv file
 	 *  
-	 *  @param filePath The path to the .csv file to be read in
+	 *  @param filePath The path to the csv file to be read in
 	 *  @param headers The header titles for the required columns
 	 *  @return An iterator which contains each line of data as a IndexedSeq of Strings
 	 */
