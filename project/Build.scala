@@ -87,6 +87,7 @@ object SamplerBuild extends Build{
 
 		scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature"),
 //		scalacOptions ++= Seq("-encoding", "UTF-8", "-Xlint", "-deprecation", "-unchecked", "-feature"),
+		scalacOptions in (Compile, doc) ++= Seq("-doc-root-content", baseDirectory.value+"/root-doc.txt"),
 		
 		//Copies all dependencies to lib_managed
 		retrieveManaged	:= true,
