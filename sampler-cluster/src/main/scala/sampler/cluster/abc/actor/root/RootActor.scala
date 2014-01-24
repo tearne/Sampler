@@ -48,6 +48,7 @@ import sampler.cluster.abc.actor.WeighJob
 import scala.util.Failure
 import scala.util.Success
 import sampler.cluster.abc.actor.Failed
+import sampler.cluster.abc.actor.MixPayload
 
 class RootActorImpl[P](
 		val model: Model[P],
@@ -136,7 +137,7 @@ abstract class RootActor[P]
 			assert(mixMS > 0l, "Mixing rate must be strictly positive")
 			val cancellableMixing = Some(
 				context.system.scheduler.schedule(
-						mixMS.milliseconds * 10,
+						mixMS.milliseconds,
 						mixMS.milliseconds, 
 						self, 
 						MixNow)(
@@ -153,23 +154,23 @@ abstract class RootActor[P]
 			
 		case Event(scored: TaggedScoredSeq[P], stateData: StateData[P]) =>
 			val sndr = sender
-			
 			val updatedGeneration = algorithm.filterAndQueueForWeighing(scored, stateData.generation)
 			log.info("filterAndQueue({}) => |W| = {},  from {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
+			import updatedGeneration._
+			sndr ! WeighJob(dueWeighing, prevWeightsTable, currentTolerance)
+			log.debug("Allocate weighing of {} particles to {}", updatedGeneration.dueWeighing.size, sndr)
+			stay using stateData.copy(generation = updatedGeneration.emptyWeighingBuffer)
 			
-			if(isLocal(sndr)) {
-				import updatedGeneration._
-				sndr ! WeighJob(dueWeighing, prevWeightsTable, currentTolerance)
-				log.info("Allocate weighing to {}", sndr)
-				stay using stateData.copy(generation = updatedGeneration.emptyWeighingBuffer)
-			} else {
-				stay using stateData.copy(generation = updatedGeneration)
-			}
-			
+		case Event(mixP: MixPayload[P], stateData: StateData[P]) =>
+			val sndr = sender
+			val scored = mixP.tss
+			val updatedGeneration = algorithm.filterAndQueueForWeighing(scored, stateData.generation)
+			log.info("filterAndQueue({}) => |W| = {},  from REMOTE {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
+			stay using stateData.copy(generation = updatedGeneration)
+
 		case Event(weighted: TaggedWeighedSeq[P], stateData: StateData[P]) =>
 			val updatedGen = algorithm.addWeighted(weighted, stateData.generation, config)
 			log.info(s"Particles + ${weighted.seq.size} = ${updatedGen.weighted.size}/${config.job.numParticles}")
-			
 			
 			if(algorithm.isEnoughParticles(updatedGen, config)){
 				workerRouter ! Broadcast(Abort)
@@ -189,7 +190,7 @@ abstract class RootActor[P]
 			
 		case Event(MixNow, p: StateData[P]) => 
 			val payload = algorithm.buildMixPayload(p.generation, config)
-			payload.foreach{message => broadcaster ! message}
+			payload.foreach{message => broadcaster ! MixPayload(message)}
 			
 			stay
 	}
@@ -234,10 +235,5 @@ abstract class RootActor[P]
 	
 	def report(client: ActorRef, generation: Generation[P], finalReport: Boolean){
 		client ! algorithm.buildReport(generation, config, finalReport)
-	}
-	
-	def isLocal(actorRef: ActorRef) = {
-		//TODO better way to test if local or not
-		actorRef.path.address.toString == context.system.toString
 	}
 }

@@ -43,7 +43,7 @@ import sampler.cluster.abc.actor.GenerateJob
 import sampler.cluster.abc.actor.WeighJob
 import sampler.cluster.abc.actor.Failed
 import sampler.cluster.abc.actor.TaggedWeighedSeq
-import sampler.cluster.abc.actor.Result
+import sampler.cluster.abc.actor.WorkerResult
 
 class WorkerActorImpl[P](val model: Model[P]) extends WorkerActor[P] {
 	implicit val random = Random

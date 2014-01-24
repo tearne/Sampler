@@ -69,7 +69,7 @@ class BroadcastActor(abcParams: ABCConfig) extends Actor with ActorLogging{
 	val testTimeout = Duration(abcParams.cluster.mixResponseTimeoutMS, MILLISECONDS)
 	
 	case class CheckPreMixingTests()
-	case class PreMixingTest(msg: TaggedScoredSeq[_], when: Long  = System.currentTimeMillis()){
+	case class PreMixingTest(msg: MixPayload[_], when: Long  = System.currentTimeMillis()){
 		def durationSince = Duration(System.currentTimeMillis() - when, MILLISECONDS)
 	}
 	context.system.scheduler.schedule(1.second, testTimeout * 10 , self, CheckPreMixingTests)
@@ -138,7 +138,7 @@ class BroadcastActor(abcParams: ABCConfig) extends Actor with ActorLogging{
   				if(expired) log.warning("Pre-mix FAILED: {}>{} ms for {}", responseTime, testTimeout, recipient)
   				!expired
   			}
-  		case msg: TaggedScoredSeq[_] =>
+  		case msg: MixPayload[_] =>
   			if(!nodes.isEmpty){
 	  			val recipient = Distribution.uniform(nodes.toIndexedSeq).sample 
 	  			if(!preMixingTests.contains(recipient)){
