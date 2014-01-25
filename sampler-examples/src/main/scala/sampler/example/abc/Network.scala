@@ -17,6 +17,24 @@ import com.typesafe.config.ConfigFactory
 import sampler.io.CSV
 import sampler.r.ScriptRunner
 import scala.annotation.tailrec
+import sampler.cluster.abc.actor.Report
+
+/*
+ * An outbreak starts in the centre of a 10 x 10 grid of 
+ * nodes and after two weeks all the infected nodes are 
+ * observed.  Infection travels between neighbouring nodes
+ * with probability 'local' and amongst company premises 
+ * with probability 'company'.  Transmission probabilities
+ * are evaluated once per day per infected farm.
+ * 
+ * Company A premises have ids divisable by 7, and company 
+ * B premises are divisable by 11. 
+ * 
+ * Given knowledge of where outbreak started (id = 44) and
+ * where it spread to within two weeks, determine the 
+ * 'local' and 'company' transmission rates.  
+ * 
+ */
 
 case class SpreadRates(local: Double, company: Double){
 	def toSeq = Seq(local, company)
@@ -27,15 +45,18 @@ object SpreadRates{
 
 object NetworkModel extends Model[SpreadRates]{
 	implicit val random = Random
-	val observations = Set(56, 64, 44, 54, 43, 55)
+	val observations = Set(0, 88, 56, 42, 14, 46, 84, 74, 28, 70, 21, 33, 53, 77, 96, 73, 32, 64, 22, 44, 12, 49, 86, 7, 98, 91, 66, 35, 63, 11, 99, 55, 23, 19, 47, 62)
 	val knownSource = Set(44)
-
+	val runLengthDays = 14
+	
 	//TODO lots of scope for prior stuff in the core
 	
 	val prior = new Prior[SpreadRates]{
-		def unitRange(d: Double) = if(d > 1.0 || d < 0.0) 0.0 else 1.0
-		def density(p: SpreadRates) = unitRange(p.local) * unitRange(p.company) 
-		def sample = SpreadRates(random.nextDouble, random.nextDouble)
+		val max = 0.15
+		val min = 0.0
+		def plausableRange(d: Double) = if(d > max || d < min) 0.0 else 1.0
+		def density(p: SpreadRates) = plausableRange(p.local) * plausableRange(p.company) 
+		def sample = SpreadRates(random.nextDouble(min, max), random.nextDouble(min, max))
 	}
 	
 	//TODO introduce a perturbation kernel object?
@@ -47,16 +68,10 @@ object NetworkModel extends Model[SpreadRates]{
 		//TODO don't like the fact that there is another random at work here
 		val normal = {
 			val syncRand: RandomGenerator = new SynchronizedRandomGenerator(new MersenneTwister())
-			new NormalDistribution(syncRand, 0, 0.1, NormalDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY)
+			new NormalDistribution(syncRand, 0, 0.01, NormalDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY)
 		}
 		def sample = {
-			val r = normal.sample
-			if(r.isNaN() || r.isInfinite()) {
-				val e = new Exception("here... r = "+r)
-				e.printStackTrace()
-				throw e
-			}
-			r
+			normal.sample
 		}
 		def density(at: Double) = {
 			normal.density(at)
@@ -75,7 +90,6 @@ object NetworkModel extends Model[SpreadRates]{
 		val nodeIds = (0 until 100).toSet
 		val localSpread = Distribution.bernouliTrial(p.local)
 		val colleagueSpread = Distribution.bernouliTrial(p.company)
-		val runLengthDays = 30
 		
 		def neighbours(id: Int): Set[Int] = {
 			val (yPos, xPos) = (id / 10, id % 10)
@@ -93,9 +107,9 @@ object NetworkModel extends Model[SpreadRates]{
 	
 		def colleagues(id: Int): Set[Int] = {
 			val includingSelf = id match{
-				case i if id % 7 != 0 || id % 23 != 0 => Set.empty[Int]
-				case i if id % 7 == 0 => nodeIds.filter(_ % 7 == 0 )
-				case i if id % 23 == 0 => nodeIds.filter(_ % 23 == 0 )
+				case i if id % 7 != 0 && id % 11 != 0 => Set.empty[Int]
+				case i if id % 7 == 0 => nodeIds.filter(_ % 7 == 0)
+				case i if id % 11 == 0 => nodeIds.filter(_ % 11 == 0)
 			}
 			includingSelf - id
 		}
@@ -128,15 +142,14 @@ object NetworkModel extends Model[SpreadRates]{
 	def sizeDiffMetric(simulated: Set[Int]) = 
 		math.abs(simulated.size - observations.size)
 		
-	def distanceToObservations(p: SpreadRates) = infecteds(p).map(sizeDiffMetric)
+	def distanceToObservations(p: SpreadRates) = infecteds(p).map(nodeAndSizeDiffmetric)
 }
 
-object Test extends App{
-	val p = SpreadRates(0.1,0.01)
-	(1 to 1000).foreach{i => 
-		val inf = NetworkModel.infecteds(p).sample
-		val dist = NetworkModel.sizeDiffMetric(inf)
-		println(s"$i: $dist, $inf")
+object Generate extends App{
+	val truth = SpreadRates(0.01,0.09)
+	for(i <- 1 to 10) yield {
+		val infected = NetworkModel.infecteds(truth).sample
+		println(s"${infected.size}: $infected")
 	}
 }
 
@@ -149,24 +162,41 @@ object NetworkABC extends App{
 		ConfigFactory.load,
 		"network-example"
 	)
-	val posterior = ABC(NetworkModel, abcParams)
 	
-	val lines = SpreadRates.names +: posterior.map(_.toSeq)
-	CSV.writeLines(
-		wd.resolve("fitted.csv"),
-		lines
-	)
-	
-	val rScript = 
-s"""
-lapply(c("ggplot2", "reshape", "hexbin"), require, character.only=T)
-
-posterior = read.csv("fitted.csv")
-
-pdf("density.pdf", width=4.13, height=2.91) #A7 landscape paper
-ggplot(posterior, aes(local, company)) + stat_binhex()
-dev.off()
-"""
-	ScriptRunner.apply(rScript, wd.resolve("script.r"))
-	
+	val abcReporting = { report: Report[SpreadRates] =>
+		import report._
+		
+		val lines = SpreadRates.names +: posterior.map(_.toSeq)
+		val fileName = f"posterior.$generationId%02d.csv"
+		
+		CSV.writeLines(
+			wd.resolve(fileName),
+			lines
+		)
+		
+		val rScript = 
+			f"""
+			lapply(c("ggplot2", "reshape", "hexbin"), require, character.only=T)
+			
+			posterior = read.csv("$fileName")
+			
+			pdf("density.$generationId%02d.pdf", width=4.13, height=2.91) #A7 landscape paper
+			ggplot(posterior, aes(local, company)) +
+				stat_binhex() +
+				scale_x_continuous(limits = c(0,0.15)) +
+				scale_y_continuous(limits = c(0,0.15))
+			
+			ggplot(posterior, aes(x = local)) + 
+				geom_density() +
+				scale_x_continuous(limits = c(0,0.15), breaks = c(0,0.01,0.15), labels = c(0,0.1,0.15))
+			ggplot(posterior, aes(x = company)) + 
+				geom_density() +
+				scale_x_continuous(limits = c(0,0.15), breaks = c(0,0.09,0.15))
+			dev.off()
+				"""
+		ScriptRunner.apply(rScript, wd.resolve("script.r"))
+			
+	}
+		
+	ABC(NetworkModel, abcParams, abcReporting)
 }

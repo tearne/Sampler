@@ -10,6 +10,11 @@ workspace
 results/
 bin/
 examples/data/
+*.pdf
+*.csv
+
+
+
 
 # sbt specific
 dist/
