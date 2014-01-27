@@ -8,7 +8,7 @@ import UnidocKeys._
 
 object SamplerBuild extends Build{
 	val buildOrganization 	= "org.tearne"
-	val buildVersion 	= "0.0.21"
+	val buildVersion 	= "0.0.22"
 	val buildScalaVersion	= "2.10.3"
 	
 	lazy val root = Project(

@@ -24,11 +24,28 @@ trait Sampler{
 	def apply[T](distribution: Distribution[T])(condition: GenSeq[T] => Boolean): GenSeq[T]
 }
 
+
+//TODO add options making it easier to test the condition in the client code
+/*
+ * e.g. currently it's a pain:
+ * 
+ * 			new ParallelSampler(chunkSize)(samplable)(seq => {
+ *				statistics.maxDistance(seq.take(seq.size - chunkSize).toEmpiricalSeq, seq.toEmpiricalSeq) < tolerance ||
+ *					seq.size == 1e8
+ *			})
+ * 
+ */
+
+
+//TODO say in the docs that this just uses Dist.until
 object SerialSampler extends Sampler with Serializable{
 	def apply[T](distribution: Distribution[T])(condition: GenSeq[T] => Boolean) = 
 		distribution.until(condition).sample()
 }
 
+//TODO docs
+//TODO give warning about the perils of non thread safe dists.  With commons math normal dist example
+//     See http://stackoverflow.com/questions/20969292/thread-safety-warnings
 class ParallelSampler(chunkSize: Int) extends Sampler{
 	def apply[T](distribution: Distribution[T])(condition: GenSeq[T] => Boolean) = {
 		def takeMore(previous: ParSeq[T]): ParSeq[T] = {

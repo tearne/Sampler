@@ -34,6 +34,8 @@ class QuickPlotTest extends AssertionsForJUnit with Matchers {
   
   implicit val r: Random = Random
   
+  //TODO the script file name should have ".r" on the end
+  //     WIll need to update all the examples and make sure they still run
   val fileName: String = "plot"
   
   val parentPath: Path = Paths.get("src", "test", "resources", "data")

@@ -50,7 +50,7 @@ trait Algorithm {
 	def emptyWeighingBuffer[P](gen: Generation[P]): Generation[P]
 	
 	def buildMixPayload[P](gen: Generation[P], abcParameters: ABCConfig): Option[TaggedScoredSeq[P]]
-	def buildReport[P](gen: Generation[P], config: ABCConfig, finalReport: Boolean): Report[P]
+	def buildReport[P](gen: Generation[P], config: ABCConfig): Report[P]
 }
 
 
@@ -157,7 +157,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent{
 			} else None
 		}
 			
-		def buildReport[P](gen: Generation[P], config: ABCConfig, finalReport: Boolean): Report[P] = {
+		def buildReport[P](gen: Generation[P], config: ABCConfig): Report[P] = {
 			val samples: Seq[P] = Distribution
 				.fromProbabilityTable(gen.prevWeightsTable)
 				.until(_.size == getters.getNumParticles(config))
@@ -166,8 +166,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent{
 			Report(
 					gen.currentIteration,
 					gen.currentTolerance,
-					samples,
-					finalReport
+					samples
 			)
 		}
 	}

@@ -28,9 +28,13 @@ import sampler.cluster.abc.Weighted
 
 //TODO comment who sends what to whom
 
+/**
+ * Sent from [[sampler.cluster.]]
+ */
 case class Start[P](generationZero: Generation[P])
-case class Report[P](generationId: Int, tolerance: Double, posterior: Seq[P], isFinalReport: Boolean)
-case class Finished()
+case class Report[P](generationId: Int, tolerance: Double, posterior: Seq[P])
+//case class Finished()
+case class ReportCompleted[P](report: Report[P])
 
 sealed trait Job[P]
 case class GenerateJob[P](population: Map[P, Double], config: ABCConfig) extends Job[P]

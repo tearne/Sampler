@@ -49,11 +49,14 @@ import scala.util.Failure
 import scala.util.Success
 import sampler.cluster.abc.actor.Failed
 import sampler.cluster.abc.actor.MixPayload
+import sampler.cluster.abc.actor.ReportCompleted
+import sampler.cluster.abc.actor.Report
 
-class RootActorImpl[P](
+class ABCActorImpl[P](
 		val model: Model[P],
-		val config: ABCConfig
-) extends RootActor[P]
+		val config: ABCConfig,
+		val reportAction: Option[Report[P] => Unit]
+) extends ABCActor[P]
 		with ChildrenActorsComponent[P]
 		with WorkDispatcherComponentImpl
 		with AlgorithmComponentImpl 
@@ -72,9 +75,8 @@ class RootActorImpl[P](
 sealed trait Status
 case object Idle extends Status
 case object Gathering extends Status
-case object Adding extends Status
-case object Backlogged extends Status
 case object Flushing extends Status
+case object WaitingForShutdown extends Status
 
 sealed trait Data{
 	val cancellableMixing: Option[Cancellable]
@@ -90,7 +92,7 @@ case class StateData[P](
 	def updateGeneration(g: Generation[P]) = copy(generation = g)
 }
 
-abstract class RootActor[P]
+abstract class ABCActor[P]
 		extends FSM[Status, Data] 
 		with Actor 
 		with ActorLogging
@@ -102,6 +104,7 @@ abstract class RootActor[P]
 	
 	val config: ABCConfig
 	val model: Model[P]
+	val reportAction: Option[Report[P] => Unit]
 	
 	import childActors._
 	type G = Generation[P]
@@ -193,6 +196,8 @@ abstract class RootActor[P]
 			payload.foreach{message => broadcaster ! MixPayload(message)}
 			
 			stay
+		
+		case Event(_: ReportCompleted[P], _) => stay
 	}
 	
 	when(Flushing) {
@@ -206,16 +211,26 @@ abstract class RootActor[P]
 			if(currentIteration == numGenerations && config.cluster.terminateAtTargetGenerations){
 				// Stop work
 				workerRouter ! Abort
-				report(data.client, flushedGeneration, true)
+				report(flushedGeneration)
 				log.info("Required generations completed and reported to requestor")
 				
-				goto(Idle) using Uninitialized
+				goto(WaitingForShutdown) using data
 			} else {
 				// Report and start next generation
 				workerRouter ! Broadcast(GenerateJob(flushedGeneration.prevWeightsTable, config))
-				report(data.client, flushedGeneration, false)
+				report(flushedGeneration)
 				goto(Gathering) using data.updateGeneration(flushedGeneration)
 			}
+		case Event(rc: ReportCompleted[P], data: StateData[P]) => 
+			log.warning(s"Current generation ${data.generation.currentIteration} but report from a generation ${rc.report.generationId} only just finished.  System is running slowly.")
+			stay
+	}
+	
+	when(WaitingForShutdown) {
+		case Event(rc: ReportCompleted[P], state: StateData[P]) => 
+			log.info("Final report completed.  Informing client")
+			state.client ! rc.report
+			stay
 	}
 	
 	def allocateWork(worker: ActorRef, stateData: StateData[P]) = {
@@ -233,7 +248,7 @@ abstract class RootActor[P]
 		}
 	}
 	
-	def report(client: ActorRef, generation: Generation[P], finalReport: Boolean){
-		client ! algorithm.buildReport(generation, config, finalReport)
+	def report(generation: Generation[P]){
+		reportingActor ! algorithm.buildReport(generation, config)
 	}
 }

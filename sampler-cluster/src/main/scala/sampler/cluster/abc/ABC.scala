@@ -24,19 +24,18 @@ import akka.actor.Props
 import sampler.cluster.actor.PortFallbackSystemFactory
 import com.typesafe.config.ConfigFactory
 import sampler.io.Logging
-import sampler.cluster.abc.actor.Start
 import sampler.math.Statistics
 import akka.pattern.ask
 import akka.actor.ActorSystem
 import java.util.concurrent.TimeUnit
 import sampler.cluster.abc.config.ABCConfig
-import sampler.cluster.abc.actor.root.RootActor
-import sampler.cluster.abc.actor.root.RootActorImpl
+import sampler.cluster.abc.actor.root.ABCActor
+import sampler.cluster.abc.actor.root.ABCActorImpl
 import akka.actor.ActorRef
 import akka.pattern.ask
-import sampler.cluster.abc.actor.report._
 import sampler.cluster.abc.actor.Report
 import sampler.cluster.abc.algorithm.Generation
+import sampler.cluster.abc.actor.Start
 
 trait ABCActors {
 	val system: ActorSystem
@@ -55,18 +54,9 @@ trait ABCActorsImpl extends ABCActors{
 			config: ABCConfig, 
 			reportAction: Option[Report[P] => Unit]) = {
 		
-		def abcActor[P](model: Model[P], config: ABCConfig) = 
-			system.actorOf(
-					Props(classOf[RootActorImpl[P]], model, config), 
-					"root"
-			)
-		
 		system.actorOf(
-			Props(
-				classOf[ReportingActor[P]], 
-				abcActor(model, config), 
-				reportAction
-			)
+				Props(classOf[ABCActorImpl[P]], model, config, reportAction), 
+				"root"
 		)
 	}
 }
@@ -101,7 +91,7 @@ object ABC extends ABCActorsImpl with Logging {
 		val actor = entryPointActor(model, config, reporting)
 		
 		implicit val timeout = Timeout(config.cluster.futuresTimeoutMS, TimeUnit.MILLISECONDS)
-		val future = (actor ? initState).mapTo[Report[P]]
+		val future = (actor ? Start(initState)).mapTo[Report[P]]
 		val result = Await.result(future, Duration.Inf).posterior
 		
 		if(config.cluster.terminateAtTargetGenerations){

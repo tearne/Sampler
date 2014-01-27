@@ -20,6 +20,9 @@ package sampler
 import sampler.data.{ToEmpirical, ToSamplable}
 import sampler.r.ToNamedSeq
 
+//TODO documentation explaining how to use this and what the different bits do
+//     also docs in the sub traits with examples (can refer to them for the
+//     examples in this object)
 object Implicits 
 	extends ToEmpirical
 	with ToSamplable

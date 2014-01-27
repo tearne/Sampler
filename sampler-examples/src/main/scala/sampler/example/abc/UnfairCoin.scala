@@ -41,7 +41,7 @@ object UnfairCoin extends App {
 	/*
 	 * ABCParameters loaded from application.conf
 	 */
-	val wd = Paths.get("results", "UnfairCoin", "posterior.pdf")
+	val wd = Paths.get("results", "UnfairCoin")
 	Files.createDirectories(wd.getParent)
 	
 	
@@ -62,13 +62,13 @@ object UnfairCoin extends App {
 	
 	// Make plot of final generation (posterior)
 	writeDensity(
-		wd, 
+		wd.resolve("posterior.pdf"), 
 		finalGeneration.continuous("P[Heads]")
 	)
 	
 	
 	// Make plot showing all generations
-	CSV.transpose(tempCSV, wd.resolve("output.csv"), false)
+	CSV.transpose(tempCSV, wd.resolve("output.csv"))
 	
 	val rScript = s"""
 lapply(c("ggplot2", "reshape"), require, character.only=T)
