@@ -163,26 +163,15 @@ class CSVTest extends AssertionsForJUnit with Matchers {
   	assert(lines.size === 4)
   }
   
-  @Test def transposeFileWithHeader {
+  @Test def transpose {
     val transposeTable = dir.resolve("transposeTable.csv")
     
-  	CSV.transpose(transposeTable, tempFile, false)
+  	CSV.transpose(transposeTable, tempFile)
   	
   	val lines = Source.fromFile(tempFile.toFile()).getLines.toIndexedSeq
   	
   	assert(lines(0) === "Number,1,3,5")
     assert(lines(1) === "Wang,2,4,6")
-  }
-  
-  @Test def transposeFileDropHeader {
-    val transposeTable = dir.resolve("transposeTable.csv")
-			  
-    CSV.transpose(transposeTable, tempFile, true)
-			  
-    val lines = Source.fromFile(tempFile.toFile()).getLines.toIndexedSeq
-			  
-    assert(lines(0) === "1,3,5")
-    assert(lines(1) === "2,4,6")
   }
   
   @Test def overwriteWithFewerLinesRemovesAllPreviousLines {

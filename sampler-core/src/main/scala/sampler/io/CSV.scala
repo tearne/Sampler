@@ -8,6 +8,10 @@ import scala.Array.canBuildFrom
 import scala.Array.fallbackCanBuildFrom
 import scala.io.Source
 
+
+//TODO add an example where column data is transposed in order to save to CSV,
+//     unless this is already here... don't have time to check! 
+
 /** Facilitates the reading and writing of csv files
  *  
  *  <h3>Reading files</h3>
@@ -111,11 +115,11 @@ s"""Headers in ${filePath.toAbsolutePath()} don't match.
 	 * @param removeHeader Set to true if the data file contains a header line that needs removing before transposition
 	 * @param openOptions Options specifying how the file is opened
 	 */
-	def transpose(inPath: Path, outFile: Path, removeHeader: Boolean, outputOpenOptions: OpenOption*) {
-		val matrix = removeHeader match {
-		  case true => Source.fromFile(inPath.toFile).getLines.drop(1).map(line => line.split(',').map(_.trim).toList).toList
-		  case false => Source.fromFile(inPath.toFile).getLines.map(line => line.split(',').map(_.trim).toList).toList
-		}
+	def transpose(inPath: Path, outFile: Path, outputOpenOptions: OpenOption*) {
+		val matrix = Source.fromFile(inPath.toFile)
+				.getLines
+				.map(line => line.split(',').map(_.trim).toList)
+				.toList
 		writeLines(outFile, matrix.transpose, outputOpenOptions: _*)
 	}
 	
