@@ -36,6 +36,24 @@ import sampler.cluster.abc.actor.Report
  * 
  */
 
+
+/*
+ * 
+ * Population grid showing company A & B locations
+ * 
+ * 	.	A	.	.	.	.	.	.	A	B(99)
+ *  .	.	.	.	A	.	.	.	B	.
+ * 	A	.	.	.	.	.	.	AB	.	.
+ * 	.	.	.	A	.	.	B	.	.	.
+ *  .	.	.	.	.	B	A	.	.	.
+ *  .	.	A	.	B	.	.	.	.	A
+ *  .	.	.	B(33)	A	.	.	.	.
+ *  .	A	B	.	.	.	.	.	A	.
+ *  .	B	.	.	A	.	.	.	.	.
+ *  AB(0)	.	.	.	.	.	A	.	.
+ * 
+ */
+
 case class SpreadRates(local: Double, company: Double){
 	def toSeq = Seq(local, company)
 }
@@ -45,8 +63,8 @@ object SpreadRates{
 
 object NetworkModel extends Model[SpreadRates]{
 	implicit val random = Random
-	val observations = Set(0, 88, 56, 42, 14, 46, 84, 74, 28, 70, 21, 33, 53, 77, 96, 73, 32, 64, 22, 44, 12, 49, 86, 7, 98, 91, 66, 35, 63, 11, 99, 55, 23, 19, 47, 62)
-	val knownSource = Set(44)
+	val observations = Set(0, 88, 10, 56, 42, 14, 78, 84, 28, 70, 21, 33, 53, 77, 32, 34, 22, 44, 12, 49, 7, 98, 91, 66, 80, 35, 63, 11, 43, 99, 55, 23, 79, 68)
+	val knownSource = Set(33)
 	val runLengthDays = 14
 	
 	//TODO lots of scope for prior stuff in the core
@@ -153,7 +171,7 @@ object Generate extends App{
 	}
 }
 
-object NetworkABC extends App{
+object Network extends App{
 
 	val wd = Paths.get("results").resolve("Network")
 	Files.createDirectories(wd)
