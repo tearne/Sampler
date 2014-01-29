@@ -8,10 +8,6 @@ import scala.Array.canBuildFrom
 import scala.Array.fallbackCanBuildFrom
 import scala.io.Source
 
-
-//TODO add an example where column data is transposed in order to save to CSV,
-//     unless this is already here... don't have time to check! 
-
 /** Facilitates the reading and writing of csv files
  *  
  *  <h3>Reading files</h3>
@@ -33,9 +29,10 @@ import scala.io.Source
  *  Running the above in the Scala interpreter would yield:
  *  {{{
  *  > wholeFile.toIndexedSeq
- *  res: IndexedSeq[IndexedSeq[String]] = Vector(ArraySeq(Col1, Col2, Col3), ArraySeq(1, 2, 3), ArraySeq(4, 5, 6))
+ *      res: IndexedSeq[IndexedSeq[String]] = Vector(ArraySeq(Col1, Col2, Col3), ArraySeq(1, 2, 3), ArraySeq(4, 5, 6))
+ *  
  *  > selectedColumns.toIndexedSeq
- *  res: IndexedSeq[IndexedSeq[String]] = Vector(ArraySeq(Col1, Col3), ArraySeq(1, 3), ArraySeq(4, 6))
+ *      res: IndexedSeq[IndexedSeq[String]] = Vector(ArraySeq(Col1, Col3), ArraySeq(1, 3), ArraySeq(4, 6))
  *  }}}
  *  
  *  <h3>Writing files</h3>
@@ -45,6 +42,21 @@ import scala.io.Source
  *  val outFile = java.nio.file.Paths.get("testOut.csv")
  *  val outData = Seq(Seq("Col1", "Col2", "Col3"),Seq(1,2,3),Seq(4,5,6))
  *  CSV.writeLines(outFile, outData, StandardOpenOption.CREATE)
+ *  }}}
+ *  
+ *  <h3>Transposing</h3>
+ *  The transpose method is can be used to make writing column data files easier, by writing rows of data
+ *  structures required to be formatted as columns, and then transposing the resultant file
+ *  {{{
+ *  val col1 = Seq(1,2,3)
+ *  val col2 = Seq(4,5,6)
+ *  
+ *  val rowsFile = java.nio.file.Paths.get("inRows.csv")
+ *  
+ *  CSV.writeLine(rowsFile, col1, StandardOpenOption.CREATE)
+ *  CSV.writeLine(rowsFile, col2, StandardOpenOption.APPEND)
+ *  
+ *  CSV.transpose(rowsFile, java.nio.file.Paths.get("transposed.csv"), StandardOpenOption.CREATE)
  *  }}}
  */
 object CSV {
