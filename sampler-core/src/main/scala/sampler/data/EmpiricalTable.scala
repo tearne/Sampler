@@ -41,7 +41,7 @@ class EmpiricalTable[A](val freqTable: Map[A, Int]) extends Empirical[A]{
 	 * in this instance and those in the more instance
 	 * 
 	 * {{{
-	 * val empTable = new EmpiricalTable(IndexedSeq(1,2,3)
+	 * val empTable = new EmpiricalTable(IndexedSeq(1,2,3))
 	 * val more = IndexedSeq(3)
 	 * 
 	 * empTable ++ more
