@@ -20,7 +20,15 @@ package sampler.data
 import scala.collection.GenSeq
 import scala.collection.parallel.ParSeq
 
+/** For producing samples from a distribution until a condition is met */
+
 trait Sampler{
+  /** Collects samples from distribution until condition returns true
+   *  
+   *  @param distribution Distribution object from which samples can be drawn
+   *  @param condition Function to decide when to stop sampling
+   *  @return Collection of sampled elements
+   */
 	def apply[T](distribution: Distribution[T])(condition: GenSeq[T] => Boolean): GenSeq[T]
 }
 
@@ -38,6 +46,9 @@ trait Sampler{
 
 
 //TODO say in the docs that this just uses Dist.until
+/** Serializable implementation of [[sampler.data.Sampler]], uses until method of [[sampler.data.Distribution]] 
+ *  to sample from the distribution
+ */
 object SerialSampler extends Sampler with Serializable{
 	def apply[T](distribution: Distribution[T])(condition: GenSeq[T] => Boolean) = 
 		distribution.until(condition).sample()
