@@ -10,18 +10,11 @@ import org.junit.Test
 
 class ScriptRunnerTest extends AssertionsForJUnit {
 
-	var workingDir: Path = _
-	var scriptPath: Path = _
-	var rOutPath: Path = _
-	var jsonPath: Path = _
-
-	@Before
-	def initialse {
-	  workingDir = Paths.get("src", "test", "resources", "data")
-	  scriptPath = workingDir.resolve("deleteMe.r")
-	  rOutPath = workingDir.resolve("deleteMe.r.Rout")
-	  jsonPath = workingDir.resolve("deleteMe.json")
-	}
+	val workingDir = Paths.get("src", "test", "resources", "data")
+	val scriptPath = workingDir.resolve("deleteMe.r")
+	val rOutPath = workingDir.resolve("deleteMe.r.Rout")
+	val jsonPath = workingDir.resolve("deleteMe.json")
+	val noExtension = workingDir.resolve("noExtension")
 	
 	@Test
 	def doesntPrintOut {
@@ -41,27 +34,6 @@ a
 	  assert(runTime > 1.0)
 	}
 	
-	//A simple example of getting variables from R to Scale using json
-//	@Test
-//	def writesJSONscript {
-//	  val script =
-//"""
-//require("rjson")
-//a <- c(2,4,6)
-//df <- data.frame(parameter=a)
-//jsonOut <- toJSON(df)
-//fileName <- file("deleteMe.json")
-//writeLines(jsonOut, fileName)
-//close(fileName)
-//"""
-//
-//	  ScriptRunner(script, scriptPath)
-//	  val config = ConfigFactory.parseFile(jsonPath.toFile())	
-//	  val result = asScalaBuffer(config.getIntList("parameter"))
-//			
-//	  assert(result === List(2,4,6))
-//	}
-	
 	@Test
 	def errorWhenFails {
 	  intercept[ScriptRunnerException] {
@@ -73,8 +45,15 @@ a
 	  }
 	}
 	
+	@Test
+	def errorWhenFileNameDoesntEndRFileExtension {
+	  intercept[AssertionError] {
+	    ScriptRunner("a <- 1", noExtension)
+	  }
+	}
+	
 	@After
 	def fileTearDown {
-	  List(scriptPath, rOutPath, jsonPath).foreach(Files.deleteIfExists)
+	  List(scriptPath, rOutPath, jsonPath, noExtension).foreach(Files.deleteIfExists)
 	}
 }

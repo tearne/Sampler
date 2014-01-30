@@ -31,6 +31,7 @@ class ScriptRunner {
 	 *  @param scriptPath The path to where the script should be written, including filename
 	 */
 	def apply(script: String, scriptPath: Path){
+		assert(scriptPath.toString.endsWith(".r"), "R script does not have correct file extension")
 		val writer = new FileWriter(scriptPath.toFile)
 		val parentPath = scriptPath.toAbsolutePath.getParent.toFile
 		
