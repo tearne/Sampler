@@ -45,13 +45,34 @@ import scala.io.Source
  *  }}}
  *  
  *  <h3>Transposing</h3>
- *  The transpose method is can be used to make writing column data files easier, by writing rows of data
- *  structures required to be formatted as columns, and then transposing the resultant file
+ *  Often data you might want to write to a csv is handled more naturally in the code as columns, i.e. a data structure with one set of
+ *  data that would want to be written to a column. The CSV object writes data row-by-row. There are two options for writing the correct
+ *  csv in these situations.
+ *  
+ *  1) Transpose in the code and then write to CSV as in the example below. The method has the benefit of requiring no writing of temporary
+ *  files and that it is likely to be faster to execute. However, all the data is required to be present up front.
+ *  {{{
+ *  val names = Seq("Tom", "Dick", "Harry")
+ *  val ages = Seq(25, 32, 18)
+ *  val colours = Seq("Red", "Blue", "Green")
+ *  
+ *  val columns = Seq(
+ *      "Name" +: names,
+ *      "Age" +: ages,
+ *      "FavouriteColour" +: colours
+ *  )
+ *  val transposed = columns.transpose
+ *  
+ *  CSV.writeLines(java.nio.file.Paths.get("transposed.csv"), transposed)
+ *  }}}
+ *  
+ *  2) Writing a row based temporary file and then using the CSV methods to transpose the file. The advantage of this methdo being that 
+ *  you don't need all the data up front and can build up the rows in the temporary file as the data becomes available.
  *  {{{
  *  val col1 = Seq(1,2,3)
  *  val col2 = Seq(4,5,6)
  *  
- *  val rowsFile = java.nio.file.Paths.get("inRows.csv")
+ *  val rowsFile = java.nio.file.Files.createTempFile(null, null)
  *  
  *  CSV.writeLine(rowsFile, col1, StandardOpenOption.CREATE)
  *  CSV.writeLine(rowsFile, col2, StandardOpenOption.APPEND)
