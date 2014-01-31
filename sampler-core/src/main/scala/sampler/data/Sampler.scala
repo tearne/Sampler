@@ -45,7 +45,6 @@ trait Sampler{
  */
 
 
-//TODO say in the docs that this just uses Dist.until
 /** Serializable implementation of [[sampler.data.Sampler]], uses until method of [[sampler.data.Distribution]] 
  *  to sample from the distribution
  */
@@ -54,9 +53,25 @@ object SerialSampler extends Sampler with Serializable{
 		distribution.until(condition).sample()
 }
 
-//TODO docs
-//TODO give warning about the perils of non thread safe dists.  With commons math normal dist example
-//     See http://stackoverflow.com/questions/20969292/thread-safety-warnings
+/** Parallelised implementation of [[sampler.data.Sampler]] allowing sampling of a distribution across
+ *  multiple threads, which continuously takes batches of samples from the supplied distribution until
+ *  a condition is met
+ *  
+ *  Warning: The supplied distribution must be thread safe to avoid propagation of error resulting from the 
+ *  concurrent calling of the sample method. E.g. In the Commons math normal distribution parallel sampling 
+ *  can sometimes give NaN due to concurrent access to a random number generator
+ *  {{{
+*  val normal = new NormalDistribution(0,0.1)
+*  (1 to 1000000000).par.foreach{i =>
+*      val r = normal.sample
+*      if(r.isNaN()) throw new Exception("r = "+r)
+*  }
+*  }}}
+*  Example taken from http://stackoverflow.com/questions/20969292/thread-safety-warnings
+ *  
+ *  @constructor Create a new ParrallerSampler 
+ *  @param chunkSize Number of samples taken during each iteration
+ */
 class ParallelSampler(chunkSize: Int) extends Sampler{
 	def apply[T](distribution: Distribution[T])(condition: GenSeq[T] => Boolean) = {
 		def takeMore(previous: ParSeq[T]): ParSeq[T] = {
