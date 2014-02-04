@@ -95,7 +95,7 @@ abstract class WorkerActor[P]
 			ref ! result
 			goto(Idle) using Uninitialised
 		case Event(Failure(result), Client(ref)) =>
-			log.error(result.getMessage())
+			log.error(result.getStackTrace().mkString(" : "))
 			ref ! Failed
 			goto(Idle) using Uninitialised
 	}
