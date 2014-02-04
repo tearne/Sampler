@@ -88,11 +88,11 @@ import com.amazonaws.services.ec2.model.Instance
 object ClusterDeployment extends App with CommonDeployTasks {
 	import awsProps._
 	
-	
 	/*
 	 * Configuration
 	 */
 	val tearDown = true
+	val application: String = "sampler.example.abc.Network"
 	def getRunScript(localPrivateIP: String, masterPrivateIP: String) = s"""
 java -Xmx3g \\
 -Dakka.remote.netty.tcp.hostname=$localPrivateIP \\
@@ -131,8 +131,6 @@ $application
 }
 
 trait CommonDeployTasks extends Logging{
-	val application: String = "sampler.example.abc.NetworkABC"
-	
 	def runRemoteScript(node: Instance, fileName: String){
 		val cmd = ssh.backgroundCommand(awsProps.instanceUserName, node.getPublicDnsName(), s"~/deploy/$fileName")
 		log.info(cmd)
