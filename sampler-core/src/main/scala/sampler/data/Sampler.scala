@@ -19,38 +19,62 @@ package sampler.data
 
 import scala.collection.GenSeq
 import scala.collection.parallel.ParSeq
+import sampler.math.StatisticsComponentImpl
+import sampler.math.Statistics
+import sampler.Implicits._ 
 
 /** For producing samples from a distribution until a condition is met */
 
 trait Sampler{
+//  def kickstart[T](distribution: Distribution[T]): GenSeq[T]
+  
   /** Collects samples from distribution until condition returns true
    *  
    *  @param distribution Distribution object from which samples can be drawn
    *  @param condition Function to decide when to stop sampling
    *  @return Collection of sampled elements
    */
-	def apply[T](distribution: Distribution[T])(condition: GenSeq[T] => Boolean): GenSeq[T]
+	def apply[T](distribution: Distribution[T])(protocol: ConvergenceProtocol[T]): GenSeq[T]
 }
 
+trait EmpiricalMetric {
+  def distance[T](e1: Empirical[T], e2: Empirical[T]): Double
+}
 
-//TODO add options making it easier to test the condition in the client code
-/*
- * e.g. currently it's a pain:
- * 
- * 			new ParallelSampler(chunkSize)(samplable)(seq => {
- *				statistics.maxDistance(seq.take(seq.size - chunkSize).toEmpiricalSeq, seq.toEmpiricalSeq) < tolerance ||
- *					seq.size == 1e8
- *			})
- * 
- */
+trait MaxMetric extends EmpiricalMetric with StatisticsComponentImpl {
+  def distance[T](e1: Empirical[T], e2: Empirical[T]): Double = statistics.maxDistance(e1, e2)
+}
 
+//trait MeanMetric extends EmpiricalMetric with StatisticsComponentImpl {
+//	def distance[T](e1: Empirical[T], e2: Empirical[T]): Double = statistics.meanDistance(e1, e2)
+//}
+
+abstract class ConvergenceProtocol[T](val chunkSize: Int, tolerance: Double){
+  this: EmpiricalMetric =>
+    
+  def converged(seq: GenSeq[T]): Boolean = {
+    val e1 = seq.take(seq.size - chunkSize).toEmpiricalSeq
+    val e2 = seq.toEmpiricalSeq
+    distance(e1, e2) < tolerance
+  }
+}
 
 /** Serializable implementation of [[sampler.data.Sampler]], uses until method of [[sampler.data.Distribution]] 
  *  to sample from the distribution
  */
-object SerialSampler extends Sampler with Serializable{
-	def apply[T](distribution: Distribution[T])(condition: GenSeq[T] => Boolean) = 
-		distribution.until(condition).sample()
+class SerialSampler extends Sampler with Serializable{
+	def apply[T](distribution: Distribution[T])(protocol: ConvergenceProtocol[T]) = {
+	  val chunkSize = protocol.chunkSize
+	  
+	  def takeMore(previous: Seq[T]): Seq[T] = {
+		  if(protocol.converged(previous)) previous
+		  else takeMore (
+		      previous ++ (distribution.until(_.length > chunkSize).sample())
+		  )
+	  }
+	  
+	  takeMore(distribution.until(_.length > chunkSize).sample())
+	}
 }
 
 /** Parallelised implementation of [[sampler.data.Sampler]] allowing sampling of a distribution across
@@ -72,10 +96,12 @@ object SerialSampler extends Sampler with Serializable{
  *  @constructor Create a new ParrallerSampler 
  *  @param chunkSize Number of samples taken during each iteration
  */
-class ParallelSampler(chunkSize: Int) extends Sampler{
-	def apply[T](distribution: Distribution[T])(condition: GenSeq[T] => Boolean) = {
-		def takeMore(previous: ParSeq[T]): ParSeq[T] = {
-			if(condition(previous)) previous
+class ParallelSampler extends Sampler{
+	def apply[T](distribution: Distribution[T])(protocol: ConvergenceProtocol[T]) = {
+	  val chunkSize = protocol.chunkSize
+	  
+	  def takeMore(previous: ParSeq[T]): ParSeq[T] = {
+			if(protocol.converged(previous)) previous
 			else takeMore(
 					previous ++ (1 to chunkSize).par.map(i => distribution.sample)
 			)
