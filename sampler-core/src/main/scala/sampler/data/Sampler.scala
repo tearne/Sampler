@@ -25,22 +25,25 @@ import sampler.Implicits._
 
 /** For producing samples from a distribution until a condition is met */
 
+// TODO add a stop condition to prevent infinite running
+// TODO test calling of takeMore with multiples of ChunkSize
+
 trait Sampler{
-//  def kickstart[T](distribution: Distribution[T]): GenSeq[T]
-  
   /** Collects samples from distribution until condition returns true
    *  
    *  @param distribution Distribution object from which samples can be drawn
    *  @param condition Function to decide when to stop sampling
    *  @return Collection of sampled elements
    */
-	def apply[T](distribution: Distribution[T])(protocol: ConvergenceProtocol[T]): GenSeq[T]
+	def apply[T](distribution: Distribution[T])(protocol: ConvergenceProtocol[T]): GenSeq[T] 
 }
 
+/** Metric defining how the distance between two Empirical objects should be measures */
 trait EmpiricalMetric {
   def distance[T](e1: Empirical[T], e2: Empirical[T]): Double
 }
 
+/** Implementation of [[sampler.data.EmpiricalMetric]] using the maximum distance statistical method */ 
 trait MaxMetric extends EmpiricalMetric with StatisticsComponentImpl {
   def distance[T](e1: Empirical[T], e2: Empirical[T]): Double = statistics.maxDistance(e1, e2)
 }
@@ -49,9 +52,21 @@ trait MaxMetric extends EmpiricalMetric with StatisticsComponentImpl {
 //	def distance[T](e1: Empirical[T], e2: Empirical[T]): Double = statistics.meanDistance(e1, e2)
 //}
 
+/** Determines whether a sequence of samples has converged. Requires mixin of a [[sampler.data.EmpiricalMetric]] 
+ *  implementation
+ *  
+ *  @constructor Create a new convergence protocol given a chunk size and tolerance
+ *  @param chunkSize the size of sampled chunks that have been used to build the sequence of samples
+ *  @param tolerance the degree to which the samples can differ whilst being classed as converged
+ */
 abstract class ConvergenceProtocol[T](val chunkSize: Int, tolerance: Double){
   this: EmpiricalMetric =>
     
+  /** Tests a sequence of samples for convergence
+   * 
+   *  @param seq Samples to be tested for convergence
+   *  @return true/false according to if the samples had converged 
+   */
   def converged(seq: GenSeq[T]): Boolean = {
     val e1 = seq.take(seq.size - chunkSize).toEmpiricalSeq
     val e2 = seq.toEmpiricalSeq
@@ -62,7 +77,7 @@ abstract class ConvergenceProtocol[T](val chunkSize: Int, tolerance: Double){
 /** Serializable implementation of [[sampler.data.Sampler]], uses until method of [[sampler.data.Distribution]] 
  *  to sample from the distribution
  */
-class SerialSampler extends Sampler with Serializable{
+object SerialSampler extends Sampler with Serializable{
 	def apply[T](distribution: Distribution[T])(protocol: ConvergenceProtocol[T]) = {
 	  val chunkSize = protocol.chunkSize
 	  
@@ -96,7 +111,7 @@ class SerialSampler extends Sampler with Serializable{
  *  @constructor Create a new ParrallerSampler 
  *  @param chunkSize Number of samples taken during each iteration
  */
-class ParallelSampler extends Sampler{
+object ParallelSampler extends Sampler{
 	def apply[T](distribution: Distribution[T])(protocol: ConvergenceProtocol[T]) = {
 	  val chunkSize = protocol.chunkSize
 	  
@@ -106,7 +121,6 @@ class ParallelSampler extends Sampler{
 					previous ++ (1 to chunkSize).par.map(i => distribution.sample)
 			)
 		}
-		val kickstart = (1 to chunkSize).par.map(i => distribution.sample)
-		takeMore(kickstart)
+		takeMore((1 to chunkSize).par.map(i => distribution.sample))
 	}
 }

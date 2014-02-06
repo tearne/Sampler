@@ -31,6 +31,7 @@ import sampler.cluster.abc.actor.Tagged
 import sampler.cluster.abc.actor.GenerateJob
 import sampler.cluster.abc.actor.TaggedScoredSeq
 import sampler.data.ConvergenceProtocol
+import sampler.data.MaxMetric
 
 trait ModelRunnerComponent[P] {
 	val model: Model[P]
@@ -63,7 +64,7 @@ trait ModelRunnerComponent[P] {
 						val modelWithMetric = model.distanceToObservations(params)
 //						SerialSampler(modelWithMetric)(_.size == job.config.job.numReplicates)
 						val replicates = job.config.job.numReplicates
-						SerialSampler.apply(modelWithMetric)(new ConvergenceProtocol(replicates, 2.0) with MaxMetric)
+						SerialSampler.apply(modelWithMetric)(new ConvergenceProtocol[Double](replicates, 0.5) with MaxMetric).toIndexedSeq
 					}
 					
 					val res: Option[Scored[P]] = for{

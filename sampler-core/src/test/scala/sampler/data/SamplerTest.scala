@@ -8,8 +8,7 @@ class SamplerTest extends AssertionsForJUnit {
   @Test def serialSamplingTest {
     val dist = Distribution.continually(1)
     
-    val ss = new SerialSampler
-    val sampledList = ss.apply(dist)(new ConvergenceProtocol[Int](5, 1.0) with MaxMetric)
+    val sampledList = SerialSampler.apply(dist)(new ConvergenceProtocol[Int](5, 1.0) with MaxMetric)
     
     val expectedList = List(1,1,1,1,1,1)
     
@@ -19,8 +18,7 @@ class SamplerTest extends AssertionsForJUnit {
   @Test def samplerGivesCorrectSequence {
     val dist = Distribution.continually(2)
     
-    val ps = new ParallelSampler
-    val sampledList = ps.apply(dist)(new ConvergenceProtocol[Int](3, 1.0) with MaxMetric)
+    val sampledList = ParallelSampler.apply(dist)(new ConvergenceProtocol[Int](3, 1.0) with MaxMetric)
     
     val expectedList = List(2,2,2,2,2,2)
     
