@@ -151,7 +151,6 @@ class BroadcastActor(abcParams: ABCConfig) extends Actor with ActorLogging{
 	
 	case class NumWorkers(n: Int)
 	val reportingActor = context.actorOf(Props(new Actor with ActorLogging{
-		
 		val Tick = "timeToReport"
 		import context.dispatcher
 		import scala.concurrent.duration._

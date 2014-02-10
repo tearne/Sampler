@@ -92,7 +92,14 @@ object ClusterDeployment extends App with CommonDeployTasks {
 	 * Configuration
 	 */
 	val tearDown = true
-	val application: String = "sampler.example.abc.Network"
+	//
+	//
+	//
+	//  !!!!!!!!!
+	//
+	//
+	//
+	val application: String = "sampler.example.old.Network"
 	def getRunScript(localPrivateIP: String, masterPrivateIP: String) = s"""
 java -Xmx3g \\
 -Dakka.remote.netty.tcp.hostname=$localPrivateIP \\

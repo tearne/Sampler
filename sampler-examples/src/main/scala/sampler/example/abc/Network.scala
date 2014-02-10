@@ -40,6 +40,7 @@ import scala.language.reflectiveCalls
 case class Transmission(from: Int, to: Int){
 	assert(from < 100 && from >= 0)
 	assert(to < 100 && to >= 0)
+	lazy val reversed = Transmission(to, from)
 }
 
 case class Outbreak(infected: Set[Int], events: Set[Transmission]){
@@ -67,29 +68,36 @@ object Outbreak{
 //	def seed(farm: Int) = InfectionDates(Map(farm -> 0))
 //}
 
-case class Parameters(localTransmission: Double, companyTransmission: Double){
-	def toSeq: Seq[Any] = Seq(localTransmission, companyTransmission)
+case class UniformPrior(min: Double, max: Double){
+	def density(x: Double) = if(x <= max && x >= min) 1.0/(max-min) else 0
+	def sample(r: Random) = r.nextDouble(min, max)
+}
+
+case class Parameters(localTransmission: Double, companyTransmission: Double, sourceFarm: Int){
+	def toSeq: Seq[Any] = {
+		val sourcePos = Parameters.position(sourceFarm)
+		Seq(localTransmission, companyTransmission, sourcePos._1, sourcePos._2)
+	}
 }
 object Parameters {
 	implicit val r = Random
 	
-	val names = Seq("LocalTransmission", "CompanyTransmission")
+	val names = Seq("LocalTransmission", "CompanyTransmission", "SourceX", "SourceY")
 	
 	val farmIdRange = new {
 		val min = 0
 		val max = 99
 	}
-	val priorTransmissionSupport = new {
-		val min = 0.0
-		val max = 0.2
-	}
+	val localSpreadPrior = UniformPrior(0.0,0.5)
+	val companySperadPrior = UniformPrior(0.0,0.5)
+	
 	val allFarmIds = (farmIdRange.min to farmIdRange.max).toSet
 	
-	def position(fid: Int) = (fid / 10, fid % 10)
+	def position(fid: Int) = (fid % 10, fid / 10)
 	
 	def neighboursIncludingSelf(id: Int): Set[Int] = {
 		assert(id < 100 && id >= 0,  "Farm ID out of range")
-		val (yPos, xPos) = position(id)
+		val (xPos, yPos) = position(id)
 		def axisNbrs(idx: Int): Set[Int] = idx match {
 			case 0 => Set(0, 1)
 			case 9 => Set(8, 9)
@@ -100,6 +108,20 @@ object Parameters {
 			y <- axisNbrs(yPos)
 		} yield(x + y * 10)
 		includingSelf
+		
+//		val xNbrs = axisNbrs(xPos).map(x => x + 10 * yPos)
+//		val yNbrs = axisNbrs(yPos).map(y => xPos + 10 * y)
+//		xNbrs ++ yNbrs
+		
+//		Set(id)
+	}
+	
+	val sqrt200 = math.sqrt(200)
+	def distanceFn(from: Int, to: Int): Double = {
+		val fromPosition = Parameters.position(from)
+		val toPosition = Parameters.position(to)
+		val dist = math.sqrt(math.pow(fromPosition._1 - toPosition._1, 2) + math.pow(fromPosition._2 - toPosition._2, 2))
+		(sqrt200 - dist) / sqrt200
 	}
 	
 	def sameCompanyIncludingSelf(id: Int): Set[Int] = {
@@ -117,7 +139,7 @@ object Parameters {
 		//TODO don't like the fact that there is another random at work here
 		val normal = {
 			val syncRand: RandomGenerator = new SynchronizedRandomGenerator(new MersenneTwister())
-			new NormalDistribution(syncRand, 0, 0.001, NormalDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY)
+			new NormalDistribution(syncRand, 0, 0.1, NormalDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY)
 		}
 		def sample = normal.sample
 		def density(at: Double) = normal.density(at)
@@ -126,57 +148,81 @@ object Parameters {
 	def perturbUnit(u: Double): Double = {
 		kernel.map(_ + u).filter(value => value <= 1.0 && value >= 0.0).sample
 	}
+
+	def oneStepAway(fid: Int): Set[Int] = {
+		val nbrs = Parameters.neighboursIncludingSelf(fid)
+		val company = Parameters.sameCompanyIncludingSelf(fid)
+		nbrs ++ company
+	}
 	
 	def perturb(p: Parameters): Parameters = {
 		import p._
 		Parameters(
 				perturbUnit(localTransmission),
-				perturbUnit(companyTransmission)
+				perturbUnit(companyTransmission),
+				Distribution.uniform(oneStepAway(sourceFarm).toIndexedSeq).sample
 		)
 	}
 	
 	val prior = new Prior[Parameters]{
-		def transRateDensity(d: Double) = if(d > priorTransmissionSupport.max || d < priorTransmissionSupport.min) 0.0 else 1.0
 		def density(p: Parameters) = {
 			import p._
-			transRateDensity(localTransmission) * transRateDensity(companyTransmission)
+			localSpreadPrior.density(localTransmission) * companySperadPrior.density(companyTransmission) / 100.0
 		}
 		def sample = Parameters(
-			r.nextDouble(priorTransmissionSupport.min, priorTransmissionSupport.max), 
-			r.nextDouble(priorTransmissionSupport.min, priorTransmissionSupport.max)
+			localSpreadPrior.sample(r), 
+			companySperadPrior.sample(r),
+			Distribution.uniform(allFarmIds.toIndexedSeq).sample
 		)
 	}
 	
 	def perturbDensity(a: Parameters, b: Parameters): Double = {
+		val aNbrs = oneStepAway(a.sourceFarm)
+		val spatialDensity = if(aNbrs.contains(b.sourceFarm)) 1.0 / aNbrs.size else 0
+		
+		
 		kernel.density(a.localTransmission - b.localTransmission) *
-		kernel.density(a.companyTransmission - b.companyTransmission)
+		kernel.density(a.companyTransmission - b.companyTransmission) *
+		spatialDensity
 	}
 }
 
+object Test extends App{
+	println(Parameters.position(27))
+	println(Parameters.neighboursIncludingSelf(27))
+}
+
+object Generate extends App{
+	val source = 83
+	val truth = Parameters(0.05,0.25, source)
+	for(i <- 1 to NetworkModel.runLengthDays) yield {
+		val infected = NetworkModel.infecteds(truth).sample
+		println(infected)
+	}
+}
 object NetworkModel extends Model[Parameters]{
- /*
+  /*
   *  		0	1	2	3	4	5	6	7	8	9
   *    ---------------------------------------------
-  * 	9|	.	.	.	.	.	.	.	.	.	.
-  * 	8|	.	.	.	.	.	.	.	.	.	.
-  * 	7|	.	B	B	.	.	.	I	A	.	.
-  * 	6|	.	.	B	.	.	.	.	.	.	.
-  * 	5|	.	.	.	.	.	.	.	.	.	.
+  * 	9|	.	.	.	.	.	.	.	.	B	A
+  * 	8|	.	.	.	B	.	.	A	.	.	.
+  * 	7|	.	A	.	.	.	.	.	.	.	.
+  * 	6|	.	.	.	.	.	.	.	.	.	.
+  * 	5|	.	.	A	.	.	.	.	.	.	.
   * 	4|	.	.	.	.	.	.	.	.	.	A
   * 	3|	.	.	.	.	.	.	.	.	.	.
-  * 	2|	.	B	.	.	.	A	.	B	A	.
-  * 	1|	.	.	.	.	.	.	.	.	.	.
-  * 	0|	.	. 	.	.	.	B	.	A	.	.
+  * 	2|	.	.	.	.	A	A	.	A	.	.
+  * 	1|	.	A	.	.		B	.	.	.	.
+  * 	0|	.	. 	.	.	.	A	.	.	.	.
   *  
   */	
 	
-	val companyA = Set(7, 25, 28, 49, 79)
-	val companyB = Set(5, 21, 27, 62, 71, 72)
+	val companyA = Set(5, 11, 24, 25, 27, 49, 52, 71, 86, 99)
+	val companyB = Set(15, 83, 98)
 	
 	implicit val random = Random
-	val sourceFarm = 76
-	val observations = Outbreak(Set(56, 57, 65, 77, 86, 76, 95, 67, 87, 75, 58),Set(Transmission(76,86), Transmission(67,58), Transmission(67,57), Transmission(76,75), Transmission(86,95), Transmission(86,87), Transmission(86,77), Transmission(67,56), Transmission(75,65), Transmission(76,67)))
-	val runLengthDays = 14
+	val observations = Outbreak(Set(5, 24, 25, 52, 93, 29, 84, 89, 28, 97, 73, 27, 71, 49, 86, 98, 35, 95, 11, 72, 99, 82, 94, 15, 83),Set(Transmission(52,49), Transmission(27,52), Transmission(83,82), Transmission(83,98), Transmission(52,11), Transmission(94,84), Transmission(83,15), Transmission(71,25), Transmission(83,93), Transmission(71,27), Transmission(94,95), Transmission(83,72), Transmission(24,11), Transmission(49,99), Transmission(99,25), Transmission(52,5), Transmission(83,84), Transmission(27,28), Transmission(99,86), Transmission(99,11), Transmission(25,52), Transmission(94,93), Transmission(52,25), Transmission(27,25), Transmission(25,24), Transmission(99,27), Transmission(98,97), Transmission(25,35), Transmission(15,83), Transmission(11,27), Transmission(27,49), Transmission(83,94), Transmission(98,89), Transmission(27,71), Transmission(49,5), Transmission(28,29), Transmission(52,27), Transmission(83,73), Transmission(98,99)))
+	val runLengthDays = 7
 	
 	def perturb(p: Parameters) = Parameters.perturb(p)
 	def perturbDensity(a: Parameters, b: Parameters) = Parameters.perturbDensity(a, b)
@@ -193,9 +239,10 @@ object NetworkModel extends Model[Parameters]{
 					val localNeighbours = Parameters.neighboursIncludingSelf(from) - from
 					val locallyInfected = localNeighbours.filter(_ => localSpread.sample)
 					
-					val companyNetwork = Parameters.sameCompanyIncludingSelf(from) - from
-					val companyInfected = companyNetwork.filter(_ => companySpread.sample)
-					
+					val companyPrems = (Parameters.sameCompanyIncludingSelf(from) - from).toIndexedSeq
+					val companyProbs = companyPrems.map(to => Parameters.distanceFn(from, to) * p.companyTransmission)
+					val companyInfected = companyPrems.zip(companyProbs).filter{case (prem, prob) => random.nextDouble < prob}.map(_._1)
+
 					(locallyInfected ++ companyInfected).map(to => Transmission(from, to))
 				}
 				
@@ -212,7 +259,7 @@ object NetworkModel extends Model[Parameters]{
 		}
 		
 		Distribution{
-			iterateDays(Outbreak.seed(sourceFarm), runLengthDays)
+			iterateDays(Outbreak.seed(p.sourceFarm), runLengthDays)
 		}
 	} 
 	
@@ -249,30 +296,39 @@ object NetworkModel extends Model[Parameters]{
 		val simu = simulated.events
 		val real = observations.events
 		
-		val r1 = simu.toSeq.map(simuTrans => if(real.contains(simuTrans)) 0 else 1 )
-		val r2 = real.toSeq.map(realTrans => if(simu.contains(realTrans)) 0 else 1 )
-		val result = (r1 ++ r2).sum
+		def score(t:Transmission, events: Set[Transmission]): Int = {
+			if(events.contains(t.reversed)) 100
+			else if(!events.contains(t)) 10
+			else 0
+		}		
+		
+		val r1 = simu.map(score(_,real)).sum
+		val r2 = real.map(score(_,simu)).sum
 //		println(result+ "   -      "+r1+" ++ "+r2)
-		result
+		r2 + r1
 	}
-//		
-//	def sizeDiffMetric(simulated: Outbreak) = 
-//		math.abs(simulated.numInfected - observations.numInfected)
-//		
+	
+	def transmissionDirection(sim: Outbreak) = {
+		val obsEvnts = observations.events
+		val simEvnts = sim.events
+		val a = obsEvnts.map(evnt => if(simEvnts.contains(evnt.reversed)) 1 else 0).sum
+		val b = simEvnts.map(evnt => if(obsEvnts.contains(evnt.reversed)) 1 else 0).sum
+		a + b
+	}
+	
+	def sizeDiffMetric(simulated: Outbreak) = 
+		math.abs(simulated.numInfected - observations.numInfected)
+		
+//	def distanceToObservations(p: Parameters): Distribution[Double] = {
+//		infecteds(p).map(outbreak => nodeDiffmetric(outbreak) + sizeDiffMetric(outbreak))
+//	}
+	
 	def distanceToObservations(p: Parameters): Distribution[Double] = {
-		infecteds(p).map(outbreak => nodeDiffmetric(outbreak))
+		infecteds(p).map(outbreak => transmissionDirection(outbreak) + nodeDiffmetric(outbreak) + sizeDiffMetric(outbreak))
 	}
 }
 
-object Generate extends App{
-	val truth = Parameters(0.05,0.15)
-	for(i <- 1 to NetworkModel.runLengthDays) yield {
-		val infected = NetworkModel.infecteds(truth).sample
-		println(infected)
-	}
-}
-
-object Network extends App{
+object Network extends App {
 
 	val wd = Paths.get("results").resolve("Network")
 	Files.createDirectories(wd)
@@ -301,16 +357,20 @@ object Network extends App{
 			pdf("density.$generationId%02d.pdf", width=4.13, height=2.91) #A7 landscape paper
 			ggplot(posterior, aes(x = LocalTransmission)) + 
 				geom_density() +
-				scale_x_continuous(limits = c(0,0.2), breaks = c(0,0.05,0.2))
+				scale_x_continuous(limits = c(0,0.5))
 
 			ggplot(posterior, aes(x = CompanyTransmission)) + 
 				geom_density() +
-				scale_x_continuous(limits = c(0,0.2), breaks = c(0,0.1,0.2))
+				scale_x_continuous(limits = c(0,0.5))
 			
 			ggplot(posterior, aes(LocalTransmission, CompanyTransmission)) +
 				stat_binhex() +
-				scale_x_continuous(limits = c(0,0.2)) +
-				scale_y_continuous(limits = c(0,0.2))
+				scale_x_continuous(limits = c(0,0.5)) +
+				scale_y_continuous(limits = c(0,0.5))
+			
+			ggplot(posterior, aes(SourceX, SourceY)) +
+				xlim(0,10) + ylim(0,10) +
+				geom_bin2d(binwidth  = c(0.999,0.999))
 			
 			dev.off()
 		"""
