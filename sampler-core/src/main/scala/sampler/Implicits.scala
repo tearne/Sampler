@@ -20,9 +20,11 @@ package sampler
 import sampler.data.{ToEmpirical, ToSamplable}
 import sampler.r.ToNamedSeq
 
-//TODO documentation explaining how to use this and what the different bits do
-//     also docs in the sub traits with examples (can refer to them for the
-//     examples in this object)
+/** Implicit conversions allowing Empirical and Samplable objects to be created from standard collections 
+ *  Examples of usage can be found in [[sampler.data.ToEmpirical]], [[sampler.data.ToSamplable]] and 
+ *  [[sampler.r.ToNamedSeq]].
+ */
+
 object Implicits 
 	extends ToEmpirical
 	with ToSamplable

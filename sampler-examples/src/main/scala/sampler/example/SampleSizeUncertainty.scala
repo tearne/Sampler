@@ -1,14 +1,14 @@
 package sampler.example
 
 import scala.collection.GenSeq
-
 import org.apache.commons.math3.distribution.NormalDistribution
-
 import sampler.Implicits.RichIndexedSeq
 import sampler.data.Distribution
 import sampler.data.ParallelSampler
 import sampler.math.Random
 import sampler.math.Statistics.maxDistance
+import sampler.data.ConvergenceProtocol
+import sampler.data.MaxMetric
 
 /* 
  *  Given an imperfect test characterised by empirical data, how many samples should be taken to
@@ -35,17 +35,8 @@ object SampleSizeUncertainty extends App{
 			
 			val se = {
 				val chunkSize = 1e4.toInt
-				def stopCondition(soFar: GenSeq[Boolean]) = {
-					//TODO make simple metrics like this available off the shelf?
-					val distance = maxDistance(
-				    	    soFar.toEmpiricalTable, 
-				    	    soFar.take(soFar.size - (chunkSize-1)).toEmpiricalTable	// TODO confirm -1 change
-			    	)
-			    	
-			    	(distance < 1e-5) || (soFar.size > 1e8)
-				}
 				
-				val dist = new ParallelSampler(chunkSize)(model)(stopCondition).toEmpiricalTable
+				val dist = ParallelSampler.apply(model)(new ConvergenceProtocol[Boolean](chunkSize, 1e-5) with MaxMetric).toEmpiricalTable
 				dist.probabilityTable(true)
 			}
 			

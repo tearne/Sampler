@@ -34,24 +34,12 @@ class QuickPlotTest extends AssertionsForJUnit with Matchers {
   
   implicit val r: Random = Random
   
-  //TODO the script file name should have ".r" on the end
-  //     WIll need to update all the examples and make sure they still run
   val fileName: String = "plot"
   
   val parentPath: Path = Paths.get("src", "test", "resources", "data")
   val pdfPath: Path = parentPath.resolve(fileName + ".pdf")
-  val scriptPath: Path = parentPath.resolve(fileName)
+  val scriptPath: Path = parentPath.resolve(fileName + ".r")
   
-//  @Before def initialise {
-//    r = Random
-//    
-//    fileName = "plot"
-//    
-//    parentPath = Paths.get("src", "test", "resources", "data")
-//    pdfPath = parentPath.resolve(fileName + ".pdf")
-//    scriptPath = parentPath.resolve(fileName)
-//  }
-
   def linesTheSame(i: String, j: String) = assert(i === j)
   
   private def discreteScript(name: String): Array[String] = {

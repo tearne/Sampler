@@ -42,7 +42,8 @@ object UnfairCoin extends App {
 	 * ABCParameters loaded from application.conf
 	 */
 	val wd = Paths.get("results", "UnfairCoin")
-	Files.createDirectories(wd.getParent)
+//	Files.createDirectories(wd.getParent)
+	Files.createDirectories(wd)
 	
 	
 	val tempCSV = Files.createTempFile(null, null)

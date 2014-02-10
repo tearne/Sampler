@@ -48,7 +48,7 @@ object QuickPlot {
 	    
 	val rScript = buildScript(pdfFile, line1, line2)
 	    
-	ScriptRunner(rScript, parentPath.resolve(fileName))
+	ScriptRunner(rScript, parentPath.resolve(fileName + ".r"))
   }
   
   /** Produces and writes to disk a pdf bar chart for one or more sets of data
@@ -74,6 +74,6 @@ object QuickPlot {
 
     val rScript = buildScript(pdfFile, line1, line2)
 	    
-	ScriptRunner(rScript, parentPath.resolve(fileName))
+	ScriptRunner(rScript, parentPath.resolve(fileName + ".r"))
   }
 }

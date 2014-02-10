@@ -19,6 +19,12 @@ package sampler.math
 
 import sampler.data.Empirical
 
+trait StatisticsComponentImpl{
+//	val statistics = Statistics
+	val statistics = new Statistics{}
+}
+
+
 trait StatisticsComponent{
 	val statistics: Statistics
 }

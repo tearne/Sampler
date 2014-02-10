@@ -24,7 +24,7 @@ package sampler.r
  */
 case class NamedSeqFractional[T: Fractional](seq: Seq[T], name: String)
 
-/** Allows a sequence of discrete data to be nameed for plotting
+/** Allows a sequence of discrete data to be named for plotting
  *  
  *  @param seq Sequence of samples
  *  @param name Name describing the data
@@ -33,6 +33,15 @@ case class NamedSeqIntegral[T: Integral](seq: Seq[T], name: String)
 
 /** Implicits for naming sequences of data when passing to 
  *  [[sampler.r.QuickPlot]]
+ *  
+ *  {{{
+ *  > import sampler.Implicits._
+ *  > IndexedSeq(1,2,3).discrete("Integers")
+ *      res: sampler.r.NamedSeqIntegral[Int] = NamedSeqIntegral(Vector(1, 2, 3),Integers)
+ *      
+ *  > IndexedSeq(0.1,0.2,0.3).continuous("Doubles")
+ *      res4: sampler.r.NamedSeqFractional[Double] = NamedSeqFractional(Vector(0.1, 0.2, 0.3),Doubles)
+ *  }}}
  */
 trait ToNamedSeq{
 	implicit class RichFractionalSeq[T: Fractional](val seq: Seq[T]){
