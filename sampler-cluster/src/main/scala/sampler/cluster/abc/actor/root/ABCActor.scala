@@ -201,7 +201,7 @@ abstract class ABCActor[P]
 	}
 	
 	when(Flushing) {
-		case Event(_: TaggedScoredSeq[P], _) => 	log.info("Ignore new paylod"); 		stay	//TODO put in dueWeighting
+		case Event(_: TaggedScoredSeq[P], _) => 	log.info("Ignore new paylod"); 		stay
 		case Event(MixNow, _) => 				log.info("Ignore mix request"); 	stay
 		case Event(FlushComplete(flushedGeneration), data: StateData[P]) =>
 			import flushedGeneration._

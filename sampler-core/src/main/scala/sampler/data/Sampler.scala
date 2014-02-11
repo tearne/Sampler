@@ -25,8 +25,6 @@ import sampler.Implicits._
 
 /** For producing samples from a distribution until a condition is met */
 
-// TODO test calling of takeMore with multiples of ChunkSize
-
 trait Sampler{
   /** Collects samples from distribution until condition returns true
    *  
@@ -47,9 +45,9 @@ trait MaxMetric extends EmpiricalMetric with StatisticsComponentImpl {
   def distance[T](e1: Empirical[T], e2: Empirical[T]): Double = statistics.maxDistance(e1, e2)
 }
 
-//trait MeanMetric extends EmpiricalMetric with StatisticsComponentImpl {
-//	def distance[T](e1: Empirical[T], e2: Empirical[T]): Double = statistics.meanDistance(e1, e2)
-//}
+trait MeanMetric extends EmpiricalMetric with StatisticsComponentImpl {
+	def distance[T: Fractional](e1: Empirical[T], e2: Empirical[T]): Double = statistics.meanDistance(e1, e2)
+}
 
 /** Determines whether a sequence of samples has converged. Requires mixin of a [[sampler.data.EmpiricalMetric]] 
  *  implementation
@@ -76,6 +74,18 @@ abstract class ConvergenceProtocol[T](val chunkSize: Int, tolerance: Double, max
 
 /** Serializable implementation of [[sampler.data.Sampler]], uses until method of [[sampler.data.Distribution]] 
  *  to sample from the distribution
+ *  
+ *  {{{
+ *  scala> import sampler.math.Random
+ *  scala> import sampler.data._
+ *  
+ *  scala> implicit val r: Random = Random
+ *  scala> val dist = Distribution.uniform(0, 10)
+ *  dist: sampler.data.Distribution[Int] = sampler.data.Distribution$$anon9@f4734e
+ *  
+ *  scala> SerialSampler.apply(dist)(new ConvergenceProtocol[Int](10, 0.5, 100000) with MaxMetric)
+ *  res0: Seq[Int] = Vector(7, 1, 9, 9, 9, 6, 0, 8, 6, 7)
+ *  }}}
  */
 object SerialSampler extends Sampler with Serializable{
 	def apply[T](distribution: Distribution[T])(protocol: ConvergenceProtocol[T]) = {
@@ -84,11 +94,11 @@ object SerialSampler extends Sampler with Serializable{
 	  def takeMore(previous: Seq[T]): Seq[T] = {
 		  if(protocol.converged(previous)) previous
 		  else takeMore (
-		      previous ++ (distribution.until(_.length > chunkSize).sample())
+		      previous ++ (distribution.until(_.length == chunkSize).sample())
 		  )
 	  }
 	  
-	  takeMore(distribution.until(_.length > chunkSize).sample())
+	  takeMore(distribution.until(_.length == chunkSize).sample())
 	}
 }
 
@@ -96,10 +106,22 @@ object SerialSampler extends Sampler with Serializable{
  *  multiple threads, which continuously takes batches of samples from the supplied distribution until
  *  a condition is met
  *  
+ *  {{{
+ *  scala> import sampler.math.Random
+ *  scala> import sampler.data._
+ *  
+ *  scala> implicit val r: Random = Random
+ *  scala> val dist = Distribution.uniform(0, 10)
+ *  dist: sampler.data.Distribution[Int] = sampler.data.Distribution$$anon9@f4734e
+ *  
+ *  scala> ParallelSampler.apply(dist)(new ConvergenceProtocol[Int](10, 0.5, 100000) with MaxMetric)
+ *  res0: scala.collection.parallel.ParSeq[Int] = ParVector(3, 2, 7, 9, 1, 3, 7, 6, 7, 4)
+ *  }}}
+ *  
  *  Warning: The supplied distribution must be thread safe to avoid propagation of error resulting from the 
  *  concurrent calling of the sample method. E.g. In the Commons math normal distribution parallel sampling 
  *  can sometimes give NaN due to concurrent access to a random number generator
- *  {{{
+ * {{{
 *  val normal = new NormalDistribution(0,0.1)
 *  (1 to 1000000000).par.foreach{i =>
 *      val r = normal.sample

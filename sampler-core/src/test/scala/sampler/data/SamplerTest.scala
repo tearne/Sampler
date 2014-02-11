@@ -2,6 +2,7 @@ package sampler.data
 
 import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Test
+import sampler.math.Random
 
 class SamplerTest extends AssertionsForJUnit {
 
@@ -10,7 +11,7 @@ class SamplerTest extends AssertionsForJUnit {
     
     val sampledList = SerialSampler.apply(dist)(new ConvergenceProtocol[Int](3, 1.0, 100000) with MaxMetric)
     
-    val expectedList = List(1,1,1,1)
+    val expectedList = List(1,1,1,1,1,1)
     
     assert(sampledList === expectedList)
   }
@@ -32,7 +33,7 @@ class SamplerTest extends AssertionsForJUnit {
     
     val sampledList = SerialSampler.apply(dist)(new ConvergenceProtocol[Int](3, 0.0, maxRetries) with MaxMetric)
     
-    val expectedList = List(1,1,1,1,1,1,1,1)
+    val expectedList = List(1,1,1,1,1,1,1,1,1)
     
     assert(sampledList === expectedList)
   }
@@ -48,5 +49,14 @@ class SamplerTest extends AssertionsForJUnit {
     val expectedList = List(1,1,1,1,1,1,1,1,1)
     
     assert(sampledList === expectedList)
+  }
+  
+  @Test def serilaSamplingOfNormalDistribution {
+    implicit val r: Random = Random
+    val dist = Distribution.uniform(0, 10)
+    
+    val sampledList = SerialSampler.apply(dist)(new ConvergenceProtocol[Int](1000, 0.001, 100000) with MaxMetric)
+    
+    println(sampledList.size)
   }
 }
