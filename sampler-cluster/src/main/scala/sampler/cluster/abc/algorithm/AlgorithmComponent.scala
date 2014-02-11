@@ -125,7 +125,6 @@ trait AlgorithmComponentImpl extends AlgorithmComponent{
 			gen.copy(dueWeighing = Seq.empty[Tagged[Scored[P]]])
 			
 		def weightsTable[G <: Generation[_]](gen: G) = gen.prevWeightsTable
-//		def numberAccumulated(gen: Generation[_]) = gen.weighted.size
 		
 		//TODO can we simplify tagged and scored parm sets?
 		def buildMixPayload[P](gen: Generation[P], abcParameters: ABCConfig): Option[TaggedScoredSeq[P]] = {
@@ -146,6 +145,8 @@ trait AlgorithmComponentImpl extends AlgorithmComponent{
 					.keys
 					.toSeq
 				
+				if(res.size == 999) log.warning("AAAAAAAAAAAAAAAAAAAA")
+					
 				Some(TaggedScoredSeq(res))
 			} else if(weighted.size > 0){
 				val res = weighted
@@ -153,6 +154,9 @@ trait AlgorithmComponentImpl extends AlgorithmComponent{
 					.map{case Tagged(weighted, uid) =>
 						Tagged(weighted.scored, uid)
 					}
+				
+				if(res.size == 999) log.warning("BBBBBBBBBBBBBBBBBBBBB")
+				
 				Some(TaggedScoredSeq(res))
 			} else None
 		}

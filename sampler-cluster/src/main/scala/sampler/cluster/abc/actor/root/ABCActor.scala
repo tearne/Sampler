@@ -173,7 +173,7 @@ abstract class ABCActor[P]
 
 		case Event(weighted: TaggedWeighedSeq[P], stateData: StateData[P]) =>
 			val updatedGen = algorithm.addWeighted(weighted, stateData.generation, config)
-			log.info(s"Particles + ${weighted.seq.size} = ${updatedGen.weighted.size}/${config.job.numParticles}")
+			log.info(s"Currently G${updatedGen.currentIteration}, Particles + ${weighted.seq.size} = ${updatedGen.weighted.size}/${config.job.numParticles}")
 			
 			if(algorithm.isEnoughParticles(updatedGen, config)){
 				workerRouter ! Broadcast(Abort)

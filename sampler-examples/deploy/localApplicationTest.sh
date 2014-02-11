@@ -6,4 +6,4 @@ java \
 -Dconfig.file=application.conf \
 -Dlogback.configurationFile=logback.xml \
 -classpath "lib/*" \
-sampler.example.abc.NetworkABC
+sampler.example.abc.Network
