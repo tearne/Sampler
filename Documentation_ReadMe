@@ -1,0 +1,12 @@
+Documentation ReadMe
+
+1) Create the documentation on your local machine using either either the doc or unidoc commands in sbt.
+
+	The documentation folder will be created in the target directory; e.g. target/scala-2.10/unidoc/
+
+2) Rename the folder according to the current build e.g. Sampler-0.0.21 and move to the api folder in the gh-pages branch
+
+3) Once pushed, the documentation will be available at tearne.github.io e.g.
+	
+	tearne.github.io/Sampler/api/Sampler-0.0.21
+
