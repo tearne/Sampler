@@ -25,7 +25,6 @@ import sampler.Implicits._
 
 /** For producing samples from a distribution until a condition is met */
 
-// TODO add a stop condition to prevent infinite running
 // TODO test calling of takeMore with multiples of ChunkSize
 
 trait Sampler{
@@ -58,8 +57,9 @@ trait MaxMetric extends EmpiricalMetric with StatisticsComponentImpl {
  *  @constructor Create a new convergence protocol given a chunk size and tolerance
  *  @param chunkSize the size of sampled chunks that have been used to build the sequence of samples
  *  @param tolerance the degree to which the samples can differ whilst being classed as converged
+ *  @param maxRetries the number of samples to try be exiting without meeting convergence criteria
  */
-abstract class ConvergenceProtocol[T](val chunkSize: Int, tolerance: Double){
+abstract class ConvergenceProtocol[T](val chunkSize: Int, tolerance: Double, maxRetries: Int){
   this: EmpiricalMetric =>
     
   /** Tests a sequence of samples for convergence
@@ -70,7 +70,7 @@ abstract class ConvergenceProtocol[T](val chunkSize: Int, tolerance: Double){
   def converged(seq: GenSeq[T]): Boolean = {
     val e1 = seq.take(seq.size - chunkSize).toEmpiricalSeq
     val e2 = seq.toEmpiricalSeq
-    distance(e1, e2) < tolerance
+    distance(e1, e2) < tolerance || seq.size > maxRetries
   }
 }
 

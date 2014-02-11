@@ -36,7 +36,7 @@ object SampleSizeUncertainty extends App{
 			val se = {
 				val chunkSize = 1e4.toInt
 				
-				val dist = ParallelSampler.apply(model)(new ConvergenceProtocol[Boolean](chunkSize, 1e-5) with MaxMetric).toEmpiricalTable
+				val dist = ParallelSampler.apply(model)(new ConvergenceProtocol[Boolean](chunkSize, 1e-5, 1000000) with MaxMetric).toEmpiricalTable
 				dist.probabilityTable(true)
 			}
 			

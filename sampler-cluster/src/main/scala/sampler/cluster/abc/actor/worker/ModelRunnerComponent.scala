@@ -64,7 +64,7 @@ trait ModelRunnerComponent[P] {
 						val modelWithMetric = model.distanceToObservations(params)
 //						SerialSampler(modelWithMetric)(_.size == job.config.job.numReplicates)
 						val replicates = job.config.job.numReplicates
-						SerialSampler.apply(modelWithMetric)(new ConvergenceProtocol[Double](replicates, 0.5) with MaxMetric).toIndexedSeq
+						SerialSampler.apply(modelWithMetric)(new ConvergenceProtocol[Double](replicates, 0.5, 1000000) with MaxMetric).toIndexedSeq
 					}
 					
 					val res: Option[Scored[P]] = for{
