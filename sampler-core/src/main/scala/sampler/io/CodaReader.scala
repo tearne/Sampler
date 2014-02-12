@@ -20,8 +20,8 @@ package sampler.io
 import scala.io.Source
 import java.io.File
 
-object WinBugsChainReader{
-  def apply(fileStem: String) = {
+object CodaReader{
+  def apply(fileStem: String = "coda") = {
 	val indexLines = Source.fromFile(new File(fileStem+"Index.txt")).getLines.toIterator
 	val dataList = Source.fromFile(new File(fileStem+"1.txt")).getLines.toIterator.map{line =>
 		line.split("\\t")(1)
@@ -34,28 +34,13 @@ object WinBugsChainReader{
 		index.put(tokens(0), (Integer.parseInt(tokens(1)),Integer.parseInt(tokens(2))))
 	}
 	
+	assert(dataList.length == index.values.toSeq.map{case (min, max) => max}.max)
+	
 	val chains = collection.mutable.Map[String, List[Double]]()
 	index.foreach{ case (key,(start, stop)) =>
 		chains.put(key, dataList.drop(start-1).take(stop-start+1).map(java.lang.Double.parseDouble _))
 	}
 	
 	chains
-  }
-  
-  //
-  //TODO move this to a test
-  //
-  def main(args: Array[String])={
-    //apply("WinBUGS/model/output").foreach(println _)
-    
-//    val data = apply("WinBUGS/model/output")
-//    
-//  //Read the chain data and spew out the Se/Sp info in column format
-//    val writer = new Writer(new File("data/Scala_out/SeSpChain.csv"))
-//    writer.addColumn(data("SeH"), "SeH")
-//    writer.addColumn(data("SpH"), "SpH")
-//    writer.addColumn(data("SeE"), "SeE")
-//    writer.addColumn(data("SpE"), "SpE")
-//    writer.write()
   }
 }
