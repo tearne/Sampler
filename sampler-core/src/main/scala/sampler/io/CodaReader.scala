@@ -20,7 +20,15 @@ package sampler.io
 import scala.io.Source
 import java.io.File
 
+/** Object to read in coda files of parameter estimates as produced by WinBUGS */
+
 object CodaReader{
+  /** Reads in the coda1 and codaIndex files from WinBUGS and produces a map from a String of the parameter name to
+   *  the distribution of parameter estimates as a List of Doubles
+   *  
+   *  @param fileStem Absolute path to the data files including the common file name between the 1 and Index files; i.e. path/coda would point to coda1.txt and codaIndex.txt
+   *  @return Map from parameter name to list of parameter estimates (doubles)
+   */
   def apply(fileStem: String = "coda") = {
 	val indexLines = Source.fromFile(new File(fileStem+"Index.txt")).getLines.toIterator
 	val dataList = Source.fromFile(new File(fileStem+"1.txt")).getLines.toIterator.map{line =>

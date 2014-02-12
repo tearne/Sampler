@@ -61,7 +61,7 @@ trait Algorithm {
 trait AlgorithmComponentImpl extends AlgorithmComponent{
 	this: ToleranceComponent 
 		with StatisticsComponent
-		with Actor
+		with Actor		// TODO think about whether this needs to be here
 		with ActorLogging
 		with GettersComponent =>
 	
