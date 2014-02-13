@@ -26,6 +26,9 @@ import sampler.cluster.abc.config.ABCConfig
 import sampler.cluster.abc.Weighted
 import sampler.cluster.abc.Scored
 
+// TODO consider inconsitency between Generation constructor and addWeighted method of
+// Algorithm implementation. One uses Seq[Tagged[Weighted[P]]] and the other TaggedWeighedSeq[P]
+
 case class Generation[P](
 	model: Model[P],
 	dueWeighing: Seq[Tagged[Scored[P]]],

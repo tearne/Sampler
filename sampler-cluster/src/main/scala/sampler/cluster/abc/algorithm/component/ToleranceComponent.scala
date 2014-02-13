@@ -26,6 +26,7 @@ import sampler.Implicits._
 trait ToleranceComponent {
 	self: StatisticsComponent with Actor with ActorLogging=>
 		
+	//TODO naming inconsistent
 	val toleranceCalculator: ToleranceCalculator
 	
 	trait ToleranceCalculator {

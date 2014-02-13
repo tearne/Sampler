@@ -58,14 +58,16 @@ trait Algorithm {
  * Use of a base trait and Impl allows us to strip out all the 
  * self typing and simplify mocking
  */
-trait AlgorithmComponentImpl extends AlgorithmComponent{
+trait AlgorithmComponentImpl extends AlgorithmComponent with Actor with ActorLogging{
 	this: ToleranceComponent 
 		with StatisticsComponent
-		with Actor		// TODO think about whether this needs to be here
-		with ActorLogging
+//		with Actor		// TODO think about whether this needs to be here
+//		with ActorLogging
 		with GettersComponent =>
 	
 	val algorithm: Algorithm
+	
+	// TODO inconsistent use of Generation object. Sometimes import, sometimes gen.variable
 	
 	trait AlgorithmImpl extends Algorithm {
 		implicit val r = Random

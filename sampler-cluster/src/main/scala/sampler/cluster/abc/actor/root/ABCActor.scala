@@ -51,6 +51,7 @@ import sampler.cluster.abc.actor.Failed
 import sampler.cluster.abc.actor.MixPayload
 import sampler.cluster.abc.actor.ReportCompleted
 import sampler.cluster.abc.actor.Report
+import sampler.math.Statistics
 
 class ABCActorImpl[P](
 		val model: Model[P],
@@ -70,6 +71,7 @@ class ABCActorImpl[P](
 	val algorithm = new AlgorithmImpl{}
 	val statistics = Statistics
 	val random = Random
+	val getters = new Getters{}
 }
 
 sealed trait Status

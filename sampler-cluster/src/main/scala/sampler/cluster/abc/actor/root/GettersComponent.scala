@@ -4,7 +4,7 @@ import sampler.cluster.abc.actor.Lenses
 import sampler.cluster.abc.config.ABCConfig
 
 trait GettersComponent{
-	val getters: Getters = new Getters{}
+	val getters: Getters
 }
 
 trait Getters {

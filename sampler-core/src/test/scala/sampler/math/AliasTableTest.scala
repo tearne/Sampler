@@ -4,10 +4,9 @@ import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Assert._
 import org.junit.Before
 import org.junit.Test
-import org.scalatest.mock.MockitoSugar
 import org.scalatest.Matchers
 
-class AliasTableTest extends AssertionsForJUnit with Matchers with MockitoSugar {
+class AliasTableTest extends AssertionsForJUnit with Matchers {
 
   val rawProbSeq = Partition.fromWeights(IndexedSeq(0.1, 0.2, 0.3, 0.4))
   val myAlias = new AliasTable(rawProbSeq)
