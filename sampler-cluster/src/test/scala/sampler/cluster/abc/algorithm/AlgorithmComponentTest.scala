@@ -23,6 +23,8 @@ import sampler.cluster.abc.actor.TaggedScoredSeq
 import sampler.cluster.abc.config.JobParameters
 import sampler.cluster.abc.actor.LoggingAdapterComponent
 import akka.event.LoggingAdapter
+import sampler.cluster.abc.config.ABCParametersTest
+import sampler.cluster.abc.config.ClusterParameters
 
 class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
 
@@ -67,8 +69,6 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
       
       val nextGen = instance.addWeighted(incoming, gen1, config)
       val weighedSeq = nextGen.weighted
-      
-      println(weighedSeq)
       
       assert(weighedSeq.length === 2)
       assert(weighedSeq(0) === initialSeq.head)
@@ -183,21 +183,143 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
 //      assert(nextGen.idsObserved.isEmpty)
     }
     
-//    "Determine if generation has gathered enough particles" in {
-//      val config1 = ABCConfig(JobParameters(2,0,0), null, null)
-//      val config2 = ABCConfig(JobParameters(3,0,0), null, null)
-//      val config3 = ABCConfig(JobParameters(5,0,0), null, null)
-//      val config4 = ABCConfig(JobParameters(1000,0,0), null, null)
-//      
-//      val gen1 = Generation[Int](
-//          null,
-//          null,
-//          Seq(Tagged(Weighted(Scored(1, Seq(0.5)), 0.5), 111111)),
-//          SortedSet(111111),
-//          0.1,
-//          1,
-//          null
-//      )
-//    }
+    "Determine if generation has gathered enough particles" in {
+      val config1 = ABCConfig(JobParameters(2,0,0), null, null)
+      val config2 = ABCConfig(JobParameters(5,0,0), null, null)
+      val config3 = ABCConfig(JobParameters(6,0,0), null, null)
+      val config4 = ABCConfig(JobParameters(1000,0,0), null, null)
+      
+      val gen1 = Generation[Int](
+          null,
+          null,
+          Seq(
+            Tagged(Weighted(Scored(1, Seq(0.5)), 0.5), 111111),
+            Tagged(Weighted(Scored(2, Seq(0.5)), 0.5), 111112),
+            Tagged(Weighted(Scored(3, Seq(0.5)), 0.5), 111113),
+            Tagged(Weighted(Scored(4, Seq(0.5)), 0.5), 111114),
+            Tagged(Weighted(Scored(5, Seq(0.5)), 0.5), 111115)
+          ),
+          SortedSet(111111, 111112, 111113, 111114, 111115),
+          0.1,
+          1,
+          null
+      )
+      
+      assert(instance.isEnoughParticles(gen1, config1))
+      assert(instance.isEnoughParticles(gen1, config2))
+      assert(!instance.isEnoughParticles(gen1, config3))
+      assert(!instance.isEnoughParticles(gen1, config4))
+    }
+    
+    "Empties weighing buffer" in {
+      val gen1 = Generation[Int](
+          null,
+          Seq(Tagged(Scored(2, Seq(0,5)), 111112)),
+          Seq(),
+          SortedSet(),
+          0.1,
+          1,
+          null
+      )
+      
+      val nextGen = instance.emptyWeighingBuffer(gen1)
+      
+      assert(nextGen.dueWeighing.isEmpty)
+    }
+    
+    "Builds a mix payload" - {
+      "None when no weighteds present" in {
+        val gen1 = Generation[Int](
+          null,
+          Seq(),
+          Seq(),
+          SortedSet(),
+          0.1,
+          1,
+          null
+        )
+      
+        val config = ABCConfig(
+            null,
+            null,
+            ClusterParameters(false,0,0,2,0,0)
+        )
+        
+        assert(instance.buildMixPayload(gen1, config) === None)
+      }
+      
+      "When some weighteds are present but not bigger than mixing size" in {
+        Seq(Tagged(Weighted(Scored(1, Seq(0.5)), 0.5), 111111))
+        val gen1 = Generation[Int](
+          null,
+          Seq(),
+          Seq(Tagged(Weighted(Scored(1, Seq(0.5)), 0.5), 111111)),
+          SortedSet(),
+          0.1,
+          1,
+          null
+        )
+        
+        val config = ABCConfig(
+            null,
+            null,
+            ClusterParameters(false,0,0,2,0,0)
+        )
+        
+        val taggedScored = instance.buildMixPayload(gen1, config).get
+        
+        val expected = Tagged(Scored(1, Seq(0.5)), 111111)
+        
+        assert(taggedScored.seq.size === 1)
+        assert(taggedScored.seq.contains(expected))
+      }
+      
+      "When mixing size is exceeded" in {
+        val tagged1 = Tagged(Weighted(Scored(1, Seq(0.25)), 0.25), 111111)
+        val tagged2 = Tagged(Weighted(Scored(2, Seq(0.25)), 0.25), 111112)
+        val tagged3 = Tagged(Weighted(Scored(3, Seq(0.5)), 0.5), 111113)
+        
+        Seq(Tagged(Weighted(Scored(1, Seq(0.5)), 0.5), 111111))
+        val gen1 = Generation[Int](
+          null,
+          Seq(),
+          Seq(tagged1, tagged2, tagged3),
+          SortedSet(),
+          0.1,
+          1,
+          null
+        )
+        
+        val config = ABCConfig(
+            null,
+            null,
+            ClusterParameters(false,0,0,2,0,0)
+        )
+        
+        val taggedScored = instance.buildMixPayload(gen1, config).get
+        
+        assert(taggedScored.seq.size === 2)
+      }
+    }
+    
+    "Generates a report" in {
+      val gen1 = Generation[Int](
+          null,
+          Seq(),
+          Seq(),
+          SortedSet(),
+          0.001,
+          500,
+          Map(1 -> 0.25, 2 -> 0.5, 3 -> 0.25)
+      )
+      
+      val config = ABCConfig(JobParameters(2,0,0), null, null)
+      
+      val report = instance.buildReport(gen1, config)
+      
+      assert(report.generationId === 500)
+      assert(report.tolerance === 0.001)
+      assert(report.posterior.length === 2)
+    }
   }
 }

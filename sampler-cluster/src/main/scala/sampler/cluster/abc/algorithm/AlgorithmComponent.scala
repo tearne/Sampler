@@ -133,6 +133,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 		def weightsTable[G <: Generation[_]](gen: G) = gen.prevWeightsTable
 		
 		//TODO can we simplify tagged and scored parm sets?
+		//TODO discuss this method
 		def buildMixPayload[P](gen: Generation[P], abcParameters: ABCConfig): Option[TaggedScoredSeq[P]] = {
 			import gen._
 			
