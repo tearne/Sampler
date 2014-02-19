@@ -36,7 +36,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
       val statistics = mock[Statistics]
       val getters = new Getters{}
       val toleranceCalculator = new ToleranceCalculator{}
-      val logSomething = mock[LoggingAdapter]
+      val logg = mock[LoggingAdapter]
       val algorithm = new AlgorithmImpl{}
       
        def receive: akka.actor.Actor.Receive = null
@@ -152,7 +152,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
         val getters = new Getters{}
         val toleranceCalculator = mock[ToleranceCalculator]
         val algorithm = new AlgorithmImpl{}
-        val logSomething = mock[LoggingAdapter]
+        val logg = mock[LoggingAdapter]
         
         def receive: akka.actor.Actor.Receive = null
         

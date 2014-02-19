@@ -151,7 +151,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 					.keys
 					.toSeq
 				
-				if(res.size == 999) logSomething.warning("AAAAAAAAAAAAAAAAAAAA")
+				if(res.size == 999) logg.warning("AAAAAAAAAAAAAAAAAAAA")
 					
 				Some(TaggedScoredSeq(res))
 			} else if(weighted.size > 0){
@@ -161,7 +161,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 						Tagged(weighted.scored, uid)
 					}
 				
-				if(res.size == 999) logSomething.warning("BBBBBBBBBBBBBBBBBBBBB")
+				if(res.size == 999) logg.warning("BBBBBBBBBBBBBBBBBBBBB")
 				
 				Some(TaggedScoredSeq(res))
 			} else None

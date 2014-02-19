@@ -36,10 +36,10 @@ trait ToleranceComponent {
 		def apply[P](weighedParameters: Seq[Weighted[P]], currentTolerance: Double): Double = {
 			val medianMeanScore = statistics.quantile(weighedParameters.map{_.meanRepScore}.toEmpiricalSeq, Seq(0.5)).head
 			if(medianMeanScore == 0) {
-				logSomething.warning("Median of mean scores from last generation evaluated to 0. Will use old tolerance again.")
+				logg.warning("Median of mean scores from last generation evaluated to 0. Will use old tolerance again.")
 				currentTolerance
 			} else if(medianMeanScore > currentTolerance) {
-				logSomething.warning("Median of mean scores from last generation greater than old tolerance. Will use old tolerance again.")
+				logg.warning("Median of mean scores from last generation greater than old tolerance. Will use old tolerance again.")
 				currentTolerance
 			}
 			else medianMeanScore
