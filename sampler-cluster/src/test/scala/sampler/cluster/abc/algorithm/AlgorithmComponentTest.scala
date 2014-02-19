@@ -179,7 +179,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
       assert(nextGen.currentTolerance === 0.01)
       assert(nextGen.currentIteration === 2)
       assert(nextGen.prevWeightsTable === Map(1 -> 0.5))
-//      assert(nextGen.dueWeighing.isEmpty)
+      assert(nextGen.dueWeighing.isEmpty)
 //      assert(nextGen.idsObserved.isEmpty)
     }
     

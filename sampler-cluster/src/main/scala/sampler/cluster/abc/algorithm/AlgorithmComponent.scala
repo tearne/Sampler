@@ -77,7 +77,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 		def addWeighted[P](
 				incoming: TaggedWeighedSeq[P],
 				gen: Generation[P],
-				config: ABCConfig
+				config: ABCConfig		//TODO get rid
 		): Generation[P] = {
 			import gen._
 			
@@ -112,8 +112,6 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 				.map{case (k,v) => (k, v.map(_.weight).sum)}
 			}
 			
-			// TODO should this flush particles due weighing and observedIDs
-			
 			val newGeneration = gen.copy(
 				weighted = Seq.empty[Tagged[Weighted[P]]],
 				currentTolerance = newTolerance,
@@ -134,6 +132,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 		
 		//TODO can we simplify tagged and scored parm sets?
 		//TODO discuss this method
+		//TODO testing difficult because of random drawing
 		def buildMixPayload[P](gen: Generation[P], abcParameters: ABCConfig): Option[TaggedScoredSeq[P]] = {
 			import gen._
 			

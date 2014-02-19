@@ -33,7 +33,7 @@ case class Generation[P](
 	model: Model[P],
 	dueWeighing: Seq[Tagged[Scored[P]]],
 	weighted: Seq[Tagged[Weighted[P]]],
-	idsObserved: SortedSet[Long],
+	idsObserved: SortedSet[Long],	//TODO change for a queue
 	currentTolerance: Double,
 	currentIteration: Int,
 	prevWeightsTable: Map[P, Double]
