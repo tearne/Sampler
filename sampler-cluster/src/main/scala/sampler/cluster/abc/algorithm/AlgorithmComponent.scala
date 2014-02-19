@@ -37,6 +37,7 @@ import sampler.cluster.abc.actor.root.Getters
 import sampler.cluster.abc.actor.root.GettersComponent
 import sampler.cluster.abc.actor.TaggedScoredSeq
 import sampler.cluster.abc.actor.TaggedWeighedSeq
+import sampler.cluster.abc.actor.LoggingAdapterComponent
 
 trait AlgorithmComponent {
 	val algorithm: Algorithm
@@ -58,9 +59,10 @@ trait Algorithm {
  * Use of a base trait and Impl allows us to strip out all the 
  * self typing and simplify mocking
  */
-trait AlgorithmComponentImpl extends AlgorithmComponent with Actor with ActorLogging{
+trait AlgorithmComponentImpl extends AlgorithmComponent {
 	this: ToleranceComponent 
 		with StatisticsComponent
+		with LoggingAdapterComponent
 //		with Actor		// TODO think about whether this needs to be here
 //		with ActorLogging
 		with GettersComponent =>
@@ -110,6 +112,8 @@ trait AlgorithmComponentImpl extends AlgorithmComponent with Actor with ActorLog
 				.map{case (k,v) => (k, v.map(_.weight).sum)}
 			}
 			
+			// TODO should this flush particles due weighing and observedIDs
+			
 			val newGeneration = gen.copy(
 				weighted = Seq.empty[Tagged[Weighted[P]]],
 				currentTolerance = newTolerance,
@@ -147,7 +151,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent with Actor with ActorLog
 					.keys
 					.toSeq
 				
-				if(res.size == 999) log.warning("AAAAAAAAAAAAAAAAAAAA")
+				if(res.size == 999) logSomething.warning("AAAAAAAAAAAAAAAAAAAA")
 					
 				Some(TaggedScoredSeq(res))
 			} else if(weighted.size > 0){
@@ -157,7 +161,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent with Actor with ActorLog
 						Tagged(weighted.scored, uid)
 					}
 				
-				if(res.size == 999) log.warning("BBBBBBBBBBBBBBBBBBBBB")
+				if(res.size == 999) logSomething.warning("BBBBBBBBBBBBBBBBBBBBB")
 				
 				Some(TaggedScoredSeq(res))
 			} else None

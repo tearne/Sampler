@@ -22,9 +22,12 @@ import akka.actor.ActorLogging
 import sampler.cluster.abc.Weighted
 import sampler.math.StatisticsComponent
 import sampler.Implicits._
+import akka.event.LoggingAdapter
+import sampler.cluster.abc.actor.LoggingAdapterComponent
 
 trait ToleranceComponent {
-	self: StatisticsComponent with Actor with ActorLogging=>
+	//TODO tidy
+	this: StatisticsComponent with LoggingAdapterComponent /*with LoggingActor*/ /* with Actor with ActorLogging */=>
 		
 	//TODO naming inconsistent
 	val toleranceCalculator: ToleranceCalculator
@@ -33,10 +36,10 @@ trait ToleranceComponent {
 		def apply[P](weighedParameters: Seq[Weighted[P]], currentTolerance: Double): Double = {
 			val medianMeanScore = statistics.quantile(weighedParameters.map{_.meanRepScore}.toEmpiricalSeq, Seq(0.5)).head
 			if(medianMeanScore == 0) {
-				log.warning("Median of mean scores from last generation evaluated to 0. Will use old tolerance again.")
+				logSomething.warning("Median of mean scores from last generation evaluated to 0. Will use old tolerance again.")
 				currentTolerance
 			} else if(medianMeanScore > currentTolerance) {
-				log.warning("Median of mean scores from last generation greater than old tolerance. Will use old tolerance again.")
+				logSomething.warning("Median of mean scores from last generation greater than old tolerance. Will use old tolerance again.")
 				currentTolerance
 			}
 			else medianMeanScore

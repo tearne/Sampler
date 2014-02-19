@@ -52,6 +52,8 @@ import sampler.cluster.abc.actor.MixPayload
 import sampler.cluster.abc.actor.ReportCompleted
 import sampler.cluster.abc.actor.Report
 import sampler.math.Statistics
+import sampler.cluster.abc.actor.LoggingAdapterComponent
+import sampler.cluster.abc.actor.LoggingAdapterComponentImpl
 
 class ABCActorImpl[P](
 		val model: Model[P],
@@ -62,7 +64,8 @@ class ABCActorImpl[P](
 		with WorkDispatcherComponentImpl
 		with AlgorithmComponentImpl 
 		with WeigherComponent
-		with ToleranceComponent 
+		with ToleranceComponent
+		with LoggingAdapterComponentImpl
 		with StatisticsComponent 
 		with GettersComponent {
 	val childActors = new ChildActors{}
