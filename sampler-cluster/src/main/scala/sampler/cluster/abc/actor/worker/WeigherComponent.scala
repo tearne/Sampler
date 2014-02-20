@@ -7,7 +7,7 @@ import sampler.cluster.abc.Model
 import sampler.cluster.abc.Scored
 import sampler.cluster.abc.Weighted
 import sampler.cluster.abc.actor.Tagged
-import sampler.cluster.abc.actor.TaggedWeighedSeq
+import sampler.cluster.abc.actor.WeighedParticles
 import sampler.cluster.abc.Weighted
 import sampler.cluster.abc.actor.WeighJob
 
@@ -21,7 +21,7 @@ trait WeigherComponent[P] {
 		def reset() { aborted.set(false) }
 		private def isAborted = aborted.get
 		
-		def run(job: WeighJob[P]): Try[TaggedWeighedSeq[P]] = Try{
+		def run(job: WeighJob[P]): Try[WeighedParticles[P]] = Try{
 			import job._
 				
 			def getParticleWeight(particle: Scored[P]): Option[Double] = {
@@ -46,7 +46,7 @@ trait WeigherComponent[P] {
 			// - Tag at time of sampling/accepting a particle?
 			// - Rename to just Scored/Weighed
 			
-			TaggedWeighedSeq(result)
+			WeighedParticles(result)
 		}
 	}
 }

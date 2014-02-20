@@ -35,8 +35,8 @@ import sampler.cluster.abc.actor.Report
 import sampler.data.Distribution
 import sampler.cluster.abc.actor.root.Getters
 import sampler.cluster.abc.actor.root.GettersComponent
-import sampler.cluster.abc.actor.TaggedScoredSeq
-import sampler.cluster.abc.actor.TaggedWeighedSeq
+import sampler.cluster.abc.actor.ScoredParticles
+import sampler.cluster.abc.actor.WeighedParticles
 import sampler.cluster.abc.actor.LoggingAdapterComponent
 
 trait AlgorithmComponent {
@@ -44,13 +44,13 @@ trait AlgorithmComponent {
 }
 
 trait Algorithm {
-	def addWeighted[P](incomingWeighted: TaggedWeighedSeq[P], gen: Generation[P]): Generation[P]
-	def filterAndQueueForWeighing[P](taggedAndScored: TaggedScoredSeq[P], gen: Generation[P]): Generation[P]
+	def addWeighted[P](incomingWeighted: WeighedParticles[P], gen: Generation[P]): Generation[P]
+	def filterAndQueueForWeighing[P](taggedAndScored: ScoredParticles[P], gen: Generation[P]): Generation[P]
 	def flushGeneration[P](gen: Generation[P], numParticles: Int): Generation[P]
 	def isEnoughParticles(gen: Generation[_], config: ABCConfig): Boolean
 	def emptyWeighingBuffer[P](gen: Generation[P]): Generation[P]
 	
-	def buildMixPayload[P](gen: Generation[P], abcParameters: ABCConfig): Option[TaggedScoredSeq[P]]
+	def buildMixPayload[P](gen: Generation[P], abcParameters: ABCConfig): Option[ScoredParticles[P]]
 	def buildReport[P](gen: Generation[P], config: ABCConfig): Report[P]
 }
 
@@ -73,7 +73,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 		implicit val r = Random
 		
 		def addWeighted[P](
-				incoming: TaggedWeighedSeq[P],
+				incoming: WeighedParticles[P],
 				gen: Generation[P]
 		): Generation[P] = {
 			val weightedParticles = gen.weighted
@@ -86,7 +86,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 		}
 		
 		def filterAndQueueForWeighing[P](
-			taggedAndScoredParamSets: TaggedScoredSeq[P],
+			taggedAndScoredParamSets: ScoredParticles[P],
 			gen: Generation[P]
 		): Generation[P] = {
 			val observedIds = gen.idsObserved
@@ -139,7 +139,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 		//TODO can we simplify tagged and scored parm sets?
 		//TODO discuss this method
 		//TODO testing difficult because of random drawing
-		def buildMixPayload[P](gen: Generation[P], abcParameters: ABCConfig): Option[TaggedScoredSeq[P]] = {
+		def buildMixPayload[P](gen: Generation[P], abcParameters: ABCConfig): Option[ScoredParticles[P]] = {
 			val weightedParticles = gen.weighted
 			
 			val mixingSize = abcParameters.cluster.mixPayloadSize
@@ -159,7 +159,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 				
 				if(res.size == 999) logg.warning("AAAAAAAAAAAAAAAAAAAA")
 					
-				Some(TaggedScoredSeq(res))
+				Some(ScoredParticles(res))
 			} else if(weightedParticles.size > 0){
 				val res = weightedParticles
 					.toSeq
@@ -169,7 +169,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 				
 				if(res.size == 999) logg.warning("BBBBBBBBBBBBBBBBBBBBB")
 				
-				Some(TaggedScoredSeq(res))
+				Some(ScoredParticles(res))
 			} else None
 		}
 			

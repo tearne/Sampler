@@ -14,12 +14,12 @@ import org.mockito.Mockito._
 import sampler.math.StatisticsComponentImpl
 import sampler.cluster.abc.config.ABCConfig
 import org.scalatest.mock.MockitoSugar
-import sampler.cluster.abc.actor.TaggedWeighedSeq
+import sampler.cluster.abc.actor.WeighedParticles
 import sampler.cluster.abc.Scored
 import sampler.cluster.abc.Weighted
 import sampler.cluster.abc.actor.Tagged
 import scala.collection.immutable.SortedSet
-import sampler.cluster.abc.actor.TaggedScoredSeq
+import sampler.cluster.abc.actor.ScoredParticles
 import sampler.cluster.abc.config.JobParameters
 import sampler.cluster.abc.actor.LoggingAdapterComponent
 import akka.event.LoggingAdapter
@@ -51,11 +51,11 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
     	Tagged(Weighted(Scored(1, Seq(0.5)), 0.5), 111111)
       )
       
-      val addedSeq = TaggedWeighedSeq(Seq(
+      val addedSeq = WeighedParticles(Seq(
         Tagged(Weighted(Scored(2, Seq(0.5)), 0.5), 111112)
       ))
       
-      val incoming: TaggedWeighedSeq[Int] = addedSeq
+      val incoming: WeighedParticles[Int] = addedSeq
       val gen1 = Generation[Int](
           null,
           Seq(),
@@ -75,7 +75,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
     }
     
     "Filters and queues for weighing" in {
-      val scoredSeq = TaggedScoredSeq(Seq(
+      val scoredSeq = ScoredParticles(Seq(
         Tagged(Scored(1, Seq(0,5)), 111111)
       ))
       val gen1 = Generation[Int](
@@ -122,7 +122,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
           null
       )
       
-      val scoredSeq = TaggedScoredSeq(Seq(
+      val scoredSeq = ScoredParticles(Seq(
         taggedAndScored1,
         taggedAndScored2
       ))

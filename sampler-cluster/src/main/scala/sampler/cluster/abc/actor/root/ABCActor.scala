@@ -40,9 +40,9 @@ import sampler.math.Statistics
 import sampler.math.StatisticsComponent
 import sampler.cluster.abc.actor.Tagged
 import sampler.cluster.abc.Scored
-import sampler.cluster.abc.actor.TaggedScoredSeq
+import sampler.cluster.abc.actor.ScoredParticles
 import akka.routing.Broadcast
-import sampler.cluster.abc.actor.TaggedWeighedSeq
+import sampler.cluster.abc.actor.WeighedParticles
 import sampler.cluster.abc.actor.GenerateJob
 import sampler.cluster.abc.actor.WeighJob
 import scala.util.Failure
@@ -160,7 +160,7 @@ abstract class ABCActor[P]
 			log.error("FAILURE ENCOUNTERED IN WORKER")
 			allocateWork(sender, stateData)
 			
-		case Event(scored: TaggedScoredSeq[P], stateData: StateData[P]) =>
+		case Event(scored: ScoredParticles[P], stateData: StateData[P]) =>
 			val sndr = sender
 			val updatedGeneration = algorithm.filterAndQueueForWeighing(scored, stateData.generation)
 			log.info("filterAndQueue({}) => |W| = {},  from {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
@@ -176,7 +176,7 @@ abstract class ABCActor[P]
 			log.info("filterAndQueue({}) => |W| = {},  from REMOTE {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
 			stay using stateData.copy(generation = updatedGeneration)
 
-		case Event(weighted: TaggedWeighedSeq[P], stateData: StateData[P]) =>
+		case Event(weighted: WeighedParticles[P], stateData: StateData[P]) =>
 			val updatedGen = algorithm.addWeighted(weighted, stateData.generation)
 			log.info(s"Currently G${updatedGen.currentIteration}, Particles + ${weighted.seq.size} = ${updatedGen.weighted.size}/${config.job.numParticles}")
 			
@@ -206,7 +206,7 @@ abstract class ABCActor[P]
 	}
 	
 	when(Flushing) {
-		case Event(_: TaggedScoredSeq[P], _) => 	log.info("Ignore new paylod"); 		stay
+		case Event(_: ScoredParticles[P], _) => 	log.info("Ignore new paylod"); 		stay
 		case Event(MixNow, _) => 				log.info("Ignore mix request"); 	stay
 		case Event(FlushComplete(flushedGeneration), data: StateData[P]) =>
 			import flushedGeneration._
