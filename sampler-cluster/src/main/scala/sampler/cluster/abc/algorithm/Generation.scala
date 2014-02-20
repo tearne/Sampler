@@ -18,7 +18,6 @@
 package sampler.cluster.abc.algorithm
 
 import akka.actor.ActorRef
-import scala.collection.immutable.SortedSet
 import sampler.cluster.abc.actor.Tagged
 import sampler.cluster.abc.Model
 import sampler.cluster.abc.config.ABCConfig
@@ -26,15 +25,13 @@ import sampler.cluster.abc.actor.ScoredParticles
 import sampler.cluster.abc.actor.WeighedParticles
 import sampler.cluster.abc.Scored
 import sampler.cluster.abc.Weighted
-
-// TODO consider inconsitency between Generation constructor and addWeighted method of
-// Algorithm implementation. One uses Seq[Tagged[Weighted[P]]] and the other TaggedWeighedSeq[P]
+import scala.collection.immutable.Queue
 
 case class Generation[P](
 	model: Model[P],
 	dueWeighing: ScoredParticles[P],
 	weighted: WeighedParticles[P],
-	idsObserved: SortedSet[Long],	//TODO change for a queue
+	idsObserved: Queue[Long],	//TODO change for a queue
 	currentTolerance: Double,
 	currentIteration: Int,
 	prevWeightsTable: Map[P, Double]
@@ -55,7 +52,7 @@ object Generation {
 			model,
 			ScoredParticles(Seq.empty[Tagged[Scored[P]]]),
 			WeighedParticles(Seq.empty[Tagged[Weighted[P]]]),
-			SortedSet.empty[Long],
+			Queue.empty[Long],
 			Double.MaxValue,
 			0,
 			weightsTable

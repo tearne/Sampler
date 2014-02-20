@@ -1,13 +1,10 @@
 package sampler.cluster.abc.algorithm
 
-import scala.collection.immutable.SortedSet
-
 import org.mockito.Matchers.anyObject
 import org.mockito.Mockito.when
 import org.scalatest.FreeSpec
 import org.scalatest.Matchers
 import org.scalatest.mock.MockitoSugar
-
 import akka.event.LoggingAdapter
 import sampler.cluster.abc.Scored
 import sampler.cluster.abc.Weighted
@@ -23,6 +20,7 @@ import sampler.cluster.abc.config.ClusterParameters
 import sampler.cluster.abc.config.JobParameters
 import sampler.math.Statistics
 import sampler.math.StatisticsComponent
+import scala.collection.immutable.Queue
 
 class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
 
@@ -60,7 +58,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
           null,
           ScoredParticles(Seq()),
           initialSeq,
-          SortedSet(),
+          Queue(),
           0.1,
           1,
           null
@@ -81,7 +79,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
           null,
           ScoredParticles(Seq()),
           WeighedParticles(Seq()),
-          SortedSet(),
+          Queue(),
           0.1,
           1,
           null
@@ -100,7 +98,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
     }
     
     "Similar test to above but with some IDs already present and attempted adding of duplicate" in {
-      val initialObs: SortedSet[Long] = SortedSet(id1)
+      val initialObs: Queue[Long] = Queue(id1)
       val initialDues = ScoredParticles(Seq(scored1))
       
       val gen1 = Generation[Int](
@@ -154,7 +152,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
           null,
           ScoredParticles(Seq(scored1)),
           WeighedParticles(Seq(weighed1)),
-          SortedSet(id3),
+          Queue(id3),
           0.1,
           1,
           null
@@ -185,7 +183,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
             Tagged(Weighted(Scored(6, Seq(0.5)), 0.5), 111116),
             Tagged(Weighted(Scored(7, Seq(0.5)), 0.5), 111117)
           )),
-          SortedSet(111113, 111114, 111115, 111116, 111117),
+          Queue(111113, 111114, 111115, 111116, 111117),
           0.1,
           1,
           null
@@ -202,7 +200,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
           null,
           ScoredParticles(Seq(scored1)),
           WeighedParticles(Seq()),
-          SortedSet(),
+          Queue(),
           0.1,
           1,
           null
@@ -218,7 +216,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
           null,
           ScoredParticles(Seq()),
           WeighedParticles(Seq()),
-          SortedSet(),
+          Queue(),
           0.1,
           1,
           Map(1 -> 0.25, 2 -> 0.5, 3 -> 0.25)
@@ -239,7 +237,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
           null,
           ScoredParticles(Seq()),
           WeighedParticles(Seq()),
-          SortedSet(),
+          Queue(),
           0.1,
           1,
           null
@@ -259,7 +257,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
           null,
           ScoredParticles(Seq()),
           WeighedParticles(Seq(weighed1)),
-          SortedSet(),
+          Queue(),
           0.1,
           1,
           null
@@ -288,7 +286,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
           null,
           ScoredParticles(Seq()),
           WeighedParticles(Seq(weighed1, weighed2, weighed3)),
-          SortedSet(),
+          Queue(),
           0.1,
           1,
           null
@@ -312,7 +310,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
           null,
           ScoredParticles(Seq()),
           WeighedParticles(Seq()),
-          SortedSet(),
+          Queue(),
           0.001,
           500,
           Map(1 -> 0.25, 2 -> 0.5, 3 -> 0.25)
