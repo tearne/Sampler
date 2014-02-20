@@ -165,7 +165,7 @@ abstract class ABCActor[P]
 			val updatedGeneration = algorithm.filterAndQueueForWeighing(scored, stateData.generation)
 			log.info("filterAndQueue({}) => |W| = {},  from {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
 			import updatedGeneration._
-			sndr ! WeighJob(dueWeighing, prevWeightsTable, currentTolerance)
+			sndr ! WeighJob(dueWeighing.seq, prevWeightsTable, currentTolerance)
 			log.debug("Allocate weighing of {} particles to {}", updatedGeneration.dueWeighing.size, sndr)
 			stay using stateData.copy(generation = updatedGeneration.emptyWeighingBuffer)
 			
@@ -244,7 +244,7 @@ abstract class ABCActor[P]
 		
 		if(dueWeighing.size > 0) {
 			// Tell worker to weigh particles
-			worker ! WeighJob(dueWeighing, prevWeightsTable, currentTolerance)
+			worker ! WeighJob(dueWeighing.seq, prevWeightsTable, currentTolerance)
 			stay using stateData.updateGeneration(algorithm.emptyWeighingBuffer(generation))	//Weigh existing particles
 		} else {
 			// Tell worker to make more particles

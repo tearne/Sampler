@@ -78,7 +78,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 		): Generation[P] = {
 			val weightedParticles = gen.weighted
 			
-			val newWeighted = weightedParticles ++ incoming.seq
+			val newWeighted = weightedParticles.add(incoming)
 			
 			gen.copy(
 					weighted = newWeighted
@@ -95,19 +95,20 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 			val filtered = taggedAndScoredParamSets.seq.filter(tagged => !observedIds.contains(tagged.id))
 			
 			gen.copy(
-					dueWeighing = particlesDueWeighting ++ filtered,
+					dueWeighing = particlesDueWeighting.add(filtered),
 					idsObserved = observedIds ++ filtered.map(_.id)
 			)
 		}
 		
 		def flushGeneration[P](gen: Generation[P], numParticles: Int): Generation[P] = {
-			val weightedParticles = gen.weighted
+			val dueWeighing = gen.dueWeighing
+		    val weightedParticles = gen.weighted
 			val currentTolerance = gen.currentTolerance
 			val currentIteration = gen.currentIteration
 			val model = gen.model
 			
 			assert(numParticles <= weightedParticles.size)
-			val seqWeighted = weightedParticles.toSeq.map(_.value) //Strip out tags
+			val seqWeighted = weightedParticles.seq.map(_.value) //Strip out tags
 			val newTolerance = toleranceCalculator(seqWeighted, currentTolerance)
 			
 			def consolidateToWeightsTable[P](model: Model[P], population: Seq[Weighted[P]]): Map[P, Double] = {
@@ -117,8 +118,8 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 			}
 			
 			val newGeneration = gen.copy(
-			    dueWeighing = Seq.empty[Tagged[Scored[P]]],
-				weighted = Seq.empty[Tagged[Weighted[P]]],
+			    dueWeighing = dueWeighing.empty,
+			    weighted = weightedParticles.empty,
 				currentTolerance = newTolerance,
 				currentIteration = currentIteration + 1,
 				prevWeightsTable = consolidateToWeightsTable(model, seqWeighted)
@@ -131,7 +132,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 			gen.weighted.size >= config.job.numParticles
 		
 		def emptyWeighingBuffer[P](gen: Generation[P]): Generation[P] = 
-			gen.copy(dueWeighing = Seq.empty[Tagged[Scored[P]]])
+			gen.copy(dueWeighing = gen.dueWeighing.empty)
 			
 			// TODO this method loses type of key - not actually used. Delete??
 		def weightsTable[G <: Generation[_]](gen: G) = gen.prevWeightsTable
@@ -146,7 +147,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 			
 			if(weightedParticles.size > mixingSize) {
 				val oneOfEachParticle = 
-					weightedParticles.toSeq
+					weightedParticles.seq
 						.map{case Tagged(weighted, uid) =>
 							Tagged(weighted.scored, uid) -> 1
 						}
@@ -162,7 +163,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 				Some(ScoredParticles(res))
 			} else if(weightedParticles.size > 0){
 				val res = weightedParticles
-					.toSeq
+					.seq
 					.map{case Tagged(weighted, uid) =>
 						Tagged(weighted.scored, uid)
 					}
