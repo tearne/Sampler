@@ -1,30 +1,28 @@
 package sampler.cluster.abc.algorithm
 
-import org.scalatest.Matchers
-import org.junit.Test
-import sampler.math.Statistics
-import sampler.cluster.abc.actor.root.ABCActor
-import sampler.cluster.abc.algorithm.component.ToleranceComponent
-import sampler.cluster.abc.actor.root.Getters
-import sampler.cluster.abc.actor.root.GettersComponent
-import akka.actor.ActorLogging
+import scala.collection.immutable.SortedSet
+
+import org.mockito.Matchers.anyObject
+import org.mockito.Mockito.when
 import org.scalatest.FreeSpec
-import sampler.math.StatisticsComponent
-import org.mockito.Mockito._
-import sampler.math.StatisticsComponentImpl
-import sampler.cluster.abc.config.ABCConfig
+import org.scalatest.Matchers
 import org.scalatest.mock.MockitoSugar
-import sampler.cluster.abc.actor.WeighedParticles
+
+import akka.event.LoggingAdapter
 import sampler.cluster.abc.Scored
 import sampler.cluster.abc.Weighted
-import sampler.cluster.abc.actor.Tagged
-import scala.collection.immutable.SortedSet
-import sampler.cluster.abc.actor.ScoredParticles
-import sampler.cluster.abc.config.JobParameters
 import sampler.cluster.abc.actor.LoggingAdapterComponent
-import akka.event.LoggingAdapter
-import sampler.cluster.abc.config.ABCParametersTest
+import sampler.cluster.abc.actor.ScoredParticles
+import sampler.cluster.abc.actor.Tagged
+import sampler.cluster.abc.actor.WeighedParticles
+import sampler.cluster.abc.actor.root.Getters
+import sampler.cluster.abc.actor.root.GettersComponent
+import sampler.cluster.abc.algorithm.component.ToleranceComponent
+import sampler.cluster.abc.config.ABCConfig
 import sampler.cluster.abc.config.ClusterParameters
+import sampler.cluster.abc.config.JobParameters
+import sampler.math.Statistics
+import sampler.math.StatisticsComponent
 
 class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
 
@@ -46,12 +44,17 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
     
     val instance = instanceComponent.algorithm
     
+    val (id1, id2, id3, id4) = (111111, 111112, 111113, 111114)
+    
+    val scored1 = Tagged(Scored(1, Seq(0,5)), id1)
+    val scored2 = Tagged(Scored(2, Seq(0.5)), id2)
+    
+    val weighed1 = Tagged(Weighted(Scored(3, Seq(0.5)), 0.5), id3)
+    val weighed2 = Tagged(Weighted(Scored(4, Seq(0.5)), 0.5), id4)
+    
     "Add incoming weighted particles to a generation" in {
-      val p1 = Tagged(Weighted(Scored(1, Seq(0.5)), 0.5), 111111)
-      val p2 = Tagged(Weighted(Scored(2, Seq(0.5)), 0.5), 111112)
-      
-      val initialSeq = WeighedParticles(Seq(p1))
-      val addedSeq = WeighedParticles(Seq(p2))
+      val initialSeq = WeighedParticles(Seq(weighed1))
+      val addedSeq = WeighedParticles(Seq(weighed2))
       
       val gen1 = Generation[Int](
           null,
@@ -67,13 +70,12 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
       val weighedSeq = nextGen.weighted
       
       assert(weighedSeq.seq.length === 2)
-      assert(weighedSeq.seq.contains(p1))
-      assert(weighedSeq.seq.contains(p2))
+      assert(weighedSeq.seq.contains(weighed1))
+      assert(weighedSeq.seq.contains(weighed2))
     }
     
     "Filters and queues for weighing" in {
-      val p1 = Tagged(Scored(1, Seq(0,5)), 111111)
-      val scoredSeq = ScoredParticles(Seq(p1))
+      val scoredSeq = ScoredParticles(Seq(scored1))
       
       val gen1 = Generation[Int](
           null,
@@ -91,21 +93,15 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
       val dueWeighing = nextGen.dueWeighing
       
       assert(observedIds.size === 1)
-      assert(observedIds.contains(111111))
+      assert(observedIds.contains(id1))
       
       assert(dueWeighing.size === 1)
-      assert(dueWeighing.seq.contains(p1))
+      assert(dueWeighing.seq.contains(scored1))
     }
     
     "Similar test to above but with some IDs already present and attempted adding of duplicate" in {
-      val (id1, id2) = (111111, 111112)
-      
       val initialObs: SortedSet[Long] = SortedSet(id1)
-      
-      val p1 = Tagged(Scored(1, Seq(0.5)), id1)
-      val p2 = Tagged(Scored(2, Seq(0.5)), id2)
-      
-      val initialDues = ScoredParticles(Seq(p1))
+      val initialDues = ScoredParticles(Seq(scored1))
       
       val gen1 = Generation[Int](
           null,
@@ -117,7 +113,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
           null
       )
       
-      val scoredSeq = ScoredParticles(Seq(p1, p2))
+      val scoredSeq = ScoredParticles(Seq(scored1, scored2))
       
       val nextGen = instance.filterAndQueueForWeighing(scoredSeq, gen1)
       
@@ -129,8 +125,8 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
       assert(observedIds.contains(id2))
       
       assert(dueWeighing.size === 2)
-      assert(dueWeighing.seq.contains(p1))
-      assert(dueWeighing.seq.contains(p2))
+      assert(dueWeighing.seq.contains(scored1))
+      assert(dueWeighing.seq.contains(scored2))
     }
     
     "Flushes generation" in {
@@ -156,9 +152,9 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
       
       val gen1 = Generation[Int](
           null,
-          ScoredParticles(Seq(Tagged(Scored(2, Seq(0,5)), 111112))),
-          WeighedParticles(Seq(Tagged(Weighted(Scored(1, Seq(0.5)), 0.5), 111111))),
-          SortedSet(111111),
+          ScoredParticles(Seq(scored1)),
+          WeighedParticles(Seq(weighed1)),
+          SortedSet(id3),
           0.1,
           1,
           null
@@ -169,7 +165,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
       assert(nextGen.weighted.seq.isEmpty)
       assert(nextGen.currentTolerance === 0.01)
       assert(nextGen.currentIteration === 2)
-      assert(nextGen.prevWeightsTable === Map(1 -> 0.5))
+      assert(nextGen.prevWeightsTable === Map(3 -> 0.5))
       assert(nextGen.dueWeighing.seq.isEmpty)
     }
     
@@ -183,13 +179,13 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
           null,
           null,
           WeighedParticles(Seq(
-            Tagged(Weighted(Scored(1, Seq(0.5)), 0.5), 111111),
-            Tagged(Weighted(Scored(2, Seq(0.5)), 0.5), 111112),
-            Tagged(Weighted(Scored(3, Seq(0.5)), 0.5), 111113),
-            Tagged(Weighted(Scored(4, Seq(0.5)), 0.5), 111114),
-            Tagged(Weighted(Scored(5, Seq(0.5)), 0.5), 111115)
+            weighed1,
+            weighed2,
+            Tagged(Weighted(Scored(5, Seq(0.5)), 0.5), 111115),
+            Tagged(Weighted(Scored(6, Seq(0.5)), 0.5), 111116),
+            Tagged(Weighted(Scored(7, Seq(0.5)), 0.5), 111117)
           )),
-          SortedSet(111111, 111112, 111113, 111114, 111115),
+          SortedSet(111113, 111114, 111115, 111116, 111117),
           0.1,
           1,
           null
@@ -204,7 +200,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
     "Empties weighing buffer" in {
       val gen1 = Generation[Int](
           null,
-          ScoredParticles(Seq(Tagged(Scored(2, Seq(0,5)), 111112))),
+          ScoredParticles(Seq(scored1)),
           WeighedParticles(Seq()),
           SortedSet(),
           0.1,
@@ -259,11 +255,10 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
       }
       
       "When some weighteds are present but not bigger than mixing size" in {
-        Seq(Tagged(Weighted(Scored(1, Seq(0.5)), 0.5), 111111))
         val gen1 = Generation[Int](
           null,
           ScoredParticles(Seq()),
-          WeighedParticles(Seq(Tagged(Weighted(Scored(1, Seq(0.5)), 0.5), 111111))),
+          WeighedParticles(Seq(weighed1)),
           SortedSet(),
           0.1,
           1,
@@ -278,22 +273,21 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
         
         val taggedScored = instance.buildMixPayload(gen1, config).get
         
-        val expected = Tagged(Scored(1, Seq(0.5)), 111111)
+        println(taggedScored)
+        println(Tagged(Scored(3, Seq(0.5)), id3))
         
         assert(taggedScored.seq.size === 1)
-        assert(taggedScored.seq.contains(expected))
+        assert(taggedScored.seq.contains(Tagged(Scored(3, Seq(0.5)), id3)))
       }
       
       "When mixing size is exceeded" in {
-        val tagged1 = Tagged(Weighted(Scored(1, Seq(0.25)), 0.25), 111111)
-        val tagged2 = Tagged(Weighted(Scored(2, Seq(0.25)), 0.25), 111112)
-        val tagged3 = Tagged(Weighted(Scored(3, Seq(0.5)), 0.5), 111113)
+        val weighed3 = Tagged(Weighted(Scored(5, Seq(0.5)), 0.5), 111115)
         
         Seq(Tagged(Weighted(Scored(1, Seq(0.5)), 0.5), 111111))
         val gen1 = Generation[Int](
           null,
           ScoredParticles(Seq()),
-          WeighedParticles(Seq(tagged1, tagged2, tagged3)),
+          WeighedParticles(Seq(weighed1, weighed2, weighed3)),
           SortedSet(),
           0.1,
           1,
