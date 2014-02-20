@@ -44,7 +44,7 @@ trait AlgorithmComponent {
 }
 
 trait Algorithm {
-	def addWeighted[P](incomingWeighted: TaggedWeighedSeq[P], gen: Generation[P], config: ABCConfig): Generation[P]
+	def addWeighted[P](incomingWeighted: TaggedWeighedSeq[P], gen: Generation[P]): Generation[P]
 	def filterAndQueueForWeighing[P](taggedAndScored: TaggedScoredSeq[P], gen: Generation[P]): Generation[P]
 	def flushGeneration[P](gen: Generation[P], numParticles: Int): Generation[P]
 	def isEnoughParticles(gen: Generation[_], config: ABCConfig): Boolean
@@ -69,19 +69,16 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 	
 	val algorithm: Algorithm
 	
-	// TODO inconsistent use of Generation object. Sometimes import, sometimes gen.variable
-	
 	trait AlgorithmImpl extends Algorithm {
 		implicit val r = Random
 		
 		def addWeighted[P](
 				incoming: TaggedWeighedSeq[P],
-				gen: Generation[P],
-				config: ABCConfig		//TODO get rid
+				gen: Generation[P]
 		): Generation[P] = {
-			import gen._
+			val weightedParticles = gen.weighted
 			
-			val newWeighted = weighted ++ incoming.seq
+			val newWeighted = weightedParticles ++ incoming.seq
 			
 			gen.copy(
 					weighted = newWeighted
@@ -93,17 +90,24 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 			gen: Generation[P]
 		): Generation[P] = {
 			val observedIds = gen.idsObserved
+			val particlesDueWeighting = gen.dueWeighing
+			
 			val filtered = taggedAndScoredParamSets.seq.filter(tagged => !observedIds.contains(tagged.id))
+			
 			gen.copy(
-					dueWeighing = gen.dueWeighing ++ filtered,
+					dueWeighing = particlesDueWeighting ++ filtered,
 					idsObserved = observedIds ++ filtered.map(_.id)
 			)
 		}
 		
 		def flushGeneration[P](gen: Generation[P], numParticles: Int): Generation[P] = {
-			import gen._
-			assert(numParticles <= weighted.size)
-			val seqWeighted = weighted.toSeq.map(_.value) //Strip out tags
+			val weightedParticles = gen.weighted
+			val currentTolerance = gen.currentTolerance
+			val currentIteration = gen.currentIteration
+			val model = gen.model
+			
+			assert(numParticles <= weightedParticles.size)
+			val seqWeighted = weightedParticles.toSeq.map(_.value) //Strip out tags
 			val newTolerance = toleranceCalculator(seqWeighted, currentTolerance)
 			
 			def consolidateToWeightsTable[P](model: Model[P], population: Seq[Weighted[P]]): Map[P, Double] = {
@@ -113,6 +117,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 			}
 			
 			val newGeneration = gen.copy(
+			    dueWeighing = Seq.empty[Tagged[Scored[P]]],
 				weighted = Seq.empty[Tagged[Weighted[P]]],
 				currentTolerance = newTolerance,
 				currentIteration = currentIteration + 1,
@@ -128,19 +133,20 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 		def emptyWeighingBuffer[P](gen: Generation[P]): Generation[P] = 
 			gen.copy(dueWeighing = Seq.empty[Tagged[Scored[P]]])
 			
+			// TODO this method loses type of key - not actually used. Delete??
 		def weightsTable[G <: Generation[_]](gen: G) = gen.prevWeightsTable
 		
 		//TODO can we simplify tagged and scored parm sets?
 		//TODO discuss this method
 		//TODO testing difficult because of random drawing
 		def buildMixPayload[P](gen: Generation[P], abcParameters: ABCConfig): Option[TaggedScoredSeq[P]] = {
-			import gen._
+			val weightedParticles = gen.weighted
 			
 			val mixingSize = abcParameters.cluster.mixPayloadSize
 			
-			if(weighted.size > mixingSize) {
+			if(weightedParticles.size > mixingSize) {
 				val oneOfEachParticle = 
-					weighted.toSeq
+					weightedParticles.toSeq
 						.map{case Tagged(weighted, uid) =>
 							Tagged(weighted.scored, uid) -> 1
 						}
@@ -154,8 +160,8 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 				if(res.size == 999) logg.warning("AAAAAAAAAAAAAAAAAAAA")
 					
 				Some(TaggedScoredSeq(res))
-			} else if(weighted.size > 0){
-				val res = weighted
+			} else if(weightedParticles.size > 0){
+				val res = weightedParticles
 					.toSeq
 					.map{case Tagged(weighted, uid) =>
 						Tagged(weighted.scored, uid)
@@ -168,15 +174,19 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 		}
 			
 		def buildReport[P](gen: Generation[P], config: ABCConfig): Report[P] = {
+		    val iteration = gen.currentIteration
+		    val tolerance = gen.currentTolerance
+		    val weightsTable = gen.prevWeightsTable
+		    
 			val samples: Seq[P] = Distribution
-				.fromProbabilityTable(gen.prevWeightsTable)
+				.fromProbabilityTable(weightsTable)
 				.until(_.size == getters.getNumParticles(config))
 				.sample
 			
 			Report(
-					gen.currentIteration,
-					gen.currentTolerance,
-					samples
+				iteration,
+				tolerance,
+				samples
 			)
 		}
 	}

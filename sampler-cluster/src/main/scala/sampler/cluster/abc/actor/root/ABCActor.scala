@@ -177,7 +177,7 @@ abstract class ABCActor[P]
 			stay using stateData.copy(generation = updatedGeneration)
 
 		case Event(weighted: TaggedWeighedSeq[P], stateData: StateData[P]) =>
-			val updatedGen = algorithm.addWeighted(weighted, stateData.generation, config)
+			val updatedGen = algorithm.addWeighted(weighted, stateData.generation)
 			log.info(s"Currently G${updatedGen.currentIteration}, Particles + ${weighted.seq.size} = ${updatedGen.weighted.size}/${config.job.numParticles}")
 			
 			if(algorithm.isEnoughParticles(updatedGen, config)){
