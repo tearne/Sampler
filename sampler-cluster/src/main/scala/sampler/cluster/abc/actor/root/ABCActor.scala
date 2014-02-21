@@ -32,7 +32,7 @@ import sampler.cluster.abc.actor.Start
 import sampler.cluster.abc.algorithm.AlgorithmComponent
 import sampler.cluster.abc.algorithm.AlgorithmComponentImpl
 import sampler.cluster.abc.algorithm.Generation
-import sampler.cluster.abc.algorithm.component.ToleranceComponent
+import sampler.cluster.abc.algorithm.component.ToleranceCalculatorComponent
 import sampler.cluster.abc.algorithm.component.WeigherComponent
 import sampler.cluster.abc.config.ABCConfig
 import sampler.math.Random
@@ -64,7 +64,7 @@ class ABCActorImpl[P](
 		with WorkDispatcherComponentImpl
 		with AlgorithmComponentImpl 
 		with WeigherComponent
-		with ToleranceComponent
+		with ToleranceCalculatorComponent
 		with LoggingAdapterComponentImpl
 		with StatisticsComponent 
 		with GettersComponent {

@@ -31,7 +31,7 @@ case class Generation[P](
 	model: Model[P],
 	dueWeighing: ScoredParticles[P],
 	weighted: WeighedParticles[P],
-	idsObserved: Queue[Long],	//TODO change for a queue
+	idsObserved: Queue[Long],
 	currentTolerance: Double,
 	currentIteration: Int,
 	prevWeightsTable: Map[P, Double]

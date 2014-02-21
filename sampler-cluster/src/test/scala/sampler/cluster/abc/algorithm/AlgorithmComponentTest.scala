@@ -14,7 +14,7 @@ import sampler.cluster.abc.actor.Tagged
 import sampler.cluster.abc.actor.WeighedParticles
 import sampler.cluster.abc.actor.root.Getters
 import sampler.cluster.abc.actor.root.GettersComponent
-import sampler.cluster.abc.algorithm.component.ToleranceComponent
+import sampler.cluster.abc.algorithm.component.ToleranceCalculatorComponent
 import sampler.cluster.abc.config.ABCConfig
 import sampler.cluster.abc.config.ClusterParameters
 import sampler.cluster.abc.config.JobParameters
@@ -27,7 +27,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
   "Algorithm component should" - {
   
     val instanceComponent = new AlgorithmComponentImpl 
-    		with ToleranceComponent
+    		with ToleranceCalculatorComponent
     		with StatisticsComponent
     		with LoggingAdapterComponent
     		with GettersComponent {
@@ -129,7 +129,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
     
     "Flushes generation" in {
       val mockedComponent = new AlgorithmComponentImpl 
-    		with ToleranceComponent
+    		with ToleranceCalculatorComponent
     		with StatisticsComponent
     		with LoggingAdapterComponent
     		with GettersComponent {
@@ -270,9 +270,6 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
         )
         
         val taggedScored = instance.buildMixPayload(gen1, config).get
-        
-        println(taggedScored)
-        println(Tagged(Scored(3, Seq(0.5)), id3))
         
         assert(taggedScored.seq.size === 1)
         assert(taggedScored.seq.contains(Tagged(Scored(3, Seq(0.5)), id3)))

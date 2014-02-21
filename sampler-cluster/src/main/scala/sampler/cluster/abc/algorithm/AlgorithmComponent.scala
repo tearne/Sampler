@@ -17,27 +17,20 @@
 
 package sampler.cluster.abc.algorithm
 
-import scala.Option.option2Iterable
-import akka.actor.Actor
-import akka.actor.ActorLogging
-import akka.actor.ActorRef
 import sampler.Implicits.SamplableMap
-import sampler.cluster.abc.Scored
+import sampler.cluster.abc.Model
 import sampler.cluster.abc.Weighted
+import sampler.cluster.abc.actor.LoggingAdapterComponent
+import sampler.cluster.abc.actor.Report
+import sampler.cluster.abc.actor.ScoredParticles
 import sampler.cluster.abc.actor.Tagged
+import sampler.cluster.abc.actor.WeighedParticles
+import sampler.cluster.abc.actor.root.GettersComponent
+import sampler.cluster.abc.algorithm.component.ToleranceCalculatorComponent
 import sampler.cluster.abc.config.ABCConfig
-import sampler.cluster.abc.algorithm.component.ToleranceComponent
-import sampler.cluster.abc.algorithm.component.WeigherComponent
+import sampler.data.Distribution
 import sampler.math.Random
 import sampler.math.StatisticsComponent
-import sampler.cluster.abc.Model
-import sampler.cluster.abc.actor.Report
-import sampler.data.Distribution
-import sampler.cluster.abc.actor.root.Getters
-import sampler.cluster.abc.actor.root.GettersComponent
-import sampler.cluster.abc.actor.ScoredParticles
-import sampler.cluster.abc.actor.WeighedParticles
-import sampler.cluster.abc.actor.LoggingAdapterComponent
 
 trait AlgorithmComponent {
 	val algorithm: Algorithm
@@ -60,7 +53,7 @@ trait Algorithm {
  * self typing and simplify mocking
  */
 trait AlgorithmComponentImpl extends AlgorithmComponent {
-	this: ToleranceComponent 
+	this: ToleranceCalculatorComponent 
 		with StatisticsComponent
 		with LoggingAdapterComponent
 //		with Actor		// TODO think about whether this needs to be here

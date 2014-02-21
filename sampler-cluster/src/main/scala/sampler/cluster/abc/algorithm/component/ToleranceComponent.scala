@@ -25,11 +25,9 @@ import sampler.Implicits._
 import akka.event.LoggingAdapter
 import sampler.cluster.abc.actor.LoggingAdapterComponent
 
-trait ToleranceComponent {
-	//TODO tidy
-	this: StatisticsComponent with LoggingAdapterComponent /*with LoggingActor*/ /* with Actor with ActorLogging */=>
+trait ToleranceCalculatorComponent {
+	this: StatisticsComponent with LoggingAdapterComponent =>
 		
-	//TODO naming inconsistent
 	val toleranceCalculator: ToleranceCalculator
 	
 	trait ToleranceCalculator {
