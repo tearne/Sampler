@@ -47,7 +47,6 @@ trait Algorithm {
 	def buildReport[P](gen: Generation[P], config: ABCConfig): Report[P]
 }
 
-
 /*
  * Use of a base trait and Impl allows us to strip out all the 
  * self typing and simplify mocking
@@ -71,10 +70,8 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 		): Generation[P] = {
 			val weightedParticles = gen.weighted
 			
-			val newWeighted = weightedParticles.add(incoming)
-			
 			gen.copy(
-					weighted = newWeighted
+					weighted = weightedParticles.add(incoming)
 			)
 		}
 		
@@ -102,7 +99,6 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 			
 			assert(numParticles <= weightedParticles.size)
 			val seqWeighted = weightedParticles.seq.map(_.value) //Strip out tags
-			val newTolerance = toleranceCalculator(seqWeighted, currentTolerance)
 			
 			def consolidateToWeightsTable[P](model: Model[P], population: Seq[Weighted[P]]): Map[P, Double] = {
 				population
@@ -110,15 +106,13 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 				.map{case (k,v) => (k, v.map(_.weight).sum)}
 			}
 			
-			val newGeneration = gen.copy(
+			gen.copy(
 			    dueWeighing = dueWeighing.empty,
 			    weighted = weightedParticles.empty,
-				currentTolerance = newTolerance,
+				currentTolerance = toleranceCalculator(seqWeighted, currentTolerance),
 				currentIteration = currentIteration + 1,
 				prevWeightsTable = consolidateToWeightsTable(model, seqWeighted)
 			)
-			
-			newGeneration
 		}
 		
 		def isEnoughParticles(gen: Generation[_], config: ABCConfig): Boolean =
@@ -131,7 +125,6 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 		def weightsTable[G <: Generation[_]](gen: G) = gen.prevWeightsTable
 		
 		//TODO can we simplify tagged and scored parm sets?
-		//TODO discuss this method
 		//TODO testing difficult because of random drawing
 		def buildMixPayload[P](gen: Generation[P], abcParameters: ABCConfig): Option[ScoredParticles[P]] = {
 			val weightedParticles = gen.weighted
@@ -145,11 +138,10 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 							Tagged(weighted.scored, uid) -> 1
 						}
 						.toMap
-					
-				val res = oneOfEachParticle.draw(mixingSize)
-					._2		//TODO, this is all a bit nasty
-					.keys
-					.toSeq
+				
+				val res = oneOfEachParticle.draw(mixingSize)._2.map{
+						  case (scoredParticle, count) => scoredParticle
+						}.toSeq		
 				
 				if(res.size == 999) logg.warning("AAAAAAAAAAAAAAAAAAAA")
 					
