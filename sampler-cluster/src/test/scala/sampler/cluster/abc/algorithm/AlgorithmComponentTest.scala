@@ -47,8 +47,8 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
     val scored1 = Tagged(Scored(1, Seq(0,5)), id1)
     val scored2 = Tagged(Scored(2, Seq(0.5)), id2)
     
-    val weighed1 = Tagged(Weighted(Scored(3, Seq(0.5)), 0.5), id3)
-    val weighed2 = Tagged(Weighted(Scored(4, Seq(0.5)), 0.5), id4)
+    val weighed1 = Tagged(Weighted(Scored(3, Seq(0.25)), 0.25), id3)
+    val weighed2 = Tagged(Weighted(Scored(4, Seq(0.25)), 0.25), id4)
     
     "Add incoming weighted particles to a generation" in {
       val initialSeq = WeighedParticles(Seq(weighed1))
@@ -296,7 +296,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
         )
         
         val taggedScored = instance.buildMixPayload(gen1, config).get
-        
+        println(taggedScored)
 //        assert(taggedScored.seq.size === 2)	TODO re-implement test when random dependency injection fixed
         assert(taggedScored.seq.size < 3)
       }
@@ -310,16 +310,20 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
           Queue(),
           0.001,
           500,
-          Map(1 -> 0.25, 2 -> 0.5, 3 -> 0.25)
+          Map(1 -> 0.5, 2 -> 0.5)
       )
       
-      val config = ABCConfig(JobParameters(2,0,0), null, null)
+      val config = ABCConfig(JobParameters(1000,0,0), null, null)
       
       val report = instance.buildReport(gen1, config)
       
+      val posterior = report.posterior
+      
       assert(report.generationId === 500)
       assert(report.tolerance === 0.001)
-      assert(report.posterior.length === 2)
+      assert(posterior.length === 1000)
+//      posterior.count(_ == 1) should be(500 +- 1) 
+//      posterior.count(_ == 2) should be(500 +- 1) 
     }
   }
 }
