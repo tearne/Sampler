@@ -18,27 +18,25 @@
 package sampler.cluster.abc.algorithm
 
 import akka.actor.ActorRef
-import scala.collection.immutable.SortedSet
-import sampler.cluster.abc.Weighted
 import sampler.cluster.abc.actor.Tagged
 import sampler.cluster.abc.Model
 import sampler.cluster.abc.config.ABCConfig
-import sampler.cluster.abc.Weighted
+import sampler.cluster.abc.actor.ScoredParticles
+import sampler.cluster.abc.actor.WeighedParticles
 import sampler.cluster.abc.Scored
-
-// TODO consider inconsitency between Generation constructor and addWeighted method of
-// Algorithm implementation. One uses Seq[Tagged[Weighted[P]]] and the other TaggedWeighedSeq[P]
+import sampler.cluster.abc.Weighted
+import scala.collection.immutable.Queue
 
 case class Generation[P](
 	model: Model[P],
-	dueWeighing: Seq[Tagged[Scored[P]]],
-	weighted: Seq[Tagged[Weighted[P]]],
-	idsObserved: SortedSet[Long],
+	dueWeighing: ScoredParticles[P],
+	weighted: WeighedParticles[P],
+	idsObserved: Queue[Long],
 	currentTolerance: Double,
 	currentIteration: Int,
 	prevWeightsTable: Map[P, Double]
 ){
-	def emptyWeighingBuffer = copy(dueWeighing = Seq.empty[Tagged[Scored[P]]])
+	def emptyWeighingBuffer = copy(dueWeighing = dueWeighing.empty)
 }
 
 object Generation {
@@ -52,9 +50,9 @@ object Generation {
 			
 		Generation(
 			model,
-			Seq.empty[Tagged[Scored[P]]],
-			Seq.empty[Tagged[Weighted[P]]],
-			SortedSet.empty[Long],
+			ScoredParticles(Seq.empty[Tagged[Scored[P]]]),
+			WeighedParticles(Seq.empty[Tagged[Weighted[P]]]),
+			Queue.empty[Long],
 			Double.MaxValue,
 			0,
 			weightsTable

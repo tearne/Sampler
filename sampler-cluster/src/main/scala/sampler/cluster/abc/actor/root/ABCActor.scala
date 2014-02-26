@@ -32,7 +32,7 @@ import sampler.cluster.abc.actor.Start
 import sampler.cluster.abc.algorithm.AlgorithmComponent
 import sampler.cluster.abc.algorithm.AlgorithmComponentImpl
 import sampler.cluster.abc.algorithm.Generation
-import sampler.cluster.abc.algorithm.component.ToleranceComponent
+import sampler.cluster.abc.algorithm.component.ToleranceCalculatorComponent
 import sampler.cluster.abc.algorithm.component.WeigherComponent
 import sampler.cluster.abc.config.ABCConfig
 import sampler.math.Random
@@ -40,9 +40,9 @@ import sampler.math.Statistics
 import sampler.math.StatisticsComponent
 import sampler.cluster.abc.actor.Tagged
 import sampler.cluster.abc.Scored
-import sampler.cluster.abc.actor.TaggedScoredSeq
+import sampler.cluster.abc.actor.ScoredParticles
 import akka.routing.Broadcast
-import sampler.cluster.abc.actor.TaggedWeighedSeq
+import sampler.cluster.abc.actor.WeighedParticles
 import sampler.cluster.abc.actor.GenerateJob
 import sampler.cluster.abc.actor.WeighJob
 import scala.util.Failure
@@ -52,6 +52,8 @@ import sampler.cluster.abc.actor.MixPayload
 import sampler.cluster.abc.actor.ReportCompleted
 import sampler.cluster.abc.actor.Report
 import sampler.math.Statistics
+import sampler.cluster.abc.actor.LoggingAdapterComponent
+import sampler.cluster.abc.actor.LoggingAdapterComponentImpl
 
 class ABCActorImpl[P](
 		val model: Model[P],
@@ -62,7 +64,8 @@ class ABCActorImpl[P](
 		with WorkDispatcherComponentImpl
 		with AlgorithmComponentImpl 
 		with WeigherComponent
-		with ToleranceComponent 
+		with ToleranceCalculatorComponent
+		with LoggingAdapterComponentImpl
 		with StatisticsComponent 
 		with GettersComponent {
 	val childActors = new ChildActors{}
@@ -157,12 +160,12 @@ abstract class ABCActor[P]
 			log.error("FAILURE ENCOUNTERED IN WORKER")
 			allocateWork(sender, stateData)
 			
-		case Event(scored: TaggedScoredSeq[P], stateData: StateData[P]) =>
+		case Event(scored: ScoredParticles[P], stateData: StateData[P]) =>
 			val sndr = sender
 			val updatedGeneration = algorithm.filterAndQueueForWeighing(scored, stateData.generation)
 			log.info("filterAndQueue({}) => |W| = {},  from {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
 			import updatedGeneration._
-			sndr ! WeighJob(dueWeighing, prevWeightsTable, currentTolerance)
+			sndr ! WeighJob(dueWeighing.seq, prevWeightsTable, currentTolerance)
 			log.debug("Allocate weighing of {} particles to {}", updatedGeneration.dueWeighing.size, sndr)
 			stay using stateData.copy(generation = updatedGeneration.emptyWeighingBuffer)
 			
@@ -173,8 +176,8 @@ abstract class ABCActor[P]
 			log.info("filterAndQueue({}) => |W| = {},  from REMOTE {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
 			stay using stateData.copy(generation = updatedGeneration)
 
-		case Event(weighted: TaggedWeighedSeq[P], stateData: StateData[P]) =>
-			val updatedGen = algorithm.addWeighted(weighted, stateData.generation, config)
+		case Event(weighted: WeighedParticles[P], stateData: StateData[P]) =>
+			val updatedGen = algorithm.addWeighted(weighted, stateData.generation)
 			log.info(s"Currently G${updatedGen.currentIteration}, Particles + ${weighted.seq.size} = ${updatedGen.weighted.size}/${config.job.numParticles}")
 			
 			if(algorithm.isEnoughParticles(updatedGen, config)){
@@ -203,7 +206,7 @@ abstract class ABCActor[P]
 	}
 	
 	when(Flushing) {
-		case Event(_: TaggedScoredSeq[P], _) => 	log.info("Ignore new paylod"); 		stay
+		case Event(_: ScoredParticles[P], _) => 	log.info("Ignore new paylod"); 		stay
 		case Event(MixNow, _) => 				log.info("Ignore mix request"); 	stay
 		case Event(FlushComplete(flushedGeneration), data: StateData[P]) =>
 			import flushedGeneration._
@@ -241,7 +244,7 @@ abstract class ABCActor[P]
 		
 		if(dueWeighing.size > 0) {
 			// Tell worker to weigh particles
-			worker ! WeighJob(dueWeighing, prevWeightsTable, currentTolerance)
+			worker ! WeighJob(dueWeighing.seq, prevWeightsTable, currentTolerance)
 			stay using stateData.updateGeneration(algorithm.emptyWeighingBuffer(generation))	//Weigh existing particles
 		} else {
 			// Tell worker to make more particles

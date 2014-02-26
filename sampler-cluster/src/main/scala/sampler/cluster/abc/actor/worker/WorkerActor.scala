@@ -30,7 +30,7 @@ import sampler.cluster.abc.Model
 import sampler.cluster.abc.actor.Abort
 import sampler.cluster.abc.actor.Aborted
 import sampler.cluster.abc.actor.Tagged
-import sampler.cluster.abc.actor.TaggedScoredSeq
+import sampler.cluster.abc.actor.ScoredParticles
 import sampler.math.Random
 import sampler.cluster.abc.Scored
 import scala.concurrent.Future
@@ -42,7 +42,7 @@ import sampler.cluster.abc.Weighted
 import sampler.cluster.abc.actor.GenerateJob
 import sampler.cluster.abc.actor.WeighJob
 import sampler.cluster.abc.actor.Failed
-import sampler.cluster.abc.actor.TaggedWeighedSeq
+import sampler.cluster.abc.actor.WeighedParticles
 import sampler.cluster.abc.actor.WorkerResult
 
 class WorkerActorImpl[P](val model: Model[P]) extends WorkerActor[P] {
@@ -145,7 +145,7 @@ abstract class WorkerActor[P]
 	def startGenerating(gJob: GenerateJob[P]) {
 		Future{
 			log.debug("Generating")
-			val result: Try[TaggedScoredSeq[P]] = modelRunner.run(gJob) 
+			val result: Try[ScoredParticles[P]] = modelRunner.run(gJob) 
 			result match{
 				case Failure(e: DetectedAbortionException) =>
 					Aborted
@@ -160,7 +160,7 @@ abstract class WorkerActor[P]
 	def startWeighing(wJob: WeighJob[P]) {
 		Future{
 			log.debug("Weighing")
-			val result: Try[TaggedWeighedSeq[P]] = weigher.run(wJob) 
+			val result: Try[WeighedParticles[P]] = weigher.run(wJob) 
 			result match{
 				case Failure(e: DetectedAbortionException) =>
 					Aborted

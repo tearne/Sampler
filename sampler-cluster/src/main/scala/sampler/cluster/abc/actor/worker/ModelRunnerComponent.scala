@@ -29,7 +29,7 @@ import sampler.cluster.abc.Model
 import sampler.cluster.abc.Scored
 import sampler.cluster.abc.actor.Tagged
 import sampler.cluster.abc.actor.GenerateJob
-import sampler.cluster.abc.actor.TaggedScoredSeq
+import sampler.cluster.abc.actor.ScoredParticles
 import sampler.data.ConvergenceProtocol
 import sampler.data.MaxMetric
 
@@ -47,7 +47,7 @@ trait ModelRunnerComponent[P] {
 		def reset() { aborted.set(false) }
 		private def isAborted = aborted.get
 		
-		def run(job: GenerateJob[P]): Try[TaggedScoredSeq[P]] = Try{
+		def run(job: GenerateJob[P]): Try[ScoredParticles[P]] = Try{
 			val paramDist: Distribution[P] =  {
 				val weightsTable = job.population.asInstanceOf[Map[P, Double]]
 				Distribution.fromProbabilityTable(weightsTable)
@@ -80,7 +80,7 @@ trait ModelRunnerComponent[P] {
 			}
 			
 			val seq = (1 to job.config.algorithm.particleChunkSize).map(i => Tagged(getScoredParameter()))
-			TaggedScoredSeq(seq)
+			ScoredParticles(seq)
 		}
 	}
 }

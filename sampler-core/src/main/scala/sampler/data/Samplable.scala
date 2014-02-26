@@ -21,6 +21,7 @@ import scalaz._
 import Scalaz._
 import sampler.math.Random
 
+// TODO potential bug being manifested in algorithm component and test (missing one value)
 trait Samplable[R, T]{
 	type Counts = Map[T, Int]
 		
