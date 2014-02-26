@@ -26,6 +26,10 @@ object Infection {
 	def possiblyMutate(current: Set[Infection]): Set[Infection] = {
 		current.map{infection => infection.copy(virus = infection.virus.possiblyMutate)}
 	}
+	def toSeq(infection: Infection): Seq[Any] = {
+		import infection._
+		fid +: virus.sequence ++: Seq(source.getOrElse("-"))
+	} 
 }
 
 case class Virus(sequence: IndexedSeq[Int]){
@@ -87,7 +91,10 @@ object DifferenceMatrix{
 		}
 		
 		val map = pairs.view.map{pair => 
-			(pair, getDifference(pair._1, pair._2))
+			val diff =  
+				if(pair._1 == pair._2) Some(0)
+				else getDifference(pair._1, pair._2)
+			(pair, diff)
 		}.collect{
 			case (pair, Some(diff)) => (pair, diff)
 		}.toMap
@@ -158,15 +165,18 @@ object Parameters {
 	}
 	
 	def companyNeigbours(fid: Int) = {
-		if(NetworkModel.company.contains(fid))
-			NetworkModel.company
+		//note, this can't accomodate company sharing premises
+		if(NetworkModel.companyA.contains(fid))
+			NetworkModel.companyA
+		else if(NetworkModel.companyB.contains(fid))
+			NetworkModel.companyB
 		else Set.empty[Int]
 	}
 	
 	def spatialKernelSupport(fid: Int) = neighboursIncludingSelf(fid) ++ companyNeigbours(fid)
 	
 	private val kernel = new Prior[Double] with Distribution[Double]{
-		val normal = {
+		val normal = {val companyB = Set(32, 37, 72, 87)
 			val syncRand: RandomGenerator = new SynchronizedRandomGenerator(new MersenneTwister())
 			new NormalDistribution(syncRand, 0, 0.1, NormalDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY)
 		}
@@ -214,18 +224,27 @@ object Generate extends App{
 	val outbreak = NetworkModel.outbreakDistribution(truth).sample
 	
 	
-//	val diffMatrix = outbreak.differenceMatrix
-//	diffMatrix.
+	val diffMatrix = outbreak.differenceMatrix
+	val infectedA = diffMatrix.map.keySet.foldLeft(Set.empty[Int]){case (acc, pair) => acc + pair._1 + pair._2}
+	val infectedB = outbreak.infected
+	println(infectedA)
+	println(infectedB)
+	println(infectedA == infectedB)
+	
+//	val wd = Paths.get("results").resolve("Network")
+//	val header = "FarmId" :: (0 to Virus.sequenceLength) ::: "Source" :: Nil
+//	CSV.writeLines(wd.resolve("observations.csv"), , openOptions)
 }
 object NetworkModel {
 	implicit val random = Random
-	val company = Set(8, 41, 99)
+	val companyA = Set(41, 44, 23,32, 37, 72, 87)
+	val companyB = Set.empty[Int]
 	
-	val runLengthDays = 14
+	val runLengthDays = 7
 	
 	def outbreakDistribution(p: Parameters): Distribution[Outbreak] = {
 		val localSpread = Distribution.bernouliTrial(p.localTransmission)
-		val companySpread = Distribution.bernouliTrial(0.2)
+		val companySpread = Distribution.bernouliTrial(0.3)
 		
 		def addNewInfections(current: Outbreak): Outbreak = {
 			if(current.infected.size == 100) current
@@ -261,18 +280,20 @@ class NetworkModel(val observed: Outbreak) extends Model[Parameters]{
   /*
   *  		0	1	2	3	4	5	6	7	8	9
   *    ---------------------------------------------
-  * 	9|	.	.	.	.	.	.	.	.	.	C
-  * 	8|	.	.	.	.	.	.	.	.	.	.
-  * 	7|	.	.	.	.	.	.	.	.	.	.
+  * 	9|	.	.	.	.	.	.	.	.	.	.
+  * 	8|	.	.	.	.	.	.	.	A	.	.
+  * 	7|	.	.	A	.	.	.	.	.	.	.
   * 	6|	.	.	.	.	.	.	.	.	.	.
   * 	5|	.	.	.	.	.	.	.	.	.	.
-  * 	4|	.	C	.	.	.	.	.	.	.	.
-  * 	3|	.	.	.	.	.	.	.	.	.	.
-  * 	2|	.	.	.	.	.	.	.	.	.	.
+  * 	4|	.	A	.	.	A	.	.	.	.	.
+  * 	3|	.	.	A	.	.	.	.	A	.	.
+  * 	2|	.	.	.	A	.	.	.	.	.	.
   * 	1|	.	.	.	.	.	.	.	.	.	.
-  * 	0|	.	. 	.	.	.	.	.	.	C	.
+  * 	0|	.	. 	.	.	.	.	.	.	.	.
   *  
-  */	
+  */
+	
+	
 	def perturb(p: Parameters) = Parameters.perturb(p)
 	def perturbDensity(a: Parameters, b: Parameters) = Parameters.perturbDensity(a, b)
 	val prior = Parameters.prior
@@ -290,7 +311,7 @@ class NetworkModel(val observed: Outbreak) extends Model[Parameters]{
 	}
 		
 	def distanceToObservations(p: Parameters): Distribution[Double] = {
-		NetworkModel.outbreakDistribution(p).map(outbreak => 10 * (nodeDiff(outbreak) + sizeDiff(outbreak)) + sequenceBasedDiff(outbreak))
+		NetworkModel.outbreakDistribution(p).map(outbreak => 10 * (nodeDiff(outbreak) + sizeDiff(outbreak)))// + sequenceBasedDiff(outbreak))
 	}
 }
 
@@ -298,7 +319,7 @@ object ABCApp extends App{
 	val wd = Paths.get("results").resolve("Network")
 	Files.createDirectories(wd)
 	
-	val truth = Parameters(0.1, 42)
+	val truth = Parameters(0.01, 44)
 	val observedData = NetworkModel.outbreakDistribution(truth).sample
 	println("Siza = "+observedData.size)
 	val model = new NetworkModel(observedData)
