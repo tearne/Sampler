@@ -127,7 +127,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
       assert(dueWeighing.seq.contains(scored2))
     }
     
-    "Flushes generation" in {
+    "Flushes generation" - {
       val mockedComponent = new AlgorithmComponentImpl 
     		with ToleranceCalculatorComponent
     		with StatisticsComponent
@@ -143,12 +143,14 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
         
         import org.mockito.Matchers._
         
+        // Need mocking to return value from tolerance calculator
         when(toleranceCalculator.apply(anyObject(), org.mockito.Matchers.eq(0.1))).thenReturn(0.01)
       }
       
       val mockedInstance = mockedComponent.algorithm
       
-      val gen1 = Generation[Int](
+      "Flushes all elements " in {
+        val gen1 = Generation[Int](
           null,
           ScoredParticles(Seq(scored1)),
           WeighedParticles(Seq(weighed1)),
@@ -156,15 +158,77 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
           0.1,
           1,
           null
-      )
+        )
       
-      val nextGen = mockedInstance.flushGeneration(gen1, 1)
+        val nextGen = mockedInstance.flushGeneration(gen1, 1, 500)
       
-      assert(nextGen.weighted.seq.isEmpty)
-      assert(nextGen.currentTolerance === 0.01)
-      assert(nextGen.currentIteration === 2)
-      assert(nextGen.prevWeightsTable === Map(3 -> 0.5))
-      assert(nextGen.dueWeighing.seq.isEmpty)
+        assert(nextGen.weighted.seq.isEmpty)
+        assert(nextGen.currentTolerance === 0.01)
+        assert(nextGen.currentIteration === 2)
+        assert(nextGen.prevWeightsTable === Map(3 -> 0.25))
+        assert(nextGen.dueWeighing.seq.isEmpty)
+      }
+    
+      val numParticles = 2
+      val memoryGenerations = 2
+      
+//      "causes assertion error if particles haven't exceeded the memory generations limit" in {
+//        val shortQueue: Queue[Long] = Queue(id1, id2, id3)
+//        
+//        val gen1 = Generation[Int](
+//            null,
+//            ScoredParticles(Seq()),
+//            WeighedParticles(Seq()),
+//            shortQueue,
+//            0.1,
+//            1,
+//            null
+//        )
+//        
+//        intercept[AssertionError]{
+//          instance.flushGeneration(gen1, numParticles, memoryGenerations)
+//        }
+//      }
+      
+      "reduced to n-1 generations memory if memory limit is exceeded" in {
+        val longQueue: Queue[Long] = Queue(id1, id2, id3, id4, 111115)
+        
+        val gen1 = Generation[Int](
+            null,
+            ScoredParticles(Seq()),
+            WeighedParticles(Seq(weighed1, weighed1, weighed1, weighed1)),
+            longQueue,
+            0.1,
+            1,
+            null
+        )
+        
+        val nextGen = mockedInstance.flushGeneration(gen1, numParticles, memoryGenerations)
+        
+        val expectedQueue: Queue[Long] = Queue(id4, 111115)
+        
+        assert(nextGen.idsObserved === expectedQueue)
+      }
+      
+      "reduced to n-1 generations memory if memory limit is equalled" in {
+        val equalQueue: Queue[Long] = Queue(id1, id2, id3, id4)
+        
+        val gen1 = Generation[Int](
+            null,
+            ScoredParticles(Seq()),
+            WeighedParticles(Seq(weighed1, weighed1, weighed1, weighed1)),
+            equalQueue,
+            0.1,
+            1,
+            null
+        )
+        
+        val nextGen = mockedInstance.flushGeneration(gen1, numParticles, memoryGenerations)
+        
+        val expectedQueue: Queue[Long] = Queue(id3, id4)
+        
+        assert(nextGen.idsObserved === expectedQueue)
+      }
     }
     
     "Determine if generation has gathered enough particles" in {

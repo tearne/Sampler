@@ -186,7 +186,7 @@ abstract class ABCActor[P]
 				//Flush the current generation
 				implicit val dispatcher = workDispatcher
 				Future{
-					val flushedGen = algorithm.flushGeneration(updatedGen, config.job.numParticles)
+					val flushedGen = algorithm.flushGeneration(updatedGen, config.job.numParticles, 0)	// TODO implement memory generation parameter
 					FlushComplete(flushedGen)
 				}.pipeTo(self)
 				
