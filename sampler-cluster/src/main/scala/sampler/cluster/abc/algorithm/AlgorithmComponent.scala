@@ -91,7 +91,6 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 			)
 		}
 		
-		// TODO add code about clearing memory queues
 		def flushGeneration[P](gen: Generation[P], numParticles: Int, memoryGenerations: Int): Generation[P] = {
 			val dueWeighing = gen.dueWeighing
 		    val weightedParticles = gen.weighted
