@@ -21,7 +21,6 @@ import scalaz._
 import Scalaz._
 import sampler.math.Random
 
-// TODO potential bug being manifested in algorithm component and test (missing one value)
 trait Samplable[R, T]{
 	type Counts = Map[T, Int]
 		
@@ -56,16 +55,16 @@ trait ToSamplable {
 		def empty = state[Counts, Counts](Map[T, Int]())
 		def numRemaining = items.values.sum
 			
+		// TODO method updated to fix bug - please check
 		def removeOne(soFar: Counts)(implicit r: Random): State[Counts, Counts] = for(
 			item <- State[Counts, T]{s =>
-				val (colours, counts) = s.toIndexedSeq.unzip
-				val ballIndex = r.nextInt(s.values.sum)
-				val selected: T = colours(
-					counts.tail
-						.view
-						.scanLeft(counts(0))(_ + _)
-						.indexWhere(_ >= ballIndex)
-				)
+				val (items, counts) = s.toIndexedSeq.unzip
+				val countIndex = r.nextInt(s.values.sum)
+				val selectedIndex = counts
+						.scanLeft(0)(_ + _)
+						.drop(1)
+						.indexWhere(_ > countIndex)
+				val selected: T = items(selectedIndex)
 				(s.updated(selected, s(selected) - 1), selected)
 			}
 		) yield soFar.updated(item, soFar.getOrElse(item, 0) + 1)
@@ -78,7 +77,7 @@ trait ToSamplable {
 		def numRemaining = items.size
 		
 		def removeOne(soFar: Counts)(implicit r: Random): State[Remain, Counts] = for(
-			remaining <- get[Remain];
+		    remaining <- get[Remain];
 			index = r.nextInt(remaining.size);
 			item <- state(remaining(index));
 			_ <- put(remaining.patch(index, Nil, 1))

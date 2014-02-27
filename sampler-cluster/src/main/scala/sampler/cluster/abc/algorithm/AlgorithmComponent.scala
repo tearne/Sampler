@@ -31,6 +31,7 @@ import sampler.cluster.abc.config.ABCConfig
 import sampler.data.Distribution
 import sampler.math.Random
 import sampler.math.StatisticsComponent
+import scala.collection.immutable.Queue
 
 trait AlgorithmComponent {
 	val algorithm: Algorithm
@@ -39,7 +40,7 @@ trait AlgorithmComponent {
 trait Algorithm {
 	def addWeighted[P](incomingWeighted: WeighedParticles[P], gen: Generation[P]): Generation[P]
 	def filterAndQueueForWeighing[P](taggedAndScored: ScoredParticles[P], gen: Generation[P]): Generation[P]
-	def flushGeneration[P](gen: Generation[P], numParticles: Int): Generation[P]
+	def flushGeneration[P](gen: Generation[P], numParticles: Int, memoryGenerations: Int): Generation[P]
 	def isEnoughParticles(gen: Generation[_], config: ABCConfig): Boolean
 	def emptyWeighingBuffer[P](gen: Generation[P]): Generation[P]
 	
@@ -91,14 +92,16 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 		}
 		
 		// TODO add code about clearing memory queues
-		def flushGeneration[P](gen: Generation[P], numParticles: Int): Generation[P] = {
+		def flushGeneration[P](gen: Generation[P], numParticles: Int, memoryGenerations: Int): Generation[P] = {
 			val dueWeighing = gen.dueWeighing
 		    val weightedParticles = gen.weighted
 			val currentTolerance = gen.currentTolerance
 			val currentIteration = gen.currentIteration
 			val model = gen.model
+			val queuedIds = gen.idsObserved
 			
 			assert(numParticles <= weightedParticles.size)
+			
 			val seqWeighted = weightedParticles.seq.map(_.value) //Strip out tags
 			
 			def consolidateToWeightsTable[P](model: Model[P], population: Seq[Weighted[P]]): Map[P, Double] = {
@@ -107,12 +110,25 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 				.map{case (k,v) => (k, v.map(_.weight).sum)}
 			}
 			
+			def clearQueue(queue: Queue[Long]) = {
+				val maxNum = memoryGenerations * numParticles
+
+				val queueSize = queuedIds.size
+				
+				if(queueSize >= maxNum) {
+				  val reducedNum = (memoryGenerations -1) * numParticles
+				  val toDrop = queueSize - reducedNum
+				  queuedIds.drop(toDrop)
+				} else queuedIds
+			}
+			
 			gen.copy(
 			    dueWeighing = dueWeighing.empty,
 			    weighted = weightedParticles.empty,
 				currentTolerance = toleranceCalculator(seqWeighted, currentTolerance),
 				currentIteration = currentIteration + 1,
-				prevWeightsTable = consolidateToWeightsTable(model, seqWeighted)
+				prevWeightsTable = consolidateToWeightsTable(model, seqWeighted),
+				idsObserved = clearQueue(queuedIds)
 			)
 		}
 		
