@@ -57,8 +57,6 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 	this: ToleranceCalculatorComponent 
 		with StatisticsComponent
 		with LoggingAdapterComponent
-//		with Actor		// TODO think about whether this needs to be here
-//		with ActorLogging
 		with MixinComponent
 		with GettersComponent =>
 	
@@ -111,7 +109,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 				.map{case (k,v) => (k, v.map(_.weight).sum)}
 			}
 			
-			def clearQueue(queue: Queue[Long]) = {
+			def trimObservedIds(queue: Queue[Long]) = {
 				val maxNum = memoryGenerations * numParticles
 
 				val queueSize = queuedIds.size
@@ -129,7 +127,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 				currentTolerance = toleranceCalculator(seqWeighted, currentTolerance),
 				currentIteration = currentIteration + 1,
 				prevWeightsTable = consolidateToWeightsTable(model, seqWeighted),
-				idsObserved = clearQueue(queuedIds)
+				idsObserved = trimObservedIds(queuedIds)
 			)
 		}
 		
@@ -139,11 +137,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 		def emptyWeighingBuffer[P](gen: Generation[P]): Generation[P] = 
 			gen.copy(dueWeighing = gen.dueWeighing.empty)
 			
-			// TODO this method loses type of key - not actually used. Delete??
-		def weightsTable[G <: Generation[_]](gen: G) = gen.prevWeightsTable
-		
 		//TODO can we simplify tagged and scored parm sets?
-		//TODO testing difficult because of random drawing
 		def buildMixPayload[P](gen: Generation[P], abcParameters: ABCConfig): Option[ScoredParticles[P]] = {
 			mixin.apply(gen, abcParameters)
 		}

@@ -8,6 +8,8 @@ import sampler.cluster.abc.actor.Tagged
 import sampler.Implicits.SamplableMap
 import sampler.math.Random
 
+// TODO give better name
+
 trait MixinComponent {
   this: StatisticsComponent =>
     

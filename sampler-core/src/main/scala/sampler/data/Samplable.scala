@@ -55,12 +55,12 @@ trait ToSamplable {
 		def empty = state[Counts, Counts](Map[T, Int]())
 		def numRemaining = items.values.sum
 			
-		// TODO method updated to fix bug - please check
 		def removeOne(soFar: Counts)(implicit r: Random): State[Counts, Counts] = for(
 			item <- State[Counts, T]{s =>
 				val (items, counts) = s.toIndexedSeq.unzip
 				val countIndex = r.nextInt(s.values.sum)
 				val selectedIndex = counts
+						.view
 						.scanLeft(0)(_ + _)
 						.drop(1)
 						.indexWhere(_ > countIndex)

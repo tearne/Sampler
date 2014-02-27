@@ -35,12 +35,10 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
     		with GettersComponent {
       val statistics = mock[Statistics]
       val getters = new Getters{}
-      val toleranceCalculator = new ToleranceCalculator{}
+      val toleranceCalculator = mock[ToleranceCalculator]
       val mixin = mock[Mixin]
       val logg = mock[LoggingAdapter]
       val algorithm = new AlgorithmImpl{}
-      
-       def receive: akka.actor.Actor.Receive = null
     }
     
     val instance = instanceComponent.algorithm
@@ -131,30 +129,10 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
     }
     
     "Flushes generation" - {
-      val mockedComponent = new AlgorithmComponentImpl 
-    		with ToleranceCalculatorComponent
-    		with StatisticsComponent
-    		with LoggingAdapterComponent
-    		with MixinComponent
-    		with GettersComponent {
-        val statistics = mock[Statistics]
-        val getters = new Getters{}
-        val toleranceCalculator = mock[ToleranceCalculator]
-        val mixin = new Mixin{}
-        val algorithm = new AlgorithmImpl{}
-        val logg = mock[LoggingAdapter]
-        
-        def receive: akka.actor.Actor.Receive = null
-        
-        import org.mockito.Matchers._
-        
-        // Need mocking to return value from tolerance calculator
-        when(toleranceCalculator.apply(anyObject(), org.mockito.Matchers.eq(0.1))).thenReturn(0.01)
-      }
-      
-      val mockedInstance = mockedComponent.algorithm
-      
+
       "Flushes all elements " in {
+        when(instanceComponent.toleranceCalculator.apply(anyObject(), org.mockito.Matchers.eq(0.1))).thenReturn(0.01)
+        
         val gen1 = Generation[Int](
           null,
           ScoredParticles(Seq(scored1)),
@@ -165,7 +143,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
           null
         )
       
-        val nextGen = mockedInstance.flushGeneration(gen1, 1, 500)
+        val nextGen = instance.flushGeneration(gen1, 1, 500)
       
         assert(nextGen.weighted.seq.isEmpty)
         assert(nextGen.currentTolerance === 0.01)
@@ -177,23 +155,23 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
       val numParticles = 2
       val memoryGenerations = 2
       
-//      "causes assertion error if particles haven't exceeded the memory generations limit" in {
-//        val shortQueue: Queue[Long] = Queue(id1, id2, id3)
-//        
-//        val gen1 = Generation[Int](
-//            null,
-//            ScoredParticles(Seq()),
-//            WeighedParticles(Seq()),
-//            shortQueue,
-//            0.1,
-//            1,
-//            null
-//        )
-//        
-//        intercept[AssertionError]{
-//          instance.flushGeneration(gen1, numParticles, memoryGenerations)
-//        }
-//      }
+      "causes assertion error if particles haven't exceeded the memory generations limit" in {
+        val shortQueue: Queue[Long] = Queue(id1)
+        
+        val gen1 = Generation[Int](
+            null,
+            ScoredParticles(Seq()),
+            WeighedParticles(Seq(weighed1)),
+            shortQueue,
+            0.1,
+            1,
+            null
+        )
+        
+        intercept[AssertionError]{
+          instance.flushGeneration(gen1, numParticles, memoryGenerations)
+        }
+      }
       
       "reduced to n-1 generations memory if memory limit is exceeded" in {
         val longQueue: Queue[Long] = Queue(id1, id2, id3, id4, 111115)
@@ -208,7 +186,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
             null
         )
         
-        val nextGen = mockedInstance.flushGeneration(gen1, numParticles, memoryGenerations)
+        val nextGen = instance.flushGeneration(gen1, numParticles, memoryGenerations)
         
         val expectedQueue: Queue[Long] = Queue(id4, 111115)
         
@@ -228,7 +206,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
             null
         )
         
-        val nextGen = mockedInstance.flushGeneration(gen1, numParticles, memoryGenerations)
+        val nextGen = instance.flushGeneration(gen1, numParticles, memoryGenerations)
         
         val expectedQueue: Queue[Long] = Queue(id3, id4)
         
@@ -280,55 +258,15 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
       assert(nextGen.dueWeighing.seq.isEmpty)
     }
     
-    "Gives previous weights table" in {
-      val gen1 = Generation[Int](
-          null,
-          ScoredParticles(Seq()),
-          WeighedParticles(Seq()),
-          Queue(),
-          0.1,
-          1,
-          Map(1 -> 0.25, 2 -> 0.5, 3 -> 0.25)
-      )
-      
-      val previousWeights = instance.weightsTable(gen1)
-      
-      assert(previousWeights.keySet.size === 3)
-//      assert(previousWeights.get(1) === 0.25)
-//      assert(previousWeights.getOrElse(1, 0) === 0.25)
-//      assert(previousWeights.getOrElse(2, 0) === 0.5)
-//      assert(previousWeights.getOrElse(3, 0) === 0.25)
-    }
-    
     "Delegates building a mix payload to separate component" - {
       val mixinResponse = Some(ScoredParticles(Seq(scored1, scored2)))
       
       val gen1 = mock[Generation[Int]]
       val config = mock[ABCConfig]
       
-      val mockedComponent = new AlgorithmComponentImpl 
-    		with ToleranceCalculatorComponent
-    		with StatisticsComponent
-    		with LoggingAdapterComponent
-    		with MixinComponent
-    		with GettersComponent {
-        val statistics = mock[Statistics]
-        val getters = new Getters{}
-        val toleranceCalculator = new ToleranceCalculator{}
-        val mixin = mock[Mixin]
-        val algorithm = new AlgorithmImpl{}
-        val logg = mock[LoggingAdapter]
-        
-        def receive: akka.actor.Actor.Receive = null
-        
-        import org.mockito.Matchers._
-        
-        when(mixin.apply(gen1, config)).thenReturn(mixinResponse)
-      }
+      when(instanceComponent.mixin.apply(gen1, config)).thenReturn(mixinResponse)
       
-      val mockedInstance = mockedComponent.algorithm
-      
-      assert(mockedInstance.buildMixPayload(gen1, config) === mixinResponse)
+      assert(instance.buildMixPayload(gen1, config) === mixinResponse)
     }
     
     "Generates a report" in {
@@ -351,8 +289,8 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
       assert(report.generationId === 500)
       assert(report.tolerance === 0.001)
       assert(posterior.length === 1000)
-//      posterior.count(_ == 1) should be(500 +- 1) 
-//      posterior.count(_ == 2) should be(500 +- 1) 
+      posterior.count(_ == 1) should be(500 +- 50) 
+      posterior.count(_ == 2) should be(500 +- 50) 
     }
   }
 }
