@@ -32,6 +32,7 @@ import sampler.data.Distribution
 import sampler.math.Random
 import sampler.math.StatisticsComponent
 import scala.collection.immutable.Queue
+import sampler.cluster.abc.algorithm.component.MixinComponent
 
 trait AlgorithmComponent {
 	val algorithm: Algorithm
@@ -58,6 +59,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 		with LoggingAdapterComponent
 //		with Actor		// TODO think about whether this needs to be here
 //		with ActorLogging
+		with MixinComponent
 		with GettersComponent =>
 	
 	val algorithm: Algorithm
@@ -143,36 +145,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 		//TODO can we simplify tagged and scored parm sets?
 		//TODO testing difficult because of random drawing
 		def buildMixPayload[P](gen: Generation[P], abcParameters: ABCConfig): Option[ScoredParticles[P]] = {
-			val weightedParticles = gen.weighted
-			
-			val mixingSize = abcParameters.cluster.mixPayloadSize
-			
-			if(weightedParticles.size > mixingSize) {
-				val oneOfEachParticle = 
-					weightedParticles.seq
-						.map{case Tagged(weighted, uid) =>
-							Tagged(weighted.scored, uid) -> 1
-						}
-						.toMap
-				
-				val res = oneOfEachParticle.draw(mixingSize)._2.map{
-						  case (scoredParticle, count) => scoredParticle
-						}.toSeq		
-				
-				if(res.size == 999) logg.warning("AAAAAAAAAAAAAAAAAAAA")
-					
-				Some(ScoredParticles(res))
-			} else if(weightedParticles.size > 0){
-				val res = weightedParticles
-					.seq
-					.map{case Tagged(weighted, uid) =>
-						Tagged(weighted.scored, uid)
-					}
-				
-				if(res.size == 999) logg.warning("BBBBBBBBBBBBBBBBBBBBB")
-				
-				Some(ScoredParticles(res))
-			} else None
+			mixin.apply(gen, abcParameters)
 		}
 			
 		def buildReport[P](gen: Generation[P], config: ABCConfig): Report[P] = {

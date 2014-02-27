@@ -21,6 +21,7 @@ import sampler.cluster.abc.config.JobParameters
 import sampler.math.Statistics
 import sampler.math.StatisticsComponent
 import scala.collection.immutable.Queue
+import sampler.cluster.abc.algorithm.component.MixinComponent
 
 class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
 
@@ -30,10 +31,12 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
     		with ToleranceCalculatorComponent
     		with StatisticsComponent
     		with LoggingAdapterComponent
+    		with MixinComponent
     		with GettersComponent {
       val statistics = mock[Statistics]
       val getters = new Getters{}
       val toleranceCalculator = new ToleranceCalculator{}
+      val mixin = mock[Mixin]
       val logg = mock[LoggingAdapter]
       val algorithm = new AlgorithmImpl{}
       
@@ -132,10 +135,12 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
     		with ToleranceCalculatorComponent
     		with StatisticsComponent
     		with LoggingAdapterComponent
+    		with MixinComponent
     		with GettersComponent {
         val statistics = mock[Statistics]
         val getters = new Getters{}
         val toleranceCalculator = mock[ToleranceCalculator]
+        val mixin = new Mixin{}
         val algorithm = new AlgorithmImpl{}
         val logg = mock[LoggingAdapter]
         
@@ -295,75 +300,35 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
 //      assert(previousWeights.getOrElse(3, 0) === 0.25)
     }
     
-    "Builds a mix payload" - {
-      "None when no weighteds present" in {
-        val gen1 = Generation[Int](
-          null,
-          ScoredParticles(Seq()),
-          WeighedParticles(Seq()),
-          Queue(),
-          0.1,
-          1,
-          null
-        )
+    "Delegates building a mix payload to separate component" - {
+      val mixinResponse = Some(ScoredParticles(Seq(scored1, scored2)))
       
-        val config = ABCConfig(
-            null,
-            null,
-            ClusterParameters(false,0,0,2,0,0)
-        )
+      val gen1 = mock[Generation[Int]]
+      val config = mock[ABCConfig]
+      
+      val mockedComponent = new AlgorithmComponentImpl 
+    		with ToleranceCalculatorComponent
+    		with StatisticsComponent
+    		with LoggingAdapterComponent
+    		with MixinComponent
+    		with GettersComponent {
+        val statistics = mock[Statistics]
+        val getters = new Getters{}
+        val toleranceCalculator = new ToleranceCalculator{}
+        val mixin = mock[Mixin]
+        val algorithm = new AlgorithmImpl{}
+        val logg = mock[LoggingAdapter]
         
-        assert(instance.buildMixPayload(gen1, config) === None)
+        def receive: akka.actor.Actor.Receive = null
+        
+        import org.mockito.Matchers._
+        
+        when(mixin.apply(gen1, config)).thenReturn(mixinResponse)
       }
       
-      "When some weighteds are present but not bigger than mixing size" in {
-        val gen1 = Generation[Int](
-          null,
-          ScoredParticles(Seq()),
-          WeighedParticles(Seq(weighed1)),
-          Queue(),
-          0.1,
-          1,
-          null
-        )
-        
-        val config = ABCConfig(
-            null,
-            null,
-            ClusterParameters(false,0,0,2,0,0)
-        )
-        
-        val taggedScored = instance.buildMixPayload(gen1, config).get
-        
-        assert(taggedScored.seq.size === 1)
-        assert(taggedScored.seq.contains(Tagged(Scored(3, Seq(0.5)), id3)))
-      }
+      val mockedInstance = mockedComponent.algorithm
       
-      "When mixing size is exceeded" in {
-        val weighed3 = Tagged(Weighted(Scored(5, Seq(0.5)), 0.5), 111115)
-        
-        Seq(Tagged(Weighted(Scored(1, Seq(0.5)), 0.5), 111111))
-        val gen1 = Generation[Int](
-          null,
-          ScoredParticles(Seq()),
-          WeighedParticles(Seq(weighed1, weighed2, weighed3)),
-          Queue(),
-          0.1,
-          1,
-          null
-        )
-        
-        val config = ABCConfig(
-            null,
-            null,
-            ClusterParameters(false,0,0,2,0,0)
-        )
-        
-        val taggedScored = instance.buildMixPayload(gen1, config).get
-        println(taggedScored)
-//        assert(taggedScored.seq.size === 2)	TODO re-implement test when random dependency injection fixed
-        assert(taggedScored.seq.size < 3)
-      }
+      assert(mockedInstance.buildMixPayload(gen1, config) === mixinResponse)
     }
     
     "Generates a report" in {

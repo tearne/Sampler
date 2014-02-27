@@ -54,6 +54,7 @@ import sampler.cluster.abc.actor.Report
 import sampler.math.Statistics
 import sampler.cluster.abc.actor.LoggingAdapterComponent
 import sampler.cluster.abc.actor.LoggingAdapterComponentImpl
+import sampler.cluster.abc.algorithm.component.MixinComponent
 
 class ABCActorImpl[P](
 		val model: Model[P],
@@ -63,6 +64,7 @@ class ABCActorImpl[P](
 		with ChildrenActorsComponent[P]
 		with WorkDispatcherComponentImpl
 		with AlgorithmComponentImpl 
+		with MixinComponent
 		with WeigherComponent
 		with ToleranceCalculatorComponent
 		with LoggingAdapterComponentImpl
@@ -71,6 +73,7 @@ class ABCActorImpl[P](
 	val childActors = new ChildActors{}
 	val weigher = new Weigher{}
 	val toleranceCalculator = new ToleranceCalculator{}
+	val mixin = new Mixin{}
 	val algorithm = new AlgorithmImpl{}
 	val statistics = Statistics
 	val random = Random
