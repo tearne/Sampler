@@ -48,7 +48,7 @@ trait WeigherComponent {
 			getWeight(scoredParticle).map{wt => Weighted(scoredParticle, wt)}
 		}
 		
-		def consolidateToWeightsTable[P](model: Model[P], population: Seq[Weighted[P]]): Map[P, Double] = {
+		def consolidateToWeightsTable[P](population: Seq[Weighted[P]]): Map[P, Double] = {
 			population
 			.groupBy(_.params)
 			.map{case (k,v) => (k, v.map(_.weight).sum)}

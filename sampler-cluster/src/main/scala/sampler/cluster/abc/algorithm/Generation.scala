@@ -41,8 +41,9 @@ case class Generation[P](
 
 object Generation {
 	def init[P](model: Model[P], abcParameters: ABCConfig): Generation[P] = {
-		val uniformProb = 1.0 / abcParameters.job.numParticles
-		val weightsTable = (1 to abcParameters.job.numParticles)
+	    val numParticles = abcParameters.job.numParticles
+		val uniformProb = 1.0 / numParticles
+		val weightsTable = (1 to numParticles)
 			.par
 			.map(i => model.prior.sample() -> uniformProb)
 			.seq

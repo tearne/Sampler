@@ -32,6 +32,7 @@ import sampler.data.Distribution
 import sampler.math.Random
 import sampler.math.StatisticsComponent
 import scala.collection.immutable.Queue
+import sampler.cluster.abc.algorithm.component.ParticleMixerComponent
 
 trait AlgorithmComponent {
 	val algorithm: Algorithm
@@ -56,8 +57,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 	this: ToleranceCalculatorComponent 
 		with StatisticsComponent
 		with LoggingAdapterComponent
-//		with Actor		// TODO think about whether this needs to be here
-//		with ActorLogging
+		with ParticleMixerComponent
 		with GettersComponent =>
 	
 	val algorithm: Algorithm
@@ -91,7 +91,6 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 			)
 		}
 		
-		// TODO add code about clearing memory queues
 		def flushGeneration[P](gen: Generation[P], numParticles: Int, memoryGenerations: Int): Generation[P] = {
 			val dueWeighing = gen.dueWeighing
 		    val weightedParticles = gen.weighted
@@ -110,7 +109,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 				.map{case (k,v) => (k, v.map(_.weight).sum)}
 			}
 			
-			def clearQueue(queue: Queue[Long]) = {
+			def trimObservedIds(queue: Queue[Long]) = {
 				val maxNum = memoryGenerations * numParticles
 
 				val queueSize = queuedIds.size
@@ -128,7 +127,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 				currentTolerance = toleranceCalculator(seqWeighted, currentTolerance),
 				currentIteration = currentIteration + 1,
 				prevWeightsTable = consolidateToWeightsTable(model, seqWeighted),
-				idsObserved = clearQueue(queuedIds)
+				idsObserved = trimObservedIds(queuedIds)
 			)
 		}
 		
@@ -138,42 +137,9 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 		def emptyWeighingBuffer[P](gen: Generation[P]): Generation[P] = 
 			gen.copy(dueWeighing = gen.dueWeighing.empty)
 			
-			// TODO this method loses type of key - not actually used. Delete??
-		def weightsTable[G <: Generation[_]](gen: G) = gen.prevWeightsTable
-		
 		//TODO can we simplify tagged and scored parm sets?
-		//TODO testing difficult because of random drawing
 		def buildMixPayload[P](gen: Generation[P], abcParameters: ABCConfig): Option[ScoredParticles[P]] = {
-			val weightedParticles = gen.weighted
-			
-			val mixingSize = abcParameters.cluster.mixPayloadSize
-			
-			if(weightedParticles.size > mixingSize) {
-				val oneOfEachParticle = 
-					weightedParticles.seq
-						.map{case Tagged(weighted, uid) =>
-							Tagged(weighted.scored, uid) -> 1
-						}
-						.toMap
-				
-				val res = oneOfEachParticle.draw(mixingSize)._2.map{
-						  case (scoredParticle, count) => scoredParticle
-						}.toSeq		
-				
-				if(res.size == 999) logg.warning("AAAAAAAAAAAAAAAAAAAA")
-					
-				Some(ScoredParticles(res))
-			} else if(weightedParticles.size > 0){
-				val res = weightedParticles
-					.seq
-					.map{case Tagged(weighted, uid) =>
-						Tagged(weighted.scored, uid)
-					}
-				
-				if(res.size == 999) logg.warning("BBBBBBBBBBBBBBBBBBBBB")
-				
-				Some(ScoredParticles(res))
-			} else None
+			particleMixer.apply(gen, abcParameters)
 		}
 			
 		def buildReport[P](gen: Generation[P], config: ABCConfig): Report[P] = {
