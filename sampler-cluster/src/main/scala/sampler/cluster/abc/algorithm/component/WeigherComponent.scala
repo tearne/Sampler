@@ -37,10 +37,13 @@ trait WeigherComponent {
 		): Option[Weighted[P]] = {
 			def getWeight(particle: Scored[P]): Option[Double] = {
 				val fHat = particle.repScores.filter(_ < tolerance).size.toDouble / particle.numReps
+				println("FHAT " + fHat)
 				val numerator = fHat * model.prior.density(particle.params)
+				println("NUMERATOR " + numerator)
 				val denominator = previousParamsWithWeights.map{case (params0, weight) => 
 					weight * model.perturbDensity(params0, particle.params)
 				}.sum
+				println("DENOMIATOR " + denominator)
 				if(numerator > 0 && denominator > 0) Some(numerator / denominator)
 				else None
 			}
