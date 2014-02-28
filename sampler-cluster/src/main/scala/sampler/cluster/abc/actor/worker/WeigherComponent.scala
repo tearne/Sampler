@@ -22,15 +22,15 @@ trait WeigherComponent[P] {
 		private def isAborted = aborted.get
 		
 		def run(job: WeighJob[P]): Try[WeighedParticles[P]] = Try{
-			import job._
+//			import job._
 				
 			def getParticleWeight(particle: Scored[P]): Option[Double] = {
 				
 				if(isAborted) throw new DetectedAbortionException("Abort flag was set")
 				
-				val fHat = particle.repScores.filter(_ < tolerance).size.toDouble / particle.numReps
+				val fHat = particle.repScores.filter(_ < job.tolerance).size.toDouble / particle.numReps
 				val numerator = fHat * model.prior.density(particle.params)
-				val denominator = previousPopulation.map{case (params0, weight) => 
+				val denominator = job.previousPopulation.map{case (params0, weight) => 
 					weight * model.perturbDensity(params0, particle.params)
 				}.sum
 				if(numerator > 0 && denominator > 0) Some(numerator / denominator)
@@ -38,13 +38,9 @@ trait WeigherComponent[P] {
 			}
 			
 			val result = for{
-				p <- scored
+				p <- job.scored.seq
 				wt <- getParticleWeight(p.value)
 			} yield Tagged(Weighted(p.value, wt), p.id)
-			
-			//TODO sort out tagging
-			// - Tag at time of sampling/accepting a particle?
-			// - Rename to just Scored/Weighed
 			
 			WeighedParticles(result)
 		}
