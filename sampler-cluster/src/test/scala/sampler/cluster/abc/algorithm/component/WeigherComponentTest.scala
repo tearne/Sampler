@@ -64,6 +64,18 @@ class WeigherComponentTest extends FreeSpec with Matchers with MockitoSugar {
   }
   
   "Gives a consolidated weights table" in {
+    val population = Seq(
+        Weighted(Scored(1, Seq(0.1)), 0.1),
+        Weighted(Scored(1, Seq(0.2)), 0.2),
+        Weighted(Scored(2, Seq(0.3)), 0.3),
+        Weighted(Scored(2, Seq(0.4)), 0.4)
+    )
     
+    val consolidatedMap = instance.consolidateToWeightsTable(population)
+    
+    val tolerance = 1e-6
+    
+    consolidatedMap.getOrElse(1, 0.0) should be(0.3 +- tolerance)
+    consolidatedMap.getOrElse(2, 0.0) should be(0.7 +- tolerance)
   }
 }
