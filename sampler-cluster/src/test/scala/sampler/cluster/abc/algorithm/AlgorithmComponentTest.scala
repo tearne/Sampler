@@ -21,7 +21,7 @@ import sampler.cluster.abc.config.JobParameters
 import sampler.math.Statistics
 import sampler.math.StatisticsComponent
 import scala.collection.immutable.Queue
-import sampler.cluster.abc.algorithm.component.MixinComponent
+import sampler.cluster.abc.algorithm.component.ParticleMixerComponent
 
 class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
 
@@ -31,12 +31,12 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
     		with ToleranceCalculatorComponent
     		with StatisticsComponent
     		with LoggingAdapterComponent
-    		with MixinComponent
+    		with ParticleMixerComponent
     		with GettersComponent {
       val statistics = mock[Statistics]
       val getters = new Getters{}
       val toleranceCalculator = mock[ToleranceCalculator]
-      val mixin = mock[Mixin]
+      val particleMixer = mock[ParticleMixer]
       val logg = mock[LoggingAdapter]
       val algorithm = new AlgorithmImpl{}
     }
@@ -264,7 +264,7 @@ class AlgorithmComponentTest extends FreeSpec with Matchers with MockitoSugar {
       val gen1 = mock[Generation[Int]]
       val config = mock[ABCConfig]
       
-      when(instanceComponent.mixin.apply(gen1, config)).thenReturn(mixinResponse)
+      when(instanceComponent.particleMixer.apply(gen1, config)).thenReturn(mixinResponse)
       
       assert(instance.buildMixPayload(gen1, config) === mixinResponse)
     }

@@ -8,14 +8,12 @@ import sampler.cluster.abc.actor.Tagged
 import sampler.Implicits.SamplableMap
 import sampler.math.Random
 
-// TODO give better name
-
-trait MixinComponent {
+trait ParticleMixerComponent {
   this: StatisticsComponent =>
     
-  val mixin: Mixin
+  val particleMixer: ParticleMixer
     
-  trait Mixin {
+  trait ParticleMixer {
     implicit val r = Random
     
     def apply[P](gen: Generation[P], abcParameters: ABCConfig): Option[ScoredParticles[P]] = {
@@ -35,8 +33,6 @@ trait MixinComponent {
           case (scoredParticle, count) => scoredParticle
         }.toSeq		
 				
-//        if(res.size == 999) logg.warning("AAAAAAAAAAAAAAAAAAAA")
-					
         Some(ScoredParticles(res))
       } else if(weightedParticles.size > 0){
         val res = weightedParticles
@@ -44,8 +40,6 @@ trait MixinComponent {
         .map{case Tagged(weighted, uid) =>
           Tagged(weighted.scored, uid)
         }
-				
-//        if(res.size == 999) logg.warning("BBBBBBBBBBBBBBBBBBBBB")
 				
         Some(ScoredParticles(res))
       } else None

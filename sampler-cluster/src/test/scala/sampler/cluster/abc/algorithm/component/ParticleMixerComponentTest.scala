@@ -16,22 +16,24 @@ import sampler.cluster.abc.Weighted
 import sampler.cluster.abc.Scored
 import sampler.cluster.abc.config.ClusterParameters
 
-class MixinComponentTest extends FreeSpec with Matchers with MockitoSugar {
+class ParticleMixerComponentTest extends FreeSpec with Matchers with MockitoSugar {
 
-  "Mixin Component should" - {
+  "Particle Mixer Component should" - {
     
-    val instance = new MixinComponent with StatisticsComponent {
+    val instance = new ParticleMixerComponent with StatisticsComponent {
       val statistics = Statistics
-      val mixin = new Mixin{}
+      val particleMixer = new ParticleMixer{}
     }
     
     val config = mock[ABCConfig]
     val clusterParameters = mock[ClusterParameters]
     
-    when(clusterParameters.mixPayloadSize).thenReturn(2)
+    val payloadSize = 2
+    
+    when(clusterParameters.mixPayloadSize).thenReturn(payloadSize)
     when(config.cluster).thenReturn(clusterParameters)
     
-    val mixin = instance.mixin
+    val particleMixer = instance.particleMixer
     
     val (id1, id2, id3, id4) = (111111, 111112, 111113, 111114)
     
@@ -56,7 +58,7 @@ class MixinComponentTest extends FreeSpec with Matchers with MockitoSugar {
           null
         )
         
-      assert(mixin.apply(gen1, config) === None)
+      assert(particleMixer.apply(gen1, config) === None)
     }
     
     "Returns the current weighed particles as scored when those present don't exceed mixing size" in {
@@ -70,7 +72,7 @@ class MixinComponentTest extends FreeSpec with Matchers with MockitoSugar {
           null
         )
         
-      val result = mixin.apply(gen1, config).get
+      val result = particleMixer.apply(gen1, config).get
       
       assert(result.seq.size === 2)
       assert(result.seq.contains(scored1))
@@ -88,16 +90,20 @@ class MixinComponentTest extends FreeSpec with Matchers with MockitoSugar {
           null
         )
       
-      def buildSamples(acc: Seq[Tagged[Scored[Int]]], count:Int = 0, reps: Int = 1000): Seq[Tagged[Scored[Int]]] = {
+      val iterations = 1000
+        
+      def buildSamples(acc: Seq[Tagged[Scored[Int]]], count:Int = 0, reps: Int = iterations): Seq[Tagged[Scored[Int]]] = {
         if(count >= reps) acc
         else{
-          buildSamples(acc ++ mixin.apply(gen1, config).get.seq, count+1)
+          buildSamples(acc ++ particleMixer.apply(gen1, config).get.seq, count+1)
         }
       }
       
       var accum = buildSamples(Seq.empty[Tagged[Scored[Int]]])
       
       val grouped = accum.groupBy(x => x).map{case(a, b) => a -> b.size}
+      
+      assertResult(payloadSize*iterations)(accum.size)
       
       grouped.getOrElse(scored1, 0) should be(500 +- 50)
       grouped.getOrElse(scored2, 0) should be(500 +- 50)

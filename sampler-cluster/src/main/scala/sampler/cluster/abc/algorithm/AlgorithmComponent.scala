@@ -32,7 +32,7 @@ import sampler.data.Distribution
 import sampler.math.Random
 import sampler.math.StatisticsComponent
 import scala.collection.immutable.Queue
-import sampler.cluster.abc.algorithm.component.MixinComponent
+import sampler.cluster.abc.algorithm.component.ParticleMixerComponent
 
 trait AlgorithmComponent {
 	val algorithm: Algorithm
@@ -57,7 +57,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 	this: ToleranceCalculatorComponent 
 		with StatisticsComponent
 		with LoggingAdapterComponent
-		with MixinComponent
+		with ParticleMixerComponent
 		with GettersComponent =>
 	
 	val algorithm: Algorithm
@@ -139,7 +139,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 			
 		//TODO can we simplify tagged and scored parm sets?
 		def buildMixPayload[P](gen: Generation[P], abcParameters: ABCConfig): Option[ScoredParticles[P]] = {
-			mixin.apply(gen, abcParameters)
+			particleMixer.apply(gen, abcParameters)
 		}
 			
 		def buildReport[P](gen: Generation[P], config: ABCConfig): Report[P] = {
