@@ -154,7 +154,7 @@ object Parameters {
 	
 	val names = Seq("LocalTransmission", "SourceX", "SourceY")
 	
-	val gridSize = 5
+	val gridSize = 10
 	val farmIdRange = new {
 		val min = 0
 		val max = gridSize * gridSize - 1
@@ -237,12 +237,7 @@ object Parameters {
 }
 
 object Generate extends App{
-//	println("0: "+Parameters.neighboursIncludingSelf(0))
-//	println("3: "+Parameters.neighboursIncludingSelf(3))
-//	println("6: "+Parameters.neighboursIncludingSelf(6))
-//	println("15: "+Parameters.neighboursIncludingSelf(15))
-	
-	val truth = Parameters(0.05, 5)
+	val truth = Parameters(0.1, 23)
 	val outbreak = NetworkModel.outbreakDistribution(truth).sample
 	
 	val diffMatrix = outbreak.differenceMatrix
@@ -258,14 +253,14 @@ object Generate extends App{
 }
 object NetworkModel {
 	implicit val random = Random
-	val companyA = Set(5,8,17)
-	val companyB = Set(0,18,20)
+	val companyA = Set(23, 42, 71, 78)
+	val companyB = Set.empty[Int]
 	
 	val runLengthDays = 7
 	
 	def outbreakDistribution(p: Parameters): Distribution[Outbreak] = {
 		val localSpread = Distribution.bernouliTrial(p.localTransmission)
-		val companySpread = Distribution.bernouliTrial(0.3)
+		val companySpread = Distribution.bernouliTrial(0.1)
 		
 		def addNewInfections(current: Outbreak): Outbreak = {
 			if(current.infected.size == Parameters.farmIdRange.size) current
@@ -314,26 +309,33 @@ class NetworkModel(val obsDiffMatrix: DifferenceMatrix) extends Model[Parameters
   *    ---------------------------------------------
   * 	9|	.	.	.	.	.	.	.	.	.	.
   * 	8|	.	.	.	.	.	.	.	.	.	.
-  * 	7|	.	.	.	.	.	.	.	.	A	.
+  * 	7|	.	A	.	.	.	.	.	.	A	.
   * 	6|	.	.	.	.	.	.	.	.	.	.
   * 	5|	.	.	.	.	.	.	.	.	.	.
-  * 	4|	.	.	.	.	.	.	.	.	.	.
+  * 	4|	.	.	A	.	.	.	.	.	.	.
   * 	3|	.	.	.	.	.	.	.	.	.	.
-  * 	2|	.	A	.	.	.	.	.	.	.	.
+  * 	2|	.	.	.	A	.	.	.	.	.	.
   * 	1|	.	.	.	.	.	.	.	.	.	.
   * 	0|	.	. 	.	.	.	.	.	.	.	.
   *  
   */
+
 	
-	/*	4x4
-	 * 
-	 * 		20-	21	22	23	24
-	 * 		15	16	17*	18-	19
-	 * 		10	11	12	13	14
-	 * 		5*	6	7	8*	9
-	 * 		0-	1	2	3	4
-	 * 
-	 */
+  /*
+  *  		0	1	2	3	4	5	6	7	8	9
+  *    ---------------------------------------------
+  * 	9|	.	.	.	.	.	.	.	.	.	.
+  * 	8|	.	.	.	.	.	.	.	.	.	.
+  * 	7|	.	.	.	A	A	A	.	.	.	.
+  * 	6|	.	.	A	.	.	.	A	.	.	.
+  * 	5|	.	.	A	.	.	.	A	.	.	.
+  * 	4|	.	.	A	.	.	.	A	.	.	.
+  * 	3|	.	.	.	A	A	A		.	.	.
+  * 	2|	.	.	I	.	.	.	.	.	.	.
+  * 	1|	.	.	.	.	.	.	.	.	.	.
+  * 	0|	.	. 	.	.	.	.	.	.	.	.
+  *  
+  */
 	
 	def perturb(p: Parameters) = Parameters.perturb(p)
 	def perturbDensity(a: Parameters, b: Parameters) = Parameters.perturbDensity(a, b)
@@ -352,18 +354,19 @@ class NetworkModel(val obsDiffMatrix: DifferenceMatrix) extends Model[Parameters
 	}
 
 	def sequenceThreshold(simulated: Outbreak) = {
-		val fallback = 10
+		val threshold = 5
+		val penalty = 1
 		val simPairs = simulated.infections.filter(_.source.isDefined).map(infection => (infection.source.get, infection.fid))
 		simPairs.map{case pair => 
-			val matrixDiff = obsDiffMatrix.getOrElse(pair._1, pair._2, fallback)
-			if(matrixDiff <= 3) 0
-			else 10
+			val matrixDiff = obsDiffMatrix.getOrElse(pair._1, pair._2, 0)
+			if(matrixDiff < threshold) 0
+			else penalty
 		}.sum
 	}
 	
 	def distanceToObservations(p: Parameters): Distribution[Double] = {
-		NetworkModel.outbreakDistribution(p).map(outbreak => nodeDiff(outbreak) + sizeDiff(outbreak))
-//		NetworkModel.outbreakDistribution(p).map(outbreak => nodeDiff(outbreak) + sizeDiff(outbreak) + sequenceThreshold(outbreak))
+//		NetworkModel.outbreakDistribution(p).map(outbreak => nodeDiff(outbreak) + sizeDiff(outbreak))
+		NetworkModel.outbreakDistribution(p).map(outbreak => nodeDiff(outbreak) + sizeDiff(outbreak) + sequenceThreshold(outbreak))
 	}
 }
 
@@ -376,7 +379,6 @@ object ABCApp extends App{
 	assert(csvLines(0) == Seq("FarmA", "FarmB", "Diff"))
 	val obsDiffMatrix = DifferenceMatrix(csvLines.drop(1))
 	
-	//val observedDiffMatrix = NetworkModel.outbreakDistribution(truth).sample.differenceMatrix
 	println("Outbreak = "+obsDiffMatrix.infectedFarms)
 	println("Outbreak Size = "+obsDiffMatrix.infectedFarms.size)
 	val model = new NetworkModel(obsDiffMatrix)
@@ -408,7 +410,7 @@ object ABCApp extends App{
 				scale_x_continuous(limits = c(0,0.5))
 
 			ggplot(posterior, aes(SourceX, SourceY)) +
-				xlim(0,5) + ylim(0,5) +
+				xlim(0,10) + ylim(0,10) +
 				geom_bin2d(binwidth  = c(0.999,0.999))
 			
 			dev.off()
