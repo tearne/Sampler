@@ -56,6 +56,10 @@ object Virus{
 }
 
 case class DifferenceMatrix(matrix: Map[(Int, Int), Int]){
+	def contains(fidA: Int, fidB: Int): Boolean = {
+		if(fidA < fidB) matrix.contains((fidB, fidA))
+		else matrix.contains((fidA, fidB))
+	}
 	def getOrElse(fidA: Int, fidB: Int, fallback: Int): Int = {
 		if(fidA < fidB) {
 			matrix.getOrElse((fidB, fidA),fallback)
@@ -63,6 +67,10 @@ case class DifferenceMatrix(matrix: Map[(Int, Int), Int]){
 		else {
 			matrix.getOrElse((fidA, fidB),fallback)
 		} 
+	}
+	def apply(fidA: Int, fidB: Int): Int = {
+		if(fidA < fidB) matrix((fidB, fidA))
+		else matrix((fidA, fidB))
 	}
 	
 	lazy val infectedFarms = matrix.keySet.foldLeft(Set.empty[Int]){case (acc, pair) => acc + pair._1 + pair._2}
@@ -243,7 +251,13 @@ object Parameters {
 object Generate extends App{
 	val truth = Parameters(0.1, 5)
 	val fullOutbreak = NetworkModel.outbreakDistribution(truth).sample
-	val observedOutbreak = fullOutbreak.thinObservations(0.5, 5)
+	
+	//
+	//
+	//   !
+	//
+	//
+	val observedOutbreak = fullOutbreak.thinObservations(0.7, 5)
 	
 	println("Full: "+fullOutbreak.size+"  -  "+fullOutbreak.infected)
 	println(" Obs: "+observedOutbreak.size+"  -  "+observedOutbreak.infected)
@@ -266,25 +280,22 @@ object NetworkModel {
 		def addNewInfections(current: Outbreak): Outbreak = {
 			if(current.infected.size == Parameters.farmIdRange.size) current
 			else {
-				val newInfections: Set[Infection] = current.infections.flatMap{from =>
-					val localNeighbours = Parameters.neighboursIncludingSelf(from.fid) - from.fid
-					val locallyInfected = localNeighbours.filter(_ => localSpread.sample)
-
-					val companyNbrs = Parameters.companyIncludingSelf(from.fid) - from.fid
-					val companyInfected = companyNbrs.filter(_ => companySpread.sample)
-
-					val currentVirus = from.currentVirus
-					
-					val infections = (companyInfected ++ locallyInfected).map{to => 
-						Infection(to, currentVirus, currentVirus, Some(from.fid))
-					}
-					
-//					println(s"${from.fid} infected ${infections.map(_.fid)}")
-					
-					infections
+				val infectionMap = current.infections.foldLeft(current.infections){case (acc, (iFid, infection)) => 
+			 		val newVictims = {
+				 		val localNeighbours = Parameters.neighboursIncludingSelf(iFid) - iFid
+		 	 			val locallyInfected = localNeighbours.filter(_ => localSpread.sample)
+		 	 			val companyNbrs = Parameters.companyIncludingSelf(iFid) - iFid
+		 	 			val companyInfected = companyNbrs.filter(_ => companySpread.sample)
+	
+		 	 			(companyInfected ++ locallyInfected).filter(newInfection => !acc.contains(newInfection))	//Don't allow re-infection
+				 	}
+			    
+				 	acc.++(newVictims.map(fid =>
+				 		(fid, Infection(infection.currentVirus, infection.currentVirus, Some(iFid)))
+				 	))
 				}
 				
-				current.add(newInfections)
+				Outbreak(infectionMap)
 			}
 		}
 		
@@ -305,22 +316,6 @@ object NetworkModel {
 }
 class NetworkModel(val obsDiffMatrix: DifferenceMatrix) extends Model[Parameters]{
 	
-	/*
-  *  		0	1	2	3	4	5	6	7	8	9
-  *    ---------------------------------------------
-  * 	9|	.	.	.	.	.	.	.	.	.	.
-  * 	8|	.	.	.	.	.	.	.	.	.	.
-  * 	7|	.	.	.	.	.	.	.	.	A	.
-  * 	6|	.	.	.	.	.	.	.	.	.	.
-  * 	5|	.	.	.	.	.	.	.	.	.	.
-  * 	4|	.	.	.	.	.	.	.	.	.	.
-  * 	3|	.	.	.	.	.	.	.	.	.	.
-  * 	2|	.	A	.	.	.	.	.	.	.	.
-  * 	1|	.	.	.	.	.	.	.	.	.	.
-  * 	0|	.	. 	.	.	.	.	.	.	.	.
-  *  
-  */
-	
 	/*	4x4
 	 * 
 	 * 		20#	21	22	23	24
@@ -335,33 +330,33 @@ class NetworkModel(val obsDiffMatrix: DifferenceMatrix) extends Model[Parameters
 	def perturbDensity(a: Parameters, b: Parameters) = Parameters.perturbDensity(a, b)
 	val prior = Parameters.prior
 		
-	def nodeDiff(simulated: Outbreak) = 
-		(simulated.infected.diff(obsDiffMatrix.infectedFarms) union obsDiffMatrix.infectedFarms.diff(simulated.infected)).size
+	def numObservedMissing(simulated: Outbreak) = 
+		obsDiffMatrix.infectedFarms.diff(simulated.infected).size
 
-	def sizeDiff(simulated: Outbreak) = 
-		math.abs(simulated.size - obsDiffMatrix.infectedFarms.size)
+	def sizeDiff(simulated: Outbreak) = { 
+		val obsFactor = 0.7
+		math.abs(simulated.size * obsFactor - obsDiffMatrix.infectedFarms.size)
+	}
 		
-//	def sequenceBasedDiff(simulated: Outbreak) = {
-//		val fallback = 5
-//		val simPairs = simulated.infections.filter(_.source.isDefined).map(infection => (infection.source.get, infection.fid))
-//		simPairs.map{case pair => obsDiffMatrix.getOrElse(pair._1, pair._2, fallback)}.sum
-//	}
-
-	def sequenceThreshold(simulated: Outbreak) = {
-		val cutoff = 2
-		val penalty = 1
-		val reward = 0
-		val simPairs = simulated.infections.filter(_.source.isDefined).map(infection => (infection.source.get, infection.fid))
-		simPairs.map{case pair => 
-			val matrixDiff = obsDiffMatrix.getOrElse(pair._1, pair._2, Int.MaxValue)
-			if(matrixDiff <= cutoff) reward
-			else penalty
-		}.sum
+	def matrixSimalirity(simulated: Outbreak): Int = {
+		val simDiffMatrix = simulated.differenceMatrix
+		
+		obsDiffMatrix.matrix.foldLeft(0){case (acc, ((farmA, farmB), obsDiff)) =>
+			if(!simDiffMatrix.contains(farmA, farmB)){
+//				print("+")
+				acc
+			} 
+			else{
+				val simDiff = simDiffMatrix(farmA, farmB)
+//				println(s"$farmA, $farmB, ==> $obsDiff,     $simDiff")
+				acc + math.abs(simDiff - obsDiff)
+			} 
+		}
 	}
 	
 	def distanceToObservations(p: Parameters): Distribution[Double] = {
-//		NetworkModel.outbreakDistribution(p).map(outbreak => nodeDiff(outbreak) + sizeDiff(outbreak))
-		NetworkModel.outbreakDistribution(p).map(outbreak => nodeDiff(outbreak) + sizeDiff(outbreak) + sequenceThreshold(outbreak))
+//		NetworkModel.outbreakDistribution(p).map(outbreak => sizeDiff(outbreak) + numObservedMissing(outbreak))
+		NetworkModel.outbreakDistribution(p).map(outbreak => 10 * numObservedMissing(outbreak) + matrixSimalirity(outbreak))
 	}
 }
 
@@ -375,8 +370,8 @@ object ABCApp extends App{
 	val obsDiffMatrix = DifferenceMatrix(csvLines.drop(1))
 	
 	//val observedDiffMatrix = NetworkModel.outbreakDistribution(truth).sample.differenceMatrix
-	println("Outbreak = "+obsDiffMatrix.infectedFarms)
-	println("Outbreak Size = "+obsDiffMatrix.infectedFarms.size)
+	println("Observations = "+obsDiffMatrix.infectedFarms)
+	println("        Size = "+obsDiffMatrix.infectedFarms.size)
 	val model = new NetworkModel(obsDiffMatrix)
 
 	val abcParams = ABCConfig.fromConfig(
