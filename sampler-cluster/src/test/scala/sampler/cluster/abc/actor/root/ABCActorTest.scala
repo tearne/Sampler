@@ -79,37 +79,45 @@ class ABCActorTest
 		TestFSMRef(new ConcreteABCActor(model, config, reportAction, getters))
 	}
 	
+	// TODO rework tests using TestFSMref.setState to cut down on set up 
+	
 	"Mixing test" - {
 	  //TODO add test for reporting actions
 	  
 	  "When Gathering and Failed generate a new job" in {
 		  val instanceRef = getInstance
 		  val instanceObj = instanceRef.underlyingActor
-				  
+		  
+		  // PROCESS 1: Idle -> Gathering
+		  
 		  // Setup
 		  val routerProbe = TestProbe()
 		  val clientProbe = TestProbe()
+		  val dueWeighing = mock[ScoredParticles[DullParams]]
+		  when(dueWeighing.size).thenReturn(0)
 		  val prevWeights = Map[DullParams, Double]()
-		  val gen0 = Generation(null, ScoredParticles(Seq()), null, null, 0, 0, prevWeights)
+		  val gen0 = Generation(null, dueWeighing, null, null, 0, 0, prevWeights)
 		  when(instanceObj.childActors.workerRouter).thenReturn(routerProbe.ref)
-		
-		  val gen1 = mock[Generation[DullParams]]
-		  
-		  when(instanceObj.algorithm.emptyWeighingBuffer(gen0)
-		  ).thenReturn(gen1)
-		  
+			
 		  val failed = Failed
 				  
 		  // Action
 		  instanceRef tell(Start(gen0), clientProbe.ref)
-		  assertResult(Gathering)(instanceRef.stateName)
-		  
-		  instanceRef tell(failed, clientProbe.ref)
 		  
 		  // Assertion
-		  routerProbe.expectMsg(Broadcast(GenerateJob(prevWeights, instanceObj.config)))
 		  assertResult(Gathering)(instanceRef.stateName)
-		  assertResult(gen1)(instanceRef.stateData match {
+		  routerProbe.expectMsg(Broadcast(GenerateJob(gen0.prevWeightsTable, instanceObj.config)))
+		  
+		  //Setup
+		  val workerProbe = TestProbe()
+		  
+		  // Action
+		  instanceRef tell(failed, workerProbe.ref)
+		  
+		  // Assertion
+		  workerProbe.expectMsg(GenerateJob(prevWeights, instanceObj.config))
+		  assertResult(Gathering)(instanceRef.stateName)
+		  assertResult(gen0)(instanceRef.stateData match {
 		  	case gd: StateData[_] => gd.generation
 		  	case d => fail("Unexpected StateData type: "+d.getClass())
 		  })
@@ -118,7 +126,9 @@ class ABCActorTest
 	  "When Gathering and Failed with particles due weighing instruct to weigh" in {
 		  val instanceRef = getInstance
 		  val instanceObj = instanceRef.underlyingActor
-				  
+		  
+		  // PROCESS 1: Idle -> Gathering
+		  
 		  // Setup
 		  val routerProbe = TestProbe()
 		  val clientProbe = TestProbe()
@@ -132,14 +142,26 @@ class ABCActorTest
 				  
 		  // Action
 		  instanceRef tell(Start(gen0), clientProbe.ref)
-		  assertResult(Gathering)(instanceRef.stateName)
-		  
-		  instanceRef tell(failed, clientProbe.ref)
 		  
 		  // Assertion
-		  routerProbe.expectMsg(Broadcast(WeighJob(dueWeighing, prevWeights, 0)))
 		  assertResult(Gathering)(instanceRef.stateName)
-		  assertResult(gen0)(instanceRef.stateData match {
+		  routerProbe.expectMsg(Broadcast(GenerateJob(gen0.prevWeightsTable, instanceObj.config)))
+
+		  // PROCESS 2: Gathering -> Gathering
+		  
+		  // Setup
+		  val workerProbe = TestProbe()
+		  val gen1 = mock[Generation[DullParams]]
+		  val algorithm = instanceObj.algorithm
+		  when(algorithm.emptyWeighingBuffer(gen0)).thenReturn(gen1)
+
+		  // Action
+		  instanceRef tell(failed, workerProbe.ref)
+		  
+		  // Assertion
+		  workerProbe.expectMsg(WeighJob(dueWeighing, prevWeights, 0))
+		  assertResult(Gathering)(instanceRef.stateName)
+		  assertResult(gen1)(instanceRef.stateData match {
 		  	case gd: StateData[_] => gd.generation
 		  	case d => fail("Unexpected StateData type: "+d.getClass())
 		  })
@@ -150,9 +172,9 @@ class ABCActorTest
 		val instanceRef = getInstance
 		val instanceObj = instanceRef.underlyingActor
 
-		/*
-		 *  Start (Idle -> Gathering)
-		 */
+		
+		//  Start (Idle -> Gathering)
+		 
 		// Setup
 		val routerProbe = TestProbe()
 		val clientProbe = TestProbe()
@@ -173,10 +195,8 @@ class ABCActorTest
 			case d => fail("Unexpected StateData type: "+d.getClass())
 		})
 		
-		
-		/*
-		 * Send payload from worker to instance, and expect to be asked to weigh particles
-		 */ 
+		// Send payload from worker to instance, and expect to be asked to weigh particles
+		  
 		// Setup
 		val workerProbe = TestProbe()
 		val dueWeighing = ScoredParticles(Seq.empty[Tagged[Scored[DullParams]]])

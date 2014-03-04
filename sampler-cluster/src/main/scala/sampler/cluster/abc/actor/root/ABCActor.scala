@@ -92,7 +92,7 @@ sealed trait Data{
 case object Uninitialized extends Data{
 	val cancellableMixing: Option[Cancellable] = None
 }
-case class StateData[P](
+case class StateData[P](	// TODO change to WorkingData
 		generation: Generation[P],
 		client: ActorRef, 
 		cancellableMixing: Option[Cancellable]
