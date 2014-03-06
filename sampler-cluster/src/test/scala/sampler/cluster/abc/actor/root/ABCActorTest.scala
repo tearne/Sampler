@@ -27,6 +27,8 @@ import sampler.cluster.abc.config.ABCConfig
 import sampler.cluster.abc.config.ClusterParameters
 import sampler.cluster.abc.config.JobParameters
 import sampler.cluster.abc.actor.MixPayload
+import sampler.cluster.abc.actor.WeighedParticles
+import sampler.cluster.abc.actor.Abort
 
 @RunWith(classOf[JUnitRunner])
 class ABCActorTest 
@@ -237,6 +239,74 @@ class ABCActorTest
 	    	case gd: StateData[_] => gd.generation
 	    	case d => fail("Unexpected StateData type: "+d.getClass())
 	    })
+	  }
+	  
+	  "Adding weighed particles" - {
+	    
+	    val weighted = mock[WeighedParticles[DullParams]]
+	    
+	    val gen0 = mock[Generation[DullParams]]
+	    val gen1 = mock[Generation[DullParams]]
+	    val stateData0 = StateData(gen0, clientProbe.ref, None)
+	    
+	    val prevWeights = Map[DullParams, Double]()
+	    when(gen1.prevWeightsTable).thenReturn(prevWeights)
+	    
+	    "Then generate job to gather more particles" in {
+	      val instanceRef = getInstance
+	      val instanceObj = instanceRef.underlyingActor
+	      when(instanceObj.childActors.workerRouter).thenReturn(routerProbe.ref)
+	      
+	      val algorithm = instanceObj.algorithm
+	      when(algorithm.addWeighted(weighted, gen0)).thenReturn(gen1)
+	      
+	      when(algorithm.isEnoughParticles(gen1, instanceObj.config)).thenReturn(false)
+	      
+	      val dueWeighing = mock[ScoredParticles[DullParams]]
+	      when(dueWeighing.size).thenReturn(0)
+	      
+	      when(gen1.dueWeighing).thenReturn(dueWeighing)
+	      
+	      instanceRef.setState(Gathering, stateData0)
+	      
+	      // Action
+	      instanceRef tell(weighted, workerProbe.ref)
+	      
+	      // Assertion
+	      workerProbe.expectMsg(GenerateJob(prevWeights, instanceObj.config))
+	      
+	      assertResult(Gathering)(instanceRef.stateName)
+	      assertResult(gen1)(instanceRef.stateData match {
+	    	case gd: StateData[_] => gd.generation
+	    	case d => fail("Unexpected StateData type: "+d.getClass())
+	    })
+	    }
+	    
+	    "Abort when enough particles gathered and go to flushing" in {
+	      val instanceRef = getInstance
+	      val instanceObj = instanceRef.underlyingActor
+	      when(instanceObj.childActors.workerRouter).thenReturn(routerProbe.ref)
+	      
+	      val algorithm = instanceObj.algorithm
+	      when(algorithm.addWeighted(weighted, gen0)).thenReturn(gen1)
+	      
+	      when(algorithm.isEnoughParticles(gen1, instanceObj.config)).thenReturn(true)
+	      
+	      instanceRef.setState(Gathering, stateData0)
+	      
+	      // Action
+	      instanceRef tell(weighted, workerProbe.ref)
+	      
+	      // Assertion
+	      routerProbe.expectMsg(Broadcast(Abort))
+	      
+	      assertResult(Flushing)(instanceRef.stateName)
+	      assertResult(gen1)(instanceRef.stateData match {
+	    	case gd: StateData[_] => gd.generation
+	    	case d => fail("Unexpected StateData type: "+d.getClass())
+	      })
+	    }
+	    
 	  }
 	}
 	

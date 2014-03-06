@@ -143,6 +143,7 @@ abstract class ABCActor[P]
 			val client = sender
 			import s._
 			
+			// TODO query workerRouter name
 			workerRouter ! Broadcast(GenerateJob(generationZero.prevWeightsTable, config))
 			
 			// TODO this code block untested
@@ -182,12 +183,13 @@ abstract class ABCActor[P]
 
 		case Event(weighted: WeighedParticles[P], stateData: StateData[P]) =>
 			val updatedGen = algorithm.addWeighted(weighted, stateData.generation)
-			log.info(s"Currently G${updatedGen.currentIteration}, Particles + ${weighted.seq.size} = ${updatedGen.weighted.size}/${config.job.numParticles}")
+//			log.info(s"Currently G${updatedGen.currentIteration}, Particles + ${weighted.seq.size} = ${updatedGen.weighted.size}/${config.job.numParticles}")
 			
 			if(algorithm.isEnoughParticles(updatedGen, config)){
 				workerRouter ! Broadcast(Abort)
 				
-				//Flush the current generation
+				//Flush the current generation TODO untested code
+				// TODO not really sure why this is here?
 				implicit val dispatcher = workDispatcher
 				Future{
 					val flushedGen = algorithm.flushGeneration(updatedGen, config.job.numParticles, config.cluster.particleMemoryGenerations)
