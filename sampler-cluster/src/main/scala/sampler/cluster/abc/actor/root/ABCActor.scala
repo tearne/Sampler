@@ -143,8 +143,7 @@ abstract class ABCActor[P]
 			val client = sender
 			import s._
 			
-			// TODO query workerRouter name
-			workerRouter ! Broadcast(GenerateJob(generationZero.prevWeightsTable, config))
+			router ! Broadcast(GenerateJob(generationZero.prevWeightsTable, config))
 			
 			// TODO this code block untested
 			val mixMS = getters.getMixRateMS(config)
@@ -186,10 +185,10 @@ abstract class ABCActor[P]
 //			log.info(s"Currently G${updatedGen.currentIteration}, Particles + ${weighted.seq.size} = ${updatedGen.weighted.size}/${config.job.numParticles}")
 			
 			if(algorithm.isEnoughParticles(updatedGen, config)){
-				workerRouter ! Broadcast(Abort)
+				router ! Broadcast(Abort)
 				
-				//Flush the current generation TODO untested code
-				// TODO not really sure why this is here?
+				//Flush the current generation
+				// TODO test the end result of this code 
 				implicit val dispatcher = workDispatcher
 				Future{
 					val flushedGen = algorithm.flushGeneration(updatedGen, config.job.numParticles, config.cluster.particleMemoryGenerations)
@@ -217,18 +216,22 @@ abstract class ABCActor[P]
 		case Event(FlushComplete(flushedGeneration), data: StateData[P]) =>
 			import flushedGeneration._
 			val numGenerations = config.job.numGenerations
+			println("KNELNGESNESGONEOINGE")
+			println("HERE!! " + currentIteration)
+			println("HERE!! " + numGenerations)
+			println("HERE!! " + currentTolerance)
 			log.info("Generation {}/{} complete, new tolerance {}", currentIteration, numGenerations, currentTolerance)
 			
 			if(currentIteration == numGenerations && config.cluster.terminateAtTargetGenerations){
 				// Stop work
-				workerRouter ! Abort
+				router ! Abort  // TODO superfluous?
 				report(flushedGeneration)
 				log.info("Required generations completed and reported to requestor")
 				
 				goto(WaitingForShutdown) using data
 			} else {
 				// Report and start next generation
-				workerRouter ! Broadcast(GenerateJob(flushedGeneration.prevWeightsTable, config))
+				router ! Broadcast(GenerateJob(flushedGeneration.prevWeightsTable, config))
 				report(flushedGeneration)
 				goto(Gathering) using data.updateGeneration(flushedGeneration)
 			}

@@ -24,7 +24,7 @@ trait ChildrenActorsComponent[P] {
 			Props[ReceiveActor], 
 			"receiver"
 		)
-		val workerRouter = context.actorOf(
+		val router = context.actorOf(
 //			Props(new WorkerActorImpl[P](model)).withRouter(FromConfig()),	// Akka 2.2.3
 			FromConfig.props(Props(new WorkerActorImpl[P](model))), 		// Akka 2.3
 			"work-router"
