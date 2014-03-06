@@ -6,7 +6,6 @@ import org.scalatest.junit.JUnitRunner
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.FreeSpecLike
 import org.scalatest.mock.MockitoSugar
-
 import akka.actor.ActorSystem
 import akka.routing.Broadcast
 import akka.testkit.TestFSMRef
@@ -27,6 +26,7 @@ import sampler.cluster.abc.algorithm.Generation
 import sampler.cluster.abc.config.ABCConfig
 import sampler.cluster.abc.config.ClusterParameters
 import sampler.cluster.abc.config.JobParameters
+import sampler.cluster.abc.actor.MixPayload
 
 @RunWith(classOf[JUnitRunner])
 class ABCActorTest 
@@ -184,8 +184,7 @@ class ABCActorTest
 				  
 		  val gen0 = Generation(null, null, null, null, 0, 0, Map[DullParams, Double]())
 				  
-		  val stateData0 = StateData(gen0, clientProbe.ref, None)
-		  instanceRef.setState(Gathering, stateData0)
+		  instanceRef.setState(Gathering, StateData(gen0, clientProbe.ref, None))
 				  
 		  val dueWeighing = ScoredParticles(Seq.empty[Tagged[Scored[DullParams]]])
 		  val prevWeightsTable = Map[DullParams, Double]()
@@ -207,6 +206,37 @@ class ABCActorTest
 		  val stateData1 = instanceRef.stateData.asInstanceOf[StateData[DullParams]]
 		  assertResult(gen1)(stateData1.generation)
 		  assertResult(clientProbe.ref)(stateData1.client)
+	  }
+	  
+	  "Filters and queue particles from a MixPayload" in {
+	    val instanceRef = getInstance
+		val instanceObj = instanceRef.underlyingActor
+		when(instanceObj.childActors.workerRouter).thenReturn(routerProbe.ref)
+	    
+		val gen0 = mock[Generation[DullParams]]
+		val gen1 = mock[Generation[DullParams]]
+	    
+	    when(gen1.dueWeighing).thenReturn(ScoredParticles(Seq.empty[Tagged[Scored[DullParams]]]))
+	    
+	    val payload = mock[MixPayload[DullParams]]
+	    val scored = mock[ScoredParticles[DullParams]]
+	    when(scored.seq).thenReturn(Seq())
+	    when(payload.tss).thenReturn(scored)
+	    
+	    val algorithm = instanceObj.algorithm
+	    when(algorithm.filterAndQueueForWeighing(scored, gen0)).thenReturn(gen1)
+		
+	    instanceRef.setState(Gathering, StateData(gen0, clientProbe.ref, None))
+	    
+	    // Action
+	    instanceRef tell(payload, clientProbe.ref)
+	    
+	    // Assert
+	    assertResult(Gathering)(instanceRef.stateName)
+	    assertResult(gen1)(instanceRef.stateData match {
+	    	case gd: StateData[_] => gd.generation
+	    	case d => fail("Unexpected StateData type: "+d.getClass())
+	    })
 	  }
 	}
 	

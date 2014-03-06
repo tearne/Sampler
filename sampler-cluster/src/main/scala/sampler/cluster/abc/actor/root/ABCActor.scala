@@ -175,11 +175,10 @@ abstract class ABCActor[P]
 			stay using stateData.copy(generation = updatedGeneration.emptyWeighingBuffer)
 			
 		case Event(mixP: MixPayload[P], stateData: StateData[P]) =>
-			val sndr = sender
 			val scored = mixP.tss
 			val updatedGeneration = algorithm.filterAndQueueForWeighing(scored, stateData.generation)
 			log.info("filterAndQueue({}) => |W| = {},  from REMOTE {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
-			stay using stateData.copy(generation = updatedGeneration)
+			stay using StateData(updatedGeneration, stateData.client, stateData.cancellableMixing)//stateData.copy(generation = updatedGeneration)
 
 		case Event(weighted: WeighedParticles[P], stateData: StateData[P]) =>
 			val updatedGen = algorithm.addWeighted(weighted, stateData.generation)
