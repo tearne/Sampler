@@ -214,12 +214,8 @@ abstract class ABCActor[P]
 		case Event(_: ScoredParticles[P], _) => 	log.info("Ignore new paylod"); 		stay
 		case Event(MixNow, _) => 				log.info("Ignore mix request"); 	stay
 		case Event(FlushComplete(flushedGeneration), data: StateData[P]) =>
-			import flushedGeneration._
+			import flushedGeneration._		// TODO query this line
 			val numGenerations = config.job.numGenerations
-			println("KNELNGESNESGONEOINGE")
-			println("HERE!! " + currentIteration)
-			println("HERE!! " + numGenerations)
-			println("HERE!! " + currentTolerance)
 			log.info("Generation {}/{} complete, new tolerance {}", currentIteration, numGenerations, currentTolerance)
 			
 			if(currentIteration == numGenerations && config.cluster.terminateAtTargetGenerations){
@@ -228,7 +224,7 @@ abstract class ABCActor[P]
 				report(flushedGeneration)
 				log.info("Required generations completed and reported to requestor")
 				
-				goto(WaitingForShutdown) using data
+				goto(WaitingForShutdown) using data.updateGeneration(flushedGeneration)
 			} else {
 				// Report and start next generation
 				router ! Broadcast(GenerateJob(flushedGeneration.prevWeightsTable, config))
