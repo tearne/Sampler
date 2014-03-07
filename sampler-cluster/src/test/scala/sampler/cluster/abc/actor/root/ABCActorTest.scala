@@ -32,6 +32,7 @@ import sampler.cluster.abc.actor.Abort
 import sampler.cluster.abc.actor.GenerateJob
 import sampler.cluster.abc.actor.ReportCompleted
 import sampler.cluster.abc.actor.ReportCompleted
+import akka.actor.Cancellable
 
 @RunWith(classOf[JUnitRunner])
 class ABCActorTest 
@@ -423,7 +424,9 @@ class ABCActorTest
 	    val gen0 = mock[Generation[DullParams]]
 	    val stateData = StateData(gen0, null, None)
 	    
-	    val reportCompleted = mock[ReportCompleted[DullParams]]
+	    val report = mock[Report[DullParams]]
+	    when(report.generationId).thenReturn(1)
+	    val reportCompleted = ReportCompleted(report)
 	    
 	    instanceRef.setState(Gathering, stateData)
 	    
@@ -477,7 +480,7 @@ class ABCActorTest
 	    val report = mock[Report[DullParams]]
 	    val reportCompleted = ReportCompleted(report)
 	    
-	    val stateData = StateData(gen, clientProbe.ref, null)
+	    val stateData = StateData(gen, clientProbe.ref, None)
 	    
 	    instanceRef.setState(WaitingForShutdown, stateData)
 	    

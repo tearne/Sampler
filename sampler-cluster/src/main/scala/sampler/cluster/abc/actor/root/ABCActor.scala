@@ -196,7 +196,6 @@ abstract class ABCActor[P]
 				router ! Broadcast(Abort)
 				
 				//Flush the current generation
-				// TODO test the end result of this code 
 				implicit val dispatcher = workDispatcher
 				Future{
 					val flushedGen = algorithm.flushGeneration(updatedGen, config.job.numParticles, config.cluster.particleMemoryGenerations)
