@@ -33,6 +33,7 @@ import sampler.cluster.abc.actor.GenerateJob
 import sampler.cluster.abc.actor.ReportCompleted
 import sampler.cluster.abc.actor.ReportCompleted
 import akka.actor.Cancellable
+import sampler.cluster.abc.actor.ScoredParticles
 
 @RunWith(classOf[JUnitRunner])
 class ABCActorTest 
@@ -445,25 +446,147 @@ class ABCActorTest
 	
 	"When Flushing" - {
 	  "Ignores any new particles" in {
+	    val instanceRef = getInstance
+	    val instanceObj = instanceRef.underlyingActor
 	    
+	    val stateData = StateData(mock[Generation[DullParams]], null, None)
+	    
+	    val scored = mock[ScoredParticles[DullParams]]
+	    
+	    instanceRef.setState(Flushing, stateData)
+	    
+	    // Action
+	    instanceRef tell(scored, null)
+	    
+	    // Assertion
+	    assertResult(Flushing)(instanceRef.stateName)
+	    assertResult(stateData)(instanceRef.stateData match {
+	      case sd: StateData[_] => sd
+	      case d => fail("Unexpected StateData type: "+d.getClass())
+	    })
 	  }
 	  
 	  "Ignores any request to mix now" in {
+	    val instanceRef = getInstance
+	    val instanceObj = instanceRef.underlyingActor
 	    
+	    val stateData = StateData(mock[Generation[DullParams]], null, None)
+	    
+	    instanceRef.setState(Flushing, stateData)
+	    
+	    val mixNow = instanceObj.MixNow
+	    
+	    // Action
+	    instanceRef tell(mixNow, null)
+	    
+	    // Assertion
+	    assertResult(Flushing)(instanceRef.stateName)
+	    assertResult(stateData)(instanceRef.stateData match {
+	      case sd: StateData[_] => sd
+	      case d => fail("Unexpected StateData type: "+d.getClass())
+	    })
 	  }
 	  
 	  "Receiving FlushComplete message" - {
+	    val gen0 = mock[Generation[DullParams]]
+	    val flushedGeneration = mock[Generation[DullParams]]
+	    
+	    val flushingData = FlushingData(null, None)
+	    
 	    "Shuts down when required number of generations reached" in {
+	      val workerProbe = TestProbe()
+	      val reportingProbe = TestProbe()
+	      val routerProbe = TestProbe()
 	      
+	      val instanceRef = getInstance
+	      val instanceObj = instanceRef.underlyingActor
+	      when(instanceObj.childActors.reportingActor).thenReturn(reportingProbe.ref)
+	      when(instanceObj.childActors.router).thenReturn(routerProbe.ref)
+	   
+	      when(flushedGeneration.currentIteration).thenReturn(5)
+	      
+	      val algorithm = instanceObj.algorithm
+	      
+	      val report = mock[Report[DullParams]]
+	      
+	      when(algorithm.buildReport(flushedGeneration, instanceObj.config)).thenReturn(report)
+	      
+	      val flushComplete = instanceObj.FlushComplete(flushedGeneration)
+	      
+	      instanceRef.setState(Flushing, flushingData)
+	      
+	      // Action
+	      instanceRef tell(flushComplete, null)
+	      
+	      // Assertion
+	      routerProbe.expectMsg(Abort)
+	      
+	      assertResult(WaitingForShutdown)(instanceRef.stateName)
+	      assertResult(flushedGeneration)(instanceRef.stateData match {
+	        case gd: StateData[_] => gd.generation
+	        case d => fail("Unexpected StateData type: "+d.getClass())
+	      })
 	    }
 	    
 	    "Generates a job for more particle gathering when more generations required" in {
+	      val workerProbe = TestProbe()
+	      val reportingProbe = TestProbe()
+	      val routerProbe = TestProbe()
 	      
+	      val instanceRef = getInstance
+	      val instanceObj = instanceRef.underlyingActor
+	      when(instanceObj.childActors.reportingActor).thenReturn(reportingProbe.ref)
+	      when(instanceObj.childActors.router).thenReturn(routerProbe.ref)
+	   
+	      val prevWeights = Map[DullParams, Double]()
+	      
+	      when(flushedGeneration.currentIteration).thenReturn(1)
+	      when(flushedGeneration.prevWeightsTable).thenReturn(prevWeights)
+	      
+	      val algorithm = instanceObj.algorithm
+	      
+	      val report = mock[Report[DullParams]]
+	      
+	      when(algorithm.buildReport(flushedGeneration, instanceObj.config)).thenReturn(report)
+	      
+	      val flushComplete = instanceObj.FlushComplete(flushedGeneration)
+	      
+	      instanceRef.setState(Flushing, flushingData)
+	      
+	      // Action
+	      instanceRef tell(flushComplete, null)
+	      
+	      // Assertion
+	      routerProbe.expectMsg(Broadcast(GenerateJob(prevWeights, instanceObj.config)))
+	      
+	      assertResult(Gathering)(instanceRef.stateName)
+	      assertResult(flushedGeneration)(instanceRef.stateData match {
+	        case gd: StateData[_] => gd.generation
+	        case d => fail("Unexpected StateData type: "+d.getClass())
+	      })
 	    }
 	  }
 	  
 	  "Stay flushing when report completed message received" in {
+	    val instanceRef = getInstance
+	    val instanceObj = instanceRef.underlyingActor
 	    
+	    val stateData = StateData(mock[Generation[DullParams]], null, None)
+	    
+	    instanceRef.setState(Flushing, stateData)
+	    
+	    val report = mock[Report[DullParams]]
+	    val rc = ReportCompleted(report)
+	    
+	    // Action
+	    instanceRef tell(rc, null)
+	    
+	    // Assertion
+	    assertResult(Flushing)(instanceRef.stateName)
+	    assertResult(stateData)(instanceRef.stateData match {
+	      case sd: StateData[_] => sd
+	      case d => fail("Unexpected StateData type: "+d.getClass())
+	    })
 	  }
 	}
 	
