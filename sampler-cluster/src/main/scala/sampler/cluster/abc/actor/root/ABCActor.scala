@@ -92,7 +92,7 @@ sealed trait Data{
 case object Uninitialized extends Data{
 	val cancellableMixing: Option[Cancellable] = None
 }
-case class StateData[P](
+case class StateData[P](	// TODO change to WorkingData
 		generation: Generation[P],
 		client: ActorRef, 
 		cancellableMixing: Option[Cancellable]
@@ -143,7 +143,7 @@ abstract class ABCActor[P]
 			val client = sender
 			import s._
 			
-			workerRouter ! Broadcast(GenerateJob(generationZero.prevWeightsTable, config))
+			router ! Broadcast(GenerateJob(generationZero.prevWeightsTable, config))
 			
 			// TODO this code block untested
 			val mixMS = getters.getMixRateMS(config)
@@ -175,20 +175,20 @@ abstract class ABCActor[P]
 			stay using stateData.copy(generation = updatedGeneration.emptyWeighingBuffer)
 			
 		case Event(mixP: MixPayload[P], stateData: StateData[P]) =>
-			val sndr = sender
 			val scored = mixP.tss
 			val updatedGeneration = algorithm.filterAndQueueForWeighing(scored, stateData.generation)
 			log.info("filterAndQueue({}) => |W| = {},  from REMOTE {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
-			stay using stateData.copy(generation = updatedGeneration)
+			stay using StateData(updatedGeneration, stateData.client, stateData.cancellableMixing)//stateData.copy(generation = updatedGeneration)
 
 		case Event(weighted: WeighedParticles[P], stateData: StateData[P]) =>
 			val updatedGen = algorithm.addWeighted(weighted, stateData.generation)
-			log.info(s"Currently G${updatedGen.currentIteration}, Particles + ${weighted.seq.size} = ${updatedGen.weighted.size}/${config.job.numParticles}")
+//			log.info(s"Currently G${updatedGen.currentIteration}, Particles + ${weighted.seq.size} = ${updatedGen.weighted.size}/${config.job.numParticles}")
 			
 			if(algorithm.isEnoughParticles(updatedGen, config)){
-				workerRouter ! Broadcast(Abort)
+				router ! Broadcast(Abort)
 				
 				//Flush the current generation
+				// TODO test the end result of this code 
 				implicit val dispatcher = workDispatcher
 				Future{
 					val flushedGen = algorithm.flushGeneration(updatedGen, config.job.numParticles, config.cluster.particleMemoryGenerations)
@@ -214,20 +214,20 @@ abstract class ABCActor[P]
 		case Event(_: ScoredParticles[P], _) => 	log.info("Ignore new paylod"); 		stay
 		case Event(MixNow, _) => 				log.info("Ignore mix request"); 	stay
 		case Event(FlushComplete(flushedGeneration), data: StateData[P]) =>
-			import flushedGeneration._
+			import flushedGeneration._		// TODO query this line
 			val numGenerations = config.job.numGenerations
 			log.info("Generation {}/{} complete, new tolerance {}", currentIteration, numGenerations, currentTolerance)
 			
 			if(currentIteration == numGenerations && config.cluster.terminateAtTargetGenerations){
 				// Stop work
-				workerRouter ! Abort
+				router ! Abort  // TODO superfluous?
 				report(flushedGeneration)
 				log.info("Required generations completed and reported to requestor")
 				
-				goto(WaitingForShutdown) using data
+				goto(WaitingForShutdown) using data.updateGeneration(flushedGeneration)
 			} else {
 				// Report and start next generation
-				workerRouter ! Broadcast(GenerateJob(flushedGeneration.prevWeightsTable, config))
+				router ! Broadcast(GenerateJob(flushedGeneration.prevWeightsTable, config))
 				report(flushedGeneration)
 				goto(Gathering) using data.updateGeneration(flushedGeneration)
 			}
