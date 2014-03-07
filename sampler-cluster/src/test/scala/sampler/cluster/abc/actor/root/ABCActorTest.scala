@@ -407,7 +407,6 @@ class ABCActorTest
 	    instanceRef tell(mixNow, workerProbe.ref)
 	    
 	    // Assertions
-	    // TODO mix payload message
 	    broadcasterProbe.expectMsg(MixPayload(scored))
 	    
 	    assertResult(Gathering)(instanceRef.stateName)
@@ -440,6 +439,30 @@ class ABCActorTest
 	    })
 	  }
 	}
+	
+//	"When Flushing" - {
+//	  "Ignores any new particles" in {
+//	    
+//	  }
+//	  
+//	  "Ignores any request to mix now" in {
+//	    
+//	  }
+//	  
+//	  "Receiving FlushComplete message" - {
+//	    "Shuts down when required number of generations reached" in {
+//	      
+//	    }
+//	    
+//	    "Generates a job for more particle gathering when more generations required" in {
+//	      
+//	    }
+//	  }
+//	  
+//	  "Stay flushing when report completed message received" in {
+//	    
+//	  }
+//	}
 	
 	"When Waiting For Shutdown" - {
 	  

@@ -97,7 +97,15 @@ case class StateData[P](	// TODO change to WorkingData
 		client: ActorRef, 
 		cancellableMixing: Option[Cancellable]
 ) extends Data{
+    def getFlushingData = FlushingData(client, cancellableMixing)
 	def updateGeneration(g: Generation[P]) = copy(generation = g)
+}
+
+case class FlushingData(
+    client: ActorRef,
+    cancellableMixing: Option[Cancellable]
+) extends Data {
+  def setGeneration[P](g: Generation[P]) = StateData(g, client, cancellableMixing)
 }
 
 abstract class ABCActor[P]
@@ -195,7 +203,7 @@ abstract class ABCActor[P]
 					FlushComplete(flushedGen)
 				}.pipeTo(self)
 				
-				goto(Flushing) using stateData.updateGeneration(updatedGen)
+				goto(Flushing) using stateData.getFlushingData
 			} else {
 				val updatedState = stateData.updateGeneration(updatedGen)
 				allocateWork(sender, updatedState)
@@ -207,13 +215,16 @@ abstract class ABCActor[P]
 			
 			stay
 		
-		case Event(_: ReportCompleted[P], _) => stay
+		case Event(rc: ReportCompleted[P], _) => 
+		  log.debug(s"Report for generation ${rc.report.generationId} completed.")
+		  stay
+		
 	}
 	
 	when(Flushing) {
 		case Event(_: ScoredParticles[P], _) => 	log.info("Ignore new paylod"); 		stay
 		case Event(MixNow, _) => 				log.info("Ignore mix request"); 	stay
-		case Event(FlushComplete(flushedGeneration), data: StateData[P]) =>
+		case Event(FlushComplete(flushedGeneration), data: FlushingData) =>
 			import flushedGeneration._		// TODO query this line
 			val numGenerations = config.job.numGenerations
 			log.info("Generation {}/{} complete, new tolerance {}", currentIteration, numGenerations, currentTolerance)
@@ -224,15 +235,15 @@ abstract class ABCActor[P]
 				report(flushedGeneration)
 				log.info("Required generations completed and reported to requestor")
 				
-				goto(WaitingForShutdown) using data.updateGeneration(flushedGeneration)
+				goto(WaitingForShutdown) using data.setGeneration(flushedGeneration)
 			} else {
 				// Report and start next generation
 				router ! Broadcast(GenerateJob(flushedGeneration.prevWeightsTable, config))
 				report(flushedGeneration)
-				goto(Gathering) using data.updateGeneration(flushedGeneration)
+				goto(Gathering) using data.setGeneration(flushedGeneration)
 			}
-		case Event(rc: ReportCompleted[P], data: StateData[P]) => 
-			log.warning(s"Current generation ${data.generation.currentIteration} but report from a generation ${rc.report.generationId} only just finished.  System is running slowly.")
+		case Event(rc: ReportCompleted[P], _) => 
+			log.debug(s"Report for generation ${rc.report.generationId} completed.")
 			stay
 	}
 	
