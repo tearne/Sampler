@@ -236,10 +236,10 @@ object Parameters {
 }
 
 object Generate extends App{
-	val truth = Parameters(0.1)
+	val truth = Parameters(0.2)
 	val fullOutbreak = NetworkModel.outbreakDistribution(truth).sample
 	
-	val observedOutbreak = fullOutbreak.thinObservations(0.8, 5)
+	val observedOutbreak = fullOutbreak.thinObservations(0.8, NetworkModel.seedFarm)
 	
 	println("Full: "+fullOutbreak.size+"  -  "+fullOutbreak.infected)
 	println(" Obs: "+observedOutbreak.size+"  -  "+observedOutbreak.infected)
@@ -254,7 +254,7 @@ object NetworkModel {
 	val companyB = Set(1,18,20)
 	
 	val seedFarm = 5
-	val runLengthDays = 7
+	val runLengthDays = 4
 	
 	def outbreakDistribution(p: Parameters): Distribution[Outbreak] = {
 		val localSpread = Distribution.bernoulliTrial(p.localTransmission)
@@ -286,7 +286,6 @@ object NetworkModel {
 		def iterateDays(current: Outbreak, daysLeft: Int): Outbreak = {
 			if(daysLeft == 0 || current.size == Parameters.farmIdRange.size) current
 			else {
-//				println("----")
 				val updated = addNewInfections(Outbreak.updateCurrentMutations(current))
 				iterateDays(updated, daysLeft - 1)
 			}
@@ -299,7 +298,7 @@ object NetworkModel {
 }
 class NetworkModel(val obsDiffMatrix: DifferenceMatrix) extends Model[Parameters]{
 	
-	/*	4x4
+	/*	5x5
 	 * 
 	 * 		20#	21	22	23	24
 	 * 		15	16	17*	18#	19
@@ -313,34 +312,40 @@ class NetworkModel(val obsDiffMatrix: DifferenceMatrix) extends Model[Parameters
 	def perturbDensity(a: Parameters, b: Parameters) = Parameters.perturbDensity(a, b)
 	val prior = Parameters.prior
 		
-	def numObservedMissing(simulated: Outbreak) = 
-		obsDiffMatrix.infectedFarms.diff(simulated.infected).size
+	def numObservedMissing(simulated: Outbreak) = {
+		val score = obsDiffMatrix.infectedFarms.diff(simulated.infected).size
+		score
+	}
 
 	def sizeDiff(simulated: Outbreak) = { 
-//		val obsFactor = 0.9
 		math.abs(simulated.size - obsDiffMatrix.infectedFarms.size)
 	}
 		
-	def matrixSimalirity(simulated: Outbreak): Int = {
+	def matrixSimalirity(simulated: Outbreak): Double = {
 		val simDiffMatrix = simulated.differenceMatrix
 		
-		obsDiffMatrix.matrix.foldLeft(0){case (acc, ((farmA, farmB), obsDiff)) =>
-			if(!simDiffMatrix.contains(farmA, farmB)){
-//				print("+")
-				acc
-			} 
-			else{
-				val simDiff = simDiffMatrix(farmA, farmB)
-//				println(s"$farmA, $farmB, ==> $obsDiff,     $simDiff")
-				acc + math.abs(simDiff - obsDiff)
-			} 
+		def matrixDistance(matrixA: DifferenceMatrix, matrixB: DifferenceMatrix): Double = {
+			matrixA.matrix.foldLeft(0){case (acc, ((farmA, farmB), aDiff)) =>
+				if(!matrixB.contains(farmA, farmB)){
+					acc + 2
+				} 
+				else{
+					val bDiff = matrixB(farmA, farmB)
+					acc + math.abs(bDiff - aDiff)
+				} 
+			}			
 		}
+		
+		//matrixDistance(simDiffMatrix, obsDiffMatrix) + 
+		matrixDistance(obsDiffMatrix, simDiffMatrix)
 	}
 	
 	def distanceToObservations(p: Parameters): Distribution[Double] = {
-//		NetworkModel.outbreakDistribution(p).map(outbreak => sizeDiff(outbreak) + numObservedMissing(outbreak))
-		NetworkModel.outbreakDistribution(p).map(outbreak => numObservedMissing(outbreak))
-//		NetworkModel.outbreakDistribution(p).map(outbreak => 20 * numObservedMissing(outbreak) + matrixSimalirity(outbreak))
+		NetworkModel.outbreakDistribution(p).map(outbreak => sizeDiff(outbreak) + numObservedMissing(outbreak))
+//		println("p = "+p)
+//		println("Observed = "+obsDiffMatrix.infectedFarms)
+//		NetworkModel.outbreakDistribution(p).map(outbreak => numObservedMissing(outbreak))
+//		NetworkModel.outbreakDistribution(p).map(outbreak => matrixSimalirity(outbreak))
 	}
 }
 
@@ -382,7 +387,7 @@ object ABCApp extends App{
 			pdf("density.$generationId%02d.pdf", width=4.13, height=2.91) #A7 landscape paper
 			ggplot(posterior, aes(x = LocalTransmission)) + 
 				geom_density() +
-				scale_x_continuous(limits = c(0,0.5))
+				scale_x_continuous(limits = c(0,1))
 			dev.off()
 		"""
 		ScriptRunner.apply(rScript, wd.resolve("script.r"))
