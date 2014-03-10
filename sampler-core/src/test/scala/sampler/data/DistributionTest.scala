@@ -197,24 +197,24 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
     results.count(_ == true) should be (500 +- 100)
   }
   
-  @Test def bernouliTrialWithProbabilityOne {
-    val model = Distribution.bernouliTrial(1)
+  @Test def bernoulliTrialWithProbabilityOne {
+    val model = Distribution.bernoulliTrial(1)
     
     val result = (1 to 10).map(_ => model.sample)
     
     assert(result.count(_ == true) === 10)
   }
   
-  @Test def bernoiliTrialWithProbabilityZero {
-    val model = Distribution.bernouliTrial(0)
+  @Test def bernoilliTrialWithProbabilityZero {
+    val model = Distribution.bernoulliTrial(0)
     
     val result = (1 to 10).map(_ => model.sample)
     
     assert(result.count(_ == true) === 0)
   }
 
-  @Test def bernouliTrialWith80PercentProbability {
-    val model = Distribution.bernouliTrial(0.8)
+  @Test def bernoulliTrialWith80PercentProbability {
+    val model = Distribution.bernoulliTrial(0.8)
 		    
 	val result = (1 to 1000).map(_ => model.sample)
 		    

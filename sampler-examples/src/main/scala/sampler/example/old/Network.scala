@@ -132,8 +132,8 @@ object NetworkModel extends Model[SpreadRates]{
 		
 	def infecteds(p: SpreadRates): Distribution[Set[Int]] = {
 		val nodeIds = (0 until 100).toSet
-		val localSpread = Distribution.bernouliTrial(p.local)
-		val companySpread = Distribution.bernouliTrial(p.company)
+		val localSpread = Distribution.bernoulliTrial(p.local)
+		val companySpread = Distribution.bernoulliTrial(p.company)
 		
 		def nextAndCurrentInfections(current: Set[Int]): Set[Int] = {
 			if(current.size == 100) current

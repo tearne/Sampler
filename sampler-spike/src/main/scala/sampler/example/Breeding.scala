@@ -127,7 +127,7 @@ object Biology{
 		val species: Species
 		def geneAt(l: Locus): RootPlant
 		
-		private def recombinationModel = Distribution.bernouliTrial(Probability(0.1))
+		private def recombinationModel = Distribution.bernoulliTrial(Probability(0.1))
 		private def coin = Distribution.coinToss
 		
 		def crossAndSelect(that: Plant, traits: Seq[Trait]): Offspring = {

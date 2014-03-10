@@ -51,7 +51,7 @@ object Virus{
 	val sequenceLength = 50
 	val randomBase = Distribution(r.nextInt(4))
 	val fresh = Virus(IndexedSeq.fill(sequenceLength)(0))
-	val mutates = Distribution.bernouliTrial(mutationRate)	
+	val mutates = Distribution.bernoulliTrial(mutationRate)	
 	val randomIdx = Distribution.uniform(0, sequenceLength)
 }
 
@@ -133,7 +133,7 @@ final case class Outbreak(infections: Map[Int, Infection]){
 	}
 	
 	def thinObservations(proportion: Double, ensureFid: Int): Outbreak = {
-		val selected = Distribution.bernouliTrial(proportion)(Random)
+		val selected = Distribution.bernoulliTrial(proportion)(Random)
 		Outbreak(infections.filter{case (fid, _) => selected.sample || fid == ensureFid})
 	}
 	
@@ -257,8 +257,8 @@ object NetworkModel {
 	val runLengthDays = 7
 	
 	def outbreakDistribution(p: Parameters): Distribution[Outbreak] = {
-		val localSpread = Distribution.bernouliTrial(p.localTransmission)
-		val companySpread = Distribution.bernouliTrial(0.3)
+		val localSpread = Distribution.bernoulliTrial(p.localTransmission)
+		val companySpread = Distribution.bernoulliTrial(0.3)
 		
 		def addNewInfections(current: Outbreak): Outbreak = {
 			if(current.infected.size == Parameters.farmIdRange.size) current

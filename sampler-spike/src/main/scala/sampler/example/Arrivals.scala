@@ -92,7 +92,7 @@ object Arrivals extends App{
 		val quick = normalTime(20.seconds, 5.seconds)
 		val slow = normalTime(2.minutes, 30.seconds)
 		val fivePercent = Probability(0.05)
-		Distribution.bernouliTrial(fivePercent).map{isSlow =>
+		Distribution.bernoulliTrial(fivePercent).map{isSlow =>
 			if(isSlow) slow.sample else quick.sample
 		}
 	}
