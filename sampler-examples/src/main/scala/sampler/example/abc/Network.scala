@@ -229,8 +229,8 @@ object NetworkModel extends Model[Parameters]{
 	val prior = Parameters.prior
 		
 	def infecteds(p: Parameters): Distribution[Outbreak] = {
-		val localSpread = Distribution.bernouliTrial(p.localTransmission)
-		val companySpread = Distribution.bernouliTrial(p.companyTransmission)
+		val localSpread = Distribution.bernoulliTrial(p.localTransmission)
+		val companySpread = Distribution.bernoulliTrial(p.companyTransmission)
 		
 		def addNewInfections(current: Outbreak): Outbreak = {
 			if(current.infected.size == 100) current

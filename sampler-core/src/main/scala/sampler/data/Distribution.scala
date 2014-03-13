@@ -207,10 +207,10 @@ object Distribution{
 		def sample() = r.nextInt(size) < numInfected
 	}
 
-	/** Builds a new [[sampler.data.Distribution]] which represents a Bernouli distribution.
+	/** Builds a new [[sampler.data.Distribution]] which represents a Bernoulli distribution.
 	 *  
 	 *  @param probSuccess the probability of success when sampling from this object */
-	def bernouliTrial(probSuccess: Double)(implicit r: Random) = new Distribution[Boolean]{
+	def bernoulliTrial(probSuccess: Double)(implicit r: Random) = new Distribution[Boolean]{
 	  def sample() = r.nextBoolean(probSuccess)
 	}
 	

@@ -37,7 +37,7 @@ class EmpiricalTable[A](val freqTable: Map[A, Int]) extends Empirical[A]{
 	/** A map from each observation to the probability of seeing that value */
 	lazy val probabilityTable = items.zip(partition.probabilities).toMap
 	
-	/**Returns a new Empirical containing a combined oberseration map of the observations
+	/**Returns a new Empirical containing a combined map of the observations
 	 * in this instance and those in the more instance
 	 * 
 	 * {{{
