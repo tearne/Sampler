@@ -26,10 +26,6 @@ object Infection {
 	def possiblyMutate(current: Set[Infection]): Set[Infection] = {
 		current.map{infection => infection.copy(currentVirus = infection.currentVirus.possiblyMutate)}
 	}
-//	def toSeq(infection: Infection): Seq[Any] = {
-//		import infection._
-//		fid +: originalVirus.sequence ++: Seq(source.getOrElse("-"))
-//	} 
 }
 
 case class Virus(sequence: IndexedSeq[Int]){
@@ -145,7 +141,6 @@ object Outbreak{
 		Outbreak(Map(fid -> Infection(freshVirus, freshVirus, None)))
 	}
 	def updateCurrentMutations(current: Outbreak) = Outbreak{
-		//TODO use lens
 		current.infections.mapValues{i => i.copy(currentVirus = i.currentVirus.possiblyMutate)}
 	}
 }
@@ -163,9 +158,9 @@ case class Parameters(localTransmission: Double){
 object Parameters {
 	implicit val r = Random
 	
-	val names = Seq("LocalTransmission", "SourceX", "SourceY")
+	val names = Seq("LocalTransmission")
 	
-	val gridSize = 5
+	val gridSize = 10
 	val farmIdRange = new {
 		val min = 0
 		val max = gridSize * gridSize - 1
@@ -236,10 +231,10 @@ object Parameters {
 }
 
 object Generate extends App{
-	val truth = Parameters(0.2)
+	val truth = Parameters(0.3)
 	val fullOutbreak = NetworkModel.outbreakDistribution(truth).sample
 	
-	val observedOutbreak = fullOutbreak.thinObservations(0.8, NetworkModel.seedFarm)
+	val observedOutbreak = fullOutbreak//.thinObservations(0.8, NetworkModel.seedFarm)
 	
 	println("Full: "+fullOutbreak.size+"  -  "+fullOutbreak.infected)
 	println(" Obs: "+observedOutbreak.size+"  -  "+observedOutbreak.infected)
@@ -250,15 +245,15 @@ object Generate extends App{
 }
 object NetworkModel {
 	implicit val random = Random
-	val companyA = Set(5,8,17)
-	val companyB = Set(1,18,20)
+	val companyA = Set.empty[Int]//Set(0, 5, 11, 23, 25, 27, 46, 48, 52, 77, 86, 92)
+	val companyB = Set(13, 42, 44, 61, 63, 84)
 	
-	val seedFarm = 5
-	val runLengthDays = 4
+	val seedFarm = 4
+	val runLengthDays = 7
 	
 	def outbreakDistribution(p: Parameters): Distribution[Outbreak] = {
-		val localSpread = Distribution.bernouliTrial(p.localTransmission)
-		val companySpread = Distribution.bernouliTrial(0.3)
+		val localSpread = Distribution.bernouliTrial(p.localTransmission * 0.4)
+		val companySpread = Distribution.bernouliTrial(0.2)
 		
 		def addNewInfections(current: Outbreak): Outbreak = {
 			if(current.infected.size == Parameters.farmIdRange.size) current
@@ -298,7 +293,27 @@ object NetworkModel {
 }
 class NetworkModel(val obsDiffMatrix: DifferenceMatrix) extends Model[Parameters]{
 	
-	/*	5x5
+	/*	10x10 
+	 * 
+	 * 		90	91	92+	93	94	95	96	97	98	99
+	 *   	80	81=	82	83	84=	85	86+	87	88	89
+	 *  	70	71	72	73	74	75	76	77+	78	79
+	 *  	60	61=	62	63=	64	65	66	67	68	69
+	 *  	50	51	52+	53	54	55	56	57	58	59
+	 *  	40	41	42=	43	44=	45	46+	47	48+	49
+	 *  	30	31	32	33	34	35	36	37	38	39
+	 * 		20	21	22	23+	24	25+	26	27+	28	29
+	 * 		10	11+	12	13=	14	15	16	17	18	19
+	 * 		_0+	_1	_2	_3	_4	_5+	_6	_7	_8	_9
+	 * 
+	 * 
+	 * 		+:	0, 5, 11, 23, 25, 27, 46, 48, 52, 77, 86, 92
+	 *   	=:	13, 42, 44, 61, 63, 84
+	 * 
+	 * 
+	 * 
+	 * 
+	 * 	5x5
 	 * 
 	 * 		20#	21	22	23	24
 	 * 		15	16	17*	18#	19
@@ -312,9 +327,12 @@ class NetworkModel(val obsDiffMatrix: DifferenceMatrix) extends Model[Parameters
 	def perturbDensity(a: Parameters, b: Parameters) = Parameters.perturbDensity(a, b)
 	val prior = Parameters.prior
 		
-	def numObservedMissing(simulated: Outbreak) = {
-		val score = obsDiffMatrix.infectedFarms.diff(simulated.infected).size
-		score
+	def simCoverObs(simulated: Outbreak) = {
+		simulated.infected.diff(obsDiffMatrix.infectedFarms).size
+	}
+	
+	def obsCoverSim(simulated: Outbreak) = {
+		obsDiffMatrix.infectedFarms.diff(simulated.infected).size
 	}
 
 	def sizeDiff(simulated: Outbreak) = { 
@@ -324,28 +342,44 @@ class NetworkModel(val obsDiffMatrix: DifferenceMatrix) extends Model[Parameters
 	def matrixSimalirity(simulated: Outbreak): Double = {
 		val simDiffMatrix = simulated.differenceMatrix
 		
-		def matrixDistance(matrixA: DifferenceMatrix, matrixB: DifferenceMatrix): Double = {
-			matrixA.matrix.foldLeft(0){case (acc, ((farmA, farmB), aDiff)) =>
+		def matrixDistance(matrixA: DifferenceMatrix, matrixB: DifferenceMatrix, penalty: Double): Double = {
+			matrixA.matrix.foldLeft(0.0){case (acc, ((farmA, farmB), aDiff)) =>
 				if(!matrixB.contains(farmA, farmB)){
-					acc + 2
-				} 
+					acc + penalty
+				}
 				else{
 					val bDiff = matrixB(farmA, farmB)
-					acc + math.abs(bDiff - aDiff)
-				} 
+					val diff = math.abs(bDiff - aDiff)
+					acc + {
+						if(diff > 9) 1
+						else 0
+					}
+					
+				}
 			}			
 		}
 		
-		//matrixDistance(simDiffMatrix, obsDiffMatrix) + 
-		matrixDistance(obsDiffMatrix, simDiffMatrix)
+//		matrixDistance(simDiffMatrix, obsDiffMatrix, 0)		// Pull to left
+		matrixDistance(obsDiffMatrix, simDiffMatrix, 0)		// Pull to right if using penalty, else left
 	}
 	
 	def distanceToObservations(p: Parameters): Distribution[Double] = {
-		NetworkModel.outbreakDistribution(p).map(outbreak => sizeDiff(outbreak) + numObservedMissing(outbreak))
+//		NetworkModel.outbreakDistribution(p).map(outbreak => sizeDiff(outbreak) + numObservedMissing(outbreak))
 //		println("p = "+p)
 //		println("Observed = "+obsDiffMatrix.infectedFarms)
 //		NetworkModel.outbreakDistribution(p).map(outbreak => numObservedMissing(outbreak))
-//		NetworkModel.outbreakDistribution(p).map(outbreak => matrixSimalirity(outbreak))
+		
+		
+		// 1, 40
+		// 2, 70
+		// 6, 200
+		// 10 , 400
+//		NetworkModel.outbreakDistribution(p).map(outbreak => matrixSimalirity(outbreak) + 10 * numObservedMissing(outbreak))
+		
+		//Try saturating with more company farms to see if seq can refine
+		
+		NetworkModel.outbreakDistribution(p).map(outbreak => matrixSimalirity(outbreak) + 10*(simCoverObs(outbreak) + obsCoverSim(outbreak)))
+//		NetworkModel.outbreakDistribution(p).map(outbreak => 10*(simCoverObs(outbreak) + obsCoverSim(outbreak)))
 	}
 }
 
@@ -383,11 +417,17 @@ object ABCApp extends App{
 			lapply(c("ggplot2", "reshape", "hexbin"), require, character.only=T)
 			
 			posterior = read.csv("$fileName")
+			statsTab = c(
+				quantile(posterior$$LocalTransmission, c(0.025, 0.5, 0.975)),
+				mean = mean(posterior$$LocalTransmission)
+			)
+			statsDF = data.frame(variable = names(statsTab), value = as.vector(statsTab))
 			
 			pdf("density.$generationId%02d.pdf", width=4.13, height=2.91) #A7 landscape paper
-			ggplot(posterior, aes(x = LocalTransmission)) + 
+			ggplot(melt(posterior), aes(x = value)) + 
 				geom_density() +
-				scale_x_continuous(limits = c(0,1))
+				geom_vline(data = statsDF, aes(xintercept = value, colour = variable), show_guide = TRUE) +
+				scale_x_continuous(limits = c(0,1), breaks = c(0,0.2,0.4,0.6,0.8,1))
 			dev.off()
 		"""
 		ScriptRunner.apply(rScript, wd.resolve("script.r"))
