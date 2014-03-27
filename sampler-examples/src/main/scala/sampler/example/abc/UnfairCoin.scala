@@ -63,7 +63,8 @@ object UnfairCoin extends App {
 	
 	// Make plot of final generation (posterior)
 	writeDensity(
-		wd.resolve("posterior.pdf"), 
+		wd.resolve("posterior.pdf"),
+		"9.00", "3.00",
 		finalGeneration.continuous("P[Heads]")
 	)
 	

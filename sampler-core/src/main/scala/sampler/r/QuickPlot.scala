@@ -9,12 +9,12 @@ import sampler.io.CSV
 object QuickPlot {
   private implicit def pathToString(p:Path) = p.toString()
   
-  private def buildScript(fileName: String, lines: String*) = {
+  private def buildScript(fileName: String, width:String, height:String, lines: String*) = {
     val builder = new StringBuilder
     builder.append("require(ggplot2)\n")
 	builder.append("require(reshape)\n")
 	      
-	builder.append("pdf(\"" + fileName + "\", width=8.27, height=5.83)\n")
+	builder.append("pdf(\"" + fileName + "\", width=" + width + ", height=" + height + ")\n")
 	
 	lines.foreach(builder.append(_))
 
@@ -29,7 +29,7 @@ object QuickPlot {
    *  @param path File path (including file name and extension) where the pdf plot is to be written
    *  @param data The data set(s) to be plotted
    */
-  def writeDensity[T: Fractional](filePath: Path, data: NamedSeqFractional[T]*) = {
+  def writeDensity[T: Fractional](filePath: Path, width:String, height:String, data: NamedSeqFractional[T]*) = {
 	val header = Seq[Any]("variable", "value")
     import Numeric.Implicits._
 	
@@ -44,9 +44,9 @@ object QuickPlot {
 	CSV.writeLines(parentPath.resolve(fileName+".csv"), header +: melted(data))
 	  
 	val line1 = "data <- read.csv(\"" + fileName + ".csv\")\n"
-	val line2 = "ggplot(data, aes(x=value, colour=variable)) + geom_density()\n"
+	val line2 = "ggplot(data, aes(x=value, colour=variable)) + geom_density() + scale_x_continuous(limits=c(0, 1))\n"
 	    
-	val rScript = buildScript(pdfFile, line1, line2)
+	val rScript = buildScript(pdfFile, width, height, line1, line2)
 	    
 	ScriptRunner(rScript, parentPath.resolve(fileName + ".r"))
   }
@@ -56,7 +56,7 @@ object QuickPlot {
    *  @param path File path (including file name and extension) where the pdf plot is to be written
    *  @param data The data set(s) to be plotted
    */
-  def writeDiscrete[T: Integral](filePath: Path, data: NamedSeqIntegral[T]*) = {
+  def writeDiscrete[T: Integral](filePath: Path, width:String, height:String, data: NamedSeqIntegral[T]*) = {
     val header = Seq[Any]("variable", "value")
     		
     val parentPath = filePath.getParent()
@@ -72,7 +72,7 @@ object QuickPlot {
     val line1 = "data <- read.csv(\"" + fileName + ".csv\")\n"
     val line2 = "ggplot(data, aes(x=value, fill = variable)) + geom_bar(position=\"dodge\")\n"
 
-    val rScript = buildScript(pdfFile, line1, line2)
+    val rScript = buildScript(pdfFile, width, height, line1, line2)
 	    
 	ScriptRunner(rScript, parentPath.resolve(fileName + ".r"))
   }

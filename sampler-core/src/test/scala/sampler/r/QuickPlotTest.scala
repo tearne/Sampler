@@ -40,6 +40,9 @@ class QuickPlotTest extends AssertionsForJUnit with Matchers {
   val pdfPath: Path = parentPath.resolve(fileName + ".pdf")
   val scriptPath: Path = parentPath.resolve(fileName + ".r")
   
+  val width: String = "8.27"
+  val height: String = "5.83"
+  
   def linesTheSame(i: String, j: String) = assert(i === j)
   
   private def discreteScript(name: String): Array[String] = {
@@ -71,7 +74,7 @@ dev.off()"""
   @Test def writesSingleDiscreteWithName {
 	val seq = IndexedSeq(1,2,2,3,3,3,4,4,5)
 			  
-	QuickPlot.writeDiscrete(pdfPath, seq.discrete("Integers"))
+	QuickPlot.writeDiscrete(pdfPath, width, height, seq.discrete("Integers"))
 
 	val writtenLines = Source.fromFile(new File(scriptPath.toString)).mkString.split("\n")
     val expectedLines = discreteScript(fileName)
@@ -85,7 +88,7 @@ dev.off()"""
 	val seq1 = IndexedSeq(1,2,2,3,3,3,4,4,5)
 	val seq2 = IndexedSeq(3,4,4,5,5,5,6,6,7)
 			  
-	QuickPlot.writeDiscrete(pdfPath, seq1.discrete("s1"), seq2.discrete("s2"))
+	QuickPlot.writeDiscrete(pdfPath, width, height, seq1.discrete("s1"), seq2.discrete("s2"))
 	
 	val writtenLines = Source.fromFile(new File(scriptPath.toString)).mkString.split("\n")
     val expectedLines = discreteScript(fileName)
@@ -98,7 +101,7 @@ dev.off()"""
   @Test def writesSingleDistributionWithName {
     val seq = IndexedSeq(0.1,0.2,0.2,0.3,0.3,0.3,0.4,0.4,0.5)
     
-    QuickPlot.writeDensity(pdfPath, seq.continuous("Doubles"))
+    QuickPlot.writeDensity(pdfPath, width, height, seq.continuous("Doubles"))
     
     val writtenLines = Source.fromFile(new File(scriptPath.toString)).mkString.split("\n")
     val expectedLines = densityScript(fileName)
@@ -112,7 +115,7 @@ dev.off()"""
     val seq1 = IndexedSeq(0.1,0.2,0.2,0.3,0.3,0.3,0.4,0.4,0.5)
     val seq2 = IndexedSeq(0.3,0.4,0.4,0.5,0.5,0.5,0.6,0.6,0.7)
     	
-    QuickPlot.writeDensity(pdfPath, seq1.continuous("s1"), seq2.continuous("s2"))
+    QuickPlot.writeDensity(pdfPath, width, height, seq1.continuous("s1"), seq2.continuous("s2"))
     	
     val writtenLines = Source.fromFile(new File(scriptPath.toString)).mkString.split("\n")
       
