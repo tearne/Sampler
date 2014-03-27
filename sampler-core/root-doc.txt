@@ -1,5 +1,0 @@
- <h2>Sampler-core</h2>
-
-{{{
-//TODO package level documentation
-}}} 

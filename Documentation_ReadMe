@@ -1,4 +1,16 @@
-Documentation ReadMe
+Issues
+======
+
+If ABC generations complete faster than the reporting operations (e.g. running an R script) 
+then the entire application may quit before reporting has caught up.
+
+Future Enhancements
+===================
+
+Allow ABC tolerance to be configured from config file, e.g. descent rate can be quantile other than 50%
+
+Building documentation
+======================
 
 1) Create the documentation on your local machine using either either the doc or unidoc commands in sbt.
 
@@ -10,3 +22,18 @@ Documentation ReadMe
 	
 	tearne.github.io/Sampler/api/Sampler-0.0.21
 
+Troubleshooting
+===============
+
+To run the examples within Eclipse the src/main/resources folder needs to be added as a source folder so that config files can be detected
+
+R pre-requisites (for examples)
+===============================
+
+install.packages(c("ggplot2", "reshape", "deSolve", "hexbin"), dependencies=T)
+
+Known Issues
+============
+
+When creating the ScalaDoc with API the index page for the root of the project shows two packages, akka and sampler, where we would prefer it
+to lead directly to sampler package

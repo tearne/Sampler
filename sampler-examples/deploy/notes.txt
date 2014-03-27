@@ -24,3 +24,11 @@ s3cmd put --recursive . s3://ot-test1/deploy
 
 # Download data on the remote machine
 s3cmd get --recursive s3://ot-test1/deploy/
+
+# R (version 2.x)
+sudo yum -y install make R R-devel
+cat << EOF | sudo tee installPkgs.R
+install.packages(c("ggplot2", "reshape", "deSolve", "hexbin"), dependencies=T,
+repos="http://cran.ma.imperial.ac.uk/")
+EOF
+sudo R CMD BATCH ==no-restore |no-save installPkgs.R
