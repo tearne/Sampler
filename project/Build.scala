@@ -1,7 +1,7 @@
 import sbt._
 import Keys._
-import sbtassembly.Plugin._
-import AssemblyKeys._
+//import sbtassembly.Plugin._
+//import AssemblyKeys._
 import com.typesafe.sbteclipse.plugin.EclipsePlugin.EclipseKeys
 import sbtunidoc.Plugin._
 import UnidocKeys._
@@ -23,13 +23,13 @@ object SamplerBuild extends Build{
 	lazy val core = Project(
 		id = "sampler-core",
 		base = file("sampler-core"),
-		settings = buildSettings ++ assySettings ++ packageSettings
+		settings = buildSettings /*++ assySettings*/ ++ packageSettings
 	)
 	
 	lazy val examples = Project(
 		id = "sampler-examples",
 		base = file("sampler-examples"),
-		settings = buildSettings ++ assySettings ++ packageSettings ++ Seq(
+		settings = buildSettings /*++ assySettings*/ ++ packageSettings ++ Seq(
 			libraryDependencies ++= Seq(
 				"org.apache.commons" % "commons-math3" % "3.2"
 			)
@@ -62,14 +62,14 @@ object SamplerBuild extends Build{
 		)
 	) dependsOn core
 	
-	val assySettings = assemblySettings ++ Seq(
-		test in assembly := {},
-		mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
-			case "application.conf" => MergeStrategy.discard
-			case "logback.xml" => MergeStrategy.discard
-			case x => old(x)
-		}}
-	)
+//	val assySettings = assemblySettings ++ Seq(
+//		test in assembly := {},
+//		mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
+//			case "application.conf" => MergeStrategy.discard
+//			case "logback.xml" => MergeStrategy.discard
+//			case x => old(x)
+//		}}
+//	)
 	
 	lazy val packageSettings = Seq(
 		mappings in (Compile,packageBin) ~= { (ms: Seq[(File, String)]) =>
@@ -107,7 +107,8 @@ object SamplerBuild extends Build{
 			"org.specs2" %% "specs2" % "1.13" % "test",
 			"org.mockito" % "mockito-all" % "1.9.0" %"test->default",
 			"ch.qos.logback" % "logback-classic" % "1.0.12",
-			"org.scalaz" %% "scalaz-core" % "7.0.3"
+			"org.scalaz" %% "scalaz-core" % "7.0.3",
+			"com.novocode" % "junit-interface" % "0.10" % "test"
 		)
 	)
 
