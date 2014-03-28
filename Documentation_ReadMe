@@ -4,6 +4,9 @@ Issues
 If ABC generations complete faster than the reporting operations (e.g. running an R script) 
 then the entire application may quit before reporting has caught up.
 
+When creating the ScalaDoc with API the index page for the root of the project shows two packages, akka and sampler, where we would prefer it
+to lead directly to sampler package
+
 Future Enhancements
 ===================
 
@@ -31,9 +34,3 @@ R pre-requisites (for examples)
 ===============================
 
 install.packages(c("ggplot2", "reshape", "deSolve", "hexbin"), dependencies=T)
-
-Known Issues
-============
-
-When creating the ScalaDoc with API the index page for the root of the project shows two packages, akka and sampler, where we would prefer it
-to lead directly to sampler package

@@ -101,7 +101,7 @@ object SamplerBuild extends Build{
 		),
 		
 		libraryDependencies ++= Seq(
-			"com.typesafe" % "config" % "1.0.2",
+			"com.typesafe" % "config" % "1.2.0",
 			"junit" % "junit" % "4.8" % "test->default",
 			"org.scalatest" % "scalatest_2.10" % "2.1.0" % "test",
 			"org.specs2" %% "specs2" % "1.13" % "test",
