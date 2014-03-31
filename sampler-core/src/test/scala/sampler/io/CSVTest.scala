@@ -17,21 +17,18 @@
 
 package sampler.io
 
-import org.scalatest.junit.AssertionsForJUnit
-import org.junit.Before
-import org.junit.After
 import java.nio.file.Paths
 import java.nio.file.Path
-import org.junit.Test
 import java.io.FileNotFoundException
 import java.nio.file.Files
 import scala.io.Source
 import java.nio.file.StandardOpenOption
-import org.scalatest.Matchers
 import sampler.math.Partition
+import org.scalatest.FreeSpec
+import org.scalatest.BeforeAndAfter
 
-class CSVTest extends AssertionsForJUnit with Matchers {
-  val dir = Paths.get("src", "test", "resources", "data")
+class CSVTest extends FreeSpec with BeforeAndAfter {
+  val dir = Paths.get(getClass.getClassLoader.getResource("data").toURI())
   
   case class Row(i: Int, b: Boolean, s: String, d: Double)
   object Row{
@@ -41,22 +38,20 @@ class CSVTest extends AssertionsForJUnit with Matchers {
   val tempFile = dir.resolve("CSVFileTest.csv")
   val existingTable = dir.resolve("testTable.csv")
   
-  @Before
-  def before {
+  before {
   	if(Files.exists(tempFile)) Files.delete(tempFile)
   }
   
-  @After
-  def tearDown {
+  after {
     Files.deleteIfExists(tempFile)
   }
   
-  @Test def getHeaderNames {
+  "Get header names" in {
   	val expected = Map("Ints" -> 0, "Booleans" -> 1, "Strings" -> 2, "Doubles" -> 3)
   	assertResult(expected)(CSV.header(existingTable))
   }
   
-  @Test def readWithoutHeader {
+  "Read without header" in {
   	val expected = Seq(
   		Seq("Ints", "Booleans", 	"Strings", 	"Doubles"),
   		Seq("1", 	"TRUE", 	"A",		"0.789"),
@@ -67,7 +62,7 @@ class CSVTest extends AssertionsForJUnit with Matchers {
   	assertResult(expected)(CSV.read(existingTable).map(_.toList).toList)
   }
  
-  @Test def readByHeader {
+  "Read by header" in {
     val expected = Seq(
   		Seq("Ints", "Doubles"),
   		Seq("1", 	"0.789"),
@@ -82,11 +77,11 @@ class CSVTest extends AssertionsForJUnit with Matchers {
     }
   }
 
-  @Test def assertingHeader {
+  "Asert header" in {
   	CSV.assertHeader(existingTable, "Ints", "Booleans", "Strings", "Doubles")
   }
   
-  @Test def exceptionIfUnexpectedHeader {
+  "Exception if unexpected header" in {
     intercept[AssertionError]{
   		CSV.assertHeader(existingTable, "Ints", "Bolean", "Strings", "Doubles")
   	}
@@ -95,7 +90,7 @@ class CSVTest extends AssertionsForJUnit with Matchers {
   	}
   }
   
-  @Test def writingSingleLine {
+  "Writing single line" in {
     val line1 = Seq("1", "Ayeeee", false)
     
   	CSV.writeLine(tempFile, line1)
@@ -106,7 +101,7 @@ class CSVTest extends AssertionsForJUnit with Matchers {
     assert(lines.size === 1)
   }
   
-  @Test def writingMultipleLines {
+  "Writing multiple lines" in {
     val line1 = Seq("1", "Ayeeee", false)
     val line2 = Seq("2", "Bee", true)
     
@@ -119,7 +114,7 @@ class CSVTest extends AssertionsForJUnit with Matchers {
     assert(lines.size === 1)
   }
   
-  @Test def appendingSingleLine {
+  "Appending single line" in {
   	val testData1 = Seq(
   		Seq(1,"Ayeeee",false),
   		Seq(2 ,"Bee" ,true)
@@ -140,7 +135,7 @@ class CSVTest extends AssertionsForJUnit with Matchers {
   	assert(lines.size === 3)
   }
   
-  @Test def appendingMultipleLines {
+  "Appending multiple lines" in {
   	val testData1 = Seq(
   		Seq(1,"Ayeeee",false),
   		Seq(2 ,"Bee" ,true)
@@ -163,7 +158,7 @@ class CSVTest extends AssertionsForJUnit with Matchers {
   	assert(lines.size === 4)
   }
   
-  @Test def transpose {
+  "Transpose" in {
     val transposeTable = dir.resolve("transposeTable.csv")
     
   	CSV.transpose(transposeTable, tempFile)
@@ -174,7 +169,7 @@ class CSVTest extends AssertionsForJUnit with Matchers {
     assert(lines(1) === "Wang,2,4,6")
   }
   
-  @Test def overwriteWithFewerLinesRemovesAllPreviousLines {
+  "Overwrite with fewer lines removes all previous lines" in {
     val d1 = Seq("1","2","3")
     val d2 = Seq("a","b","c")
       
@@ -188,7 +183,7 @@ class CSVTest extends AssertionsForJUnit with Matchers {
     assert(writtenLines.length === 2)
   }
   
-  @Test def exceptionIfToStringOnObjectResultsInStringContainingComma {
+  "Exception if toString on object results in string containing comma" in {
   	val p1 = Partition(IndexedSeq(0.1, 0.9))		// Partitions should print with a comma
   	val p2 = Partition(IndexedSeq(0.5, 0.5))
   	

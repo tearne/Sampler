@@ -44,7 +44,7 @@ object QuickPlot {
 	CSV.writeLines(parentPath.resolve(fileName+".csv"), header +: melted(data))
 	  
 	val line1 = "data <- read.csv(\"" + fileName + ".csv\")\n"
-	val line2 = "ggplot(data, aes(x=value, colour=variable)) + geom_density() + scale_x_continuous(limits=c(0, 1))\n"
+	val line2 = "ggplot(data, aes(x=value, colour=variable)) + geom_density() + scale_x_continuous(limits=c(0,1))\n"
 	    
 	val rScript = buildScript(pdfFile, width, height, line1, line2)
 	    

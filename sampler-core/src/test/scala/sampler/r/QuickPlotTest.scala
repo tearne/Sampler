@@ -21,22 +21,17 @@ import sampler.Implicits._
 import java.nio.file.Paths
 import scala.io.Source
 import java.io.File
-import sampler.math._
 import java.nio.file.Files
-import org.scalatest.junit.AssertionsForJUnit
-import org.junit.Before
-import org.junit.Test
 import java.nio.file.Path
 import sampler.r.QuickPlot._
-import org.scalatest.Matchers
+import org.scalatest.FreeSpec
 
-class QuickPlotTest extends AssertionsForJUnit with Matchers {
-  
-  implicit val r: Random = Random
+class QuickPlotTest extends FreeSpec {
   
   val fileName: String = "plot"
   
-  val parentPath: Path = Paths.get("src", "test", "resources", "data")
+  val parentPath: Path = Paths.get(getClass.getClassLoader.getResource("data").toURI())
+  
   val pdfPath: Path = parentPath.resolve(fileName + ".pdf")
   val scriptPath: Path = parentPath.resolve(fileName + ".r")
   
@@ -47,7 +42,7 @@ class QuickPlotTest extends AssertionsForJUnit with Matchers {
   
   private def discreteScript(name: String): Array[String] = {
     val script =
-"""setwd("/home/user/Sampler/sampler-core/src/test/resources/data")
+"""setwd("/home/user/Sampler/sampler-core/target/scala-2.10/test-classes/data")
 require(ggplot2)
 require(reshape)
 pdf("""" + name + """.pdf", width=8.27, height=5.83)
@@ -60,18 +55,18 @@ dev.off()"""
   
   private def densityScript(name: String): Array[String] = {
 	val script =
-"""setwd("/home/user/Sampler/sampler-core/src/test/resources/data")
+"""setwd("/home/user/Sampler/sampler-core/target/scala-2.10/test-classes/data")
 require(ggplot2)
 require(reshape)
 pdf("""" + name + """.pdf", width=8.27, height=5.83)
 data <- read.csv("""" + name + """.csv")
-ggplot(data, aes(x=value, colour=variable)) + geom_density()
+ggplot(data, aes(x=value, colour=variable)) + geom_density() + scale_x_continuous(limits=c(0,1))
 dev.off()"""
 				  
 	script.split("\n")
   }
   
-  @Test def writesSingleDiscreteWithName {
+  "Should write single discrete distribution" in {
 	val seq = IndexedSeq(1,2,2,3,3,3,4,4,5)
 			  
 	QuickPlot.writeDiscrete(pdfPath, width, height, seq.discrete("Integers"))
@@ -84,7 +79,7 @@ dev.off()"""
     (0 until expectedLines.length).foreach(i => linesTheSame(writtenLines(i), expectedLines(i)))
   }
   
-  @Test def writesMultipleDiscretes {
+  "Should write multiple discretes distributions" in {
 	val seq1 = IndexedSeq(1,2,2,3,3,3,4,4,5)
 	val seq2 = IndexedSeq(3,4,4,5,5,5,6,6,7)
 			  
@@ -98,7 +93,7 @@ dev.off()"""
     (0 until expectedLines.length).foreach(i => linesTheSame(writtenLines(i), expectedLines(i)))	  
   }
   
-  @Test def writesSingleDistributionWithName {
+  "Should write a single distribution" in {
     val seq = IndexedSeq(0.1,0.2,0.2,0.3,0.3,0.3,0.4,0.4,0.5)
     
     QuickPlot.writeDensity(pdfPath, width, height, seq.continuous("Doubles"))
@@ -111,7 +106,7 @@ dev.off()"""
     (0 until expectedLines.length).foreach(i => linesTheSame(writtenLines(i), expectedLines(i)))
   }
   
-  @Test def writesMultipleDistributions {
+  "Should write multiple distributions" in {
     val seq1 = IndexedSeq(0.1,0.2,0.2,0.3,0.3,0.3,0.4,0.4,0.5)
     val seq2 = IndexedSeq(0.3,0.4,0.4,0.5,0.5,0.5,0.6,0.6,0.7)
     	

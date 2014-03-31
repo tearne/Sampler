@@ -2,22 +2,20 @@ package sampler.r
 
 import java.nio.file.{Paths, Files}
 import collection.JavaConversions.asScalaBuffer
-import org.scalatest.junit.AssertionsForJUnit
-import org.junit.After
 import java.nio.file.Path
-import org.junit.Before
-import org.junit.Test
+import org.scalatest.BeforeAndAfter
+import org.scalatest.FreeSpec
 
-class ScriptRunnerTest extends AssertionsForJUnit {
+class ScriptRunnerTest extends FreeSpec with BeforeAndAfter {
 
-	val workingDir = Paths.get("src", "test", "resources", "data")
+  val workingDir = Paths.get(getClass.getClassLoader.getResource("data").toURI())
+  
 	val scriptPath = workingDir.resolve("deleteMe.r")
 	val rOutPath = workingDir.resolve("deleteMe.r.Rout")
 	val jsonPath = workingDir.resolve("deleteMe.json")
 	val noExtension = workingDir.resolve("noExtension")
 	
-	@Test
-	def doesntPrintOut {
+	"Nothing prints out from simple script" in {
 	  val script =
 """
 a <- c(2,4,6)
@@ -25,8 +23,7 @@ a
 """
 	}
 	
-	@Test
-	def runsSleepCommand {
+	"Runs sleep command" in {
 	  val startTime = System.nanoTime
 	  ScriptRunner("Sys.sleep(1)", scriptPath)
       val runTime = (System.nanoTime() - startTime) / 1e9
@@ -34,8 +31,7 @@ a
 	  assert(runTime > 1.0)
 	}
 	
-	@Test
-	def errorWhenFails {
+	"ScriptRunnerException when code fails" in {
 	  intercept[ScriptRunnerException] {
 	    ScriptRunner("results <- toJSON(object)", scriptPath)
 	  }
@@ -45,15 +41,13 @@ a
 	  }
 	}
 	
-	@Test
-	def errorWhenFileNameDoesntEndRFileExtension {
+	"Error when file name doesn't end with an R file extension" in {
 	  intercept[AssertionError] {
 	    ScriptRunner("a <- 1", noExtension)
 	  }
 	}
 	
-	@After
-	def fileTearDown {
+	after {
 	  List(scriptPath, rOutPath, jsonPath, noExtension).foreach(Files.deleteIfExists)
 	}
 }

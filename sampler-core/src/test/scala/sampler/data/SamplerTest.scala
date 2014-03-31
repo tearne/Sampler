@@ -3,10 +3,11 @@ package sampler.data
 import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Test
 import sampler.math.Random
+import org.scalatest.FreeSpec
 
-class SamplerTest extends AssertionsForJUnit {
+class SamplerTest extends FreeSpec with AssertionsForJUnit {
 
-  @Test def serialSamplingTest {
+  "serialSamplingTest" in {
     val dist = Distribution.continually(1)
     
     val sampledList = SerialSampler.apply(dist)(new ConvergenceProtocol[Int](3, 1.0, 100000) with MaxMetric)
@@ -16,7 +17,7 @@ class SamplerTest extends AssertionsForJUnit {
     assert(sampledList === expectedList)
   }
   
-  @Test def samplerGivesCorrectSequenceFromParrallel {
+  "samplerGivesCorrectSequenceFromParrallel" in {
     val dist = Distribution.continually(2)
     
     val sampledList = ParallelSampler.apply(dist)(new ConvergenceProtocol[Int](3, 1.0, 100000) with MaxMetric)
@@ -26,7 +27,7 @@ class SamplerTest extends AssertionsForJUnit {
     assert(sampledList === expectedList)
   }
   
-  @Test def serialSamplingStopsOnMaximum {
+  "serialSamplingStopsOnMaximum" in {
     val dist = Distribution.continually(1)
     
     val maxRetries = 7
@@ -39,7 +40,7 @@ class SamplerTest extends AssertionsForJUnit {
   }
   
   
-  @Test def parallelSamplingStopsOnMaximum {
+  "parallelSamplingStopsOnMaximum" in {
     val dist = Distribution.continually(1)
     
     val maxRetries = 7
@@ -51,7 +52,7 @@ class SamplerTest extends AssertionsForJUnit {
     assert(sampledList === expectedList)
   }
   
-  @Test def serilaSamplingOfNormalDistribution {
+  "serilaSamplingOfNormalDistribution" in {
     implicit val r: Random = Random
     val dist = Distribution.uniform(0, 10)
     

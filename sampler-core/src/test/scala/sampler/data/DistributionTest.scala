@@ -1,20 +1,21 @@
 package sampler.data
 
-import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Before
 import org.junit.Test
 import sampler.math.Random
 import sampler.math.Partition
 import org.scalatest.Matchers
+import org.scalatest.FreeSpec
+import org.scalatest.BeforeAndAfter
 
-class DistributionTest extends AssertionsForJUnit with Matchers {
+class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
 
   var instance: Distribution[Int] = _
   var instance2: Distribution[Int] = _
   val alwaysOne: Distribution[Int] = Distribution.continually(1)
   implicit val random: Random = Random
   
-  @Before def initialise {
+  before {
     instance = {
       val it = List(0,1,2,3,4,5,6,7,8,9).iterator
       Distribution(it.next)
@@ -31,13 +32,13 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
 	else append(previous.:+(d.sample()), d, requiredLength)
   }
   
-  @Test def samplesValuesInOrder {
+  "samplesValuesInOrder" in {
     val sampledSeq = append(Seq(), instance, 10)
 			
 	assert(sampledSeq === Seq(0,1,2,3,4,5,6,7,8,9))
   }
   
-  @Test def sampleUntilLengthFive {
+  "sampleUntilLengthFive" in {
     val resultsSeq = instance.until(_.size == 5).sample
 				
 	val expectedSeq = IndexedSeq(0,1,2,3,4)
@@ -45,7 +46,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
 	assert(resultsSeq === expectedSeq)
   }
   
-  @Test def sampleRepeatedlyUsingUntilEvenValue {
+  "sampleRepeatedlyUsingUntilEvenValue" in {
     val untilInstance = instance.until(_.last % 2 == 0)
 				
 	val seq1 = untilInstance.sample
@@ -57,7 +58,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
 	assert(seq3 === IndexedSeq(3,4))
   }
   
-  @Test def filterForValuesGreaterThanTwo {
+  "filterForValuesGreaterThanTwo" in {
     val filtered = instance.filter(_ > 2)
 	
     val sampleList = append(Seq(filtered.sample()), filtered, 7)
@@ -65,7 +66,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
 	assert(sampleList === Seq(3,4,5,6,7,8,9))
   }
   
-  @Test def filtersForEvenNumbers {
+  "filtersForEvenNumbers" in {
     val filtered = instance.filter(_ % 2 == 0)
     
     val sampleList = append(Seq(), filtered, 5)
@@ -73,7 +74,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
 	assert(sampleList === Seq(0,2,4,6,8))
   }
   
-  @Test def mapsValuesToDoubleValue {
+  "mapsValuesToDoubleValue" in {
     val mapped = instance.map(value => value * 2)
     
 	val sampleList = append(Seq(), mapped, 10)
@@ -81,7 +82,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
 	assert(sampleList === List(0,2,4,6,8,10,12,14,16,18))
   }
   
-  @Test def flatMap {
+  "flatMap" in {
     val flatMapped = instance.flatMap(x => Distribution.continually(x * 10))
     
     val sampleList = append(Seq(), flatMapped, 10)
@@ -89,7 +90,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
     assert(sampleList === List(0,10,20,30,40,50,60,70,80,90))
   }
   
-  @Test def combinedTwoDistributionsWithProduct {
+  "combinedTwoDistributionsWithProduct" in {
     def product(a: Int, b: Int) = a*b
 		    
     val result = instance.combine(instance2)(product)
@@ -99,7 +100,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
 	assert(sampleList === Seq(0,1,4,9,16))
   }
   
-  @Test def addTwoDistributionsWithConvolvle {
+  "addTwoDistributionsWithConvolvle" in {
     val result = instance.convolve(alwaysOne)
 	
     val sampleList = append(Seq(), result, 5)
@@ -107,7 +108,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
 	assert(sampleList === Seq(1,2,3,4,5))
   }
   
-  @Test def subtractDistributionWithCrossCorrelate {
+  "subtractDistributionWithCrossCorrelate" in {
     val result = instance.crossCorrelate(alwaysOne)
 		    
 	val sampleList = append(Seq(), result, 5)
@@ -115,7 +116,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
 	assert(sampleList === Seq(-1,0,1,2,3))
   }
   
-  @Test def continuallyAlwaysGivesSameResult {
+  "continuallyAlwaysGivesSameResult" in {
     val model1 = Distribution.continually(1)
     val model2 = Distribution.continually(2)
     
@@ -126,7 +127,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
     assert(r2.sum === 20)
   }
   
-  @Test def uniformDistributionWithDoubleParameters {
+  "uniformDistributionWithDoubleParameters" in {
     val model = Distribution.uniform(0.5, 1.5)
     
     val results = (1 to 10000).map(_ => model.sample)
@@ -136,7 +137,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
     results.count(_ <= 0.6) should be (1000 +- 200)
   }
 
-  @Test def uniformDistributionWithIntParameters {
+  "uniformDistributionWithIntParameters" in {
     val model = Distribution.uniform(1, 11)		//excludes 11
     
     val results = (1 to 10000).map(_ => model.sample)
@@ -153,7 +154,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
     results.count(_ == 10) should be (1000 +- 200)
   }
 
-  @Test def iterableUniform {
+  "iterableUniform" in {
     val items = IndexedSeq(2,4,6,8)
     
     val model = Distribution.uniform(items)
@@ -165,7 +166,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
     results.count(_ == 6) should be (500 +- 100)
   }
 
-  @Test def withoutReplacementNeverSamplesSameObjectTwice {
+  "withoutReplacementNeverSamplesSameObjectTwice" in {
     val items = IndexedSeq(2,4,6,8)
     
     val model = Distribution.withoutReplacement(items, 2)
@@ -177,7 +178,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
     assert(results.count(theSame(_) == true) === 0)
   }
   
-  @Test def withoutReplacementDrawsWithEqualProbability {
+  "withoutReplacementDrawsWithEqualProbability" in {
     val it = IndexedSeq(2,4,6,8)
     
     val model = Distribution.withoutReplacement(it, 2)
@@ -189,7 +190,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
     results.count(_.contains(6)) should be (500 +- 100)
   }
   
-  @Test def sampleInfectedFromBinaryPopulation {
+  "sampleInfectedFromBinaryPopulation" in {
     val model = Distribution.binaryPopulation(5, 100)
     
     val results = (1 to 10000).map(_ => model.sample)
@@ -197,7 +198,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
     results.count(_ == true) should be (500 +- 100)
   }
   
-  @Test def bernoulliTrialWithProbabilityOne {
+  "bernoulliTrialWithProbabilityOne" in {
     val model = Distribution.bernoulliTrial(1)
     
     val result = (1 to 10).map(_ => model.sample)
@@ -205,7 +206,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
     assert(result.count(_ == true) === 10)
   }
   
-  @Test def bernoilliTrialWithProbabilityZero {
+  "bernoilliTrialWithProbabilityZero" in {
     val model = Distribution.bernoulliTrial(0)
     
     val result = (1 to 10).map(_ => model.sample)
@@ -213,7 +214,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
     assert(result.count(_ == true) === 0)
   }
 
-  @Test def bernoulliTrialWith80PercentProbability {
+  "bernoulliTrialWith80PercentProbability" in {
     val model = Distribution.bernoulliTrial(0.8)
 		    
 	val result = (1 to 1000).map(_ => model.sample)
@@ -221,7 +222,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
 	result.count(_ == true) should be (800 +- 50)
   }
   
-  @Test def coinTossIsFair {
+  "coinTossIsFair" in {
     val model = Distribution.coinToss
 		  
     val result = (1 to 1000).map(_ => model.sample)
@@ -229,7 +230,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
 	result.count(_ == true) should be (500 +- 50)
   }
   
-  @Test def buildingDistributionFromPartition {
+  "buildingDistributionFromPartition" in {
     val seq = IndexedSeq(1,2,3,4)
     val partition = new Partition(IndexedSeq(0.1,0.2,0.3,0.4))
     
@@ -243,7 +244,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
     result.count(_ == 4) should be (400 +- 50)
   }
   
-  @Test def errorWhenPartitionLengthDoesntMatchSequenceLength {
+  "errorWhenPartitionLengthDoesntMatchSequenceLength" in {
     val seq = IndexedSeq(1,2,3,4)
     val partition = new Partition(IndexedSeq(0.25,0.25,0.5))
     
@@ -252,7 +253,7 @@ class DistributionTest extends AssertionsForJUnit with Matchers {
     }
   }
   
-  @Test def buildingDistributionFromProbabilityTable {
+  "buildingDistributionFromProbabilityTable" in {
     val probTable = Map(1 -> 0.1, 2 -> 0.2, 3 -> 0.3, 4 -> 0.4)
     
     val model = Distribution.fromProbabilityTable(probTable)

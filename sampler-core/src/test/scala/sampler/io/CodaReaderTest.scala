@@ -1,16 +1,14 @@
 package sampler.io
 
-//import org.scalatest.junit.AssertionsForJUnit
-import org.scalatest.Matchers
 import org.junit.Test
 import java.nio.file.Paths
-import org.scalatest.FunSuite
+import org.scalatest.FreeSpec
 
-class CodaReaderTest extends FunSuite with Matchers {
+class CodaReaderTest extends FreeSpec {
 
-  val dir = Paths.get("src", "test", "resources", "data")
+  val dir = Paths.get(getClass.getClassLoader.getResource("data").toURI())
 	
-  test("readsInCsvFile") {
+  "Reads in .csv files" in {
     val fileStem = dir.resolve("testCoda")
     
     val data = CodaReader.apply(fileStem.toString)
@@ -22,7 +20,7 @@ class CodaReaderTest extends FunSuite with Matchers {
     assert(data("DataB") === dataB)
   }
   
-  test("errorIfFileMismatch") {
+  "Error if file mismatch" in {
     val fileStem = dir.resolve("shortCoda")
     
     intercept[AssertionError] {

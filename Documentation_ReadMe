@@ -34,3 +34,14 @@ R pre-requisites (for examples)
 ===============================
 
 install.packages(c("ggplot2", "reshape", "deSolve", "hexbin"), dependencies=T)
+
+Eclipse / sbt
+=============
+
+Trying to make project testable from SBT and Eclipse. SBT Eclipse plug-in sets up Eclipse project. Misses out on 
+1) in Examples doesn't add src/main/resources to 
+the build path, therefore none of the examples can find their configuration files. Fixed by Right-click and add to buid-path. 
+2) Default testing - relative file paths in tests when needing test data e.g. Paths.get("src", "test", "resources" etc). Tjhis worked in eclipse since
+resolves paths from project directory. Not in SBT. If we use Paths.get(getClass.getClassLoader.getResource("data/SOMEFILE.txt").toURI()) then Eclipse
+still doesn't find it because src/test/resources isn't on build path. We can add it as in (1) but it won't get put in correct class folder. Right-click. add to build
+path, go to build settings, change output directory for resources from default to relative to target/scala2-10/test-classes
