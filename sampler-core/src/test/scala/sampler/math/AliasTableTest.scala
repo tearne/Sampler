@@ -10,7 +10,7 @@ class AliasTableTest extends FreeSpec with Matchers {
   
   val tolerance = 1e-6
   
-  "generatesCorrectProbabilityTable" in {
+  "Generates correct probability table" in {
     val probs = myAlias.probability
     	
     val expectedProbs = Array(0.4, 0.8, 1.0, 0.8)
@@ -21,7 +21,7 @@ class AliasTableTest extends FreeSpec with Matchers {
     probs(3) should be(expectedProbs(3) +- tolerance)
   }
   
-  "generatesCorrectAliasTable" in {
+  "Generates correct alias table" in {
     val alias = myAlias.alias
       
     val expectedAlias = Array(3,3,0,2)
@@ -29,7 +29,7 @@ class AliasTableTest extends FreeSpec with Matchers {
     assert(alias === expectedAlias)
   }
   
-  "returnsCorrectIndexWhenSamplingFromMockedObject" in {
+  "Returns correct index, when sampling from mocked object" in {
     import scala.collection.mutable.Queue
     val r = new Random{
       val ints = Queue(0,1,2,3)
@@ -48,7 +48,7 @@ class AliasTableTest extends FreeSpec with Matchers {
     assert(sampledResults === expectedResults)
   }
   
-  "generatesCorrectProbabilityTableComplicatedExample" in {
+  "Generates correct probability table - complicated example" in {
 	/*This was done by looking at the results of a more complicated example
 	* from the original Java implementation
 	* http://www.keithschwarz.com/interesting/code/?dir=alias-method
@@ -68,7 +68,7 @@ class AliasTableTest extends FreeSpec with Matchers {
     probs(6) should be(0.63 +- tolerance)
   }
   
-  "generatesCorrectAliasTableComplicatedExample" in {
+  "Generates correct Alias table - complicated example" in {
     val anotherPartition = Partition.fromWeights(IndexedSeq(
           0.11, 0.05, 0.31, 0.17, 0.08, 0.19, 0.09))
 
@@ -79,7 +79,7 @@ class AliasTableTest extends FreeSpec with Matchers {
     assert(generatedAlias === expectedAlias)
   }
   
-  "acceptsPartitionWithValueOfZero" in {
+  "Accepts a Partition containing a zero probability" in {
     val zeroProbSpec = Partition.fromWeights(IndexedSeq(0.1, 0.2, 0, 0.3, 0.4))
     val zeroAlias = new AliasTable(zeroProbSpec)
         
@@ -97,7 +97,7 @@ class AliasTableTest extends FreeSpec with Matchers {
     assert(alias === expectedAlias)
   }
   
-  "samplesCorrectFromPartitionWithZero" in {
+  "Samples correctly from Partition with a zero probability" in {
     val zeroProbSpec = Partition.fromWeights(IndexedSeq(0.1, 0.2, 0, 0.3, 0.4))
     val zeroAlias = new AliasTable(zeroProbSpec)
     

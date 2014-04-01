@@ -22,15 +22,15 @@ class EmpiricalSeqTest extends FreeSpec with BeforeAndAfter with Matchers {
 	es = seq1.toEmpiricalSeq
   }
   
-  "numObservations" in {
+  "Number of observations" in {
     assert(es.size === 8)
   }
   
-  "supportSize" in {
+  "Support size" in {
     assert(es.supportSize === 4)
   }
   
-  "empiricalSeqGivesCorrectProbabilities" in {
+  "Gives correct probabilities of observations from sequence" in {
     val probs = es.probabilityTable
     
     probs(1) should be(0.25 +- tolerance)
@@ -39,7 +39,7 @@ class EmpiricalSeqTest extends FreeSpec with BeforeAndAfter with Matchers {
     probs(4) should be(0.25 +- tolerance)
   }
   
-  "empiricalSeqCanBeAddedTo" in {
+  "Sequence can be added to" in {
     val es2 = es.++(IndexedSeq(5,5,6,6,7,7,8,8))
     val probs = es2.probabilityTable 
     
@@ -49,7 +49,7 @@ class EmpiricalSeqTest extends FreeSpec with BeforeAndAfter with Matchers {
     probs(5) should be (0.125 +- tolerance)
   }
   
-  "empiricalSeqCanEqualAnotherEmpSeqOnly" in {
+  "Can only be added to with another empirical sequence" in {
 	val es2 = es.++(IndexedSeq(5,6,7,8))
 	val et = IndexedSeq(1,2,3,4).toEmpiricalTable
     
@@ -59,7 +59,7 @@ class EmpiricalSeqTest extends FreeSpec with BeforeAndAfter with Matchers {
 	assert(!es.canEqual(et))
   }
   
-  "empiricalSeqIsEqual" in {
+  "Two identical sequences are identified as equal" in {
     val es2 = IndexedSeq(1,2,3,4).toEmpiricalSeq
     
     assert(es.equals(es2))

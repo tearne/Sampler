@@ -12,13 +12,13 @@ class RandomTest extends FreeSpec with BeforeAndAfter with Matchers{
     random = Random
   }
   
-  "generatesIntsInCorrectRange" in {
+  "Generates Integers in the correct range" in {
     val draw1 = random.nextInt(5)
     
     draw1 should be(2 +- 2)
   }
   
-  "drawIntValuesAtRandom" in {
+  "Draws integer values at random" in {
     def sample(samples: List[Int], currentIt: Int, numIts: Int): List[Int] = {
       if(currentIt>=numIts) samples
       else {
@@ -35,7 +35,7 @@ class RandomTest extends FreeSpec with BeforeAndAfter with Matchers{
     sampledInts.count(_ == 3) should be(250 +- 50)
   }
   
-  "generatesDoublesInCorrectRange" in {
+  "Generates Doubles in the correct range" in {
     val draw1 = random.nextDouble(0.5, 2.5)
     val draw2 = random.nextDouble(1.5, 2.5)
 	val draw3 = random.nextDouble(3.0, 5.0)
@@ -45,7 +45,7 @@ class RandomTest extends FreeSpec with BeforeAndAfter with Matchers{
     draw3 should be(4.0 +- 1.0)
   }
   
-  "generatesBoolenasInGivenProportion" in {
+  "Generates Booleans in given proportion" in {
     def booleanSample(samples: List[Boolean], p: Double, currentIt: Int, numIts: Int): List[Boolean] = {
 	  if(currentIt >= numIts) samples
       else {
@@ -62,7 +62,7 @@ class RandomTest extends FreeSpec with BeforeAndAfter with Matchers{
     sampledBooleans.count(_ == false) should be(100 +- 50)
   }
   
-  "exceptionWhenInvalidProbabilityToNextBoolean" in {
+  "Exception when invalid probability to nextBoolean" in {
     intercept[RangeException[Double]] {
       random.nextBoolean(1.5)
     }

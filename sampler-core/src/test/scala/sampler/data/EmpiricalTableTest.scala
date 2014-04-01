@@ -26,19 +26,19 @@ class EmpiricalTableTest extends FreeSpec with BeforeAndAfter with Matchers {
 	d3 = IndexedSeq(1, 2,2, 3,3,3, 4).toEmpiricalTable
   }
   
-  "numObservations" in  {
+  "Number of observations" in  {
   	assert(d1.size === 3)
     assert(d2.size === 6)
     assert(d3.size === 7)
   }
   
-  "knowsTheSupportSize" in {
+  "Support size" in {
     assert(d1.supportSize === 3)
     assert(d2.supportSize === 3)
     assert(d3.supportSize === 4)
   }
   
-  "calculatesRelativeProbabilitiesOfObservations" in {
+  "Calculates relative probabilities of observations" in {
     val e1 = 1.0/3.0
     val e2 = 1.0/6.0
     val e3 = 1.0/7.0
@@ -48,13 +48,13 @@ class EmpiricalTableTest extends FreeSpec with BeforeAndAfter with Matchers {
     d3.probabilityTable(4) should be(e3 +- tolerance)
   }
   
-  "calculatesMapOfCountsForEachObservation" in {
+  "Calculates map of counts for each observation" in {
     assert(d1.freqTable === Map(4 -> 1, 5 -> 1, 6 ->1))
     assert(d2.freqTable === Map(4 -> 1, 5 -> 2, 6 ->3))
 	assert(d3.freqTable === Map(1 -> 1, 2 -> 2, 3 -> 3, 4 -> 1))
   }
   
-  "isAugmentableWithTraversableObject" in {
+  "Is augmentable with traverable object" in {
     val s1 = IndexedSeq(6)
     val d4 = d1 ++ s1
     
@@ -63,7 +63,7 @@ class EmpiricalTableTest extends FreeSpec with BeforeAndAfter with Matchers {
     assert(d4.freqTable === Map(4 -> 1, 5 -> 1, 6 ->2))
   }
   
-  "overridesHashCodeAndEquals" in {
+  "Overrides Hash Code and Equals" in {
     val d1a = IndexedSeq(4,5,6).toEmpiricalTable
     val empSeq = IndexedSeq(1,2,3).toEmpiricalSeq
 

@@ -20,7 +20,7 @@ class SamplableTest extends FreeSpec with MockitoSugar with ToSamplable {
   object Green extends Colour { override def toString = "Green"}
   object Blue extends Colour { override def toString = "Blue"}
   
-  "canDrawMoreThanTheNumberOfObjectTypesInBag" in {
+  "Can draw at least one of each object type in bag" in {
     implicit val r = mock[Random]
     when(r.nextInt(anyInt)).thenReturn(599,350,350,250) // Blue, Green, Green Red
     
@@ -37,7 +37,7 @@ class SamplableTest extends FreeSpec with MockitoSugar with ToSamplable {
 	assert(drawn.getOrElse(Blue, 0) === 1)
   }
   
-  "samplesFromSequenceOfObjects" in {
+  "Samples from a sequence of objects" in {
     implicit val r = mock[Random]
     when(r.nextInt(anyInt)).thenReturn(2,2) // Red, Green
     
@@ -52,7 +52,7 @@ class SamplableTest extends FreeSpec with MockitoSugar with ToSamplable {
     assert(drawn.getOrElse(Green, 0) === 1)
   }
   
-  "samplesFromImplicitMapCorrectly" in {
+  "Samples from implicit map correctly" in {
     implicit val r = mock[Random]
     
     when(r.nextInt(3)).thenReturn(2)
@@ -68,7 +68,7 @@ class SamplableTest extends FreeSpec with MockitoSugar with ToSamplable {
     assert(result.getOrElse(p3, 0) === 1)
   }
   
-  "samplingFromDefinedMapCorrectly" in {
+  "Samples from defined map correctly" in {
     implicit val r = mock[Random]
     
     when(r.nextInt(4)).thenReturn(2)
@@ -84,7 +84,7 @@ class SamplableTest extends FreeSpec with MockitoSugar with ToSamplable {
     assert(result.getOrElse(p3, 0) === 1)
   }
   
-  "lookingForBug" in {
+  "Test to identify bug in early version of code where last item wasn't being sampled correctly" in {
     implicit val r = mock[Random]
     
     when(r.nextInt(3)).thenReturn(2)

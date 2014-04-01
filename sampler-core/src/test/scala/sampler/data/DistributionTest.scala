@@ -32,13 +32,13 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
 	else append(previous.:+(d.sample()), d, requiredLength)
   }
   
-  "samplesValuesInOrder" in {
+  "Samples values in order from sequence in iterator" in {
     val sampledSeq = append(Seq(), instance, 10)
 			
 	assert(sampledSeq === Seq(0,1,2,3,4,5,6,7,8,9))
   }
   
-  "sampleUntilLengthFive" in {
+  "Samples until a lenght of 5 has been reached" in {
     val resultsSeq = instance.until(_.size == 5).sample
 				
 	val expectedSeq = IndexedSeq(0,1,2,3,4)
@@ -46,7 +46,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
 	assert(resultsSeq === expectedSeq)
   }
   
-  "sampleRepeatedlyUsingUntilEvenValue" in {
+  "Samples repeatedly until an even number is reached" in {
     val untilInstance = instance.until(_.last % 2 == 0)
 				
 	val seq1 = untilInstance.sample
@@ -58,7 +58,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
 	assert(seq3 === IndexedSeq(3,4))
   }
   
-  "filterForValuesGreaterThanTwo" in {
+  "Filters distribution for values greater than two" in {
     val filtered = instance.filter(_ > 2)
 	
     val sampleList = append(Seq(filtered.sample()), filtered, 7)
@@ -66,7 +66,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
 	assert(sampleList === Seq(3,4,5,6,7,8,9))
   }
   
-  "filtersForEvenNumbers" in {
+  "Filters for even numbers" in {
     val filtered = instance.filter(_ % 2 == 0)
     
     val sampleList = append(Seq(), filtered, 5)
@@ -74,7 +74,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
 	assert(sampleList === Seq(0,2,4,6,8))
   }
   
-  "mapsValuesToDoubleValue" in {
+  "Maps distribution to double its size" in {
     val mapped = instance.map(value => value * 2)
     
 	val sampleList = append(Seq(), mapped, 10)
@@ -82,7 +82,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
 	assert(sampleList === List(0,2,4,6,8,10,12,14,16,18))
   }
   
-  "flatMap" in {
+  "Flat maps distribution" in {
     val flatMapped = instance.flatMap(x => Distribution.continually(x * 10))
     
     val sampleList = append(Seq(), flatMapped, 10)
@@ -90,7 +90,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
     assert(sampleList === List(0,10,20,30,40,50,60,70,80,90))
   }
   
-  "combinedTwoDistributionsWithProduct" in {
+  "Combines two distributions using product" in {
     def product(a: Int, b: Int) = a*b
 		    
     val result = instance.combine(instance2)(product)
@@ -100,7 +100,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
 	assert(sampleList === Seq(0,1,4,9,16))
   }
   
-  "addTwoDistributionsWithConvolvle" in {
+  "Adds two distributions together using convolve" in {
     val result = instance.convolve(alwaysOne)
 	
     val sampleList = append(Seq(), result, 5)
@@ -108,7 +108,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
 	assert(sampleList === Seq(1,2,3,4,5))
   }
   
-  "subtractDistributionWithCrossCorrelate" in {
+  "Subtract distributions using cross correlate" in {
     val result = instance.crossCorrelate(alwaysOne)
 		    
 	val sampleList = append(Seq(), result, 5)
@@ -116,7 +116,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
 	assert(sampleList === Seq(-1,0,1,2,3))
   }
   
-  "continuallyAlwaysGivesSameResult" in {
+  "Distribution.continually always gives the same result" in {
     val model1 = Distribution.continually(1)
     val model2 = Distribution.continually(2)
     
@@ -127,7 +127,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
     assert(r2.sum === 20)
   }
   
-  "uniformDistributionWithDoubleParameters" in {
+  "Uniform distribution with double parameters" in {
     val model = Distribution.uniform(0.5, 1.5)
     
     val results = (1 to 10000).map(_ => model.sample)
@@ -137,7 +137,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
     results.count(_ <= 0.6) should be (1000 +- 200)
   }
 
-  "uniformDistributionWithIntParameters" in {
+  "Uniform distribution with integer parameters" in {
     val model = Distribution.uniform(1, 11)		//excludes 11
     
     val results = (1 to 10000).map(_ => model.sample)
@@ -154,7 +154,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
     results.count(_ == 10) should be (1000 +- 200)
   }
 
-  "iterableUniform" in {
+  "Uniform distribution from given sequence" in {
     val items = IndexedSeq(2,4,6,8)
     
     val model = Distribution.uniform(items)
@@ -166,7 +166,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
     results.count(_ == 6) should be (500 +- 100)
   }
 
-  "withoutReplacementNeverSamplesSameObjectTwice" in {
+  "Sampling without replacement never samples the same object twice" in {
     val items = IndexedSeq(2,4,6,8)
     
     val model = Distribution.withoutReplacement(items, 2)
@@ -178,7 +178,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
     assert(results.count(theSame(_) == true) === 0)
   }
   
-  "withoutReplacementDrawsWithEqualProbability" in {
+  "Sampling without replacement draws with equal probabilities" in {
     val it = IndexedSeq(2,4,6,8)
     
     val model = Distribution.withoutReplacement(it, 2)
@@ -190,7 +190,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
     results.count(_.contains(6)) should be (500 +- 100)
   }
   
-  "sampleInfectedFromBinaryPopulation" in {
+  "Sample infecteds from a binary population" in {
     val model = Distribution.binaryPopulation(5, 100)
     
     val results = (1 to 10000).map(_ => model.sample)
@@ -198,7 +198,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
     results.count(_ == true) should be (500 +- 100)
   }
   
-  "bernoulliTrialWithProbabilityOne" in {
+  "Bernoulli trial with probability 1.0" in {
     val model = Distribution.bernoulliTrial(1)
     
     val result = (1 to 10).map(_ => model.sample)
@@ -206,7 +206,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
     assert(result.count(_ == true) === 10)
   }
   
-  "bernoilliTrialWithProbabilityZero" in {
+  "Bernoulli trial with probability zero" in {
     val model = Distribution.bernoulliTrial(0)
     
     val result = (1 to 10).map(_ => model.sample)
@@ -214,7 +214,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
     assert(result.count(_ == true) === 0)
   }
 
-  "bernoulliTrialWith80PercentProbability" in {
+  "Bernoulli trial with probability 80% probability" in {
     val model = Distribution.bernoulliTrial(0.8)
 		    
 	val result = (1 to 1000).map(_ => model.sample)
@@ -222,7 +222,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
 	result.count(_ == true) should be (800 +- 50)
   }
   
-  "coinTossIsFair" in {
+  "Coin toss is fair" in {
     val model = Distribution.coinToss
 		  
     val result = (1 to 1000).map(_ => model.sample)
@@ -230,7 +230,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
 	result.count(_ == true) should be (500 +- 50)
   }
   
-  "buildingDistributionFromPartition" in {
+  "Building distribution from partition" in {
     val seq = IndexedSeq(1,2,3,4)
     val partition = new Partition(IndexedSeq(0.1,0.2,0.3,0.4))
     
@@ -244,7 +244,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
     result.count(_ == 4) should be (400 +- 50)
   }
   
-  "errorWhenPartitionLengthDoesntMatchSequenceLength" in {
+  "Error when partition length does not match sequence length" in {
     val seq = IndexedSeq(1,2,3,4)
     val partition = new Partition(IndexedSeq(0.25,0.25,0.5))
     
@@ -253,7 +253,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
     }
   }
   
-  "buildingDistributionFromProbabilityTable" in {
+  "Building distribution from probability table" in {
     val probTable = Map(1 -> 0.1, 2 -> 0.2, 3 -> 0.3, 4 -> 0.4)
     
     val model = Distribution.fromProbabilityTable(probTable)
