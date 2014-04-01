@@ -28,20 +28,21 @@ Building documentation
 Troubleshooting
 ===============
 
-To run the examples within Eclipse the src/main/resources folder needs to be added as a source folder so that config files can be detected
+Q) Why won't the examples run?
+
+	When the SBT Eclipse plug-in sets up an Eclipse project it doesn't add src/main/resources to the build path, therefore examples
+	cannot find configuration files. Fix by right-clicking on the folder and selecting "Build Path --> Use as Source Folder"   
+	
+Q) I have written new tests but they won't run from SBT and/or Eclipse because files read in from disk cannot be found
+
+	Eclipse can find testing data because it resolves paths from project directory, however SBT doesn't. Providing a relative path fixes for
+	SBT but breaks Eclipse as src/test/resources isn't on build path, when adding to build path in Eclipse it will be placed in the wrong folder. 
+	To fix:
+	1) Use getResources to access test resources e.g. Paths.get(getClass.getClassLoader.getResource("data/SOMEFILE.txt").toURI())
+	2) Add src/test/resources to build path by selecting "Build Path --> Use as Source Folder"
+	3) Go to build settings, change the output directory for resources from the default to being relative to target/scala2-10/test-classes
 
 R pre-requisites (for examples)
 ===============================
 
 install.packages(c("ggplot2", "reshape", "deSolve", "hexbin"), dependencies=T)
-
-Eclipse / sbt
-=============
-
-Trying to make project testable from SBT and Eclipse. SBT Eclipse plug-in sets up Eclipse project. Misses out on 
-1) in Examples doesn't add src/main/resources to 
-the build path, therefore none of the examples can find their configuration files. Fixed by Right-click and add to buid-path. 
-2) Default testing - relative file paths in tests when needing test data e.g. Paths.get("src", "test", "resources" etc). Tjhis worked in eclipse since
-resolves paths from project directory. Not in SBT. If we use Paths.get(getClass.getClassLoader.getResource("data/SOMEFILE.txt").toURI()) then Eclipse
-still doesn't find it because src/test/resources isn't on build path. We can add it as in (1) but it won't get put in correct class folder. Right-click. add to build
-path, go to build settings, change output directory for resources from default to relative to target/scala2-10/test-classes
