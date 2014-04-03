@@ -1,13 +1,33 @@
+.cache
+.project
+.classpath
+.settings
+workspace
+
 *.class
 *.log
 
+results/
+bin/
+examples/data/
+*.pdf
+*.csv
+
+
+
+
 # sbt specific
-dist/*
+dist/
 target/
+lib/
 lib_managed/
 src_managed/
 project/boot/
 project/plugins/project/
 
-# Scala-IDE specific
-.scala_dependencies
+.DS_Store
+src/.DS_Store
+/testData
+/egoutput
+tags
+*.swp

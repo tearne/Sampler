@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration>
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+	    <encoder>
+	    	<pattern>%-5level %logger{0} %msg%n</pattern>
+	    </encoder>
+	</appender>
+	     
+	<appender name="APPLICATION_FILE" class="ch.qos.logback.core.FileAppender">
+	    <File>log/Application.log</File>
+		<encoder>
+			<pattern>%d{HH:mm:ss:SSS} %-5level %logger{0} %X{akkaSource} [%thread] %X{sourceThread} %msg%n</pattern>
+		</encoder>
+	</appender>
+	
+	<appender name="FRAMEWORK_FILE" class="ch.qos.logback.core.FileAppender">
+	    <File>log/Framework.log</File>
+		<encoder>
+			<pattern>%d{HH:mm:ss:SSS} %-5level %logger{0} %X{akkaSource} %msg%n</pattern>
+		</encoder>
+	</appender>
+	
+	<logger name="sampler" level="NULL" additivity="false">
+		<appender-ref ref="APPLICATION_FILE" />
+		<appender-ref ref="STDOUT" />
+	</logger>	
+	
+	<root>
+	    <level value="INFO" />
+	    <appender-ref ref="STDOUT" />
+	    <appender-ref ref="FRAMEWORK_FILE" />
+	</root>
+</configuration>

@@ -1,0 +1,48 @@
+Issues
+======
+
+If ABC generations complete faster than the reporting operations (e.g. running an R script) 
+then the entire application may quit before reporting has caught up.
+
+When creating the ScalaDoc with API the index page for the root of the project shows two packages, akka and sampler, where we would prefer it
+to lead directly to sampler package
+
+Future Enhancements
+===================
+
+Allow ABC tolerance to be configured from config file, e.g. descent rate can be quantile other than 50%
+
+Building documentation
+======================
+
+1) Create the documentation on your local machine using either the doc (for a single sub-project) or unidoc commands in sbt.
+
+	The documentation folder will be created in the target directory; e.g. target/scala-2.10/unidoc/
+
+2) Rename the folder according to the current build e.g. Sampler-0.1.1 and move into the gh-pages branch
+
+3) Once pushed, the documentation will be available at tearne.github.io e.g.
+	
+	tearne.github.io/Sampler/Sampler-0.1.1
+
+Troubleshooting
+===============
+
+Q) Why won't the examples run?
+
+	When the SBT Eclipse plug-in sets up an Eclipse project it doesn't add src/main/resources to the build path, therefore examples
+	cannot find configuration files. Fix by right-clicking on the folder and selecting "Build Path --> Use as Source Folder"   
+	
+Q) I have written new tests but they won't run from SBT and/or Eclipse because files read in from disk cannot be found
+
+	Eclipse can find testing data because it resolves paths from project directory, however SBT doesn't. Providing a relative path fixes for
+	SBT but breaks Eclipse as src/test/resources isn't on build path, when adding to build path in Eclipse it will be placed in the wrong folder. 
+	To fix:
+	1) Use getResources to access test resources e.g. Paths.get(getClass.getClassLoader.getResource("data/SOMEFILE.txt").toURI())
+	2) Add src/test/resources to build path by selecting "Build Path --> Use as Source Folder"
+	3) Go to build settings, change the output directory for resources from the default to being relative to target/scala2-10/test-classes
+
+R pre-requisites (for examples)
+===============================
+
+install.packages(c("ggplot2", "reshape", "deSolve", "hexbin"), dependencies=T)
