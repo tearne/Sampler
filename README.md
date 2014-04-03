@@ -12,4 +12,4 @@ Bayesian Computation (ABC). Core features include:
 API
 ---
 
-[Sampler-1.0.0](http://tearne.github.io/Sampler/Sampler-0.1.0/#sampler.package)
+[Sampler-0.1.0](http://tearne.github.io/Sampler/Sampler-0.1.0/#sampler.package)
