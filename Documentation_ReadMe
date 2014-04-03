@@ -15,7 +15,7 @@ Allow ABC tolerance to be configured from config file, e.g. descent rate can be 
 Building documentation
 ======================
 
-1) Create the documentation on your local machine using either either the doc or unidoc commands in sbt.
+1) Create the documentation on your local machine using either the doc (for a single sub-project) or unidoc commands in sbt.
 
 	The documentation folder will be created in the target directory; e.g. target/scala-2.10/unidoc/
 
