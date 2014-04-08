@@ -1,26 +1,24 @@
 package sampler.math
 
-import org.scalatest.junit.AssertionsForJUnit
-import org.junit.Assert._
-import org.junit.Before
-import org.junit.Test
 import org.scalatest.Matchers
+import org.scalatest.FreeSpec
+import org.scalatest.BeforeAndAfter
 
-class RandomTest extends AssertionsForJUnit with Matchers{
+class RandomTest extends FreeSpec with BeforeAndAfter with Matchers{
 
   var random: Random = _
 
-  @Before def initialise {
+  before {
     random = Random
   }
   
-  @Test def generatesIntsInCorrectRange {
+  "Generates Integers in the correct range" in {
     val draw1 = random.nextInt(5)
     
     draw1 should be(2 +- 2)
   }
   
-  @Test def drawIntValuesAtRandom {
+  "Draws integer values at random" in {
     def sample(samples: List[Int], currentIt: Int, numIts: Int): List[Int] = {
       if(currentIt>=numIts) samples
       else {
@@ -37,7 +35,7 @@ class RandomTest extends AssertionsForJUnit with Matchers{
     sampledInts.count(_ == 3) should be(250 +- 50)
   }
   
-  @Test def generatesDoublesInCorrectRange {
+  "Generates Doubles in the correct range" in {
     val draw1 = random.nextDouble(0.5, 2.5)
     val draw2 = random.nextDouble(1.5, 2.5)
 	val draw3 = random.nextDouble(3.0, 5.0)
@@ -47,7 +45,7 @@ class RandomTest extends AssertionsForJUnit with Matchers{
     draw3 should be(4.0 +- 1.0)
   }
   
-  @Test def generatesBoolenasInGivenProportion {
+  "Generates Booleans in given proportion" in {
     def booleanSample(samples: List[Boolean], p: Double, currentIt: Int, numIts: Int): List[Boolean] = {
 	  if(currentIt >= numIts) samples
       else {
@@ -64,7 +62,7 @@ class RandomTest extends AssertionsForJUnit with Matchers{
     sampledBooleans.count(_ == false) should be(100 +- 50)
   }
   
-  @Test def exceptionWhenInvalidProbabilityToNextBoolean {
+  "Exception when invalid probability to nextBoolean" in {
     intercept[RangeException[Double]] {
       random.nextBoolean(1.5)
     }

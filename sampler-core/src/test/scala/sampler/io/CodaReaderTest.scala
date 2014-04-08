@@ -1,15 +1,14 @@
 package sampler.io
 
-import org.scalatest.junit.AssertionsForJUnit
-import org.scalatest.Matchers
 import org.junit.Test
 import java.nio.file.Paths
+import org.scalatest.FreeSpec
 
-class CodaReaderTest extends AssertionsForJUnit with Matchers {
+class CodaReaderTest extends FreeSpec {
 
-  val dir = Paths.get("src", "test", "resources", "data")
+  val dir = Paths.get(getClass.getClassLoader.getResource("data").toURI())
 	
-  @Test def readsInCsvFile {
+  "Reads in .csv files" in {
     val fileStem = dir.resolve("testCoda")
     
     val data = CodaReader.apply(fileStem.toString)
@@ -21,28 +20,11 @@ class CodaReaderTest extends AssertionsForJUnit with Matchers {
     assert(data("DataB") === dataB)
   }
   
-  @Test def errorIfFileMismatch {
+  "Error if file mismatch" in {
     val fileStem = dir.resolve("shortCoda")
     
     intercept[AssertionError] {
       CodaReader.apply(fileStem.toString)
     }
-  }
-  
-    //
-  //TODO move this to a test
-  //
-  def main(args: Array[String])={
-    //apply("WinBUGS/model/output").foreach(println _)
-    
-//    val data = apply("WinBUGS/model/output")
-//    
-//  //Read the chain data and spew out the Se/Sp info in column format
-//    val writer = new Writer(new File("data/Scala_out/SeSpChain.csv"))
-//    writer.addColumn(data("SeH"), "SeH")
-//    writer.addColumn(data("SpH"), "SpH")
-//    writer.addColumn(data("SeE"), "SeE")
-//    writer.addColumn(data("SpE"), "SpE")
-//    writer.write()
   }
 }

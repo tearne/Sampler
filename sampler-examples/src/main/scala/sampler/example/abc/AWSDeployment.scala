@@ -39,7 +39,7 @@ import com.amazonaws.services.ec2.model.Instance
  *   - Deploy directory, e.g. "~/deploy/"
  *   - Java 'runCommand', java -Xmx3g ...
  * 
- * 2) The awsProperties file
+ * 2) The awsProperties file (see src/main/resources/AWS for example)
  *   - accessKey = XXXXXXXXXXXXXXXXXXXX
  *   - secretKey = XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
  *   - endpoint = ec2.eu-west-1.amazonaws.com
@@ -54,6 +54,7 @@ import com.amazonaws.services.ec2.model.Instance
  * 3) The s3cfg file (location described in awsProperties), which is copied 
  *    over to the instances so they can download the deployment files
  *   - Contains AWS-S3 access key
+ *   - (see src/main/resources/AWS for example)
  * 
  * 3) deploy/application.config for the deployed application
  *   - Degree of parallelism (akka.actor.deployment./root/work-router.nr-of-instances)

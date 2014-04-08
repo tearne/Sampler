@@ -1,38 +1,36 @@
 package sampler.math
 
-import org.scalatest.junit.AssertionsForJUnit
-import org.junit.Assert._
-import org.junit.Before
-import org.junit.Test
+import org.scalatest.FreeSpec
+import org.scalatest.BeforeAndAfter
 
-class PartitionTest extends AssertionsForJUnit {
+class PartitionTest extends FreeSpec with BeforeAndAfter {
 
   var seq: IndexedSeq[Double] = _
   
-  @Before def initialise(){
+  before{
     seq = IndexedSeq(0.1, 0.2, 0.3, 0.4)
   }
   
-  @Test def partitionLengthFourWhenCreated() {
+  "Partition of length 4 when created" in {
     assert(Partition(seq).size === 4)
   }
   
-  @Test def sequenceOfProbabilitiesMaintained() {
+  "Sequence of probabilities is maintained in Partition" in {
     val expected = IndexedSeq(0.1, 0.2, 0.3, 0.4)
     assert(Partition(seq).probabilities === expected)
   }
   
-  @Test def allowsPartitionWithAValueOfZero() {
+  "Allows partition with a zero value" in {
 	val s = IndexedSeq(0.1, 0.2, 0, 0.3, 0.4)
     assert(Partition(s).size === 5)
   }
   
-  @Test def allowsPartitionWithMultipleZeroes() {
+  "Allows partition with multiple zeros" in {
 	val s = IndexedSeq(0, 0.1, 0, 0.2, 0, 0.3, 0, 0.4, 0)
 	assert(Partition(s).size === 9)
   }
   
-  @Test def allFunctionalityMaintainedWhenCreatedFromWeights() {
+  "Functionality maintained when Partition created from Weights" in {
 	val s1 = IndexedSeq(0.1, 0.2, 0.3, 0.4)
 	val s2 = IndexedSeq(0.1, 0.2, 0, 0.3, 0.4)
 	
@@ -45,33 +43,33 @@ class PartitionTest extends AssertionsForJUnit {
     assert(p2.size === 5)
   }
   
-  @Test def exceptionThrownWhenValuesDontSumToOne(){
+  "Error when probabilties don't sum to one" in {
     val s = IndexedSeq(0.1, 0.2, 0.2, 0.4) // sums to 0.9
     intercept[AssertionError] {
       Partition(s)
     }
   }
   
- @Test def cannotCreatePartitionWithZeroElements() {
+ "Cannot create Partition with zero elements" in {
     val s = IndexedSeq()
     intercept[AssertionError] {
       Partition(s)
     }
   }
   
-  @Test def noProbsLessThanZero() {
+  "Does not allow probabilities of less than zero" in {
     intercept[RangeException[Double]] {
       Partition(IndexedSeq(0.9, 0.1, -0.001, 0.001))
     }
   }
   
-  @Test def noProbsGreaterThanOne() {
+  "Does not allow probabilities greater than one" in {
     intercept[RangeException[Double]] {
       Partition(IndexedSeq(1.001, -0.001))
     }
   }
  
-  @Test def noWeightsLessThanZero() {
+  "Does not allow weights less than zero" in {
     val s = IndexedSeq(1.0, -2, 3, 4)
     
     intercept[RangeException[Double]] {

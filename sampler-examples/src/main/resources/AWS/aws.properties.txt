@@ -1,0 +1,10 @@
+accessKey = 4920lsnCHTsansnsns2
+secretKey = pdNGWI387gnwjcu57wwncsssp9247b1jsb3b1
+endpoint = ec2.eu-west-1.amazonaws.com
+tagName = Name
+masterTag = master
+workerTag = worker
+instanceUserName = ec2-user
+s3Bucket = s3://ot-test1
+s3cfgPath = s3cfg
+sshKeyPath = otkp.pem

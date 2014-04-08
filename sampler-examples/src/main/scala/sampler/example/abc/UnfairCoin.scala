@@ -63,7 +63,8 @@ object UnfairCoin extends App {
 	
 	// Make plot of final generation (posterior)
 	writeDensity(
-		wd.resolve("posterior.pdf"), 
+		wd.resolve("posterior.pdf"),
+		"9.00", "3.00",
 		finalGeneration.continuous("P[Heads]")
 	)
 	
@@ -75,7 +76,7 @@ object UnfairCoin extends App {
 lapply(c("ggplot2", "reshape"), require, character.only=T)
 data = read.csv("output.csv")
 pdf("generations.pdf", width=4.13, height=2.91) #A7 landscape paper
-ggplot(melt(data), aes(x=value, colour=variable)) + geom_density()
+ggplot(melt(data), aes(x=value, colour=variable)) + geom_density() + scale_x_continuous(limits=c(0, 1))
 dev.off()	
 """
 	ScriptRunner.apply(rScript, wd.resolve("script.r"))
@@ -90,7 +91,7 @@ object CoinModel extends Model[CoinParams] {
   	val random = Random
 
 	case class Observed(numTrials: Int, numHeads: Int) extends Serializable
-  	val observedData = Observed(10,7)
+  	val observedData = Observed(100,70)
 
 	val prior = new Prior[CoinParams] with Serializable{
 	    def density(p: CoinParams) = {

@@ -19,6 +19,7 @@ package sampler.cluster.abc.config
 
 import com.typesafe.config.Config
 import scalaz.Lens._
+import java.util.concurrent.TimeUnit
 
 case class ClusterParameters(
 		terminateAtTargetGenerations: Boolean,
@@ -36,10 +37,10 @@ object ClusterParameters{
 		ClusterParameters(
 			getBoolean("terminate-at-target-generation"),
 			getInt("particle-memory-generations"),
-			getMilliseconds("futures-timeout"),
+			getDuration("futures-timeout", TimeUnit.MILLISECONDS),
 			getInt("mixing.num-particles"),
-			getMilliseconds("mixing.rate"),
-			getMilliseconds("mixing.response-threshold")
+			getDuration("mixing.rate", TimeUnit.MILLISECONDS),
+			getDuration("mixing.response-threshold", TimeUnit.MILLISECONDS)
 		)
 	}
 	

@@ -1,14 +1,13 @@
 package sampler.data
 
-import org.scalatest.junit.AssertionsForJUnit
 import sampler.math.Random
 import org.mockito.Mockito._
 import org.mockito.Matchers._
 import org.scalatest.mock.MockitoSugar
-import org.junit.Test
 import sampler.math.StatisticsComponent
+import org.scalatest.FreeSpec
 
-class SamplableTest extends AssertionsForJUnit with MockitoSugar with ToSamplable {
+class SamplableTest extends FreeSpec with MockitoSugar with ToSamplable {
   
   class MyParticle[T](a: Char)
     
@@ -21,8 +20,7 @@ class SamplableTest extends AssertionsForJUnit with MockitoSugar with ToSamplabl
   object Green extends Colour { override def toString = "Green"}
   object Blue extends Colour { override def toString = "Blue"}
   
-  @Test
-  def canDrawMoreThanTheNumberOfObjectTypesInBag {
+  "Can draw at least one of each object type in bag" in {
     implicit val r = mock[Random]
     when(r.nextInt(anyInt)).thenReturn(599,350,350,250) // Blue, Green, Green Red
     
@@ -39,8 +37,7 @@ class SamplableTest extends AssertionsForJUnit with MockitoSugar with ToSamplabl
 	assert(drawn.getOrElse(Blue, 0) === 1)
   }
   
-  @Test
-  def samplesFromSequenceOfObjects {
+  "Samples from a sequence of objects" in {
     implicit val r = mock[Random]
     when(r.nextInt(anyInt)).thenReturn(2,2) // Red, Green
     
@@ -55,7 +52,7 @@ class SamplableTest extends AssertionsForJUnit with MockitoSugar with ToSamplabl
     assert(drawn.getOrElse(Green, 0) === 1)
   }
   
-  @Test def samplesFromImplicitMapCorrectly {
+  "Samples from implicit map correctly" in {
     implicit val r = mock[Random]
     
     when(r.nextInt(3)).thenReturn(2)
@@ -71,8 +68,7 @@ class SamplableTest extends AssertionsForJUnit with MockitoSugar with ToSamplabl
     assert(result.getOrElse(p3, 0) === 1)
   }
   
-  @Test
-  def samplingFromDefinedMapCorrectly {
+  "Samples from defined map correctly" in {
     implicit val r = mock[Random]
     
     when(r.nextInt(4)).thenReturn(2)
@@ -88,8 +84,7 @@ class SamplableTest extends AssertionsForJUnit with MockitoSugar with ToSamplabl
     assert(result.getOrElse(p3, 0) === 1)
   }
   
-  @Test
-  def lookingForBug {
+  "Test to identify bug in early version of code where last item wasn't being sampled correctly" in {
     implicit val r = mock[Random]
     
     when(r.nextInt(3)).thenReturn(2)

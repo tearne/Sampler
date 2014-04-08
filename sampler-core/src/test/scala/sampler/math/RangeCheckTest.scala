@@ -1,12 +1,11 @@
 package sampler.math
 
-import org.scalatest.junit.AssertionsForJUnit
 import org.scalatest.Matchers
-import org.junit.Test
+import org.scalatest.FreeSpec
 
-class RangeCheckTest extends AssertionsForJUnit with Matchers{
+class RangeCheckTest extends FreeSpec with Matchers{
 
-  @Test def testProbabilityDoubles {
+  "Testing values supplied are valid probabilities" in {
     RangeCheck.probability(0.0)
     RangeCheck.probability(0.2)
     RangeCheck.probability(0.55)
@@ -21,7 +20,7 @@ class RangeCheckTest extends AssertionsForJUnit with Matchers{
     }
   }
   
-  @Test def testWithinDouble {
+  "Testing values supplied are within a range" in {
 	  RangeCheck.within(1.0, 2.0, 2.0)
 	  RangeCheck.within(0.0, 2.0, 2.0)
 	  RangeCheck.within(2.0, 2.0, 2.0)
@@ -36,7 +35,7 @@ class RangeCheckTest extends AssertionsForJUnit with Matchers{
 	  }
   }
   
-  @Test def testWithinTolerance {
+  "Using range check to test equality with a tolerance" in {
 	  RangeCheck.within(5.0000001, 5.0, 1e-6)
 
 	  intercept[RangeException[Double]] {

@@ -1,19 +1,16 @@
 package sampler.math
 
-import org.scalatest.junit.AssertionsForJUnit
-import org.junit.Assert._
-import org.junit.Before
-import org.junit.Test
 import org.scalatest.Matchers
+import org.scalatest.FreeSpec
 
-class AliasTableTest extends AssertionsForJUnit with Matchers {
+class AliasTableTest extends FreeSpec with Matchers {
 
   val rawProbSeq = Partition.fromWeights(IndexedSeq(0.1, 0.2, 0.3, 0.4))
   val myAlias = new AliasTable(rawProbSeq)
   
   val tolerance = 1e-6
   
-  @Test def generatesCorrectProbabilityTable {
+  "Generates correct probability table" in {
     val probs = myAlias.probability
     	
     val expectedProbs = Array(0.4, 0.8, 1.0, 0.8)
@@ -24,7 +21,7 @@ class AliasTableTest extends AssertionsForJUnit with Matchers {
     probs(3) should be(expectedProbs(3) +- tolerance)
   }
   
-  @Test def generatesCorrectAliasTable {
+  "Generates correct alias table" in {
     val alias = myAlias.alias
       
     val expectedAlias = Array(3,3,0,2)
@@ -32,7 +29,7 @@ class AliasTableTest extends AssertionsForJUnit with Matchers {
     assert(alias === expectedAlias)
   }
   
-  @Test def returnsCorrectIndexWhenSamplingFromMockedObject {
+  "Returns correct index, when sampling from mocked object" in {
     import scala.collection.mutable.Queue
     val r = new Random{
       val ints = Queue(0,1,2,3)
@@ -51,7 +48,7 @@ class AliasTableTest extends AssertionsForJUnit with Matchers {
     assert(sampledResults === expectedResults)
   }
   
-  @Test def generatesCorrectProbabilityTableComplicatedExample {
+  "Generates correct probability table - complicated example" in {
 	/*This was done by looking at the results of a more complicated example
 	* from the original Java implementation
 	* http://www.keithschwarz.com/interesting/code/?dir=alias-method
@@ -71,7 +68,7 @@ class AliasTableTest extends AssertionsForJUnit with Matchers {
     probs(6) should be(0.63 +- tolerance)
   }
   
-  @Test def generatesCorrectAliasTableComplicatedExample {
+  "Generates correct Alias table - complicated example" in {
     val anotherPartition = Partition.fromWeights(IndexedSeq(
           0.11, 0.05, 0.31, 0.17, 0.08, 0.19, 0.09))
 
@@ -82,7 +79,7 @@ class AliasTableTest extends AssertionsForJUnit with Matchers {
     assert(generatedAlias === expectedAlias)
   }
   
-  @Test def acceptsPartitionWithValueOfZero {
+  "Accepts a Partition containing a zero probability" in {
     val zeroProbSpec = Partition.fromWeights(IndexedSeq(0.1, 0.2, 0, 0.3, 0.4))
     val zeroAlias = new AliasTable(zeroProbSpec)
         
@@ -100,7 +97,7 @@ class AliasTableTest extends AssertionsForJUnit with Matchers {
     assert(alias === expectedAlias)
   }
   
-  @Test def samplesCorrectFromPartitionWithZero {
+  "Samples correctly from Partition with a zero probability" in {
     val zeroProbSpec = Partition.fromWeights(IndexedSeq(0.1, 0.2, 0, 0.3, 0.4))
     val zeroAlias = new AliasTable(zeroProbSpec)
     
