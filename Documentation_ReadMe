@@ -1,11 +1,24 @@
-Issues
+Usage
+=====
+
+Publish sampler to your local Ivy2 repository using "sbt publish-local".  Then go to your new SBT project
+and add the Sampler dependency, which will be resolved from the local cache.
+
+    "org.tearne" % "sampler-core_2.10" % "0.1.1"
+    "org.tearne" % "sampler-cluster_2.10" % "0.1.1"
+
+
+TODO/Issues
 ======
 
 If ABC generations complete faster than the reporting operations (e.g. running an R script) 
 then the entire application may quit before reporting has caught up.
 
-When creating the ScalaDoc with API the index page for the root of the project shows two packages, akka and sampler, where we would prefer it
-to lead directly to sampler package
+When creating the ScalaDoc with API the index page for the root of the project shows two packages, akka 
+and sampler, where we would prefer it to lead directly to sampler package
+
+At the moment it's possible to run two different cluster applications on the same machine, and they
+will interfere with each other.
 
 Future Enhancements
 ===================
