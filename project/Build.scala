@@ -8,7 +8,7 @@ import UnidocKeys._
 
 object SamplerBuild extends Build{
 	val buildOrganization 	= "org.tearne"
-	val buildVersion 	= "0.1.0"
+	val buildVersion 	= "0.1.1"
 	val buildScalaVersion	= "2.10.3"
 	
 	lazy val root = Project(
@@ -31,7 +31,8 @@ object SamplerBuild extends Build{
 		base = file("sampler-examples"),
 		settings = buildSettings /*++ assySettings*/ ++ packageSettings ++ Seq(
 			libraryDependencies ++= Seq(
-				"org.apache.commons" % "commons-math3" % "3.2"
+				"org.apache.commons" % "commons-math3" % "3.2",
+				"ch.qos.logback" % "logback-classic" % "1.1.1"
 			)
 		)
 	) dependsOn(core, cluster)
@@ -106,7 +107,7 @@ object SamplerBuild extends Build{
 			"org.scalatest" % "scalatest_2.10" % "2.1.0" % "test",
 			"org.specs2" %% "specs2" % "1.13" % "test",
 			"org.mockito" % "mockito-all" % "1.9.0" %"test->default",
-			"ch.qos.logback" % "logback-classic" % "1.0.12",
+			"org.slf4j" % "slf4j-api" % "1.7.6",
 			"org.scalaz" %% "scalaz-core" % "7.0.3",
 			"com.novocode" % "junit-interface" % "0.10" % "test"
 		)
