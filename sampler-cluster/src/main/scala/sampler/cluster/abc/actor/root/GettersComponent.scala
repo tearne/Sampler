@@ -1,6 +1,5 @@
 package sampler.cluster.abc.actor.root
 
-import sampler.cluster.abc.actor.Lenses
 import sampler.cluster.abc.config.ABCConfig
 import sampler.cluster.abc.actor.WeighedParticles
 import sampler.cluster.abc.algorithm.Generation
