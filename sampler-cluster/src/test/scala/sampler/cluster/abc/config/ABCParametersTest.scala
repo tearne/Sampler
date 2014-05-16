@@ -49,7 +49,7 @@ class ABCParametersTest extends FreeSpec {
 		}
 		"Cluster parameters" in {
 			assertResult(2)(instance.cluster.particleMemoryGenerations)
-			assertResult(true)(instance.cluster.terminateAtTargetGenerations)
+			assert(instance.cluster.terminateAtTargetGenerations)
 			assertResult(10.hour.toMillis)(instance.cluster.futuresTimeoutMS)
 			assertResult(500)(instance.cluster.mixRateMS)
 			assertResult(150)(instance.cluster.mixPayloadSize)
