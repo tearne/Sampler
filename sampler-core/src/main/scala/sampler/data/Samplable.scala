@@ -21,6 +21,14 @@ import scalaz._
 import Scalaz._
 import sampler.math.Random
 
+case class Sample[R, T](remainder: R, drawnCounts: Map[T,Int])
+
+/** Trait for sampling without replacement
+ *  
+ *  Wraps some kind of collection [R] of items of type [T], and allows them to be sampled
+ *  without replacement.
+ * 
+ */
 trait Samplable[R, T]{
 	type Counts = Map[T, Int]
 		
@@ -28,9 +36,14 @@ trait Samplable[R, T]{
 	def numRemaining: Int
 	def empty: State[R, Counts]
 	
-	def draw(n: Int = 1)(implicit r: Random): (R, Counts) = {
+	/** Draw without replacement 
+	 * 
+	 * @return A [[sampler.data.Sample]] containing the draw counts and remainder left
+	 */
+	def draw(n: Int = 1)(implicit r: Random): Sample[R,T] = {
 		val state = drawState(n)
-		state(items)
+		val (remainder, drawn) = state(items)
+		Sample(remainder, drawn)
 	}
 
 	/*
@@ -43,7 +56,7 @@ trait Samplable[R, T]{
 	 */
 	protected def drawState(n: Int = 1)(implicit r: Random): State[R, Counts] = for(
 		selection <- {
-			assert(numRemaining >= n)	//Check the table has enough left
+			assert(numRemaining >= n, "Not enough items in the collection to sample the desired quantity")
 			(1 to n).foldLeft(empty)((accState, _) => accState.flatMap(removeOne))
 		}
 	) yield selection

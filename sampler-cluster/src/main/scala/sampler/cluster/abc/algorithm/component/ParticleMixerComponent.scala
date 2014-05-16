@@ -29,7 +29,7 @@ trait ParticleMixerComponent {
         }
         .toMap
 
-        val res = oneOfEachParticle.draw(mixingSize)._2.map{
+        val res = oneOfEachParticle.draw(mixingSize).drawnCounts.map{
           case (scoredParticle, count) => scoredParticle
         }.toSeq		
 				

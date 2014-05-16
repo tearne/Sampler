@@ -26,15 +26,15 @@ class SamplableTest extends FreeSpec with MockitoSugar with ToSamplable {
     
     val startBag = Map(Red -> 300, Green -> 200, Blue -> 100)
     
-	val(remaining, drawn) = startBag.draw(4)
+	val sample = startBag.draw(4)
 	
-	assert(remaining.getOrElse(Red, 0) === 299)
-	assert(remaining.getOrElse(Green, 0) === 198)
-	assert(remaining.getOrElse(Blue, 0) === 99)
+	assert(sample.remainder.getOrElse(Red, 0) === 299)
+	assert(sample.remainder.getOrElse(Green, 0) === 198)
+	assert(sample.remainder.getOrElse(Blue, 0) === 99)
 	
-	assert(drawn.getOrElse(Red, 0) === 1)
-	assert(drawn.getOrElse(Green, 0) === 2)
-	assert(drawn.getOrElse(Blue, 0) === 1)
+	assert(sample.drawnCounts.getOrElse(Red, 0) === 1)
+	assert(sample.drawnCounts.getOrElse(Green, 0) === 2)
+	assert(sample.drawnCounts.getOrElse(Blue, 0) === 1)
   }
   
   "Samples from a sequence of objects" in {
@@ -43,13 +43,13 @@ class SamplableTest extends FreeSpec with MockitoSugar with ToSamplable {
     
     val startSeq = IndexedSeq(Red, Red, Red, Green, Green)
     
-    val(remaining, drawn) = startSeq.draw(2)
+    val sample = startSeq.draw(2)
 
-    assert(remaining.count(_ == Red) === 2)
-    assert(remaining.count(_ == Green) === 1)
+    assert(sample.remainder.count(_ == Red) === 2)
+    assert(sample.remainder.count(_ == Green) === 1)
 
-    assert(drawn.getOrElse(Red, 0) === 1)
-    assert(drawn.getOrElse(Green, 0) === 1)
+    assert(sample.drawnCounts.getOrElse(Red, 0) === 1)
+    assert(sample.drawnCounts.getOrElse(Green, 0) === 1)
   }
   
   "Samples from implicit map correctly" in {
@@ -62,7 +62,7 @@ class SamplableTest extends FreeSpec with MockitoSugar with ToSamplable {
       case (particle) => particle -> 1
     }.toMap
     
-    val result = implicitMap.draw(2)._2
+    val result = implicitMap.draw(2).drawnCounts
     assert(result.getOrElse(p1, 0) === 0)
     assert(result.getOrElse(p2, 0) === 1)
     assert(result.getOrElse(p3, 0) === 1)
@@ -77,7 +77,7 @@ class SamplableTest extends FreeSpec with MockitoSugar with ToSamplable {
     
     val sMap = new SamplableMap(Map(p1 -> 1, p2 -> 2, p3 -> 1))
 
-    val result = sMap.draw(3)._2
+    val result = sMap.draw(3).drawnCounts
     
     assert(result.getOrElse(p1, 0) === 1)
     assert(result.getOrElse(p2, 0) === 1)
@@ -92,7 +92,7 @@ class SamplableTest extends FreeSpec with MockitoSugar with ToSamplable {
     
     val implicitSeq = IndexedSeq(p1,p2,p3)
     
-    val result = implicitSeq.draw(2)._2
+    val result = implicitSeq.draw(2).drawnCounts
    
     assert(result.getOrElse(p1, 0) === 0)
     assert(result.getOrElse(p2, 0) === 1)
