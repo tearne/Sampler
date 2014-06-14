@@ -24,7 +24,11 @@ import sampler.math.Partition
 
 /** Empirical implementation which is backed by a Map which counts occurrences of observations.
  * 
- * Ideal for sampling from discrete distributions where many repeated observations are expected
+ * Ideal for sampling from discrete distributions where many repeated observations are expected.
+ * 
+ * Note that this isn't the way to sample from a collection of elements each with corresponding
+ * probabilities, since the table used here takes interger values.  Instead, use 
+ * [[sampler.data.Distribution.fromPartition]] or [[sampler.data.Distribution.fromProbabilityTable]]
  */
 class EmpiricalTable[A](val freqTable: Map[A, Int]) extends Empirical[A]{
 	assert(freqTable.size > 0, "Cannot create empirical from collection of size zero")
