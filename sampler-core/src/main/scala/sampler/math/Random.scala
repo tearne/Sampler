@@ -17,6 +17,8 @@
 
 package sampler.math
 
+import scala.concurrent.forkjoin.ThreadLocalRandom
+
 /** Additional random drawing functionality required within the toolkit */
 
 trait Random {
@@ -34,7 +36,8 @@ trait Random {
 
 /** Instance of Random trait */
 object Random extends Random with Serializable{
-	def nextDouble = scala.util.Random.nextDouble
-	def nextInt(n: Int) = scala.util.Random.nextInt(n)
+	def nextDouble = ThreadLocalRandom.current().nextDouble
+	
+	def nextInt(n: Int) = ThreadLocalRandom.current().nextInt(0, n)
 }
 
