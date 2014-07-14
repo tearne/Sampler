@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Crown Copyright 
+ * Copyright (c) 2012-14 Crown Copyright 
  *                    Animal Health and Veterinary Laboratories Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,6 @@ package sampler.math
 import sampler.data.Empirical
 
 trait StatisticsComponentImpl{
-//	val statistics = Statistics
 	val statistics = new Statistics{}
 }
 
@@ -70,6 +69,15 @@ trait Statistics{
 		
 		index.map(ordered(_))
 	}
+	
+	/** Convenience method for calculating a single quantile value from an Empirical.  To avoid overheads 
+	 *  when calculating multiple quantiles use the alternative which takes a sequence of probabilities
+	 *  
+	 *  @param e
+	 *  @param prob The required quantile value
+	 *  @return The quantile value
+	 */
+	def quantile[A](e: Empirical[A], prob: Double)(implicit f: Fractional[A]): A = quantile(e, Seq(prob))(f).head
 	
 	/** Returns the mean value of an Empirical
 	 *  
