@@ -49,7 +49,7 @@ object UnfairCoin extends App {
 	val tempCSV = Files.createTempFile(null, null)
 	tempCSV.toFile().deleteOnExit
 	
-	val abcParameters = ABCConfig.fromConfig(ConfigFactory.load(), "unfair-coin-example")
+	val abcParameters = ABCConfig.fromTypesafeConfig(ConfigFactory.load(), "unfair-coin-example")
 	val abcReporting = { report: Report[CoinParams] =>
 		val lineToks = s"Gen${report.generationId}" +: report.posterior.map(_.pHeads)
 		CSV.writeLine(

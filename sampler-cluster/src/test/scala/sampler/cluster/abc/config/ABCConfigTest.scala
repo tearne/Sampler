@@ -4,7 +4,7 @@ import org.scalatest.FreeSpec
 import com.typesafe.config.ConfigFactory
 import scala.concurrent.duration._
 
-class ABCParametersTest extends FreeSpec {
+class ABCConfigTest extends FreeSpec {
 	val fullConfig = ConfigFactory.parseString("""
 		my-test-config.abc {
 			job {
@@ -29,8 +29,8 @@ class ABCParametersTest extends FreeSpec {
 		}	
 	""")
 	
-	val instance = ABCConfig.fromConfig(fullConfig, "my-test-config")
-	val altInstance = ABCConfig.fromConfig(
+	val instance = ABCConfig.fromTypesafeConfig(fullConfig, "my-test-config")
+	val altInstance = ABCConfig.fromTypesafeConfig(
 		ConfigFactory.parseString(
 			"my-test-config.abc.cluster.terminate-at-target-generation = false"
 		).withFallback(fullConfig),

@@ -56,7 +56,7 @@ object FlockMortality extends App {
 //	val	particleRetries = 1000
 //	val	particleChunkSize = 50
 	
-	val abcParams = ABCConfig.fromConfig(
+	val abcParams = ABCConfig.fromTypesafeConfig(
 		ConfigFactory.load,
 		"flock-mortality-example"
 	)

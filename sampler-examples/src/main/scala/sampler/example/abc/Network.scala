@@ -319,10 +319,6 @@ object NetworkModel extends Model[Parameters]{
 	def sizeDiffMetric(simulated: Outbreak) = 
 		math.abs(simulated.numInfected - observations.numInfected)
 		
-//	def distanceToObservations(p: Parameters): Distribution[Double] = {
-//		infecteds(p).map(outbreak => nodeDiffmetric(outbreak) + sizeDiffMetric(outbreak))
-//	}
-	
 	def distanceToObservations(p: Parameters): Distribution[Double] = {
 		infecteds(p).map(outbreak => transmissionDirection(outbreak) + nodeDiffmetric(outbreak) + sizeDiffMetric(outbreak))
 	}
@@ -333,7 +329,7 @@ object Network extends App {
 	val wd = Paths.get("results").resolve("Network")
 	Files.createDirectories(wd)
 
-	val abcParams = ABCConfig.fromConfig(
+	val abcParams = ABCConfig.fromTypesafeConfig(
 		ConfigFactory.load,
 		"network-example"
 	)

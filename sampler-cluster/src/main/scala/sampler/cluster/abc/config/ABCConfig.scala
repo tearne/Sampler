@@ -27,7 +27,7 @@ case class ABCConfig(
 )
 
 object ABCConfig{
-	def fromConfig(c: Config, name: String) = {
+	def fromTypesafeConfig(c: Config, name: String) = {
 		val subConfig = c.getConfig(name)
 		ABCConfig(
 			JobParameters.fromConfig(subConfig),
