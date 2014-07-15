@@ -77,7 +77,7 @@ trait Empirical[A] extends Serializable{
 	override def hashCode() = probabilityTable.hashCode
 }
 
-/** Factory for creating Empirical instances from standard collections
+/** Mix-in for creating Empirical instances from standard collections
  *  
  *  An EmpiricalSeq can be created from an IndexedSeq of elements
  *  {{{
