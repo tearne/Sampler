@@ -45,7 +45,7 @@ object SamplerBuild extends Build{
 		.settings(unidocSettings: _*)
 		.settings(
 			name := "sampler",
-			unidocProjectFilter in (ScalaUnidoc, unidoc) := inAnyProject -- inProjects(spike) -- inProjects(examples) -- inProjects(core)
+			unidocProjectFilter in (ScalaUnidoc, unidoc) := inAnyProject -- inProjects(spike) -- inProjects(examples)
 		)
 		
 	lazy val core = project.in(file("sampler-core"))
