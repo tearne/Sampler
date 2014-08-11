@@ -44,7 +44,7 @@ import sampler.io.Logging
 object Truth{
 	val parameters = Parameters(SpreadRates(0.2, 0.6))
 //	val parameters = Parameters(SpreadRates(0.6, 0.2))
-	val seedFarm = 4
+	val seedFarm = 14
 }
 
 object Generator extends App with Logging {
@@ -233,7 +233,7 @@ object MetricTest extends App {
 	
 	def getScores(params: Parameters): Seq[String] = {
 		println(params)
-		val samples = 5
+		val samples = 20
 		val meanDistanceDist = model.scoreDistribution(params)
 		(1 to samples).par.map{_ => "%.5f".format(meanDistanceDist.sample)}.seq
 	}
@@ -317,21 +317,37 @@ case class ScoringModel(observed: DifferenceMatrix) extends ToSamplable with ToE
 	val coverObs = CoveringStopCondition(obsInfecteds)
 	type Cell = (Int, Int)
 	
-	val directDestinationsAndMechanisms = obsInfecteds.map{root =>
-		val directDestinations = (obsInfecteds - root).map{destination =>
-				destination -> {
-					if(Network.companyExcludingSelf(root).contains(destination)) Some(CompanyTransmission)
-					else if(Network.neighboursExcludingSelf(root).contains(destination)) Some(LocalTransmission)
-					else None
-				}
-			}
-			.collect{case (dest, Some(mech)) => (dest, mech)}
-		root -> directDestinations
+	val directDestByMech: Map[Int, Map[Int, Mechanism]] = obsInfecteds.map{centre =>
+		val company = Network.companyExcludingSelf(centre)
+		val localRemainder = Network.neighboursExcludingSelf(centre) -- company
+		assert(!(company ++ localRemainder).contains(centre))
+		val destMap: Map[Int, Mechanism] = (company.map{c => c -> CompanyTransmission} ++ localRemainder.map{l => l -> LocalTransmission}).toMap
+		centre -> destMap
 	}.toMap
+	
+	val observedDestinationsByMech: Map[Int, Map[Int, Mechanism]] = obsInfecteds.map{centre =>
+		val possDest = obsInfecteds - centre
+		centre -> possDest.map{dest => dest -> directDestByMech(centre).get(dest)}
+					.collect{case (dest, Some(mech)) => (dest, mech)}
+					.toMap
+	}.toMap
+	
+//	
+//	val directDestinationsAndMechanisms = obsInfecteds.map{root =>
+//		val directDestinations = (obsInfecteds - root).map{destination =>
+//				destination -> {
+//					if(Network.companyExcludingSelf(root).contains(destination)) Some(CompanyTransmission)
+//					else if(Network.neighboursExcludingSelf(root).contains(destination)) Some(LocalTransmission)
+//					else None
+//				}
+//			}
+//			.collect{case (dest, Some(mech)) => (dest, mech)}
+//		root -> directDestinations
+//	}.toMap
 	
 	case class ToFit(root: Int, mechanism: Mechanism, obsDiff: Int)
 	val unfilteredFitList = obsInfecteds.flatMap{root =>
-		val destinationsByMech = directDestinationsAndMechanisms(root)
+		val destinationsByMech = observedDestinationsByMech(root)
 				.groupBy{case (_, mech) => mech}
 				.mapValues{_.map{case (id, _) => id}}
 		val minDiffByMech = destinationsByMech.mapValues{leaves =>
@@ -347,10 +363,12 @@ case class ScoringModel(observed: DifferenceMatrix) extends ToSamplable with ToE
 		}
 	}
 	
-	val medianPerMechanism = unfilteredFitList.groupBy(_.mechanism )
+	val thresholdPerMechanism = unfilteredFitList.groupBy(_.mechanism )
 		.mapValues{setOfFit => 
 			val diffs = setOfFit.map{_.obsDiff.toDouble}
-			Statistics.quantile(diffs.toSeq.toEmpiricalSeq, 0.5)
+//			Statistics.quantile(diffs.toSeq.toEmpiricalSeq, 0.5)
+//			Statistics.quantile(diffs.toSeq.toEmpiricalSeq, 0.3)
+			0.0
 		}
 	
 	val numMechObs = unfilteredFitList.groupBy(_.mechanism )
@@ -359,20 +377,24 @@ case class ScoringModel(observed: DifferenceMatrix) extends ToSamplable with ToE
 	val fitList = unfilteredFitList 
 		.filter{toFit => 
 			numMechObs(toFit.mechanism) < 5 ||
-			toFit.obsDiff  > medianPerMechanism(toFit.mechanism)
+			toFit.obsDiff  > thresholdPerMechanism(toFit.mechanism)
 		}
+	//.filter(_.mechanism == CompanyTransmission)
 	
 	fitList.foreach(println)
 	
 	def scoreDistribution(params: Parameters) = Distribution[Double]{
 		val scores = fitList.map{case ToFit(root, mechanism, obsDiff) =>
-			val directLeaves = directDestinationsAndMechanisms(root)
+			val directLeaves: Set[Int] = directDestByMech(root)
 				.collect{case (dest, `mechanism`) => dest}
+				.toSet
 			
-			val minSimDiffs = (1 to 1000).map{_ => 
+//			println(s"$root -> $directLeaves by $mechanism")
+				
+			val minSimDiffs = (1 to 500).map{_ => 
 					val seq = OutbreakModel.generate(params, root, OneAmongst(directLeaves))
 						.infectionMap.filter(_._1 != root).head._2.original 
-					Sequence.differenceCount(Sequence.fresh , seq)
+					seq.numMutations
 				}
 				.map(_.toDouble)
 				
@@ -410,6 +432,26 @@ case class CoveringStopCondition(observations: Set[Int]) extends StopCondition {
 
 object OutbreakModel {
 	val transmissionReductionFactor = 0.01
+	
+	def simulateSequenceDifference(from: Int, to: Set[Int], p: Parameters): Int = {
+		val localSpread = p.spreadRates.local.rate  * transmissionReductionFactor
+		val companySpread = p.spreadRates.company.rate * transmissionReductionFactor
+		
+		def linkProb(dest: Int): Option[Double] = {
+			if(Network.companyExcludingSelf(dest).contains(from)) Some(companySpread)
+			else if(Network.neighboursExcludingSelf(dest).contains(from)) Some(localSpread)
+			else None
+		}
+		
+		val probOneLinkPasses = 1 - to.map{dest => linkProb(dest).map(1 - _)}.flatten.product
+		
+		def go(mutationsAcc: Int): Int = {
+			if(Random.nextBoolean(probOneLinkPasses)) mutationsAcc + 1
+			else go(mutationsAcc + 1)
+		}
+		
+		go(0)
+	}
 	
 	def simulateSequenceDifference(pair: (Int, Int), p: Parameters): Int = {
 		val (from, to) =
@@ -495,8 +537,8 @@ case class Outbreak(infectionMap: Map[Int, Infection], seed: Int){
 }
 object Outbreak{
 	def setSeed(fid: Int) = {
-		val freshVirus = Sequence.fresh
-		Outbreak(Map(fid -> Infection(freshVirus, freshVirus, None)), fid)
+		val freshVirusSequence = Sequence()
+		Outbreak(Map(fid -> Infection(freshVirusSequence, freshVirusSequence, None)), fid)
 	}
 	def updateCurrentMutations(state: Outbreak) = Outbreak(
 		state.infectionMap.mapValues{infection => Infection.mutate(infection)},
@@ -563,23 +605,48 @@ trait Mechanism
 object LocalTransmission extends Mechanism
 object CompanyTransmission extends Mechanism
 
-case class Sequence(bases: IndexedSeq[Int]){ assert(bases.size == Sequence.length, bases.size) }
+case class Sequence(basesInReverseOrder: List[Int] = List.empty){
+	lazy val asIndexedSeq = basesInReverseOrder.toIndexedSeq.reverse
+	lazy val numMutations = basesInReverseOrder.size
+}//{ assert(bases.size == Sequence.length, bases.size) }
 object Sequence{
+	//TODO remove tests
+//	val a = Sequence(List(1,1,1).reverse)
+//	val b = Sequence(List(1,1,1,1).reverse)
+//	val c = Sequence(List(1,1,1,2).reverse)
+//	val d = Sequence(List(1,1,2).reverse)
+//	val e = Sequence(List(1,2,2).reverse)
+//	val f = Sequence(List(2,1,2).reverse)
+//	val g = Sequence(List(2,1,2,1,1,1,1,1).reverse)
+//	
+//	println("a-a: expect 0: "+differenceCount(a,a))
+//	println("a-b: expect 1: "+differenceCount(a,b))
+//	println("a-c: expect 1: "+differenceCount(a,c))
+//	println("a-d: expect 1: "+differenceCount(a,d))
+//	println("a-e: expect 2: "+differenceCount(a,e))
+//	println("a-f: expect 3: "+differenceCount(a,f))
+//	println("a-g: expect 8: "+differenceCount(a,g))
+	
+	
 	implicit val r = Random
-	val length = 1000
 	val randomBase = Distribution.uniform((1 to 4).toSeq)
-	val fresh = Sequence(IndexedSeq.fill(length)(0))
-	val randomIdx = Distribution.uniform(0, length)
+
 	def mutate(s: Sequence) = {
-		//TODO revert workaround (to avoid a stackOverflowError in Vector.updated
-//		val position = randomIdx.sample
-//		val t = s.bases.take(position) ++: (randomBase.sample +: (s.bases.takeRight(length - position - 1)))
-//		Sequence(t)
-		// End workaround
-		Sequence(s.bases.updated(randomIdx.sample, randomBase.sample))
+		Sequence(randomBase.sample :: s.basesInReverseOrder)
 	}
-	def differenceCount(a: Sequence, b: Sequence): Int = 
-		a.bases.zip(b.bases).foldLeft(0){case (acc, (aBase,bBase)) => acc + (if(aBase == bBase) 0 else 1)}
+		
+	def differenceCount(a: Sequence, b: Sequence): Int = { 
+		val shortestLength = math.min(a.numMutations, b.numMutations)
+		val longestLength = math.max(a.numMutations, b.numMutations)
+		
+		val firstDiff = a.asIndexedSeq.take(shortestLength).zip(b.asIndexedSeq.take(shortestLength)).indexWhere{case (a,b) => a != b}
+		val result = 
+			if(firstDiff < 0) longestLength - shortestLength
+			else longestLength - firstDiff
+				
+		assert(result >= 0)
+		result
+	}
 }
 
 case class Parameters(spreadRates: SpreadRates){ 
@@ -606,6 +673,30 @@ object Parameters{
 
 object Network{
 	val numFarms = 100
+	
+  	/*	10x10
+	 * 
+	 * 	9x			+					=	*	=
+	 *  8x 		=			=	*	+			
+	 *  7x						*	*	+		
+	 *  6x		=		=						
+	 *  5x		*	+							
+	 *  4x			=		=		+		+	
+	 *  3x										
+	 * 	2x	*		*	+		+		+		
+	 * 	1x		+		=						
+	 * 	0x	+				#	+		*	=	
+	 * 		0	1	2	3	4	5	6	7	8	9	
+	 * 
+	 * 		#:  Index case
+	 * 		+:	0, 5, 11, 23, 25, 27, 46, 48, 52, 77, 86, 92
+	 *   	=:	8, 13, 42, 44, 61, 63, 84, 97, 99
+	 *    	*:	7, 20, 22, 51, 75, 76, 85, 98
+	 */
+	
+//	val companyA = Set(0, 5, 11, 23, 25, 27, 46, 48, 52, 77, 86, 92)	// +
+//	val companyB = Set(8, 13, 42, 44, 61, 63, 84, 97, 99)	// = 
+//	val companyC = Set(7, 20, 22, 51, 75, 76, 85, 98)		// * 
 	
   	/*	10x10 
 	 * 
