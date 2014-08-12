@@ -44,7 +44,7 @@ import sampler.io.Logging
 object Truth{
 	val parameters = Parameters(SpreadRates(0.2, 0.6))
 //	val parameters = Parameters(SpreadRates(0.6, 0.2))
-	val seedFarm = 14
+	val seedFarm = 4
 }
 
 object Generator extends App with Logging {
@@ -228,12 +228,12 @@ object JumpTest extends App {
 }
 
 object MetricTest extends App {
-	val observedMatrix = Data.loadProportionOfTrueOutbreakData(0.9)
+	val observedMatrix = Data.loadProportionOfTrueOutbreakData(1)//0.9)
 	val model = ScoringModel(observedMatrix)
 	
 	def getScores(params: Parameters): Seq[String] = {
 		println(params)
-		val samples = 50
+		val samples = 10
 		val meanDistanceDist = model.scoreDistribution(params)
 		(1 to samples).par.map{_ => "%.5f".format(meanDistanceDist.sample)}.seq
 	}
@@ -373,25 +373,27 @@ case class ScoringModel(observed: DifferenceMatrix) extends ToSamplable with ToE
 	
 	val numMechObs = unfilteredFitList.groupBy(_.mechanism )
 		.mapValues{_.size}
-	
-	val fitList = unfilteredFitList 
-		.filter{toFit => 
-			numMechObs(toFit.mechanism) < 5 ||
-			toFit.obsDiff  > thresholdPerMechanism(toFit.mechanism)
-		}
+//	
+//	val fitList = unfilteredFitList 
+//		.filter{toFit => 
+//			numMechObs(toFit.mechanism) < 5 ||
+//			toFit.obsDiff > thresholdPerMechanism(toFit.mechanism)
+//		}
 	//.filter(_.mechanism == CompanyTransmission)
+	
+	val fitList = unfilteredFitList
 	
 	fitList.foreach(println)
 	
 	def scoreDistribution(params: Parameters) = Distribution[Double]{
-		val scores = fitList.map{case ToFit(root, mechanism, obsDiff) =>
+		val scores = fitList.toSeq.map{case ToFit(root, mechanism, obsDiff) =>
 			val directLeaves: Set[Int] = directDestByMech(root)
 				.collect{case (dest, `mechanism`) => dest}
 				.toSet
 			
 //			println(s"$root -> $directLeaves by $mechanism")
 				
-			val minSimDiffs = (1 to 500).map{_ => 
+			val minSimDiffs = (1 to 1000).map{_ => 
 //					val seq = OutbreakModel.generate(params, root, OneAmongst(directLeaves))
 //						.infectionMap.filter(_._1 != root).head._2.original 
 //					seq.numMutations
@@ -401,16 +403,50 @@ case class ScoringModel(observed: DifferenceMatrix) extends ToSamplable with ToE
 				.map(_.toDouble)
 				
 			def percentileFromMedian(obsDiff: Double, simDiffs: Seq[Double]) = {
+				val numIdenticalObs = simDiffs.filter(_ == obsDiff).size
+//				println(s"Duplicates = $numIdenticalObs")
 				val obsPosition = (simDiffs :+ obsDiff).sorted.indexOf(obsDiff)
 				val numIndexes = simDiffs.size.toDouble + 1
-				val percentilesFromMedian = math.abs(obsPosition - numIndexes / 2) / numIndexes 
+				val percentilesFromMedian = math.abs((obsPosition + numIdenticalObs / 2) - numIndexes / 2) / numIndexes 
 				percentilesFromMedian
 			}
-			
-			percentileFromMedian(obsDiff, minSimDiffs)
-		}
 				
-		scores.sum.toDouble / scores.size
+			def score(obsDiff: Double, simDiffs: Seq[Double]) = {
+				val shifted = simDiffs.map(s => math.abs(s - obsDiff))//.sorted.indexOf(obsDiff)
+				val mean = shifted.sum / shifted.size
+				val variance = (shifted.map(v => math.pow(v,2)).sum - math.pow(shifted.sum, 2)/shifted.size) / (shifted.size - 1)
+				val median = Statistics.quantile(shifted.toSeq.toEmpiricalSeq, 0.5) 
+				//println(s"mean = $mean, var = $variance")
+				mean// + variance
+
+			}
+//				
+//			def score(obsDiff: Double, simDiffs: IndexedSeq[Double]): Double = {
+//				val statistic = {
+////					Statistics.quantile(simDiffs.toEmpiricalSeq, 0.5)
+//					simDiffs.sum.toDouble / simDiffs.size.toDouble
+//				}
+//				val observation = obsDiff
+//				val (l,u) = if(statistic < observation) (statistic, observation) else (observation, statistic)
+//				val numBetween = simDiffs.filter(d => d >= l && d <= u).size
+//				val proportionsBetween = numBetween.toDouble / simDiffs.size.toDouble
+//				proportionsBetween
+//			}
+			
+//			percentileFromMedian(obsDiff, minSimDiffs)
+			score(obsDiff, minSimDiffs)
+		}
+//		
+//		val varianceScore = 
+//			20 * (scores.map(v => math.pow(v,2)).sum - math.pow(scores.sum, 2)/scores.size) / (scores.size - 1)
+//		
+//		val fitScore = Statistics.quantile(scores.toEmpiricalSeq, 0.5)
+//			
+//		println(s"varScore = $varianceScore, fit = $fitScore")	
+		
+//		Statistics.quantile(scores.toEmpiricalSeq, 0.5)
+		math.pow(scores.max, 0.1)
+//		scores.sum.toDouble / scores.size
 	}
 }
 
