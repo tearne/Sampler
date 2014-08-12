@@ -51,7 +51,7 @@ object Generator extends App with Logging {
 	val fullOutbreak = OutbreakModel.generate(
 			Truth.parameters,
 			Truth.seedFarm,
-			SizeStopCondition(10),
+			SizeStopCondition(20),
 			true
 	)	
 	log.info("Generated outbreak size: "+fullOutbreak.size)
@@ -233,7 +233,7 @@ object MetricTest extends App {
 	
 	def getScores(params: Parameters): Seq[String] = {
 		println(params)
-		val samples = 10
+		val samples = 20
 		val meanDistanceDist = model.scoreDistribution(params)
 		(1 to samples).par.map{_ => "%.5f".format(meanDistanceDist.sample)}.seq
 	}
@@ -363,16 +363,16 @@ case class ScoringModel(observed: DifferenceMatrix) extends ToSamplable with ToE
 		}
 	}
 	
-	val thresholdPerMechanism = unfilteredFitList.groupBy(_.mechanism )
-		.mapValues{setOfFit => 
-			val diffs = setOfFit.map{_.obsDiff.toDouble}
-//			Statistics.quantile(diffs.toSeq.toEmpiricalSeq, 0.5)
-//			Statistics.quantile(diffs.toSeq.toEmpiricalSeq, 0.3)
-			0.0
-		}
-	
-	val numMechObs = unfilteredFitList.groupBy(_.mechanism )
-		.mapValues{_.size}
+//	val thresholdPerMechanism = unfilteredFitList.groupBy(_.mechanism )
+//		.mapValues{setOfFit => 
+//			val diffs = setOfFit.map{_.obsDiff.toDouble}
+////			Statistics.quantile(diffs.toSeq.toEmpiricalSeq, 0.5)
+////			Statistics.quantile(diffs.toSeq.toEmpiricalSeq, 0.3)
+//			0.0
+//		}
+//	
+//	val numMechObs = unfilteredFitList.groupBy(_.mechanism )
+//		.mapValues{_.size}
 //	
 //	val fitList = unfilteredFitList 
 //		.filter{toFit => 
@@ -412,13 +412,13 @@ case class ScoringModel(observed: DifferenceMatrix) extends ToSamplable with ToE
 			}
 				
 			def score(obsDiff: Double, simDiffs: Seq[Double]) = {
-				val shifted = simDiffs.map(s => math.abs(s - obsDiff))//.sorted.indexOf(obsDiff)
-				val mean = shifted.sum / shifted.size
-				val variance = (shifted.map(v => math.pow(v,2)).sum - math.pow(shifted.sum, 2)/shifted.size) / (shifted.size - 1)
+				val shifted = simDiffs.map(s => math.abs((s - obsDiff)*(s - obsDiff)))//.sorted.indexOf(obsDiff)
+//				val mean = shifted.sum / shifted.size
+				//val variance = (shifted.map(v => math.pow(v,2)).sum - math.pow(shifted.sum, 2)/shifted.size) / (shifted.size - 1)
 				val median = Statistics.quantile(shifted.toSeq.toEmpiricalSeq, 0.5) 
 				//println(s"mean = $mean, var = $variance")
-				mean// + variance
-
+				median
+//				mean
 			}
 //				
 //			def score(obsDiff: Double, simDiffs: IndexedSeq[Double]): Double = {
