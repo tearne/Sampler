@@ -233,7 +233,7 @@ object MetricTest extends App {
 	
 	def getScores(params: Parameters): Seq[String] = {
 		println(params)
-		val samples = 20
+		val samples = 50
 		val meanDistanceDist = model.scoreDistribution(params)
 		(1 to samples).par.map{_ => "%.5f".format(meanDistanceDist.sample)}.seq
 	}
@@ -392,9 +392,11 @@ case class ScoringModel(observed: DifferenceMatrix) extends ToSamplable with ToE
 //			println(s"$root -> $directLeaves by $mechanism")
 				
 			val minSimDiffs = (1 to 500).map{_ => 
-					val seq = OutbreakModel.generate(params, root, OneAmongst(directLeaves))
-						.infectionMap.filter(_._1 != root).head._2.original 
-					seq.numMutations
+//					val seq = OutbreakModel.generate(params, root, OneAmongst(directLeaves))
+//						.infectionMap.filter(_._1 != root).head._2.original 
+//					seq.numMutations
+					
+					OutbreakModel.simulateSequenceDifference(root, directLeaves, params)
 				}
 				.map(_.toDouble)
 				
@@ -443,14 +445,19 @@ object OutbreakModel {
 			else None
 		}
 		
-		val probOneLinkPasses = 1 - to.map{dest => linkProb(dest).map(1 - _)}.flatten.product
+		val probs = to.toSeq.map{dest => linkProb(dest)}.flatten
+//		println(s"$probs for $to")
+		val failProbs = probs.map{1.0 - _}
+		val probAllFail = failProbs.product
 		
 		def go(mutationsAcc: Int): Int = {
-			if(Random.nextBoolean(probOneLinkPasses)) mutationsAcc + 1
+			if(!Random.nextBoolean(probAllFail)) mutationsAcc + 1
 			else go(mutationsAcc + 1)
 		}
 		
-		go(0)
+		val r = go(0)
+//		println(s"$r mutations")
+		r
 	}
 	
 	def simulateSequenceDifference(pair: (Int, Int), p: Parameters): Int = {
