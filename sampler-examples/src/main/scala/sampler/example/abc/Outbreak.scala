@@ -117,116 +117,6 @@ object ABCApplication extends App {
 	ABC(model, params, reporting)
 }
 
-object DiffTest extends App {
-	val a = 14
-	val b = 90
-	
-	def getDiffs(params: Parameters): Seq[String] = {
-		println(params)
-		val samples = 5000
-		(1 to samples).par.map{_ => "%.5f".format(OutbreakModel.simulateSequenceDifference((a, b), params).toDouble)}.seq
-	}
-	
-	val outFile = Data.wd.resolve("diffTest.csv")
-	val trueCompanyRate = Truth.parameters.spreadRates.company.rate
-	val trueLocalRate = Truth.parameters.spreadRates.local.rate 
-	
-	CSV.writeLines(
-		outFile, 
-		Seq(1,2,4,6,8,9).map{i => 
-			Seq(i.toDouble) ++: getDiffs(Parameters(SpreadRates(trueLocalRate, i * 0.1)))
-		}.transpose
-	)
-	
-	val rScript = f"""
-		lapply(c("ggplot2", "reshape"), require, character.only=T)
-		
-		diffs = read.csv("${outFile.toAbsolutePath().toString}", check.names = F)
-		
-		pdf("DiffTest.pdf", width=8.26, height=2.91) 
-		ggplot(melt(diffs), aes(x = value, colour = variable)) + 
-			geom_density() +
-			ggtitle("Diff Distribution") + 
-			scale_colour_discrete("Parameter")
-		dev.off()
-	"""
-	ScriptRunner.apply(rScript, Data.wd.resolve("script.r"))
-}
-
-object SimpleJumpTest extends App {
-	val seed = 0
-	val params = Truth.parameters 
-	val oneInfection = SizeStopCondition(2)
-	
-	val reps = 1000
-	val local = (1 to reps).map{_ => OutbreakModel.simulateSequenceDifference((0, 1), Truth.parameters)}
-	val company = (1 to reps).map{_ => OutbreakModel.simulateSequenceDifference((0, 55), Truth.parameters)}
-	
-	val outFile = Data.wd.resolve("SimpleJumpTest.csv")
-	CSV.writeLines(
-		outFile, 
-		Seq(
-			"Local" +: local,
-			"Company" +: company
-		).transpose
-	)
-	
-	val rScript = f"""
-		lapply(c("ggplot2", "reshape", "hexbin"), require, character.only=T)
-		
-		values = read.csv("${outFile.toAbsolutePath().toString}", check.names = F)
-		
-		pdf("SimpleJumpTest.pdf", width=8.26, height=2.91) 
-		ggplot(melt(values), aes(x = value, colour = variable)) + 
-			geom_density() +
-			ggtitle("Neighbour diff scores") + 
-			scale_colour_discrete("Nbr id")
-		dev.off()
-	"""
-	ScriptRunner.apply(rScript, Data.wd.resolve("script.r"))
-}
-
-object JumpTest extends App {
-	val oneInfection = SizeStopCondition(2)
-	val sizeStopCondition = SizeStopCondition(100)
-	val reps = 1000
-	val seed = 0
-	
-	println("start")
-	val destinations = (1 to 100).flatMap{_ =>
-		OutbreakModel
-			.generate(Truth.parameters, seed , oneInfection)
-			.infectionMap
-			.collect{case (id,Infection(_,_,Some(Source(source,_)))) if source == seed  => id}
-	}.toSet
-	println(s"Dest = $destinations")
-	
-	val diffs = destinations.map{id => 
-		println(id)
-		id -> (1 to reps).map{_ => OutbreakModel.simulateSequenceDifference((seed, id), Truth.parameters)}
-	}.toSeq
-
-	val outFile = Data.wd.resolve("JumpTest.csv")
-	CSV.writeLines(
-		outFile, 
-		diffs.map{case (id, diffs) => id +: diffs}.transpose
-	)
-	
-	val rScript = f"""
-		lapply(c("ggplot2", "reshape", "hexbin"), require, character.only=T)
-		
-		values = read.csv("${outFile.toAbsolutePath().toString}", check.names = F)
-		
-		pdf("JumpTest.pdf", width=8.26, height=2.91) 
-		ggplot(melt(values), aes(x = value, colour = variable)) + 
-			geom_density() +
-			ggtitle("Neighbour diff scores") + 
-			scale_colour_discrete("Nbr id")
-		dev.off()
-	"""
-	ScriptRunner.apply(rScript, Data.wd.resolve("script.r"))
-}
-
 object MetricTest extends App {
 	val observedMatrix = Data.loadProportionOfTrueOutbreakData(1)//0.9)
 	val model = ScoringModel(observedMatrix)
@@ -332,19 +222,6 @@ case class ScoringModel(observed: DifferenceMatrix) extends ToSamplable with ToE
 					.toMap
 	}.toMap
 	
-//	
-//	val directDestinationsAndMechanisms = obsInfecteds.map{root =>
-//		val directDestinations = (obsInfecteds - root).map{destination =>
-//				destination -> {
-//					if(Network.companyExcludingSelf(root).contains(destination)) Some(CompanyTransmission)
-//					else if(Network.neighboursExcludingSelf(root).contains(destination)) Some(LocalTransmission)
-//					else None
-//				}
-//			}
-//			.collect{case (dest, Some(mech)) => (dest, mech)}
-//		root -> directDestinations
-//	}.toMap
-	
 	case class ToFit(root: Int, mechanism: Mechanism, obsDiff: Int)
 	val unfilteredFitList = obsInfecteds.flatMap{root =>
 		val destinationsByMech = observedDestinationsByMech(root)
@@ -390,63 +267,20 @@ case class ScoringModel(observed: DifferenceMatrix) extends ToSamplable with ToE
 			val directLeaves: Set[Int] = directDestByMech(root)
 				.collect{case (dest, `mechanism`) => dest}
 				.toSet
-			
-//			println(s"$root -> $directLeaves by $mechanism")
 				
 			val minSimDiffs = (1 to 1000).map{_ => 
-//					val seq = OutbreakModel.generate(params, root, OneAmongst(directLeaves))
-//						.infectionMap.filter(_._1 != root).head._2.original 
-//					seq.numMutations
-					
 					OutbreakModel.simulateSequenceDifference(root, directLeaves, params)
 				}
 				.map(_.toDouble)
 				
-			def percentileFromMedian(obsDiff: Double, simDiffs: Seq[Double]) = {
-				val numIdenticalObs = simDiffs.filter(_ == obsDiff).size
-//				println(s"Duplicates = $numIdenticalObs")
-				val obsPosition = (simDiffs :+ obsDiff).sorted.indexOf(obsDiff)
-				val numIndexes = simDiffs.size.toDouble + 1
-				val percentilesFromMedian = math.abs((obsPosition + numIdenticalObs / 2) - numIndexes / 2) / numIndexes 
-				percentilesFromMedian
-			}
-				
 			def score(obsDiff: Double, simDiffs: Seq[Double]) = {
-				val shifted = simDiffs.map(s => math.abs((s - obsDiff)*(s - obsDiff)))//.sorted.indexOf(obsDiff)
-//				val mean = shifted.sum / shifted.size
-				//val variance = (shifted.map(v => math.pow(v,2)).sum - math.pow(shifted.sum, 2)/shifted.size) / (shifted.size - 1)
-				val median = Statistics.quantile(shifted.toSeq.toEmpiricalSeq, 0.5) 
-				//println(s"mean = $mean, var = $variance")
-				median
-//				mean
+				val shifted = simDiffs.map(s => math.abs((s - obsDiff)*(s - obsDiff)))
+				Statistics.quantile(shifted.toSeq.toEmpiricalSeq, 0.5) 
 			}
-//				
-//			def score(obsDiff: Double, simDiffs: IndexedSeq[Double]): Double = {
-//				val statistic = {
-////					Statistics.quantile(simDiffs.toEmpiricalSeq, 0.5)
-//					simDiffs.sum.toDouble / simDiffs.size.toDouble
-//				}
-//				val observation = obsDiff
-//				val (l,u) = if(statistic < observation) (statistic, observation) else (observation, statistic)
-//				val numBetween = simDiffs.filter(d => d >= l && d <= u).size
-//				val proportionsBetween = numBetween.toDouble / simDiffs.size.toDouble
-//				proportionsBetween
-//			}
-			
-//			percentileFromMedian(obsDiff, minSimDiffs)
+
 			score(obsDiff, minSimDiffs)
 		}
-//		
-//		val varianceScore = 
-//			20 * (scores.map(v => math.pow(v,2)).sum - math.pow(scores.sum, 2)/scores.size) / (scores.size - 1)
-//		
-//		val fitScore = Statistics.quantile(scores.toEmpiricalSeq, 0.5)
-//			
-//		println(s"varScore = $varianceScore, fit = $fitScore")	
-		
-//		Statistics.quantile(scores.toEmpiricalSeq, 0.5)
-		math.pow(scores.max, 0.1)
-//		scores.sum.toDouble / scores.size
+		math.pow(scores.max, 1)
 	}
 }
 
@@ -482,7 +316,6 @@ object OutbreakModel {
 		}
 		
 		val probs = to.toSeq.map{dest => linkProb(dest)}.flatten
-//		println(s"$probs for $to")
 		val failProbs = probs.map{1.0 - _}
 		val probAllFail = failProbs.product
 		
