@@ -51,7 +51,7 @@ object Generator extends App with Logging {
 	val fullOutbreak = OutbreakModel.generate(
 			Truth.parameters,
 			Truth.seedFarm,
-			SizeStopCondition(20),
+			SizeStopCondition(10),
 			true
 	)	
 	log.info("Generated outbreak size: "+fullOutbreak.size)
@@ -262,16 +262,30 @@ case class ScoringModel(observed: DifferenceMatrix) extends ToSamplable with ToE
 	
 	fitList.foreach(println)
 	
+	
 	def scoreDistribution(params: Parameters) = Distribution[Double]{
+
+		val bunchOfOutbreaks = obsInfecteds.toSeq.flatMap{root =>
+			(1 to 10).map{_ =>
+				OutbreakModel.generate(params, root, coverObs).differenceMatrix 
+			}
+		}
+		
 		val scores = fitList.toSeq.map{case ToFit(root, mechanism, obsDiff) =>
 			val directLeaves: Set[Int] = directDestByMech(root)
 				.collect{case (dest, `mechanism`) => dest}
 				.toSet
 				
-			val minSimDiffs = (1 to 1000).map{_ => 
-					OutbreakModel.simulateSequenceDifference(root, directLeaves, params)
-				}
-				.map(_.toDouble)
+			val minSimDiffs = bunchOfOutbreaks.map{diffMatrix =>
+				diffMatrix.cellMap.filter{case ((a,b), diff) => 
+					a == root || b == root
+				}.values.min.toDouble
+			}
+				
+//			val minSimDiffs = (1 to 1000).map{_ => 
+//					OutbreakModel.simulateSequenceDifference(root, directLeaves, params)
+//				}
+//				.map(_.toDouble)
 				
 			def score(obsDiff: Double, simDiffs: Seq[Double]) = {
 				val shifted = simDiffs.map(s => math.abs((s - obsDiff)*(s - obsDiff)))
