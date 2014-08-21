@@ -202,7 +202,7 @@ class ABCLinksModel(observed: DifferenceMatrix)
 }
 
 case class ScoringModel(observed: DifferenceMatrix) extends ToSamplable with ToEmpirical {
-	val oneInfection = SizeStopCondition(2)
+//	val oneInfection = SizeStopCondition(2)
 	val obsInfecteds = observed.infectedFarms 
 	val coverObs = CoveringStopCondition(obsInfecteds)
 	type Cell = (Int, Int)
@@ -223,7 +223,7 @@ case class ScoringModel(observed: DifferenceMatrix) extends ToSamplable with ToE
 	}.toMap
 	
 	case class ToFit(root: Int, mechanism: Mechanism, obsDiff: Int)
-	val unfilteredFitList = obsInfecteds.flatMap{root =>
+	val fitList = obsInfecteds.flatMap{root =>
 		val destinationsByMech = observedDestinationsByMech(root)
 				.groupBy{case (_, mech) => mech}
 				.mapValues{_.map{case (id, _) => id}}
@@ -239,34 +239,12 @@ case class ScoringModel(observed: DifferenceMatrix) extends ToSamplable with ToE
 			)
 		}
 	}
-	
-//	val thresholdPerMechanism = unfilteredFitList.groupBy(_.mechanism )
-//		.mapValues{setOfFit => 
-//			val diffs = setOfFit.map{_.obsDiff.toDouble}
-////			Statistics.quantile(diffs.toSeq.toEmpiricalSeq, 0.5)
-////			Statistics.quantile(diffs.toSeq.toEmpiricalSeq, 0.3)
-//			0.0
-//		}
-//	
-//	val numMechObs = unfilteredFitList.groupBy(_.mechanism )
-//		.mapValues{_.size}
-//	
-//	val fitList = unfilteredFitList 
-//		.filter{toFit => 
-//			numMechObs(toFit.mechanism) < 5 ||
-//			toFit.obsDiff > thresholdPerMechanism(toFit.mechanism)
-//		}
-	//.filter(_.mechanism == CompanyTransmission)
-	
-	val fitList = unfilteredFitList
-	
 	fitList.foreach(println)
-	
 	
 	def scoreDistribution(params: Parameters) = Distribution[Double]{
 
 		val bunchOfOutbreaks = obsInfecteds.toSeq.flatMap{root =>
-			(1 to 10).map{_ =>
+			(1 to 3).map{_ =>
 				OutbreakModel.generate(params, root, coverObs).differenceMatrix 
 			}
 		}
@@ -289,7 +267,11 @@ case class ScoringModel(observed: DifferenceMatrix) extends ToSamplable with ToE
 				
 			def score(obsDiff: Double, simDiffs: Seq[Double]) = {
 				val shifted = simDiffs.map(s => math.abs((s - obsDiff)*(s - obsDiff)))
-				Statistics.quantile(shifted.toSeq.toEmpiricalSeq, 0.5) 
+//				val factor = mechanism match{
+//					case CompanyTransmission => 10
+//					case _ => 1
+//				}
+				Statistics.quantile(shifted.toSeq.toEmpiricalSeq, 0.5)// * factor 
 			}
 
 			score(obsDiff, minSimDiffs)
@@ -360,36 +342,50 @@ object OutbreakModel {
 		val companySpread = p.spreadRates.company.rate * transmissionReductionFactor
 		
 		def addNewInfections(current: Outbreak): Outbreak = {
-			val infectionMap = current.infectionMap.foldLeft(current.infectionMap){case (acc, (iFid, infection)) => 
-		 		val localNbrs = Network.neighboursExcludingSelf(iFid)
-		 		val companyPrems = Network.companyExcludingSelf(iFid)
-		 		
-		 		val newCompanyTransmissions = Network.companyExcludingSelf(iFid)
-		 			.filter(_ => Random.nextBoolean(companySpread))
-		 			.filter(newInf => !acc.contains(newInf))
-		 			
-		 		val newLocalTransmissions = Network.neighboursExcludingSelf(iFid)
-		 			.filter(_ => Random.nextBoolean(localSpread))
-		 			.filter(newInf => !acc.contains(newInf) && !newCompanyTransmissions.contains(newInf))
-		 			
-		 		val newCompanyInfections = newCompanyTransmissions.map{farmId => 
-	 				val mutated = Sequence.mutate(infection.current)
-	 				farmId -> Infection(mutated, iFid, CompanyTransmission)
-	 			}
-		 		
-		 		val newLocalInfections = newLocalTransmissions.map{farmId => 
-	 				val mutated = Sequence.mutate(infection.current)
-	 				farmId -> Infection(mutated, iFid, LocalTransmission)
-	 			}
-		 		
-		 		if(logging){
-		 			(newCompanyInfections ++ newLocalInfections).foreach{case (newId,newInf) =>
-		 				println(s"New infection $iFid -> $newId, diff = ${Sequence.differenceCount(infection.original , newInf.original)}")
+			val currentMap = current.infectionMap
+//			println(currentMap.keySet)
+			val infectionMap: Map[Int, Infection] = try{
+				currentMap.foldLeft(currentMap){case (acc, (iFid, infection)) =>
+//					println(s" - ${acc.keySet}")
+			 		val localNbrs = Network.neighboursExcludingSelf(iFid)
+			 		val companyPrems = Network.companyExcludingSelf(iFid)
+			 		
+			 		val newCompanyTransmissions = Network.companyExcludingSelf(iFid)
+			 			.filter(_ => Random.nextBoolean(companySpread))
+			 			.filter(newInf => !acc.contains(newInf))
+			 			
+			 		val newLocalTransmissions = Network.neighboursExcludingSelf(iFid)
+			 			.filter(_ => Random.nextBoolean(localSpread))
+			 			.filter(newInf => !acc.contains(newInf) && !newCompanyTransmissions.contains(newInf))
+			 			
+			 		val newCompanyInfections = newCompanyTransmissions.map{farmId => 
+		 				val mutated = Sequence.mutate(infection.current)
+		 				farmId -> Infection(mutated, iFid, CompanyTransmission)
 		 			}
-		 		} 
-		 		
-		 		acc.++(newCompanyInfections ++ newLocalInfections)
+			 		
+			 		val newLocalInfections = newLocalTransmissions.map{farmId => 
+		 				val mutated = Sequence.mutate(infection.current)
+		 				farmId -> Infection(mutated, iFid, LocalTransmission)
+		 			}
+			 		
+			 		if(logging){
+			 			(newCompanyInfections ++ newLocalInfections).foreach{case (newId,newInf) =>
+			 				println(s"New infection $iFid -> $newId, diff = ${Sequence.differenceCount(infection.original , newInf.original)}")
+			 			}
+			 		} 
+			 		
+			 		val r = acc.++(newCompanyInfections ++ newLocalInfections)
+			 		r
+				} 
+			} catch {
+				case e: StackOverflowError => {
+					println("===== Big error for infection map: "+currentMap)
+					e.printStackTrace
+					System.exit(1)
+					null
+				}
 			}
+				
 			Outbreak(infectionMap, current.seed)	//TODO tidy
 		}
 		
@@ -498,7 +494,7 @@ object CompanyTransmission extends Mechanism
 case class Sequence(basesInReverseOrder: List[Int] = List.empty){
 	lazy val asIndexedSeq = basesInReverseOrder.toIndexedSeq.reverse
 	lazy val numMutations = basesInReverseOrder.size
-}//{ assert(bases.size == Sequence.length, bases.size) }
+}
 object Sequence{
 	//TODO remove tests
 //	val a = Sequence(List(1,1,1).reverse)
