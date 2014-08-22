@@ -42,7 +42,7 @@ import sampler.io.Logging
  */
 
 object Truth{
-	val parameters = Parameters(SpreadRates(0.2, 0.6))
+	val parameters = Parameters(SpreadRates(0.2, 0.7))
 //	val parameters = Parameters(SpreadRates(0.6, 0.2))
 	val seedFarm = 4
 }
@@ -51,7 +51,7 @@ object Generator extends App with Logging {
 	val fullOutbreak = OutbreakModel.generate(
 			Truth.parameters,
 			Truth.seedFarm,
-			SizeStopCondition(10),
+			SizeStopCondition(20),
 			true
 	)	
 	log.info("Generated outbreak size: "+fullOutbreak.size)
@@ -244,7 +244,7 @@ case class ScoringModel(observed: DifferenceMatrix) extends ToSamplable with ToE
 	def scoreDistribution(params: Parameters) = Distribution[Double]{
 
 		val bunchOfOutbreaks = obsInfecteds.toSeq.flatMap{root =>
-			(1 to 3).map{_ =>
+			(1 to 2).map{_ =>
 				OutbreakModel.generate(params, root, coverObs).differenceMatrix 
 			}
 		}
@@ -298,6 +298,16 @@ case class CoveringStopCondition(observations: Set[Int]) extends StopCondition {
 	def apply(o: Outbreak, tick: Int) = observations.forall(obs => o.infected.contains(obs))
 }
 
+object StackTest extends App{
+	@tailrec def mappingValues(acc: Map[String, Int], countDown: Int = 10000): Map[String, Int] = {
+		if(countDown == 0) acc
+		else mappingValues(acc.mapValues(_ + 1), countDown - 1)
+	}
+
+	val myMap = mappingValues(Map("key" -> 0))
+	myMap.foreach(println)
+}
+
 object OutbreakModel {
 	val transmissionReductionFactor = 0.01
 	
@@ -344,8 +354,25 @@ object OutbreakModel {
 		def addNewInfections(current: Outbreak): Outbreak = {
 			val currentMap = current.infectionMap
 //			println(currentMap.keySet)
-			val infectionMap: Map[Int, Infection] = try{
-				currentMap.foldLeft(currentMap){case (acc, (iFid, infection)) =>
+			
+			val indexed = try{
+				currentMap.toSeq
+			} catch {
+				case e: StackOverflowError => {
+					println("===== Big error === "+(current.infectionMap.getClass()))
+					println("===== Map size: "+currentMap.size)
+					currentMap.foreach{case (k,v) => println(v.current.numMutations)}
+					println("===== length of original sequences: "+currentMap.mapValues(_.original.numMutations ))
+					println("===== length of current sequences: "+currentMap.mapValues(_.current.numMutations))
+					e.printStackTrace
+					System.exit(1)
+					null
+				}
+			}
+			
+			val infectionMap: Map[Int, Infection] = {
+//				val currentMapAsIndexedSeq = currentMap.toIndexedSeq
+				indexed.foldLeft(currentMap){case (acc, (iFid, infection)) =>
 //					println(s" - ${acc.keySet}")
 			 		val localNbrs = Network.neighboursExcludingSelf(iFid)
 			 		val companyPrems = Network.companyExcludingSelf(iFid)
@@ -374,17 +401,10 @@ object OutbreakModel {
 			 			}
 			 		} 
 			 		
-			 		val r = acc.++(newCompanyInfections ++ newLocalInfections)
+			 		val r = acc.toIndexedSeq.++(newCompanyInfections ++ newLocalInfections).toMap
 			 		r
 				} 
-			} catch {
-				case e: StackOverflowError => {
-					println("===== Big error for infection map: "+currentMap)
-					e.printStackTrace
-					System.exit(1)
-					null
-				}
-			}
+			} 
 				
 			Outbreak(infectionMap, current.seed)	//TODO tidy
 		}
@@ -491,7 +511,7 @@ trait Mechanism
 object LocalTransmission extends Mechanism
 object CompanyTransmission extends Mechanism
 
-case class Sequence(basesInReverseOrder: List[Int] = List.empty){
+case class Sequence(basesInReverseOrder: IndexedSeq[Int] = IndexedSeq.empty){
 	lazy val asIndexedSeq = basesInReverseOrder.toIndexedSeq.reverse
 	lazy val numMutations = basesInReverseOrder.size
 }
@@ -518,7 +538,7 @@ object Sequence{
 	val randomBase = Distribution.uniform((1 to 4).toSeq)
 
 	def mutate(s: Sequence) = {
-		Sequence(randomBase.sample :: s.basesInReverseOrder)
+		Sequence(randomBase.sample +: s.basesInReverseOrder)
 	}
 		
 	def differenceCount(a: Sequence, b: Sequence): Int = { 
@@ -632,12 +652,19 @@ object Network{
 			case 9 => Set(8, 9)
 			case _ => Set(idx - 1, idx, idx + 1)
 		}
-		val includingSelf = for{
-			x <- axisNbrs(xPos)
-			y <- axisNbrs(yPos)
-		} yield(x + 10 * y)
+//		val includingSelf = for{
+//			x <- axisNbrs(xPos)
+//			y <- axisNbrs(yPos)
+//		} yield(x + 10 * y)
+//		
+//		includingSelf - id
 		
-		includingSelf - id
+		//Up-down-left-right only
+		val xVariation = axisNbrs(xPos).map(_ + 10 * yPos)
+		val yVariation = axisNbrs(yPos).map(_ * 10 + xPos)
+		val excludingSelf = xVariation ++ yVariation - id
+//		println(s"Neighbours of $id: $excludingSelf")
+		excludingSelf
 	}
 	
 	def companyExcludingSelf(id: Int) = {
