@@ -123,7 +123,7 @@ object MetricTest extends App {
 	
 	def getScores(params: Parameters): Seq[String] = {
 		println(params)
-		val samples = 20
+		val samples = 3
 		val meanDistanceDist = model.scoreDistribution(params)
 		(1 to samples).par.map{_ => "%.5f".format(meanDistanceDist.sample)}.seq
 	}
@@ -298,16 +298,6 @@ case class CoveringStopCondition(observations: Set[Int]) extends StopCondition {
 	def apply(o: Outbreak, tick: Int) = observations.forall(obs => o.infected.contains(obs))
 }
 
-object StackTest extends App{
-	@tailrec def mappingValues(acc: Map[String, Int], countDown: Int = 10000): Map[String, Int] = {
-		if(countDown == 0) acc
-		else mappingValues(acc.mapValues(_ + 1), countDown - 1)
-	}
-
-	val myMap = mappingValues(Map("key" -> 0))
-	myMap.foreach(println)
-}
-
 object OutbreakModel {
 	val transmissionReductionFactor = 0.01
 	
@@ -353,27 +343,9 @@ object OutbreakModel {
 		
 		def addNewInfections(current: Outbreak): Outbreak = {
 			val currentMap = current.infectionMap
-//			println(currentMap.keySet)
-			
-			val indexed = try{
-				currentMap.toSeq
-			} catch {
-				case e: StackOverflowError => {
-					println("===== Big error === "+(current.infectionMap.getClass()))
-					println("===== Map size: "+currentMap.size)
-					currentMap.foreach{case (k,v) => println(v.current.numMutations)}
-					println("===== length of original sequences: "+currentMap.mapValues(_.original.numMutations ))
-					println("===== length of current sequences: "+currentMap.mapValues(_.current.numMutations))
-					e.printStackTrace
-					System.exit(1)
-					null
-				}
-			}
 			
 			val infectionMap: Map[Int, Infection] = {
-//				val currentMapAsIndexedSeq = currentMap.toIndexedSeq
-				indexed.foldLeft(currentMap){case (acc, (iFid, infection)) =>
-//					println(s" - ${acc.keySet}")
+				currentMap.foldLeft(currentMap){case (acc, (iFid, infection)) =>
 			 		val localNbrs = Network.neighboursExcludingSelf(iFid)
 			 		val companyPrems = Network.companyExcludingSelf(iFid)
 			 		
@@ -401,7 +373,7 @@ object OutbreakModel {
 			 			}
 			 		} 
 			 		
-			 		val r = acc.toIndexedSeq.++(newCompanyInfections ++ newLocalInfections).toMap
+			 		val r = acc.++(newCompanyInfections ++ newLocalInfections)
 			 		r
 				} 
 			} 
@@ -447,7 +419,7 @@ object Outbreak{
 		Outbreak(Map(fid -> Infection(freshVirusSequence, freshVirusSequence, None)), fid)
 	}
 	def updateCurrentMutations(state: Outbreak) = Outbreak(
-		state.infectionMap.mapValues{infection => Infection.mutate(infection)},
+		state.infectionMap.map{case (id,infection) => id -> Infection.mutate(infection)},
 		state.seed 
 	)
 }
