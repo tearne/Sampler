@@ -243,40 +243,45 @@ case class ScoringModel(observed: DifferenceMatrix) extends ToSamplable with ToE
 	
 	def scoreDistribution(params: Parameters) = Distribution[Double]{
 
-		val bunchOfOutbreaks = obsInfecteds.toSeq.flatMap{root =>
-			(1 to 2).map{_ =>
-				OutbreakModel.generate(params, root, coverObs).differenceMatrix 
-			}
-		}
+//		val bunchOfOutbreaks = obsInfecteds.toSeq.flatMap{root =>
+//			(1 to 2).map{_ =>
+//				OutbreakModel.generate(params, root, coverObs).differenceMatrix 
+//			}
+//		}
 		
 		val scores = fitList.toSeq.map{case ToFit(root, mechanism, obsDiff) =>
 			val directLeaves: Set[Int] = directDestByMech(root)
 				.collect{case (dest, `mechanism`) => dest}
 				.toSet
 				
-			val minSimDiffs = bunchOfOutbreaks.map{diffMatrix =>
-				diffMatrix.cellMap.filter{case ((a,b), diff) => 
-					a == root || b == root
-				}.values.min.toDouble
-			}
+//			val minSimDiffs = bunchOfOutbreaks.map{diffMatrix =>
+//				diffMatrix.cellMap.filter{case ((a,b), diff) => 
+//					a == root || b == root
+//				}.values.min.toDouble
+//			}
 				
-//			val minSimDiffs = (1 to 1000).map{_ => 
-//					OutbreakModel.simulateSequenceDifference(root, directLeaves, params)
-//				}
-//				.map(_.toDouble)
+			val minSimDiffs = (1 to 100).map{_ => 
+					OutbreakModel.simulateSequenceDifference(root, directLeaves, params)
+				}
+				.map(_.toDouble)
 				
 			def score(obsDiff: Double, simDiffs: Seq[Double]) = {
-				val shifted = simDiffs.map(s => math.abs((s - obsDiff)*(s - obsDiff)))
+				val shifted = simDiffs.map(s => math.abs(s - obsDiff))
 //				val factor = mechanism match{
 //					case CompanyTransmission => 10
 //					case _ => 1
 //				}
-				Statistics.quantile(shifted.toSeq.toEmpiricalSeq, 0.5)// * factor 
+				val min = shifted.min// * factor
+//				println(min)
+				min
 			}
 
 			score(obsDiff, minSimDiffs)
 		}
-		math.pow(scores.max, 1)
+//		val f = Statistics.quantile(scores.toEmpiricalSeq, 0.3)
+		val f = scores.sum / scores.size
+//		println(f)
+		f
 	}
 }
 
