@@ -30,8 +30,8 @@ import sampler.io.Logging
  * observed data and saves the resulting sequence difference matrix in a 
  * CSV file.
  * 
- * 2. ABCApplication
- * This reads the observed data (or a subset of it) and attempts to infer 
+ * 2. Sequence/SizeBasedABC
+ * These read the observed data (or a subset of it) and attempt to infer 
  * the transmission parameters which generated the outbreak.
  * 
  * 3. MetricTest
@@ -64,12 +64,12 @@ object Generator extends App with Logging {
 	CSV.writeLines(wd.resolve("diffMatrix.csv"), header +: fullOutbreak.differenceMatrix.toRows)
 }
 
-object ABCApplication extends App {
-	val model = new ABCLinksModel(Data.loadProportionOfTrueOutbreakData(0.8))
+object SequenceBasedABC extends App {
+	val model = new SequenceBasedModel(Data.loadProportionOfTrueOutbreakData(0.75))
 
 	val params = ABCConfig.fromTypesafeConfig(
 		ConfigFactory.load,
-		"network-example"
+		"network-outbreak-example"
 	)
 	
 	val reporting = { report: Report[Parameters] =>
@@ -77,11 +77,7 @@ object ABCApplication extends App {
 		
 		val lines = Parameters.names +: posterior.map(_.toSeq)
 		val fileName = f"posterior.$generationId%03d.csv"
-		
-		CSV.writeLines(
-			Data.wd.resolve(fileName),
-			lines
-		)
+		CSV.writeLines(Data.wd.resolve(fileName), lines)
 		
 		val rScript = f"""
 			lapply(c("ggplot2", "reshape"), require, character.only=T)
@@ -103,19 +99,63 @@ object ABCApplication extends App {
 				${Truth.parameters.spreadRates.company.rate}
 			), variable = c("Local", "Company"))
 			
-			pdf("Link.density.$generationId%02d.pdf", width=8.26, height=2.91)
+			pdf("SequenceABC.latest.pdf", width=8.26, height=2.91)
 			ggplot(melt(posterior), aes(x = value, linetype = variable)) + 
 				geom_density() +
 				geom_vline(data = statsDF, aes(xintercept = value, linetype = param, colour = variable), show_guide = TRUE) +
 				geom_vline(data = truth, aes(xintercept = value, linetype = variable)) +
-				scale_x_continuous(limits = c(0,1), breaks = c(0,0.2,0.4,0.6,0.8,1))
+				scale_x_continuous(limits = c(0,1), breaks = c(0,0.2,0.4,0.6,0.8,1)) +
+				ggtitle("Sequence difference fitting")
 			dev.off()
-			pdf("Link.density.latest.pdf", width=8.26, height=2.91)
+		"""
+		ScriptRunner.apply(rScript, Data.wd.resolve("script.r"))
+	}
+		
+	ABC(model, params, reporting)
+}
+
+object SizeBasedABC extends App {
+	val model = new SizeBasedModel(Data.loadProportionOfTrueOutbreakData(0.75))
+
+	val params = ABCConfig.fromTypesafeConfig(
+		ConfigFactory.load,
+		"network-outbreak-example"
+	)
+	
+	val reporting = { report: Report[Parameters] =>
+		import report._
+		
+		val lines = Parameters.names +: posterior.map(_.toSeq)
+		val fileName = f"posterior.$generationId%03d.csv"
+		CSV.writeLines(Data.wd.resolve(fileName), lines)
+		
+		val rScript = f"""
+			lapply(c("ggplot2", "reshape"), require, character.only=T)
+			
+			posterior = read.csv("$fileName")
+
+			stats = function(values, name){
+                table = c(
+                    quantile(values, c(0.05, 0.5, 0.95)),
+                    mean = mean(values)
+                )
+                df = data.frame(variable = names(table), param = name, value = as.vector(table))
+                df
+            }
+            statsDF = rbind(stats(posterior$$Local, "Local"), stats(posterior$$Company, "Company"))
+			
+			truth = data.frame(value = c(
+				${Truth.parameters.spreadRates.local.rate},
+				${Truth.parameters.spreadRates.company.rate}
+			), variable = c("Local", "Company"))
+			
+			pdf("SizeABC.latest.pdf", width=8.26, height=2.91)
 			ggplot(melt(posterior), aes(x = value, linetype = variable)) + 
 				geom_density() +
 				geom_vline(data = statsDF, aes(xintercept = value, linetype = param, colour = variable), show_guide = TRUE) +
 				geom_vline(data = truth, aes(xintercept = value, linetype = variable)) +
-				scale_x_continuous(limits = c(0,1), breaks = c(0,0.2,0.4,0.6,0.8,1))
+				scale_x_continuous(limits = c(0,1), breaks = c(0,0.2,0.4,0.6,0.8,1)) +
+				ggtitle("Outbreak size fitting only (fixed outbreak duration)")
 			dev.off()
 		"""
 		ScriptRunner.apply(rScript, Data.wd.resolve("script.r"))
@@ -196,7 +236,7 @@ object Data extends ToSamplable with Logging {
 	}
 }
 
-class ABCLinksModel(observed: DifferenceMatrix) 
+class SequenceBasedModel(observed: DifferenceMatrix) 
 		extends Model[Parameters]
 		with ToEmpirical {
 	
@@ -204,8 +244,41 @@ class ABCLinksModel(observed: DifferenceMatrix)
 	def perturbDensity(a: Parameters, b: Parameters) = Parameters.perturbDensity(a, b)
 	val prior = Parameters.prior
 	
-	val scoringModel = ScoringModel(observed)
-	def distanceToObservations(p: Parameters): Distribution[Double] = scoringModel.scoreDistribution(p)
+	val scoringModel = new ScoringModel(observed)
+	def distanceToObservations(p: Parameters) = scoringModel.scoreDistribution(p)
+}
+
+class SizeBasedModel(observed: DifferenceMatrix) 
+		extends Model[Parameters]
+		with ToEmpirical {
+	
+	def perturb(p: Parameters) = Parameters.perturb(p)
+	def perturbDensity(a: Parameters, b: Parameters) = Parameters.perturbDensity(a, b)
+	val prior = Parameters.prior
+	
+	val stopAfterTicks = new StopCondition{
+		def apply(o: Outbreak, tick: Int) = {
+			tick >= 461
+		}
+	}
+	def distanceToObservations(p: Parameters): Distribution[Double] = Distribution[Double]{
+		val observedFarms = observed.infectedFarms//.toIndexedSeq
+		
+		val sizeDiffs = observedFarms.map{seed =>
+//			val seedFarm = Distribution.uniform(observedFarms)(Random).sample
+			
+			val anOutbreak = OutbreakModel.generate(
+				p,
+				seed,
+				stopAfterTicks,
+				false
+			)	
+		
+			math.abs(anOutbreak.infected.size - observedFarms.size).toDouble
+		}
+			
+		sizeDiffs.sum / sizeDiffs.size
+	}
 }
 
 case class ScoringModel(observed: DifferenceMatrix) extends ToSamplable with ToEmpirical {
