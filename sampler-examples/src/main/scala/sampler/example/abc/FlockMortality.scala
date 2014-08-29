@@ -56,7 +56,7 @@ object FlockMortality extends App {
 //	val	particleRetries = 1000
 //	val	particleChunkSize = 50
 	
-	val abcParams = ABCConfig.fromConfig(
+	val abcParams = ABCConfig.fromTypesafeConfig(
 		ConfigFactory.load,
 		"flock-mortality-example"
 	)
@@ -84,14 +84,13 @@ object FlockMortality extends App {
 	)
 	
 	//Get median fit data
-	val half = Seq(0.5)
-	val medBeta = quantile(posterior.map(_.beta).toEmpiricalSeq, half).head
-	val medEta = quantile(posterior.map(_.eta).toEmpiricalSeq, half).head
-	val medGamma = quantile(posterior.map(_.gamma).toEmpiricalSeq, half).head
-	val medDelta = quantile(posterior.map(_.delta).toEmpiricalSeq, half).head
-	val medSigma = quantile(posterior.map(_.sigma).toEmpiricalSeq, half).head
-	val medSigma2 = quantile(posterior.map(_.sigma2).toEmpiricalSeq, half).head
-	val medOffset = quantile(posterior.map(_.offset).map(_.toDouble).toEmpiricalTable, half).head.toInt
+	val medBeta = quantile(posterior.map(_.beta).toEmpiricalSeq, 0.5)
+	val medEta = quantile(posterior.map(_.eta).toEmpiricalSeq, 0.5)
+	val medGamma = quantile(posterior.map(_.gamma).toEmpiricalSeq, 0.5)
+	val medDelta = quantile(posterior.map(_.delta).toEmpiricalSeq, 0.5)
+	val medSigma = quantile(posterior.map(_.sigma).toEmpiricalSeq, 0.5)
+	val medSigma2 = quantile(posterior.map(_.sigma2).toEmpiricalSeq, 0.5)
+	val medOffset = quantile(posterior.map(_.offset).map(_.toDouble).toEmpiricalTable, 0.5).toInt
 	
 	val medianParams = FlockMortalityParams(medBeta, medEta, medGamma, medDelta, medSigma, medSigma2, medOffset)
 	val fitted = modelDistribution(medianParams).sample

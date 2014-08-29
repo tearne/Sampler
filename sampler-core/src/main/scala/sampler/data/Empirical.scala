@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Crown Copyright 
+ * Copyright (c) 2012-14 Crown Copyright 
  *                    Animal Health and Veterinary Laboratories Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -77,7 +77,7 @@ trait Empirical[A] extends Serializable{
 	override def hashCode() = probabilityTable.hashCode
 }
 
-/** Factory for creating Empirical instances from standard collections
+/** Mix-in for creating Empirical instances from standard collections
  *  
  *  An EmpiricalSeq can be created from an IndexedSeq of elements
  *  {{{

@@ -18,6 +18,10 @@ class RandomTest extends FreeSpec with BeforeAndAfter with Matchers{
     draw1 should be(2 +- 2)
   }
   
+  "Integers include zero" in {
+    (1 to 100).map{_ => random.nextInt(1)}.min should be(0)
+  }
+  
   "Draws integer values at random" in {
     def sample(samples: List[Int], currentIt: Int, numIts: Int): List[Int] = {
       if(currentIt>=numIts) samples

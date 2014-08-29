@@ -145,7 +145,6 @@ abstract class ABCActor[P]
 			stay
 	}
 		
-	//TODO this is were you should be looking
 	when(Idle) {
 		case Event(s:Start[P], Uninitialized) =>
 			val client = sender
@@ -176,7 +175,7 @@ abstract class ABCActor[P]
 		case Event(scored: ScoredParticles[P], stateData: StateData[P]) =>
 			val sndr = sender
 			val updatedGeneration = algorithm.filterAndQueueForWeighing(scored, stateData.generation)
-			log.info("filterAndQueue({}) => |W| = {},  from {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
+			log.info("New filtered and queued ({}) => |Q| = {},  from {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
 			import updatedGeneration._
 			sndr ! WeighJob(dueWeighing, prevWeightsTable, currentTolerance)
 			log.debug("Allocate weighing of {} particles to {}", updatedGeneration.dueWeighing.size, sndr)
@@ -185,12 +184,13 @@ abstract class ABCActor[P]
 		case Event(mixP: MixPayload[P], stateData: StateData[P]) =>
 			val scored = mixP.tss
 			val updatedGeneration = algorithm.filterAndQueueForWeighing(scored, stateData.generation)
-			log.info("filterAndQueue({}) => |W| = {},  from REMOTE {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
+			log.info("New filtered and queued ({}) => |Q| = {},  from REMOTE {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
 			stay using StateData(updatedGeneration, stateData.client, stateData.cancellableMixing)//stateData.copy(generation = updatedGeneration)
 
 		case Event(weighted: WeighedParticles[P], stateData: StateData[P]) =>
 			val updatedGen = algorithm.addWeighted(weighted, stateData.generation)
-//			log.info(s"Currently G${updatedGen.currentIteration}, Particles + ${weighted.seq.size} = ${updatedGen.weighted.size}/${config.job.numParticles}")
+
+			log.info(s"Generation ${updatedGen.currentIteration}, Particles + ${getters.getNumParticles(weighted)} = ${getters.getAccumulatedGenerationSize(updatedGen)}/${config.job.numParticles}")
 			
 			if(algorithm.isEnoughParticles(updatedGen, config)){
 				router ! Broadcast(Abort)
@@ -224,11 +224,10 @@ abstract class ABCActor[P]
 		case Event(_: ScoredParticles[P], _) => 	log.info("Ignore new paylod"); 		stay
 		case Event(MixNow, _) => 				log.info("Ignore mix request"); 	stay
 		case Event(FlushComplete(flushedGeneration), data: FlushingData) =>
-			import flushedGeneration._
 			val numGenerations = config.job.numGenerations
-			log.info("Generation {}/{} complete, new tolerance {}", currentIteration, numGenerations, currentTolerance)
+			log.info("Generation {}/{} complete, new tolerance {}", flushedGeneration.currentIteration, numGenerations, flushedGeneration.currentTolerance)
 			
-			if(currentIteration == numGenerations && config.cluster.terminateAtTargetGenerations){
+			if(flushedGeneration.currentIteration == numGenerations && config.cluster.terminateAtTargetGenerations){
 				// Stop work
 				router ! Abort  // TODO superfluous?
 				report(flushedGeneration)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Crown Copyright 
+ * Copyright (c) 2012-14 Crown Copyright 
  *                    Animal Health and Veterinary Laboratories Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,6 @@ package sampler.math
 import sampler.data.Empirical
 
 trait StatisticsComponentImpl{
-//	val statistics = Statistics
 	val statistics = new Statistics{}
 }
 
@@ -33,7 +32,6 @@ trait Statistics{
 	
   /** Returns the proportion (0-1 range) of items in Empirical which are greater than or equal to supplied value
    *  
-   *  @param e
    *  @param itemInclusive The value of interest, return value is inclusive of this value
    *  @return a new Probability giving the right tail
    *  */
@@ -51,7 +49,7 @@ trait Statistics{
 	 *  @param prob The required quantile values
 	 *  @return A sequence of the quantile values
 	 */
-	def quantile[A](e: Empirical[A], probs: Seq[Double])(implicit f: Fractional[A]): Seq[A] = {
+	def quantiles[A](e: Empirical[A], probs: Seq[Double])(implicit f: Fractional[A]): Seq[A] = {
 		import e._
 
 		probs.foreach{p => RangeCheck.probability(p)}
@@ -71,10 +69,15 @@ trait Statistics{
 		index.map(ordered(_))
 	}
 	
-	/** Returns the mean value of an Empirical
+	/** Convenience method for calculating a single quantile value from an Empirical.  To avoid overheads 
+	 *  when calculating multiple times use [[sampler.math.Statistics.quantiles]]
 	 *  
-	 *  @param e
-	 *  @return The mean value
+	 *  @param prob The required quantile value
+	 *  @return The quantile value
+	 */
+	def quantile[A](e: Empirical[A], prob: Double)(implicit f: Fractional[A]): A = quantiles(e, Seq(prob))(f).head
+	
+	/** Returns the mean value of an Empirical
 	 */
 	def mean[A](e: Empirical[A])(implicit num: Fractional[A]) = {
 		import num._
@@ -88,8 +91,6 @@ trait Statistics{
 	 *  A metric for calculating the difference between two Empiricals, using the mean value of the 
 	 *  two Empiricals
 	 *  
-	 *  @param a
-	 *  @param b
 	 *  @return The difference between means
 	 */
 	def meanDistance[A: Fractional](a: Empirical[A], b: Empirical[A]) = {
@@ -105,8 +106,6 @@ trait Statistics{
 	 *  the probabilities are 1 -> 0.2, 2 -> 0.6, 3 -> 0.2. The differences are therefore 1 -> 0.3, 
 	 *  2 -> 0.1 and 3 -> 0.2 and thus the max distance is 0.3 
 	 *  
-	 *  @param a
-	 *  @param b
 	 *  @return The max difference
 	 */
 	def maxDistance[A](a: Empirical[A], b: Empirical[A]): Double = {

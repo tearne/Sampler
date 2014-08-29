@@ -79,7 +79,7 @@ class ParticleMixerComponentTest extends FreeSpec with Matchers with MockitoSuga
       assert(result.seq.contains(scored2))
     }
     
-    "Randomly selects from weighteds when more particles present than mixin size" in {
+    "Randomly select from weighteds when more particles present than mixin size" in {
       val gen1 = Generation[Int](
           null,
           ScoredParticles(Seq()),
@@ -92,16 +92,14 @@ class ParticleMixerComponentTest extends FreeSpec with Matchers with MockitoSuga
       
       val iterations = 1000
         
-      def buildSamples(acc: Seq[Tagged[Scored[Int]]], count:Int = 0, reps: Int = iterations): Seq[Tagged[Scored[Int]]] = {
+      def buildSamples(acc: Seq[Tagged[Scored[Int]]], count:Int = 0, reps: Int = 1000): Seq[Tagged[Scored[Int]]] = {
         if(count >= reps) acc
-        else{
-          buildSamples(acc ++ particleMixer.apply(gen1, config).get.seq, count+1)
-        }
+        else buildSamples(acc ++ particleMixer.apply(gen1, config).get.seq, count+1)
       }
       
-      var accum = buildSamples(Seq.empty[Tagged[Scored[Int]]])
+      val accum = buildSamples(Seq.empty[Tagged[Scored[Int]]])
       
-      val grouped = accum.groupBy(x => x).map{case(a, b) => a -> b.size}
+      val grouped = accum.groupBy(identity).map{case(a, b) => a -> b.size}
       
       assertResult(payloadSize*iterations)(accum.size)
       
