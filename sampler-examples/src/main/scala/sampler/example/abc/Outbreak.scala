@@ -42,8 +42,8 @@ import sampler.io.Logging
  */
 
 object Truth{
-	val parameters = Parameters(SpreadRates(0.2, 0.8))
-//	val parameters = Parameters(SpreadRates(0.6, 0.2))
+//	val parameters = Parameters(SpreadRates(0.2, 0.8))
+	val parameters = Parameters(SpreadRates(0.6, 0.2))
 	val seedFarm = 4
 }
 
@@ -65,7 +65,7 @@ object Generator extends App with Logging {
 }
 
 object SequenceBasedABC extends App {
-	val model = new SequenceBasedModel(Data.loadProportionOfTrueOutbreakData(0.75))
+	val model = new SequenceBasedModel(Data.loadProportionOfTrueOutbreakData(1))
 
 	val params = ABCConfig.fromTypesafeConfig(
 		ConfigFactory.load,

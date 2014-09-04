@@ -1,21 +1,27 @@
 lapply(c("ggplot2", "reshape", "hexbin", "reshape2"), require, character.only=T)
             
-setwd("~/Sampler/sampler-examples/results/Network/")
+setwd("~/Sampler/sampler-examples/results/Network/A1_2")
+setwd("~/Sampler/sampler-examples/results/Network/A2_3")
+setwd("~/Sampler/sampler-examples/results/Network/A3")
+setwd("~/Sampler/sampler-examples/results/Network/B")
+setwd("~/Sampler/sampler-examples/results/Network/B2")
 
 posterior = cbind(
 	read.csv("posterior.050.csv"),
 	read.csv("posterior.049.csv"),
 	read.csv("posterior.048.csv"),
 	read.csv("posterior.047.csv"),
-	read.csv("posterior.046.csv"),
-	read.csv("posterior.045.csv"),
-	read.csv("posterior.044.csv"),
-	read.csv("posterior.043.csv"),
-	read.csv("posterior.042.csv"),
-	read.csv("posterior.041.csv")
-)
+	read.csv("posterior.046.csv")
+#	read.csv("posterior.045.csv"),
+#	read.csv("posterior.044.csv"),
+#	read.csv("posterior.043.csv"),
+#	read.csv("posterior.042.csv"),
+#	read.csv("posterior.041.csv")
+}
 
-truth = data.frame(value = c(0.2, 0.8), variable = c("Local", "Company"))
+# posterior = read.csv("posterior.050.csv")
+
+truth = data.frame(value = c(0.6, 0.2), variable = c("Local", "Company"))
 
 pdf("summary.pdf", width=8.26, height=2.91)
 ggplot(melt(posterior), aes(x = value, linetype = variable)) + 
