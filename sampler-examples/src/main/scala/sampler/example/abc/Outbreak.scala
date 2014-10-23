@@ -26,28 +26,51 @@ import sampler.io.Logging
  * This file contains a number of applications
  * 
  * 1. Generator
- * This is the first thing to run.  It generates an outbreak to use as
- * observed data and saves the resulting sequence difference matrix in a 
- * CSV file.
+ * Generates an outbreak and captures observed data in the form of a
+ * sequence difference matrix.
  * 
- * 2. Sequence/SizeBasedABC
- * These read the observed data (or a subset of it) and attempt to infer 
+ * 2. FittingApplication
+ * Read (a subset of) the observed data and attempts to infer 
  * the transmission parameters which generated the outbreak.
  * 
  * 3. MetricTest
- * Running ABCApplication takes a long time, so a quicker way to examine
- * new metrics is to use this app.  It plots distributions of metric 
+ * Running the full takes a long time, so a quicker way to investigate
+ * potential metrics is to use this.  It plots distributions of metric 
  * scores, so you can verify that the minimum values occur for the true
  * parameters which generated the outbreak. 
  */
 
+object Data extends ToSamplable with Logging {
+	val wd = Paths.get("results").resolve("Outbreak")
+	val fullObservedDataPath = wd.resolve("diffMatrix.csv")
+	val proportionOfCasesObserved = 0.8
+	
+	def loadProportionOfTrueOutbreakData(proportionObserved: Double): DifferenceMatrix = {
+		CSV.assertHeader(fullObservedDataPath, "FarmA", "FarmB", "Diff")
+		val csvLines = CSV.read(fullObservedDataPath).toIndexedSeq
+		
+		val fullMatrix = DifferenceMatrix.fromCSV(csvLines.drop(1))
+		val allInfected = fullMatrix.infectedFarms.toIndexedSeq
+
+		val numToBeObserved = (allInfected.size * proportionObserved).toInt
+		val observedFarms = allInfected.draw(numToBeObserved)(Random).drawnCounts.keySet + Truth.seedFarm
+		val observedPartialMatrix = DifferenceMatrix(fullMatrix.cellMap.filterKeys{case (fidA, fidB) => 
+			observedFarms.contains(fidA) && observedFarms.contains(fidB)
+		})
+	
+		log.info(s"${fullMatrix.infectedFarms.size} true infections, ${observedPartialMatrix.infectedFarms.size} are used as observed")
+		observedPartialMatrix
+	}
+}
+
+
 object Truth{
-//	val parameters = Parameters(SpreadRates(0.2, 0.8))
-	val parameters = Parameters(SpreadRates(0.6, 0.2))
+	val parameters = Parameters(SpreadRates(0.2, 0.8))
+//	val parameters = Parameters(SpreadRates(0.6, 0.2))
 	val seedFarm = 4
 }
 
-object Generator extends App with Logging {
+object ObservedDataGenerator extends App with Logging {
 	val fullOutbreak = OutbreakModel.generate(
 			Truth.parameters,
 			Truth.seedFarm,
@@ -56,16 +79,16 @@ object Generator extends App with Logging {
 	)	
 	log.info("Generated outbreak size: "+fullOutbreak.size)
 	val companyInfections = fullOutbreak.infectionMap.collect{case (id, Infection(_,_,Some(Source(_,CompanyTransmission)))) => id}
-	println(s"${companyInfections.size} company Infections: $companyInfections")
+	log.info(s"${companyInfections.size} company Infections: $companyInfections")
 	
-	val wd = Paths.get("results").resolve("Network")
-	Files.createDirectories(wd)
+	Files.createDirectories(Data.wd)
 	val header = Seq("FarmA", "FarmB", "Diff")
-	CSV.writeLines(wd.resolve("diffMatrix.csv"), header +: fullOutbreak.differenceMatrix.toRows)
+	CSV.writeLines(Data.fullObservedDataPath, header +: fullOutbreak.differenceMatrix.toRows)
 }
 
-object SequenceBasedABC extends App {
-	val model = new SequenceBasedModel(Data.loadProportionOfTrueOutbreakData(1))
+object FittingApplication extends App {
+	import Data._
+	val model = new ABCModel(loadProportionOfTrueOutbreakData(proportionOfCasesObserved))
 
 	val params = ABCConfig.fromTypesafeConfig(
 		ConfigFactory.load,
@@ -99,7 +122,7 @@ object SequenceBasedABC extends App {
 				${Truth.parameters.spreadRates.company.rate}
 			), variable = c("Local", "Company"))
 			
-			pdf("SequenceABC.latest.pdf", width=8.26, height=2.91)
+			pdf("Posterior.latest.pdf", width=8.26, height=2.91)
 			ggplot(melt(posterior), aes(x = value, linetype = variable)) + 
 				geom_density() +
 				geom_vline(data = statsDF, aes(xintercept = value, linetype = param, colour = variable), show_guide = TRUE) +
@@ -114,59 +137,10 @@ object SequenceBasedABC extends App {
 	ABC(model, params, reporting)
 }
 
-object SizeBasedABC extends App {
-	val model = new SizeBasedModel(Data.loadProportionOfTrueOutbreakData(0.75))
-
-	val params = ABCConfig.fromTypesafeConfig(
-		ConfigFactory.load,
-		"network-outbreak-example"
-	)
-	
-	val reporting = { report: Report[Parameters] =>
-		import report._
-		
-		val lines = Parameters.names +: posterior.map(_.toSeq)
-		val fileName = f"posterior.$generationId%03d.csv"
-		CSV.writeLines(Data.wd.resolve(fileName), lines)
-		
-		val rScript = f"""
-			lapply(c("ggplot2", "reshape"), require, character.only=T)
-			
-			posterior = read.csv("$fileName")
-
-			stats = function(values, name){
-                table = c(
-                    quantile(values, c(0.05, 0.5, 0.95)),
-                    mean = mean(values)
-                )
-                df = data.frame(variable = names(table), param = name, value = as.vector(table))
-                df
-            }
-            statsDF = rbind(stats(posterior$$Local, "Local"), stats(posterior$$Company, "Company"))
-			
-			truth = data.frame(value = c(
-				${Truth.parameters.spreadRates.local.rate},
-				${Truth.parameters.spreadRates.company.rate}
-			), variable = c("Local", "Company"))
-			
-			pdf("SizeABC.latest.pdf", width=8.26, height=2.91)
-			ggplot(melt(posterior), aes(x = value, linetype = variable)) + 
-				geom_density() +
-				geom_vline(data = statsDF, aes(xintercept = value, linetype = param, colour = variable), show_guide = TRUE) +
-				geom_vline(data = truth, aes(xintercept = value, linetype = variable)) +
-				scale_x_continuous(limits = c(0,1), breaks = c(0,0.2,0.4,0.6,0.8,1)) +
-				ggtitle("Outbreak size fitting only (fixed outbreak duration)")
-			dev.off()
-		"""
-		ScriptRunner.apply(rScript, Data.wd.resolve("script.r"))
-	}
-		
-	ABC(model, params, reporting)
-}
-
 object MetricTest extends App {
-	val observedMatrix = Data.loadProportionOfTrueOutbreakData(1)
-	val model = ScoringModel(observedMatrix)
+	import Data._
+	val observedMatrix = loadProportionOfTrueOutbreakData(proportionOfCasesObserved)
+	val model = ModelWithSequenceMetric(observedMatrix)
 	
 	def getScores(params: Parameters): Seq[String] = {
 		println(params)
@@ -175,8 +149,9 @@ object MetricTest extends App {
 		(1 to samples).par.map{_ => "%.5f".format(meanDistanceDist.sample)}.seq
 	}
 	
-	val outFileLocal = Data.wd.resolve("metricTest_local.csv")
-	val outFileCompany = Data.wd.resolve("metricTest_company.csv")
+	import Data.wd 
+	val outFileLocal = wd.resolve("metricTest_local.csv")
+	val outFileCompany = wd.resolve("metricTest_company.csv")
 	
 	val trueLocalRate = Truth.parameters.spreadRates.local.rate
 	val trueCompanyRate = Truth.parameters.spreadRates.company.rate 
@@ -211,32 +186,10 @@ object MetricTest extends App {
 			scale_colour_discrete("Company\nparameter")
 		dev.off()
 	"""
-	ScriptRunner.apply(rScript, Data.wd.resolve("script.r"))
+	ScriptRunner.apply(rScript, wd.resolve("script.r"))
 }
 
-object Data extends ToSamplable with Logging {
-	val wd = Paths.get("results").resolve("Network")
-	val obsPath = wd.resolve("diffMatrix.csv")
-	
-	def loadProportionOfTrueOutbreakData(proportionObserved: Double): DifferenceMatrix = {
-		CSV.assertHeader(obsPath, "FarmA", "FarmB", "Diff")
-		val csvLines = CSV.read(obsPath).toIndexedSeq
-		
-		val fullMatrix = DifferenceMatrix.fromCSV(csvLines.drop(1))
-		val allInfected = fullMatrix.infectedFarms.toIndexedSeq
-
-		val numToBeObserved = (allInfected.size * proportionObserved).toInt
-		val observedFarms = allInfected.draw(numToBeObserved)(Random).drawnCounts.keySet + Truth.seedFarm
-		val observedPartialMatrix = DifferenceMatrix(fullMatrix.cellMap.filterKeys{case (fidA, fidB) => 
-			observedFarms.contains(fidA) && observedFarms.contains(fidB)
-		})
-	
-		log.info(s"${fullMatrix.infectedFarms.size} true infections, ${observedPartialMatrix.infectedFarms.size} are used as observed")
-		observedPartialMatrix
-	}
-}
-
-class SequenceBasedModel(observed: DifferenceMatrix) 
+class ABCModel(observed: DifferenceMatrix) 
 		extends Model[Parameters]
 		with ToEmpirical {
 	
@@ -244,44 +197,11 @@ class SequenceBasedModel(observed: DifferenceMatrix)
 	def perturbDensity(a: Parameters, b: Parameters) = Parameters.perturbDensity(a, b)
 	val prior = Parameters.prior
 	
-	val scoringModel = new ScoringModel(observed)
+	val scoringModel = new ModelWithSequenceMetric(observed)
 	def distanceToObservations(p: Parameters) = scoringModel.scoreDistribution(p)
 }
 
-class SizeBasedModel(observed: DifferenceMatrix) 
-		extends Model[Parameters]
-		with ToEmpirical {
-	
-	def perturb(p: Parameters) = Parameters.perturb(p)
-	def perturbDensity(a: Parameters, b: Parameters) = Parameters.perturbDensity(a, b)
-	val prior = Parameters.prior
-	
-	val stopAfterTicks = new StopCondition{
-		def apply(o: Outbreak, tick: Int) = {
-			tick >= 461
-		}
-	}
-	def distanceToObservations(p: Parameters): Distribution[Double] = Distribution[Double]{
-		val observedFarms = observed.infectedFarms//.toIndexedSeq
-		
-		val sizeDiffs = observedFarms.map{seed =>
-//			val seedFarm = Distribution.uniform(observedFarms)(Random).sample
-			
-			val anOutbreak = OutbreakModel.generate(
-				p,
-				seed,
-				stopAfterTicks,
-				false
-			)	
-		
-			math.abs(anOutbreak.infected.size - observedFarms.size).toDouble
-		}
-			
-		sizeDiffs.sum / sizeDiffs.size
-	}
-}
-
-case class ScoringModel(observed: DifferenceMatrix) extends ToSamplable with ToEmpirical {
+case class ModelWithSequenceMetric(observed: DifferenceMatrix) extends ToSamplable with ToEmpirical {
 	val obsInfecteds = observed.infectedFarms 
 	
 	val directDestByMech: Map[Int, Map[Int, Mechanism]] = obsInfecteds.map{centre =>
@@ -347,11 +267,8 @@ case class SizeStopCondition(maxSize: Int) extends StopCondition with Logging {
 		stop
 	}
 }
-case class CoveringStopCondition(observations: Set[Int]) extends StopCondition {
-	def apply(o: Outbreak, tick: Int) = observations.forall(obs => o.infected.contains(obs))
-}
 
-object OutbreakModel {
+object OutbreakModel extends Logging{
 	val transmissionReductionFactor = 0.01
 	
 	def simulateSequenceDifference(from: Int, to: Set[Int], p: Parameters): Int = {
@@ -374,18 +291,6 @@ object OutbreakModel {
 		}
 		
 		go()
-	}
-	
-	def simulateSequenceDifference(pair: (Int, Int), p: Parameters): Int = {
-		val (from, to) =
-			if(Random.nextDouble < 0.5) (pair._1, pair._2)
-			else (pair._2, pair._1)
-		
-		val out = generate(p, from, CoveringStopCondition(Set(to)))
-		Sequence.differenceCount(
-				out.infectionMap(from).original, 
-				out.infectionMap(to).original
-		)
 	}
 	
 	def generate(p: Parameters, seed: Int, stop: StopCondition, logging: Boolean = false): Outbreak = {
@@ -420,7 +325,7 @@ object OutbreakModel {
 			 		
 			 		if(logging){
 			 			(newCompanyInfections ++ newLocalInfections).foreach{case (newId,newInf) =>
-			 				println(s"New infection $iFid -> $newId, diff = ${Sequence.differenceCount(infection.original , newInf.original)}")
+			 				log.info(s"Infection ($iFid)---->($newId), sequence delta = ${Sequence.differenceCount(infection.original , newInf.original)}")
 			 			}
 			 		} 
 			 		
@@ -428,11 +333,11 @@ object OutbreakModel {
 				} 
 			} 
 				
-			Outbreak(infectionMap, current.seed)	//TODO tidy
+			Outbreak(infectionMap, current.seed)
 		}
 		
 		@tailrec def iterate(current: Outbreak, tick: Int): Outbreak = {
-			if(logging) println(s"Tick $tick")
+			if(logging) log.info(s"Now on tick $tick")
 			if(stop(current, tick)) current
 			else {
 				val updated = addNewInfections(Outbreak.updateCurrentMutations(current))
@@ -584,30 +489,6 @@ object Parameters{
 object Network{
 	val numFarms = 100
 	
-  	/*	10x10
-	 * 
-	 * 	9x			+					=	*	=
-	 *  8x 		=			=	*	+			
-	 *  7x						*	*	+		
-	 *  6x		=		=						
-	 *  5x		*	+							
-	 *  4x			=		=		+		+	
-	 *  3x										
-	 * 	2x	*		*	+		+		+		
-	 * 	1x		+		=						
-	 * 	0x	+				#	+		*	=	
-	 * 		0	1	2	3	4	5	6	7	8	9	
-	 * 
-	 * 		#:  Index case
-	 * 		+:	0, 5, 11, 23, 25, 27, 46, 48, 52, 77, 86, 92
-	 *   	=:	8, 13, 42, 44, 61, 63, 84, 97, 99
-	 *    	*:	7, 20, 22, 51, 75, 76, 85, 98
-	 */
-	
-//	val companyA = Set(0, 5, 11, 23, 25, 27, 46, 48, 52, 77, 86, 92)	// +
-//	val companyB = Set(8, 13, 42, 44, 61, 63, 84, 97, 99)	// = 
-//	val companyC = Set(7, 20, 22, 51, 75, 76, 85, 98)		// * 
-	
   	/*	10x10 
 	 * 
 	 * 	9x			+							*
@@ -627,25 +508,6 @@ object Network{
 	val companyB = Set(8, 13, 52, 84)	// = 
 	val companyC = Set(20, 85, 99)		// * 
 	
-	
-	
-	/* 
-	 * 	9x	+									+
-	 *  8x 	*								
-	 *  7x										
-	 *  6x										
-	 *  5x					*	=				
-	 *  4x										
-	 *  3x										
-	 * 	2x										
-	 * 	1x				=	+					*
-	 * 	0x	=				#					=
-	 * 		0___1___2___3___4___5___6___7___8___9	
-	 */
-//	val companyA = Set(14, 90, 99)		// +
-//	val companyB = Set(0, 13, 9, 55)	// = 
-//	val companyC = Set(19, 54, 80)		// *
-	
 	def xyPos(fid: Int) = (fid % 10, fid / 10)
 	
 	def neighboursExcludingSelf(id: Int): Set[Int] = {
@@ -662,12 +524,6 @@ object Network{
 			y <- axisNbrs(yPos)
 		} yield(x + 10 * y)
 		includingSelf - id
-		
-		//Up-down-left-right only
-//		val xVariation = axisNbrs(xPos).map(_ + 10 * yPos)
-//		val yVariation = axisNbrs(yPos).map(_ * 10 + xPos)
-//		val excludingSelf = xVariation ++ yVariation - id
-//		excludingSelf
 	}
 	
 	def companyExcludingSelf(id: Int) = {
