@@ -474,7 +474,7 @@ object Parameters{
 			import p._
 			SpreadRates.prior.density(spreadRates)
 		}
-		def sample = 
+		def draw = 
 			Parameters(SpreadRates.prior.sample)
 	}
 	
@@ -543,7 +543,7 @@ object SpreadRates{
 			Transmission.prior.density(r.local) *
 			Transmission.prior.density(r.company)
 		}
-		def sample = SpreadRates(Transmission.prior.sample, Transmission.prior.sample)
+		def draw = SpreadRates(Transmission.prior.sample, Transmission.prior.sample)
 	}
 	
 	def perturb(r: SpreadRates) = SpreadRates(Transmission.perturb(r.local), Transmission.perturb(r.company))
@@ -562,12 +562,12 @@ object Transmission {
 	}
 	val uniformPrior = UniformPrior(0.0, 1.0)
 	
-	private val kernel = new Prior[Double] with Distribution[Double]{
+	private val kernel = new Prior[Double]{
 		val normal = {
 			val syncRand: RandomGenerator = new SynchronizedRandomGenerator(new MersenneTwister())
 			new NormalDistribution(syncRand, 0, 0.05, NormalDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY)
 		}
-		def sample = normal.sample
+		def draw = normal.sample
 		def density(at: Double) = normal.density(at)
 	}
 	
@@ -580,7 +580,7 @@ object Transmission {
 	
 	val prior = new Prior[Transmission]{
 		def density(p: Transmission) = uniformPrior.density(p.rate)
-		def sample = Transmission(uniformPrior.sample)
+		def draw = Transmission(uniformPrior.sample)
 	}
 	
 	def perturbDensity(a: Transmission, b: Transmission): Double = kernel.density(a.rate - b.rate)

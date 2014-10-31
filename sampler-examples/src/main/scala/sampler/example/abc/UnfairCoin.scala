@@ -95,11 +95,13 @@ object CoinModel extends Model[CoinParams] {
 
 	val prior = new Prior[CoinParams] with Serializable{
 	    def density(p: CoinParams) = {
-	      if(p.pHeads >= 1 || p.pHeads <= 0) 0.0
+	      if(p.pHeads > 1 || p.pHeads < 0) 0.0
 	      else 1.0
 	    }
 	    
-	    def sample() = CoinParams(random.nextDouble(0.0, 1.0))
+	    def draw() = {
+	    	CoinParams(random.nextDouble(0.0, 1.0))
+	    }
     }
   	
     private val normal = {

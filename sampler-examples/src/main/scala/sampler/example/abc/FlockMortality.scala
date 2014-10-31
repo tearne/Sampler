@@ -189,7 +189,7 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 		}
 		
 		//TODO can use random in the model?
-		def sample = FlockMortalityParams(
+		def draw = FlockMortalityParams(
 			beta = modelRandom.nextDouble(0, 1),
 			eta = modelRandom.nextDouble(0, 1),
 			gamma = modelRandom.nextDouble(0, 1),
@@ -209,7 +209,7 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 			val syncRand: RandomGenerator = new SynchronizedRandomGenerator(new MersenneTwister())
 			new NormalDistribution(syncRand, 0, 0.1, NormalDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY)
 		}
-		def sample = {
+		def draw = {
 			val r = normal.sample
 			
 			if(r.isNaN() || r.isInfinite()) {
