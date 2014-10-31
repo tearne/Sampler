@@ -86,12 +86,13 @@ class BroadcastActor(abcParams: ABCConfig) extends Actor with ActorLogging{
 	
 	def nodeUp(member: Member){
 		val rootPath = RootActorPath(member.address)
-	  	if(
-	  		member.address != selfAddress
-	  		&&
+	  	if(member.address != selfAddress &&
 	  		!nodes.exists(ref => ref.path.root == rootPath)
 	  	){ 
+	  		log.debug(s"Requesting handshake with ${member.address}")
 	  		attemptWorkerHandshake(rootPath)
+	  	} else {
+	  		log.debug(s"NOT requesting handshake with self/known node: ${member.address}")
 	  	}
 	}
 	
@@ -115,6 +116,7 @@ class BroadcastActor(abcParams: ABCConfig) extends Actor with ActorLogging{
   			// A handshake response
   			val remoteNode = actorRef
   			nodes += remoteNode
+  			log.debug(s"Actor handshake identity from ${actorRef.path.address}")
   			reportingActor ! NumWorkers(nodes.size)
   			log.info("Handshake complete: {}",remoteNode)
   		case ActorIdentity(_: Long, Some(who)) =>
@@ -159,7 +161,7 @@ class BroadcastActor(abcParams: ABCConfig) extends Actor with ActorLogging{
 		context.system.scheduler.schedule(5.second, 20.second, self, Tick)
 		def receive = {
 			case Tick => 
-				numWorkers.foreach(n => log.info("# remote nodes = {}", n))
+				numWorkers.foreach(n => log.info("There are {} remote nodes", n))
 			case NumWorkers(n) => numWorkers = Some(n)
 		}
 	}))
