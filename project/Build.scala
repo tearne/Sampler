@@ -9,7 +9,7 @@ import UnidocKeys._
 object SamplerBuild extends Build{
 	val buildOrganization 	= "org.tearne"
 	val buildVersion 	= "0.1.1"
-	val buildScalaVersion	= "2.11.1"
+	val buildScalaVersion	= "2.11.2"
 	
 	lazy val commonSettings = Defaults.defaultSettings ++ Seq(
 		organization := buildOrganization,
@@ -31,11 +31,11 @@ object SamplerBuild extends Build{
 		libraryDependencies ++= Seq(
 			"com.typesafe" % "config" % "1.2.1",
 			"junit" % "junit" % "4.8" % "test->default",
-			"org.scalatest" %% "scalatest" % "2.2.0" % "test",
+			"org.scalatest" %% "scalatest" % "2.2.1" % "test",
 			"org.mockito" % "mockito-all" % "1.9.0" %"test->default",
-			"org.slf4j" % "slf4j-api" % "1.7.6",
-			"org.scalaz" %% "scalaz-core" % "7.0.6",
-			"com.novocode" % "junit-interface" % "0.10" % "test"
+			"org.slf4j" % "slf4j-api" % "1.7.7",
+			"org.scalaz" %% "scalaz-core" % "7.1.0",
+			"com.novocode" % "junit-interface" % "0.11" % "test"
 		)
 	)
 		
@@ -88,11 +88,11 @@ object SamplerBuild extends Build{
 		.settings(commonSettings: _*)
 		.settings(
 			libraryDependencies ++= Seq(
-				"com.typesafe.akka" %% "akka-actor" % "2.3.3", 
-				"com.typesafe.akka" %% "akka-remote" % "2.3.3",
-				"com.typesafe.akka" %% "akka-cluster" % "2.3.3",
-				"com.typesafe.akka" %% "akka-slf4j" % "2.3.3", 
-				"com.typesafe.akka" %% "akka-testkit" % "2.3.3" % "test",
+				"com.typesafe.akka" %% "akka-actor" % "2.3.6", 
+				"com.typesafe.akka" %% "akka-remote" % "2.3.6",
+				"com.typesafe.akka" %% "akka-cluster" % "2.3.6",
+				"com.typesafe.akka" %% "akka-slf4j" % "2.3.6", 
+				"com.typesafe.akka" %% "akka-testkit" % "2.3.6" % "test",
 				"org.apache.commons" % "commons-math3" % "3.2",
 				"com.amazonaws" % "aws-java-sdk" % "1.4.0.1"
 			)	
