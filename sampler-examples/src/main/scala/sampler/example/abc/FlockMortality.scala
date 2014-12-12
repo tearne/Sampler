@@ -41,6 +41,8 @@ import org.apache.commons.math3.random.SynchronizedRandomGenerator
 import org.apache.commons.math3.random.RandomGenerator
 import org.apache.commons.math3.random.RandomDataImpl
 import org.apache.commons.math3.random.MersenneTwister
+import java.io.FileWriter
+import java.nio.charset.Charset
 
 object FlockMortality extends App {
 	import FlockMortalityModel._
@@ -63,13 +65,46 @@ object FlockMortality extends App {
 	
 	val posterior = ABC(FlockMortalityModel, abcParams)
 	
-	val posteriors = Map(
-		"Beta" -> posterior.map(_.beta).toEmpiricalSeq,
-		"Eta" -> posterior.map(_.eta).toEmpiricalSeq,
-		"Gamma" -> posterior.map(_.gamma).toEmpiricalSeq,
-		"Sigma" -> posterior.map(_.sigma).toEmpiricalSeq,
-		"Sigma2" -> posterior.map(_.sigma2).toEmpiricalSeq
+	val outData = Map(
+		"Beta" -> posterior.map(_.beta),
+		"Eta" -> posterior.map(_.eta),
+		"Gamma" -> posterior.map(_.gamma),
+		"Sigma" -> posterior.map(_.sigma),
+		"Sigma2" -> posterior.map(_.sigma2)
 	)
+	
+	val posteriors = outData.mapValues(_.toEmpiricalSeq)
+	
+	def toJsonArray(values: Seq[Double]): String = {
+		val sb = StringBuilder.newBuilder
+		sb.append('[')
+		sb.append(values.head)
+		values.tail.foreach{v => 
+			sb.append(',')
+			sb.append(v)
+		}
+		sb.append(']')
+		sb.toString
+	}
+	
+	val json = s"""
+var data = {
+	"Beta" : ${toJsonArray(outData("Beta"))},
+	"Eta" : ${toJsonArray(outData("Eta"))},
+	"Gamma" : ${toJsonArray(outData("Gamma"))},
+	"Sigma" : ${toJsonArray(outData("Sigma"))},
+	"Sigma2" : ${toJsonArray(outData("Sigma2"))}
+}
+		
+		
+"""
+	val jsWriter = Files.newBufferedWriter(
+		wd.resolve("data.js.txt"), 
+		Charset.defaultCharset()
+	)
+	jsWriter.write(json)
+	jsWriter.close()
+	
 	
 	val csvName = "results.csv"
 	
