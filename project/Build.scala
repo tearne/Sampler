@@ -9,7 +9,7 @@ import UnidocKeys._
 object SamplerBuild extends Build{
 	val buildOrganization 	= "org.tearne"
 	val buildVersion 	= "0.1.1"
-	val buildScalaVersion	= "2.11.2"
+	val buildScalaVersion	= "2.11.5"
 	
 	lazy val commonSettings = Defaults.defaultSettings ++ Seq(
 		organization := buildOrganization,
