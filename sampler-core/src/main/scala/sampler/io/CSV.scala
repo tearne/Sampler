@@ -167,22 +167,6 @@ s"""Headers in ${filePath.toAbsolutePath()} don't match.
 		}
 	}
 	
-	/** Reads in selected columns from a csv file
-	 *  
-	 *  @param filePath The path to the csv file to be read in
-	 *  @param headers The header titles for the required columns
-	 *  @return An iterator which contains each line of data as a IndexedSeq of Strings
-	 */
-	def readByHeader(filePath: Path, headers: String*): Iterator[IndexedSeq[String]] = {
-		val tokenisedLines = read(filePath)
-		val headerMap = header(filePath)
-		val headerIndexes = headers.map(headerMap).toArray
-		
-		tokenisedLines.map{lineToks =>
-			headerIndexes.map(lineToks)
-		}
-	}
-	
 	private def getWriter(filePath: Path, openOptions: OpenOption*) = {
 		Files.newBufferedWriter(
 				filePath, 

@@ -61,21 +61,6 @@ class CSVTest extends FreeSpec with BeforeAndAfter {
   	
   	assertResult(expected)(CSV.read(existingTable).map(_.toList).toList)
   }
- 
-  "Read by header" in {
-    val expected = Seq(
-  		Seq("Ints", "Doubles"),
-  		Seq("1", 	"0.789"),
-  		Seq("2",	"0.2"),
-  		Seq("3",	"0.64")
-  	)
-  	
-  	assertResult(expected){
-  		CSV.readByHeader(existingTable, "Ints", "Doubles")
-  			.map(_.toList)
-  			.toList
-    }
-  }
 
   "Asert header" in {
   	CSV.assertHeader(existingTable, "Ints", "Booleans", "Strings", "Doubles")
