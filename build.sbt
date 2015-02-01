@@ -87,6 +87,7 @@ lazy val examples = project.in(file("sampler-examples"))
 	.settings(
 		libraryDependencies ++= Seq(
 			"org.apache.commons" % "commons-math3" % "3.2",
+			"org.json4s" %% "json4s-native" % "3.2.10",
 			"ch.qos.logback" % "logback-classic" % "1.1.1"
 		)	
 	)
