@@ -9,7 +9,7 @@ import scala.io.Source
 
 class ScriptRunnerTest extends FreeSpec with BeforeAndAfter {
 
-  val workingDir = Paths.get(getClass.getClassLoader.getResource("data").toURI())
+  val workingDir = Paths.get(getClass.getResource("").toURI())
   
 	val scriptPath = workingDir.resolve("deleteMe.r")
 	val rOutPath = workingDir.resolve("deleteMe.r.Rout")

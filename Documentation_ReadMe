@@ -52,7 +52,7 @@ Q) I have written new tests but they won't run from SBT and/or Eclipse because f
 	SBT will find files in src/test/resources/ but eclipse would need the relative path. 
 	The way to fix it is:
 	1) Use 'getResources' to access test resources in 'src'/test/resources' 
-		e.g. Paths.get(getClass.getClassLoader.getResource("someFile.txt").toURI())
+		e.g. Paths.get(getClass.getResource("someFile.txt").toURI())
 	2) Add 'src/test/resources' to the eclipse build path by selecting "Build Path --> Use as Source Folder"
 	3) Go to build settings and ensure the output directory for resources is relative to 
 		'target/scala2-10/test-classes', rather than 'default'.
