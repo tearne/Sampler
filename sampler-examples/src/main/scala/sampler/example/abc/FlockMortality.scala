@@ -16,33 +16,33 @@
  */
 package sampler.example.abc
 
+import java.nio.charset.Charset
 import java.nio.file.Files
 import java.nio.file.Paths
 import scala.Array.canBuildFrom
+import scala.IndexedSeq
 import scala.collection.mutable.Buffer
+import scala.language.existentials
 import org.apache.commons.math3.distribution.NormalDistribution
 import org.apache.commons.math3.ode.FirstOrderDifferentialEquations
 import org.apache.commons.math3.ode.nonstiff.DormandPrince853Integrator
 import org.apache.commons.math3.ode.sampling.FixedStepHandler
 import org.apache.commons.math3.ode.sampling.StepNormalizer
-import sampler.Implicits._
-import sampler.data.Distribution
-import sampler.math.Random
-import sampler.r.ScriptRunner
-import scala.language.existentials
-import sampler.math.Statistics
+import org.apache.commons.math3.random.MersenneTwister
+import org.apache.commons.math3.random.RandomGenerator
+import org.apache.commons.math3.random.SynchronizedRandomGenerator
+import com.typesafe.config.ConfigFactory
+import sampler.Implicits.RichIndexedSeq
+import sampler.cluster.abc.ABC
 import sampler.cluster.abc.Model
 import sampler.cluster.abc.Prior
 import sampler.cluster.abc.config.ABCConfig
-import com.typesafe.config.ConfigFactory
-import sampler.cluster.abc.ABC
+import sampler.data.Distribution
 import sampler.io.CSV
-import org.apache.commons.math3.random.SynchronizedRandomGenerator
-import org.apache.commons.math3.random.RandomGenerator
-import org.apache.commons.math3.random.RandomDataImpl
-import org.apache.commons.math3.random.MersenneTwister
-import java.io.FileWriter
-import java.nio.charset.Charset
+import sampler.math.Random
+import sampler.math.Statistics.quantile
+import sampler.r.process.ScriptRunner
+import sampler.math.Statistics
 
 object FlockMortality extends App {
 	import FlockMortalityModel._

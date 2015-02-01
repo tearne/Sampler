@@ -19,7 +19,7 @@ import sampler.data.ToSamplable
 import sampler.io.CSV
 import sampler.math.Random
 import sampler.math.Statistics
-import sampler.r.ScriptRunner
+import sampler.r.process.ScriptRunner
 import sampler.io.Logging
 
 /*
