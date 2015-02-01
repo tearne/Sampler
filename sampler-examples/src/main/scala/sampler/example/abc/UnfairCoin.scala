@@ -22,7 +22,6 @@ import java.nio.file.Paths
 import java.nio.file.StandardOpenOption.{APPEND,CREATE}
 import org.apache.commons.math3.distribution.NormalDistribution
 import com.typesafe.config.ConfigFactory
-import sampler.Implicits.RichFractionalSeq
 import sampler.cluster.abc.ABC
 import sampler.cluster.abc.Model
 import sampler.cluster.abc.Prior
@@ -30,14 +29,15 @@ import sampler.cluster.abc.actor.Report
 import sampler.cluster.abc.config.ABCConfig
 import sampler.data.Distribution
 import sampler.math.Random
-import sampler.r.QuickPlot.writeDensity
-import sampler.r.ScriptRunner
 import sampler.io.CSV
 import sampler.io.CSV
 import org.apache.commons.math3.random.SynchronizedRandomGenerator
 import org.apache.commons.math3.random.MersenneTwister
+import sampler.r.process.ToNamedSeq
+import sampler.r.process.QuickPlot
+import sampler.r.process.ScriptRunner
 
-object UnfairCoin extends App {
+object UnfairCoin extends App with ToNamedSeq{
 	/*
 	 * ABCParameters loaded from application.conf
 	 */
@@ -62,7 +62,7 @@ object UnfairCoin extends App {
 	val finalGeneration = ABC(CoinModel, abcParameters, abcReporting).map(_.pHeads)
 	
 	// Make plot of final generation (posterior)
-	writeDensity(
+	QuickPlot.writeDensity(
 		wd.resolve("posterior.pdf"),
 		"9.00", "3.00",
 		finalGeneration.continuous("P[Heads]")

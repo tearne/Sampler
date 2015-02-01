@@ -1,10 +1,11 @@
-package sampler.r
+package sampler.r.process
 
 import java.nio.file.{Paths, Files}
 import collection.JavaConversions.asScalaBuffer
 import java.nio.file.Path
 import org.scalatest.BeforeAndAfter
 import org.scalatest.FreeSpec
+import scala.io.Source
 
 class ScriptRunnerTest extends FreeSpec with BeforeAndAfter {
 
@@ -15,13 +16,15 @@ class ScriptRunnerTest extends FreeSpec with BeforeAndAfter {
 	val jsonPath = workingDir.resolve("deleteMe.json")
 	val noExtension = workingDir.resolve("noExtension")
 	
-	"Nothing prints out from simple script" in {
-	  val script =
-"""
-a <- c(2,4,6)
-a
-"""
-	}
+	"Prepend script with working dir" in {
+  	ScriptRunner("two = 1 + 1", scriptPath)
+  	val writtenLines = Source.fromFile(scriptPath.toFile()).mkString.split("\n")
+  	val expectedLines = Array(
+  			s"""setwd("${workingDir.toAbsolutePath()}")""",
+				"two = 1 + 1"
+  	)
+  	expectedLines.zip(writtenLines).foreach{case (e,a) => assert(e === a)}
+  }
 	
 	"Runs sleep command" in {
 	  val startTime = System.nanoTime

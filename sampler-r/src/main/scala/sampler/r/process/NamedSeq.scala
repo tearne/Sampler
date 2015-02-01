@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.r
+package sampler.r.process
 
 /** Allows a sequence of continuous data to be named for plotting 
  *  

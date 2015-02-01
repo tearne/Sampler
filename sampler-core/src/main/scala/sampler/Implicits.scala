@@ -18,14 +18,11 @@
 package sampler
 
 import sampler.data.{ToEmpirical, ToSamplable}
-import sampler.r.ToNamedSeq
 
 /** Implicit conversions allowing Empirical and Samplable objects to be created from standard collections 
- *  Examples of usage can be found in [[sampler.data.ToEmpirical]], [[sampler.data.ToSamplable]] and 
- *  [[sampler.r.ToNamedSeq]].
+ *  Examples of usage can be found in [[sampler.data.ToEmpirical]], [[sampler.data.ToSamplable]]
  */
 
 object Implicits 
 	extends ToEmpirical
 	with ToSamplable
-	with ToNamedSeq

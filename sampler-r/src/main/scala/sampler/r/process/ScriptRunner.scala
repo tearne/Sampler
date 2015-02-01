@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.r
+package sampler.r.process
 
 import java.io.FileWriter
 import java.nio.file.Path
