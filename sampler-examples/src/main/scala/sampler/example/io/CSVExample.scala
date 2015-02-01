@@ -3,6 +3,8 @@ package sampler.example.io
 import java.nio.file.Paths
 import sampler.io.CSV
 import java.nio.file.Files
+import java.nio.file.OpenOption
+import java.nio.file.StandardOpenOption.APPEND
 
 object CSVExample extends App{
 	/*
@@ -30,4 +32,19 @@ object CSVExample extends App{
 	val rowData = Seq(aData, bData, cData).transpose
 	
 	CSV.writeLines(outDir.resolve("myCSV.csv"), Seq(header) ++ rowData)
+	
+	/*
+	 * Transpose whole CSV file.  Useful when it's most natural to append
+	 * data columns sequentially as rows to save memory.
+	 */
+	val file = outDir.resolve("toTranspose.csv")
+	CSV.writeLine(file, Seq("First", 1,2,3))
+	CSV.writeLine(file, Seq("Second", 'a','b','c'), APPEND)
+	CSV.writeLine(file, Seq("Third", "one","two","three"), APPEND)
+	
+	val transposed = outDir.resolve("transposeed.csv")
+	CSV.transpose(file, transposed)
+	
+	CSV.assertHeader(transposed, "First", "Second", "Third")
+	assert(CSV.read(transposed).toSeq.last == Seq("3", "c","three"))
 }
