@@ -58,6 +58,6 @@ class SamplerTest extends FreeSpec with AssertionsForJUnit {
     
     val sampledList = SerialSampler.apply(dist)(new ConvergenceProtocol[Int](1000, 0.001, 100000) with MaxMetric)
     
-    println(sampledList.size)
+    fail("assertion pending")
   }
 }
