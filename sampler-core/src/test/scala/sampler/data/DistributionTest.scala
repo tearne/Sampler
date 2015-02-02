@@ -35,27 +35,27 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
   "Samples values in order from sequence in iterator" in {
     val sampledSeq = append(Seq(), instance, 10)
 			
-	assert(sampledSeq === Seq(0,1,2,3,4,5,6,7,8,9))
+		assert(sampledSeq === Seq(0,1,2,3,4,5,6,7,8,9))
   }
   
   "Samples until a lenght of 5 has been reached" in {
     val resultsSeq = instance.until(_.size == 5).sample
 				
-	val expectedSeq = IndexedSeq(0,1,2,3,4)
+		val expectedSeq = IndexedSeq(0,1,2,3,4)
 				
-	assert(resultsSeq === expectedSeq)
+		assert(resultsSeq === expectedSeq)
   }
   
   "Samples repeatedly until an even number is reached" in {
     val untilInstance = instance.until(_.last % 2 == 0)
 				
-	val seq1 = untilInstance.sample
-	val seq2 = untilInstance.sample
-	val seq3 = untilInstance.sample
-				
-	assert(seq1 === IndexedSeq(0))
-	assert(seq2 === IndexedSeq(1,2))
-	assert(seq3 === IndexedSeq(3,4))
+		val seq1 = untilInstance.sample
+		val seq2 = untilInstance.sample
+		val seq3 = untilInstance.sample
+					
+		assert(seq1 === IndexedSeq(0))
+		assert(seq2 === IndexedSeq(1,2))
+		assert(seq3 === IndexedSeq(3,4))
   }
   
   "Filters distribution for values greater than two" in {
@@ -63,7 +63,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
 	
     val sampleList = append(Seq(filtered.sample()), filtered, 7)
 				
-	assert(sampleList === Seq(3,4,5,6,7,8,9))
+		assert(sampleList === Seq(3,4,5,6,7,8,9))
   }
   
   "Filters for even numbers" in {
@@ -77,9 +77,9 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
   "Maps distribution to double its size" in {
     val mapped = instance.map(value => value * 2)
     
-	val sampleList = append(Seq(), mapped, 10)
+		val sampleList = append(Seq(), mapped, 10)
 			
-	assert(sampleList === List(0,2,4,6,8,10,12,14,16,18))
+		assert(sampleList === List(0,2,4,6,8,10,12,14,16,18))
   }
   
   "Flat maps distribution" in {
@@ -95,9 +95,9 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
 		    
     val result = instance.combine(instance2)(product)
     
-	val sampleList = append(Seq(), result, 5)
+		val sampleList = append(Seq(), result, 5)
 				
-	assert(sampleList === Seq(0,1,4,9,16))
+		assert(sampleList === Seq(0,1,4,9,16))
   }
   
   "Adds two distributions together using convolve" in {
@@ -105,15 +105,15 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
 	
     val sampleList = append(Seq(), result, 5)
 				
-	assert(sampleList === Seq(1,2,3,4,5))
+		assert(sampleList === Seq(1,2,3,4,5))
   }
   
   "Subtract distributions using cross correlate" in {
     val result = instance.crossCorrelate(alwaysOne)
 		    
-	val sampleList = append(Seq(), result, 5)
+		val sampleList = append(Seq(), result, 5)
 				
-	assert(sampleList === Seq(-1,0,1,2,3))
+		assert(sampleList === Seq(-1,0,1,2,3))
   }
   
   "Distribution.continually always gives the same result" in {
@@ -217,7 +217,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
   "Bernoulli trial with probability 80% probability" in {
     val model = Distribution.bernoulliTrial(0.8)
 		    
-	val result = (1 to 1000).map(_ => model.sample)
+		val result = (1 to 1000).map(_ => model.sample)
 		    
 	result.count(_ == true) should be (800 +- 50)
   }
@@ -227,7 +227,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
 		  
     val result = (1 to 1000).map(_ => model.sample)
 		  
-	result.count(_ == true) should be (500 +- 50)
+		result.count(_ == true) should be (500 +- 50)
   }
   
   "Building distribution from partition" in {

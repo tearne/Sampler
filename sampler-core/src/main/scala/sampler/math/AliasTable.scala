@@ -73,7 +73,7 @@ class AliasTable(p: Partition) extends Serializable{
 	  }
 	  
       val initialProbability = Array.fill[Double](arraySize)(1.0)
-	  val initialAlias = Array.fill[Int](arraySize)(0)
+	  	val initialAlias = Array.fill[Int](arraySize)(0)
 	  	
       val small = p.probabilities.zipWithIndex.filter(_._1 < average).map(_._2).toArray
       val large = p.probabilities.zipWithIndex.filter(_._1 >= average).map(_._2).toArray
