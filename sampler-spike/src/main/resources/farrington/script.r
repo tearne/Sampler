@@ -135,14 +135,14 @@ threshold2 <- function(z){
 #allData = read.csv("/home/user/ENVIRONMENT/workspaces/workspace_scala/FarringtonTest/results/baselineData.txt")
 #allData = as.data.frame(fromJSON(paste(readLines("r-in.json"), collapse="")))
 
-baselineNum = nrow(allData)-1
-baseData = allData[1:baselineNum,]
-currentCount = allData[nrow(allData),"Incidents"]
-currentmth = allData[nrow(allData), "MonthNum"]
-basemth = baseData$MonthNum
-basecont = baseData$Incidents
+baselineNum = nrow(basedata)
+#baseData = allData[1:baselineNum,]
+#currentCount = allData[nrow(allData),"Incidents"]
+#currentmth = allData[nrow(allData), "MonthNum"]
+basemth = basedata$basemth
+basecont = basedata$basecont
 
-basedata<-data.frame(basecont, basemth)
+#basedata<-data.frame(basecont, basemth)
 # currentc<-Data2[currentmth, 2+2]  	#LEAVE AS [,2+2] so only look at INCIDENTS. If wish to look at isolations change to [,1+1]. 
 
 w<-rep(1,times=nrow(basedata))					#Set weights = 1 

@@ -33,14 +33,13 @@ object EDS extends App{
 				val toks = line.split("\t").map(_.trim.toInt)
 				val year = toks(0)
 				val month = toks(1)
-				val incidentCount = toks(2)
+				val incidentCount = toks(3)
 				YearMonth.of(year, month) -> incidentCount
 			}
 			.toSeq: _*
 	}
 	
-	assert(!dataIn.exists(_._1.getYear == 2001))
-	
+	assert(!dataIn.exists(_._1.getYear == 2001)) 
 	val first = dataIn.head._1
 	val last = dataIn.last._1
 	val window = List(-1, 0, 1).map(v => (v + 12) % 12)
@@ -48,17 +47,39 @@ object EDS extends App{
 	def isBaseline(date: YearMonth) = {
 		def isWithinWindow() = {
 			val monthRemainder = MONTHS.between(date, last) % 12
-			window.exists(_ == monthRemainder)
+			val inWindow = window.exists(_ == monthRemainder)
+      val inYrRangeMin = MONTHS.between(date, last) <= 12*12+1
+      val inYrRangeMax = MONTHS.between(date, last) > 2
+      inWindow && inYrRangeMin && inYrRangeMax
 		}
 		date.getYear != 2001 && isWithinWindow
 	}
 	
-	val (dates, counts) = dataIn.filterKeys(isBaseline).unzip	
+	val (bDates, bCounts) = dataIn.filterKeys(isBaseline).unzip	
+  val (cDate, cCount) = dataIn.last
+  
+  bDates.zip(bCounts).foreach(println)
+  println(s"Current = $cDate, $cCount")
 	
+  //TODO change first?
+  
 	val json = 
-		("Incidents"-> counts) ~
-		("MonthNum"-> dates.map{d => MONTHS.between(first, d)}) ~
-		("YearMonth"-> dates.map(_.toString))
+    ("Current" -> 
+      ("Month" -> MONTHS.between(first, cDate)) ~
+      ("Incidents" -> cCount)
+    ) ~
+    ("Baseline" ->
+      ("basemth" -> bDates.map{d => MONTHS.between(first, d)}) ~
+      ("basecont"-> bCounts)
+    )
+    
+  val jsonAsString = pretty(render(json))
+  val writer = Files.newBufferedWriter(Paths.get("tmp.json"))
+  writer.write(jsonAsString)
+  writer.newLine
+  writer.close
+    
+  println(jsonAsString)
 	
 	RServeHelper.ensureRunning
 	val r = new RConnection
@@ -66,7 +87,9 @@ object EDS extends App{
 		try{
 			r.parseAndEval("""library(rjson)""")
 			r.assign("jsonIn", compact(render(json)))
-			r.parseAndEval("allData = as.data.frame(fromJSON(jsonIn))")
+			r.parseAndEval("basedata = as.data.frame(fromJSON(jsonIn)$Baseline)")
+      r.parseAndEval("currentCount = as.data.frame(fromJSON(jsonIn)$Current$Incidents)")
+      r.parseAndEval("currentmth = as.data.frame(fromJSON(jsonIn)$Current$Month)")
 			r.parseAndEval(rScript)
 			r.parseAndEval("output")
 		}finally{
@@ -79,7 +102,7 @@ object EDS extends App{
 	println(pretty(render(rOut)))
 	println("--------- END ----------")
 
-case class MyRes(expected: Int, threshold: Int, trend: Int, exceed: Int, weights: List[Double])
+case class MyRes(expected: Double, threshold: Double, trend: Int, exceed: Double, weights: List[Double])
 	val res = rOut.extract[MyRes]
 	println(res)
 }
