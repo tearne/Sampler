@@ -81,7 +81,7 @@ object EDS extends App{
     
   println(jsonAsString)
 	
-	RServeHelper.ensureRunning
+	RServeHelper.ensureRunning()
 	val r = new RConnection
 	val rExp = 
 		try{
