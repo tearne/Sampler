@@ -28,22 +28,22 @@ import org.rosuda.REngine.Rserve.RConnection
 
 case class Date(yearMonth: YearMonth, idx: Long)
 
-case class Result(date: Date, expected: Double, threshold: Double, trend: Int, exceed: Double, weights: List[Double])
-	object Result{
-		implicit val formats = DefaultFormats
-	
-		def apply(json: JValue): Result = Result(
-				Date(
-						YearMonth.parse((json \\ "yearMonth").extract[String]),
-						(json \ "date" \ "idx").extract[Long]
-				),				
-				(json \ "expected").extract[Double],
-				(json \ "threshold").extract[Double],
-				(json \ "trend").extract[Int],		
-				(json \ "exceed").extract[Double],
-				(json \ "weights").extract[List[Double]]
-			)
-	}
+case class Result(date: Date, actual: Int, expected: Double, threshold: Double, trend: Int, exceed: Double, weights: List[Double]){
+	lazy val isAlert = actual > threshold
+}
+object Result{
+	implicit val formats = DefaultFormats
+
+	def apply(date: Date, actual: Int, json: JValue): Result = Result(
+			date,			
+			actual,
+			(json \ "expected").extract[Double],
+			(json \ "threshold").extract[Double],
+			(json \ "trend").extract[Int],		
+			(json \ "exceed").extract[Double],
+			(json \ "weights").extract[List[Double]]
+		)
+}
 
 object Farrington {
 	/*
@@ -82,15 +82,9 @@ object Farrington {
 		
 		val rOut = JsonMethods.parse(rExpression.asString())
 		
-		val lastDate = dataIn.lastKey
-		val dateJSON = JObject(JField("date",
-				JField("yearMonth", lastDate.yearMonth.toString()) :: 
-				JField("idx", lastDate.idx) :: Nil
-		))
-		val merged = (rOut merge dateJSON)
-//		println(pretty(render(merged)))
+		val (date, value) = dataIn.last
 		
-		Result(merged)
+		Result(date, value, rOut)
 	}
 	
 	def buildJSON(timeSeries: SortedMap[Date, Int]): JObject = {

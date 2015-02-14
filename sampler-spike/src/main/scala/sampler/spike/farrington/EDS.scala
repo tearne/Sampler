@@ -51,17 +51,26 @@ object EDS extends App{
 	
 	RServeHelper.ensureRunning()
 	val rCon = new RConnection
-	try{
+	val results = try{
 		val indexedData = indexAndExclude(countData, exclude2001)
 	
 		(0 to 10).map{i => 
 			val series = extractWindow(indexedData.dropRight(i))
-			println(Farrington.run(series, rCon))
+			Farrington.run(series, rCon)
 		}
 	} finally {
 		rCon.close
 		RServeHelper.shutdown
 	}
+	
+	val timeSeriesJSON = 
+		("input" -> input.toString()) ~
+		("month" -> results.map(_.date.yearMonth.toString)) ~
+		("expected" -> results.map(_.expected)) ~
+		("threshold" -> results.map(_.threshold)) ~
+		("actual" -> results.map(_.actual))
+		
+	println(pretty(render(timeSeriesJSON)))
 	
 	def indexAndExclude(
 			obsByDate: SortedMap[YearMonth, Int], 
