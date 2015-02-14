@@ -36,11 +36,11 @@ object RServeHelper extends Logging{
 		}
 	}
 	
-	def ensureRunning(attempts: Int = 5, daemonizeThreads: Boolean = true){
-		getConnection(attempts)
+	def ensureRunning(initialAttempts: Int = 1, postStartAttempts: Int = 10, daemonizeThreads: Boolean = true){
+		getConnection(initialAttempts)
 			.recoverWith{case _ => 
 				startRserve(daemonizeThreads)
-				getConnection(attempts)
+				getConnection(postStartAttempts)
 			}
 			.map(_.close())
 			.recover{case _ => throw new Exception("Failed to find or start Rserve")}
@@ -50,7 +50,7 @@ object RServeHelper extends Logging{
 	private def startRserve(daemonizeThreads: Boolean){
 		implicit def toLines(in: InputStream) = Source.fromInputStream(in).getLines
 		
-		log.info("Start Rserve")
+		log.info("Starting new Rserve process (daemon = {})", daemonizeThreads)
 		val io = new ProcessIO(
 					in => in.close,
 					out => {
