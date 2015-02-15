@@ -13,7 +13,6 @@ import org.rosuda.REngine.Rserve.RConnection
 import sampler.r.rserve.RServeHelper
 import java.time._
 import java.time.Year
-import org.threeten.extra.Interval
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit._
 import java.time.temporal.ChronoField
@@ -24,6 +23,9 @@ import java.time.temporal.TemporalUnit
 import scala.collection.SortedMap
 import org.json4s.JsonAST.JValue
 import org.json4s.native.JsonMethods
+import java.nio.charset.Charset
+import java.nio.file.Path
+import java.io.OutputStream
 
 object EDS extends App{
 	val resultsDir = Paths.get("results", "farrington")
@@ -54,7 +56,7 @@ object EDS extends App{
 	val results = try{
 		val indexedData = indexAndExclude(countData, exclude2001)
 	
-		(0 to 10).map{i => 
+		(0 to 40).map{i => 
 			val series = extractWindow(indexedData.dropRight(i))
 			Farrington.run(series, rCon)
 		}
@@ -62,15 +64,20 @@ object EDS extends App{
 		rCon.close
 		RServeHelper.shutdown
 	}
-	
+
 	val timeSeriesJSON = 
-		("input" -> input.toString()) ~
+		("source" -> input.toString()) ~
 		("month" -> results.map(_.date.yearMonth.toString)) ~
+		("monthId" -> results.map(_.date.idx)) ~
 		("expected" -> results.map(_.expected)) ~
 		("threshold" -> results.map(_.threshold)) ~
 		("actual" -> results.map(_.actual))
 		
-	println(pretty(render(timeSeriesJSON)))
+	FreeMarkerHelper.writeFile(
+		Map("jsonData" -> pretty(render(timeSeriesJSON))),
+		"plot.ftl",
+		resultsDir.resolve("output.html") 
+	)	
 	
 	def indexAndExclude(
 			obsByDate: SortedMap[YearMonth, Int], 

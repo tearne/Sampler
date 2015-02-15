@@ -59,9 +59,6 @@ lazy val core = project.in(file("sampler-core"))
 	.settings(commonSettings: _*)
 	//.settings(assySettings: _*)
 	.settings(packageSettings: _*)
-	.settings(
-		name := "sampler-core"
-	)
 	
 lazy val arrr = (project in file("sampler-r"))
 	.dependsOn(core)
@@ -104,7 +101,8 @@ lazy val spike = project.in(file("sampler-spike"))
 			"org.json4s" %% "json4s-native" % "3.2.10",
 			"rengine" % "rengine" % "2015-01-20" from "http://rforge.net/Rserve/files/REngine.jar",
 			"rserveengine" % "rserveengine" % "2015-01-20" from "http://rforge.net/Rserve/files/RserveEngine.jar",
-			"ch.qos.logback" % "logback-classic" % "1.1.1"
+			"ch.qos.logback" % "logback-classic" % "1.1.1",
+			"org.freemarker" % "freemarker" % "2.3.21"
 		)	
 	)
 	.settings(
