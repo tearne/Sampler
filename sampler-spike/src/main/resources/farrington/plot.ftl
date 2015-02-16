@@ -27,12 +27,10 @@ body {
 	<script src="http://d3js.org/d3.v3.js"></script>
 	<script>
 		//Using eg at http://bl.ocks.org/mbostock/3884955
-		var margin = {
-			top : 20,
-			right : 20,
-			bottom : 30,
-			left : 50
-		}, width = 800 - margin.left - margin.right, height = 300 - margin.top - margin.bottom;
+		var margin = 
+			{top : 20, right : 80, bottom : 30, left : 50}, 
+			width = 800 - margin.left - margin.right, 
+			height = 300 - margin.top - margin.bottom;
 
 		var parseYearMonth = d3.time.format("%Y-%m").parse;
 
@@ -72,6 +70,11 @@ body {
 				})
 			};
 		});
+		
+		linesData.forEach(function(d) {
+			d.values.sort();
+			d.values.reverse();
+		});
 
 		x.domain(d3.extent(jsonData.month));
 		y.domain(d3.extent(jsonData.actual.concat(jsonData.threshold)));
@@ -91,12 +94,12 @@ body {
 			.style("text-anchor", "end")
 			.text("Value");
 
-		var plot = svg.selectAll(".path")
+		var linePlots = svg.selectAll(".path")
 			.data(linesData)
 			.enter()
 			.append("g")
 			
-		plot.append("path")
+		linePlots.append("path")
 			.attr("class", "line")
 			.attr("d", function(d) {
 				return line(d.values);
@@ -105,8 +108,13 @@ body {
 				return colour(d.name);
 			});
 		
-		//plot.append("text")
-		//	.datam(function(d){return {name: d.name, value: d.values[d.values.length - 1]};})
-		//	.attr("transform", function(d) { return })
+		linePlots.append("text")
+			.datum(function(d) {
+				return {name: d.name, value: d.values[d.values.length - 1]}; })
+			.attr("transform", function(d) { 
+				return "translate(" + x(d.value.x) + "," + y(d.value.y) + ")"; })
+			.attr("x", 3)
+			.attr("dy", ".35em")
+			.text(function(d) {return d.name; })
 	</script>
 </body>
