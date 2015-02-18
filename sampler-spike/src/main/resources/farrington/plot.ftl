@@ -26,7 +26,6 @@ body {
 <body>
 	<script src="http://d3js.org/d3.v3.js"></script>
 	<script>
-		//Using eg at http://bl.ocks.org/mbostock/3884955
 		var margin = 
 			{top : 20, right : 80, bottom : 30, left : 50}, 
 			width = 800 - margin.left - margin.right, 
