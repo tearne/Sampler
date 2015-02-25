@@ -59,6 +59,9 @@ lazy val core = project.in(file("sampler-core"))
 	.settings(commonSettings: _*)
 	//.settings(assySettings: _*)
 	.settings(packageSettings: _*)
+	.settings(
+		name := "sampler-core"
+	)
 	
 lazy val arrr = (project in file("sampler-r"))
 	.dependsOn(core)
