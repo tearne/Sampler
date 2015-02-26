@@ -105,7 +105,7 @@ trend=1          #denotes trend is included
 if (!( (tvalue>ttest | tvalue < -ttest) & expectedc<=max(basecont)))  { 
 	expected<-expected*0+exp(param0)
 	expectedc<-exp(param0)
-	trend="noTrend"
+	trend=0
 	p<-1
 	calc<-sum(disp())
 	calc2<-1/(n-p)

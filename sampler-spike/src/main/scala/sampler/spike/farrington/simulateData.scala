@@ -25,30 +25,45 @@ import sampler.r.process.ScriptRunner
   
   Author:    Teedah Saratoon
   Date:      19/02/2015
-  Last edit: 24/02/2015
+  Last edit: 26/02/2015
   
   ==========
-  INPUTS:
+  USER-DEFINED PARAMETERS:
 
-	nYears       No. of years for which to simulate data
-	period       Intervals at which to simulate data ("weekly" or "monthly")
+	nYears          No. of years for which to simulate data
+	period          Intervals at which to simulate data ("weekly" or "monthly")
+  
+  outbreakLength  Length of outbreak ("short" or "long")
 	
-	alpha        
-	beta         Linear trend
-	m            Seasonality (0 = none, 1 = annual, 2 = biannual)
-	gamma_1      Controls magnitude of peaks
-	gamma_2      Controls magnitude of troughs
-	dispersion   Dispersion parameter
+	alpha           
+	beta            Linear trend
+	m               Seasonality (0 = none, 1 = annual, 2 = biannual)
+	gamma_1         Controls magnitude of peaks
+	gamma_2         Controls magnitude of troughs
+	dispersion      Dispersion parameter
+  
+  k               Parameter which controls the magnitude of the outbreak
+               
+  csvName         Name of CSV file to store simulated data from Scala          
+  scriptName      Name of R script to import the CSV and plot the data
+  pdfName         Name of PDF containing the plots
 	
 	=========
+  FUNCTIONS:
+  
+  sumFunction     Performs sum of a function of an integer from a to b
+  addList         Adds a list of values at the specified indices to a given sequence
+  
+  =========  
 	OUTPUTS:
 		
-	sim_data   Simulated outbreak data
- 
- */
+	dataBaseline    Simulated baseline data
+  dataOutbreak    Simulated data with outbreak
+  outbreakIdx     List of outbreak data in form List(month, no. of cases)
+  
+  */
 
 object simulateData  extends App {
-  
 
   //=======================
   // User-defined parameters
@@ -57,12 +72,18 @@ object simulateData  extends App {
   val nYears = 38.5
   
   // Choose to simulate data each "week" or "month"
-  // period = "week"
+  // period = "week"  // Not compatible with EDS yet: choose period = "month"
   val period = "month"
   
   // Choose "short" or "long" outbreaks
   // outbreakLength = "short"
   val outbreakLength = "long"
+  
+  // Define end of each period
+  //Baseline -> Pre-outbreak -> Outbreak -> Post-outbreak
+  val endBaseline = 146
+  val endPreOutbreak = 182
+  val endOutbreak = 282
   
   // Set of parameters to control baseline data
   val alpha = 1.5
@@ -72,8 +93,16 @@ object simulateData  extends App {
   val gamma_2 = -0.4
   val dispersion = 1.0
   
-  // Set of parameters to control outbreak data
-  val k = 20
+  // Parameter to control magnitude of outbreak data
+  val k = 10
+  
+  // Identifiers for results files
+  val csvName = "simData.csv" // CSV file to store simulated data from Scala
+  val scriptName = "plotSimData.r" // R script to import the CSV and plot the data
+  val pdfName = "simulatedOutbreakData.pdf" // PDF containing the plots
+  
+  // Choose directory to place simulated data
+  val resultsDir = Paths.get("results", "simulatedOutbreakData")
   
   //=======================
   // Function definitions
@@ -88,6 +117,9 @@ object simulateData  extends App {
     loop(a,0)    
   }
   
+  // Function of j which is to be summed from j= 1 to m:
+  def sumTerm(j: Int): Double = gamma_1*math.cos(2*math.Pi*j*nYears) + gamma_2*math.sin(2*math.Pi*j*nYears)
+		  
   // Adds a list of values at the specified indices to a given sequence
   def addList(current: IndexedSeq[Int], toDo: List[(Int, Int)]): IndexedSeq[Int] = {
     @tailrec
@@ -99,37 +131,40 @@ object simulateData  extends App {
   }
   
   //=======================
-  // Simulate baseline data
+  // Calculate years and months to assign to data
+  
+  val endYear = 2014
+  val startYear = math.round(endYear - nYears)
   
   // Calculate number of intervals in a year (e.g. 12 if looking monthly)
   val nIntervals: Int = if (period == "week") 52 else 12
   println("Time units are in " + period + "s")
   
-  // Calculate number of data points in the baseline data
+  // Calculate number of data points
   val nData = (nYears*nIntervals).toInt
   println("No. of " + period + "s = " + nData)
+   
+  val month = (1 to nData).map(i => (i-1) % 12 + 1)
   
-  // Define function of j which appears in the sum from j= 1 to m:
-  def sumTerm(j: Int): Double = gamma_1*math.cos(2*math.Pi*j*nYears) + gamma_2*math.sin(2*math.Pi*j*nYears)
-		  
+  val year = (1 to nData).map(i => startYear + ((i-1) / 12))
+  println("Data starts at " + year(0) + "-" + month(0))
+  
+  //=======================
+  // Simulate baseline data
+  
   // Calculate mean counts
   val mean_baseline = math.exp(alpha + beta*nData + sumFunction(sumTerm)(1,m))
-  println("Mean counts of baseline data = " + mean_baseline)
+  //println("Mean counts of baseline data = " + mean_baseline)
   
+  // Sample baseline data from a Poisson distribution
+  // Poisson is used since variance is equal to mean (since dispersion = 1)
+  // If dispersion > 1 use a negative binomial
   val rng = new PoissonDistribution(mean_baseline)
   val dataBaseline = (1 to nData).map(_ => rng.sample())
    
   //=======================
   // Simulate outbreak data
   
-  // Define end of each period
-  //Baseline -> Pre-outbreak -> Outbreak -> Post-outbreak  
-  //val endBaseline = math.round(nData.toFloat / 3f)
-  //val endPreOutbreak = math.round(nData.toFloat * 4f / 9f)
-  //val endOutbreak = math.round(nData.toFloat * 2f / 3f)
-  val endBaseline = 146
-  val endPreOutbreak = 182
-  val endOutbreak = 282
   println("Baseline period ends at " + period + " " + endBaseline)
   println("Per-outbreak period ends at " + period + " " + endPreOutbreak)
   println("Outbreak period ends at " + period + " " + endOutbreak)
@@ -138,7 +173,9 @@ object simulateData  extends App {
   // tOutbreak = sample(periodOutbreak.head:periodOutbreak.last,nSimulations,replace=T)
   val rnd = new Random  
   val tOutbreak = (endPreOutbreak + 1) + rnd.nextInt(endOutbreak - endPreOutbreak)
-  println("Outbreak occurs at " + period + " " + tOutbreak)  
+  println("Outbreak period is " + year(endPreOutbreak) + "-" + month(endPreOutbreak) + " to " + year(endOutbreak) + "-" + month(endOutbreak))
+  println("Outbreak occurs at " + period + " " + tOutbreak)
+  println("Outbreak date = " + year(tOutbreak-1)+ "-" + month(tOutbreak-1))
   
   // Calculate standard deviation of the baseline count at each tOutbreak
   def stdDev(data: IndexedSeq[Int], mean: Double): Double = {
@@ -172,57 +209,68 @@ object simulateData  extends App {
   
   // Add to baseline data
   val dataOutbreak = addList(dataBaseline,outbreakIdx)
-	
+  
+  val tEnd = tOutbreak + outbreakIdx.length
+  
   //=======================
   // Output and plot
   
-  val csvName = "results.csv"
+  // Create a directory to store results
+  Files.createDirectories(resultsDir)
   
-  // Write to .csv file
-  val writer = Files.newBufferedWriter(Paths.get(csvName), Charset.defaultCharset())
-  writer.write("Baseline, Outbreak")
-  writer.newLine
-  dataBaseline.foreach{d => 
-    writer.write(s"${d.toString}, ${dataOutbreak(d).toString}")
-    writer.newLine   
+  //println(dataBaseline)
+  //println(dataOutbreak)
+   
+  // Write baseline and outbreak data to CSV file
+  val writer = Files.newBufferedWriter(resultsDir.resolve(csvName), Charset.defaultCharset())
+  //writer.write("Year, Month, Baseline, Outbreak")
+  //writer.newLine
+  for (i <- 0 until nData) {
+    writer.write(s"${year(i).toString}, ${month(i).toString}, ${dataBaseline(i).toString}, ${dataOutbreak(i).toString}")
+    writer.newLine
   }
   writer.close
   
-  // Export to R and plot
+  // Write R script which imports and plots data in a pdf
   val rScript = 
   s"""  
-  setwd("ENVIRONMENT/workspaces/Sampler/sampler-spike")
+    
   data = read.csv("$csvName")
   
-  pdf("simulatedOutbreakData.pdf", width=4.13, height=2.91) #A7 landscape paper
+  dataBaseline = data[[3]]
+  dataOutbreak = data[[4]]
+  
+  nData = length(dataBaseline)
+  
+  cmin = min(c(dataBaseline,dataOutbreak))
+  cmax = max(c(dataBaseline,dataOutbreak))
+  
+  pdf("$pdfName", width=4.13, height=2.91) #A7 landscape paper
   
   plot(1:nData,dataBaseline,"l",
-     main = "Simulated baseline data",
-     xlab = "Months",
-     ylab = "No. of cases")
+    ylim = c(cmin,cmax),
+    main = "Simulated baseline data",
+    xlab = "Months",
+    ylab = "No. of cases")
 
   plot(1:nData,dataOutbreak,"l",
-       main = "Simulated outbreak data",
-       xlab = "Months",
-       ylab = "No. of cases")
+    ylim = c(cmin,cmax),
+    main = "Simulated outbreak data",
+    xlab = "Months",
+    ylab = "No. of cases")
   
-  plot(1:nData,dataOutbreak-dataBaseline,"l",
-       main = "Outbreak cases",
-       xlab = "Months",
-       ylab = "No. of cases")
+  outbreakCases = dataOutbreak - dataBaseline
+  barplot(outbreakCases[$tOutbreak:$tEnd],
+    names.arg=as.character(c($tOutbreak:$tEnd)),
+    main = "Outbreak cases",
+    xlab = "Months",
+    ylab = "No. of cases")
   
   dev.off()
   """
-   
-  val wd = Paths.get("results").resolve("simulatedOutbreakData")
   
-  println(wd)
-  
-  Files.createDirectories(wd)
-  
-  ScriptRunner.apply(rScript, wd.resolve("script.r"))
-  
-  
-  
-  
+  // Run the script in R and save the resulting PDF in the results directory
+  ScriptRunner.apply(rScript, resultsDir.resolve(scriptName))
+
+
 }
