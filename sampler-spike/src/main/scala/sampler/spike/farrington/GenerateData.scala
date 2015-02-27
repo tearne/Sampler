@@ -124,21 +124,20 @@ object GenerateData {
     val poi_outbreak = new Poisson(k * sd)
     val nCases = poi_outbreak.sample()
     
-    // Outbreak shape: Log normal with mean=0 and sd=0.5
-    val outbreakShape = LogNormal(0,0.5).sample(nCases)
-    
     // Distribute over required period (~3 months for short, ~6 months for long)
     val outbreakDistribution = 
       if (outbreakLength == "short")
-        outbreakShape.sorted.map(x => math.floor(x).toInt)
+        LogNormal(0,0.5).sample(nCases).sorted.map(x => math.floor(x).toInt)
       else
-        outbreakShape.sorted.map(x => math.floor(2*x).toInt)
+        LogNormal(0,0.5).sample(nCases).sorted.map(x => math.floor(2*x).toInt)
     
     // Count number of outbreak cases for each month of the outbreak
-    val outbreakHist = outbreakDistribution.groupBy(w => w).mapValues(_.size).toList.sorted
+    val outbreakHist = 
+      outbreakDistribution.groupBy(w => w).mapValues(_.size).toList.sorted
     
     // Create list of pairs of time index and number of cases to be added
-    val outbreakIdx = outbreakHist.map{case (key, value) => (key+tOutbreak-1, value)}
+    val outbreakIdx =
+      outbreakHist.map{case (key, value) => (key+tOutbreak-1, value)}
     
     // Add to baseline data to return simulated outbreak data
     addList(dataBaseline,outbreakIdx)
