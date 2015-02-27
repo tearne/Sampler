@@ -1,6 +1,5 @@
 package sampler.spike.farrington
 
-import org.apache.commons.math3.distribution.PoissonDistribution
 import scala.util.Random
 import breeze.stats.distributions.LogNormal
 import scala.annotation.tailrec
@@ -8,14 +7,19 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.charset.Charset
 import sampler.r.process.ScriptRunner
+import breeze.stats.distributions.Poisson
+import breeze.stats.distributions.NegativeBinomial
 
 
 /*
   =========
   NOTES:
-  Function simulates outbreak data for the EDS using a negative binomial
+  Simulates outbreak data for the EDS using a negative binomial
   model with dispersion parameter >= 1
   (Note that a Poission distribution is used if dispersion parameter == 1)
+  
+  Files are saved to a .csv file and imported in R for plotting.
+  The resulting plots are saved to a pdf.
   
   Follows the method outlined in
   Noufaily et al., Statist. Med. 2013 (32) 1206-1222
@@ -51,7 +55,9 @@ import sampler.r.process.ScriptRunner
 	=========
   FUNCTIONS:
   
+  stdDev          Calculates standard deviation
   sumFunction     Performs sum of a function of an integer from a to b
+  sumTerm         Function of j which is to be summed from j= 1 to m:
   addList         Adds a list of values at the specified indices to a given sequence
   
   =========  
@@ -107,6 +113,11 @@ object simulateData  extends App {
   //=======================
   // Function definitions
   
+  // Calculates standard deviation
+  def stdDev(data: IndexedSeq[Int], mean: Double): Double = {
+    data.map(x => math.pow(x - mean, 2)).sum / nData
+  }
+  
   // Performs sum of a function of an integer from integer a to integer b
   def sumFunction(f: Int => Double)(a: Int, b: Int): Double = {
     @tailrec
@@ -118,15 +129,21 @@ object simulateData  extends App {
   }
   
   // Function of j which is to be summed from j= 1 to m:
-  def sumTerm(j: Int): Double = gamma_1*math.cos(2*math.Pi*j*nYears) + gamma_2*math.sin(2*math.Pi*j*nYears)
+  def sumTerm(j: Int): Double = {
+    gamma_1*math.cos(2*math.Pi*j*nYears) +
+    gamma_2*math.sin(2*math.Pi*j*nYears)
+  }
 		  
   // Adds a list of values at the specified indices to a given sequence
-  def addList(current: IndexedSeq[Int], toDo: List[(Int, Int)]): IndexedSeq[Int] = {
-    @tailrec
-    def loop(update: IndexedSeq[Int], toDo: List[(Int, Int)]): IndexedSeq[Int] = {
-      if (toDo.size == 0) update
-      else loop(update.updated(toDo.head._1, update(toDo.head._1) + toDo.head._2), toDo.tail)
-    }
+  def addList(
+      current: IndexedSeq[Int],
+      toDo: List[(Int, Int)]
+    ): IndexedSeq[Int] = {
+      @tailrec
+      def loop(update: IndexedSeq[Int], toDo: List[(Int, Int)]): IndexedSeq[Int] = {
+        if (toDo.size == 0) update
+        else loop(update.updated(toDo.head._1, update(toDo.head._1) + toDo.head._2), toDo.tail)
+  }
     loop(current,toDo)
   }
   
@@ -157,10 +174,20 @@ object simulateData  extends App {
   //println("Mean counts of baseline data = " + mean_baseline)
   
   // Sample baseline data from a Poisson distribution
-  // Poisson is used since variance is equal to mean (since dispersion = 1)
+  // Poisson is used if dispersion = 1
   // If dispersion > 1 use a negative binomial
-  val rng = new PoissonDistribution(mean_baseline)
-  val dataBaseline = (1 to nData).map(_ => rng.sample())
+  val dataBaseline = 
+    if (dispersion == 1) {
+      val poi = new Poisson(mean_baseline)
+      poi.sample(nData)
+    }
+    else {
+      val n = mean_baseline / (dispersion - 1) // number of failures
+      val p = 1 - math.pow(dispersion,-1)      // probability of success
+      val nb = new NegativeBinomial(n,p)
+      nb.sample(nData)
+    }
+  
    
   //=======================
   // Simulate outbreak data
@@ -178,15 +205,12 @@ object simulateData  extends App {
   println("Outbreak date = " + year(tOutbreak-1)+ "-" + month(tOutbreak-1))
   
   // Calculate standard deviation of the baseline count at each tOutbreak
-  def stdDev(data: IndexedSeq[Int], mean: Double): Double = {
-		  data.map(x => math.pow(x - mean, 2)).sum / nData
-  }
   val sd = stdDev(dataBaseline, mean_baseline)
   println("Standard deviation of baseline data = " + sd)
     
   // Calculate no. of outbreak cases to simulate
-  val rng_outbreak = new PoissonDistribution(k * sd)
-  val nCases = rng_outbreak.sample()
+  val poi_outbreak = new Poisson(k * sd)
+  val nCases = poi_outbreak.sample()
   println("Number of outbreak cases = " + nCases)
   
   // Outbreak shape: Log normal with mean=0 and sd=0.5
@@ -195,8 +219,10 @@ object simulateData  extends App {
   
   // Distribute over required period (~3 months for short, ~6 months for long)
   val outbreakDistribution = 
-    if (outbreakLength == "short") outbreakShape.sorted.map(x => math.floor(x).toInt)
-    else outbreakShape.sorted.map(x => math.floor(2*x).toInt)
+    if (outbreakLength == "short")
+      outbreakShape.sorted.map(x => math.floor(x).toInt)
+    else
+      outbreakShape.sorted.map(x => math.floor(2*x).toInt)
   //println(outbreakDistribution)
   
   // Count number of outbreak cases for each month of the outbreak

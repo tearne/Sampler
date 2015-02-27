@@ -47,7 +47,7 @@ lazy val packageSettings = Seq(
 )	
 
 lazy val root = project.in(file("."))
-	.aggregate(core, examples, abc, arrr)
+	.aggregate(core, examples, abc, arrr, spike)
 	.settings(commonSettings: _*)
 	.settings(unidocSettings: _*)
 	.settings(

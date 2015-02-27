@@ -33,10 +33,10 @@ import org.apache.commons.math3.random.RandomGenerator
 import org.apache.commons.math3.random.SynchronizedRandomGenerator
 import com.typesafe.config.ConfigFactory
 import sampler.Implicits.RichIndexedSeq
-import sampler.cluster.abc.ABC
-import sampler.cluster.abc.Model
-import sampler.cluster.abc.Prior
-import sampler.cluster.abc.config.ABCConfig
+import sampler.abc.ABC
+import sampler.abc.Model
+import sampler.abc.Prior
+import sampler.abc.config.ABCConfig
 import sampler.data.Distribution
 import sampler.io.CSV
 import sampler.math.Random

@@ -65,80 +65,47 @@ object EDS_simData extends App{
   //=======================
   // User-defined parameters
   
-  // Location of input data
-  val inputLocation = "farrington/simData.csv"
-  
-  // Location to store results
+	// Number of months for which to simulate data:
+	val nData = 462
+	val endYear = 2014 
+	
+	// Choose "short" or "long" outbreaks
+	// outbreakLength = "short"
+	val outbreakLength = "long"
+	
+	// Define end of each period
+	//Baseline -> Pre-outbreak -> Outbreak -> Post-outbreak
+	val endBaseline = 146
+	val endPreOutbreak = 182
+	val endOutbreak = 282
+			
   val resultsDir = "results/farrington"
   
   //=======================
-  // Function definitions
+  // Simulate outbreak data
+    
+  val countData = GenerateData.run(nData, outbreakLength, endPreOutbreak, endOutbreak)
   
-  def indexAndExclude(
-      obsByDate: SortedMap[YearMonth, Int], 
-      exclusions: Set[YearMonth] = Set.empty
-  ): SortedMap[Date, Int] = {
-    assert(!obsByDate.exists{case (ym, _) => exclusions.contains(ym)})
-    
-    val removedExclusions = obsByDate.filterKeys{ym => !exclusions.contains(ym)}
-    val firstDate = removedExclusions.firstKey
-    
-    implicit val dateOrdering = Ordering.by{d: Date => d.idx}
-    
-    removedExclusions.map{case (ym, count) => Date(ym, MONTHS.between(firstDate, ym)) -> count}
+  // Construct sequences of months and years
+  val startYear = math.round(endYear - nData.toDouble/12)  
+  val month = (1 to nData).map(i => (i-1) % 12 + 1)  
+  val year = (1 to nData).map(i => (startYear + ((i-1) / 12)).toInt)
+  
+  // Print relevant information to console:
+  println("No. of months = " + nData)
+  println("Baseline period starts at " + year(0) + "-" + month(0))
+  println("Pre-outbreak period starts at " + year(endBaseline) + "-" + month(endBaseline))
+  println("Outbreak period starts at " + year(endPreOutbreak) + "-" + month(endPreOutbreak))
+  println("Post-outbreak period starts at " + year(endOutbreak) + "-" + month(endOutbreak))
+  
+  // Create TreeMap with form (YearMonth,Count)
+  val dataOutbreak_all = TreeMap{
+    (0 until nData).map{ i => YearMonth.of(year(i), month(i)) -> countData(i) }: _*
   }
   
-  def extractWindow(timeSeries: SortedMap[Date, Int]): SortedMap[Date, Int] = {
-    val lastObsDate = timeSeries.lastKey
-    val window = List(-1, 0, 1).map(v => (v + 12) % 12)
-    val windowLowerBound = lastObsDate.yearMonth.minus(12, YEARS).minus(1, MONTHS)
-    
-    def keep(date: Date) = {
-      val monthRemainder = MONTHS.between(date.yearMonth, lastObsDate.yearMonth) % 12
-      val inWindow = window.exists(_ == monthRemainder)
-      
-      val isAfterStartDate = windowLowerBound.compareTo(date.yearMonth) <= 0 
-      val isBeforeEndDate = MONTHS.between(date.yearMonth, lastObsDate.yearMonth) > 2
-      val isBaseline = inWindow && isAfterStartDate && isBeforeEndDate
-      
-      isBaseline || date == lastObsDate
-    }
-    val t = timeSeries.filterKeys(keep)
-    t
-  }
-  
-  //=======================
-  // Extract data
-  
-  // Create directory to store results
-  Files.createDirectories(Paths.get(resultsDir))
-  
-  // Get full filename of input data
-  val cl = getClass.getClassLoader
-  val input = cl.getResource(inputLocation).toURI()
-  
-  // Extract data and create a map with form Map(Year-Month -> Count)
-  val countData_all = TreeMap{
-    Source.fromFile(input)
-      .getLines()
-      .filter(_.trim.size > 0)
-      .zipWithIndex
-      .map{case (line, idx) =>
-        val toks = line.split(",").map(_.trim.toInt)
-        val year = toks(0)
-        val month = toks(1)
-        val incidentCount = toks(3)
-        YearMonth.of(year, month) -> incidentCount
-      }
-      .toSeq: _*
-  }
-  //println("countData_all = " + countData_all)
-  
-  // Create set of months corresponding to 2001 (for exclusion later)
+  // Exclude set of months corresponding to 2001
   val exclude2001 = (1 to 12).map{m => YearMonth.of(2001, m)}.to[Set]
-  val countData = countData_all.--(exclude2001)
-  
-  //println("countData = " + countData)
+  val dataOutbreak = dataOutbreak_all.--(exclude2001)
   
   //=======================
   // Run Farrington algorithm
@@ -146,11 +113,9 @@ object EDS_simData extends App{
   RServeHelper.ensureRunning()
   val rCon = new RConnection                                                                                                                                        
   val results = try{
-    val indexedData = indexAndExclude(countData, exclude2001)
-    //println(indexedData)
-    (0 to (462-146)).map{i => 
+    val indexedData = indexAndExclude(dataOutbreak, exclude2001)
+    (0 to (nData - endBaseline)).map{i => 
       val series = extractWindow(indexedData.dropRight(i))
-      //println(series)
       Farrington.run(series, rCon)
     }
   } finally {
@@ -159,7 +124,7 @@ object EDS_simData extends App{
   }
   
   val timeSeriesJSON = 
-    ("source" -> input.toString()) ~
+    ("source" -> "Simulated data" ) ~
     ("month" -> results.map(_.date.yearMonth.toString)) ~
     ("monthId" -> results.map(_.date.idx)) ~
     ("expected" -> results.map(_.expected)) ~
@@ -173,5 +138,41 @@ object EDS_simData extends App{
     "plot.ftl",
     Paths.get(resultsDir).resolve("output.html") 
   )
+  
+  //=======================
+  // Function definitions
+  
+  def indexAndExclude(
+      obsByDate: SortedMap[YearMonth, Int], 
+      exclusions: Set[YearMonth] = Set.empty
+      ): SortedMap[Date, Int] = {
+    assert(!obsByDate.exists{case (ym, _) => exclusions.contains(ym)})
+    
+    val removedExclusions = obsByDate.filterKeys{ym => !exclusions.contains(ym)}
+    val firstDate = removedExclusions.firstKey
+        
+        implicit val dateOrdering = Ordering.by{d: Date => d.idx}
+    
+    removedExclusions.map{case (ym, count) => Date(ym, MONTHS.between(firstDate, ym)) -> count}
+  }
+  
+  def extractWindow(timeSeries: SortedMap[Date, Int]): SortedMap[Date, Int] = {
+    val lastObsDate = timeSeries.lastKey
+        val window = List(-1, 0, 1).map(v => (v + 12) % 12)
+        val windowLowerBound = lastObsDate.yearMonth.minus(12, YEARS).minus(1, MONTHS)
+        
+        def keep(date: Date) = {
+      val monthRemainder = MONTHS.between(date.yearMonth, lastObsDate.yearMonth) % 12
+          val inWindow = window.exists(_ == monthRemainder)
+          
+          val isAfterStartDate = windowLowerBound.compareTo(date.yearMonth) <= 0 
+          val isBeforeEndDate = MONTHS.between(date.yearMonth, lastObsDate.yearMonth) > 2
+          val isBaseline = inWindow && isAfterStartDate && isBeforeEndDate
+          
+          isBaseline || date == lastObsDate
+    }
+    val t = timeSeries.filterKeys(keep)
+        t
+  }
   
 }
