@@ -148,7 +148,7 @@ trait AlgorithmComponentImpl extends AlgorithmComponent {
 		    val weightsTable = gen.prevWeightsTable
 		    
 			val samples: Seq[P] = Distribution
-				.fromProbabilityTable(weightsTable)
+				.fromWeightsTable(weightsTable)
 				.until(_.size == getters.getNumParticles(config))
 				.sample
 			
