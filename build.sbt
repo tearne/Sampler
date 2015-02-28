@@ -27,7 +27,8 @@ lazy val commonSettings = Seq(
 		"org.mockito" % "mockito-all" % "1.9.0" %"test->default",
 		"org.slf4j" % "slf4j-api" % "1.7.7",
 		"org.scalaz" %% "scalaz-core" % "7.1.0",
-		"com.novocode" % "junit-interface" % "0.11" % "test"
+		"com.novocode" % "junit-interface" % "0.11" % "test",
+		"org.spire-math" %% "spire" % "0.9.0"
 	)
 )
 

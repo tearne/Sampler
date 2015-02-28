@@ -191,7 +191,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
   }
   
   "Bernoulli trial with probability 1.0" in {
-    val model = Distribution.bernoulliTrial(1)
+    val model = Distribution.bernoulli(1)
     
     val result = (1 to 10).map(_ => model.sample)
     
@@ -199,7 +199,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
   }
   
   "Bernoulli trial with probability zero" in {
-    val model = Distribution.bernoulliTrial(0)
+    val model = Distribution.bernoulli(0)
     
     val result = (1 to 10).map(_ => model.sample)
     
@@ -207,7 +207,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
   }
 
   "Bernoulli trial with probability 80% probability" in {
-    val model = Distribution.bernoulliTrial(0.8)
+    val model = Distribution.bernoulli(0.8)
 		    
 		val result = (1 to 1000).map(_ => model.sample)
 		    

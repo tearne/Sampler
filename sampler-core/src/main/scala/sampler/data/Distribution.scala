@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2012 Crown Copyright 
- *                    Animal Health and Veterinary Laboratories Agency
+ * Copyright (c) 2012-15 Crown Copyright 
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,13 +16,13 @@
 
 package sampler.data
 
-import sampler.math.Random
+import scala.IndexedSeq
 import scala.annotation.tailrec
-import scala.collection.GenSeq
-import scala.collection.parallel.ParSeq
-import scala.math.Numeric.DoubleIsFractional
-import sampler.math.Partition
+
 import sampler.math.AliasTable
+import sampler.math.Partition
+import sampler.math.Random
+import spire.math.Fractional
 
 /** Trait for objects from which we can draw samples
  * 
@@ -71,7 +70,7 @@ trait Distribution[+A] extends Serializable{
 	}
 	
 	/** Builds a new [[sampler.data.Distribution]] by first sampling from this
-	 *  distribution and then using it's value to sample from the parameterised 
+	 *  distribution and then using the value to sample from the parameterised 
 	 *  distribution f.
 	 *  
 	 *  @tparam B the return type of the parameterise distribution f.
@@ -99,6 +98,16 @@ trait Distribution[+A] extends Serializable{
 	/** Builds a new [[sampler.data.Distribution]] by subtracting the samples of another 
 	 *  [[sampler.data.Samplable]] from the samples of this. */
 	def crossCorrelate[B >: A](that: Distribution[B])(implicit n: Numeric[B]) = combine(that)(n.minus _)
+	
+	def +[B >: A](that: Distribution[B])(implicit f: Fractional[B]) = combine(that)(f.plus _)
+	def -[B >: A](that: Distribution[B])(implicit f: Fractional[B]) = combine(that)(f.minus _)
+	def *[B >: A](that: Distribution[B])(implicit f: Fractional[B]) = combine(that)(f.times _)
+	def /[B >: A](that: Distribution[B])(implicit f: Fractional[B]) = combine(that)(f.div _)
+	
+	def +[B >: A](constant: B)(implicit f: Fractional[B]) = map(sampled => f.plus(sampled, constant))
+	def -[B >: A](constant: B)(implicit f: Fractional[B]) = map(sampled => f.minus(sampled, constant))
+	def *[B >: A](constant: B)(implicit f: Fractional[B]) = map(sampled => f.times(sampled, constant))
+	def /[B >: A](constant: B)(implicit f: Fractional[B]) = map(sampled => f.div(sampled, constant))
 }
 
 object Distribution{
@@ -159,6 +168,7 @@ object Distribution{
 	 *  res1: List[String] = List(blue, green)
 	 *  }}}
 	 *  */
+	//TODO reverse list?
 	def withoutReplacement[T](items: IndexedSeq[T], sampleSize: Int)(implicit r: Random) = new Distribution[List[T]]{
 		def sample() = {
 			@tailrec
@@ -173,13 +183,66 @@ object Distribution{
 			takeAnother(Nil, items)
 		}
 	}
+	
+	//TODO test, urgently!
+	//TODO reverse list?
+	def withoutReplacement(
+			populationSize: Int, 
+			populationTrue: Int, 
+			stopWhen: IndexedSeq[Boolean] => Boolean = _ => false
+	)(implicit r: Random) = new Distribution[IndexedSeq[Boolean]]{
+		assert(populationSize >= populationTrue)
+		def sample() = {
+			@tailrec def take(acc: IndexedSeq[Boolean], nTrue: Int, size: Int): IndexedSeq[Boolean] = {
+				if(size ==0 || stopWhen(acc)) acc
+				else {
+					val item = r.nextInt(size) <= nTrue
+					take(acc :+ item, if(item) nTrue - 1 else nTrue, size - 1)
+				}
+			}
+			take(IndexedSeq.empty[Boolean], populationSize, populationTrue)
+		}
+	}
 
 	/** Builds a [[sampler.data.Distribution]] to flip coins.
 	 *  
 	 *  @param probSuccess the probability of success when sampling from this object */
-	def bernoulliTrial(probSuccess: Double)(implicit r: Random) = new Distribution[Boolean]{
+	def bernoulli(probSuccess: Double)(implicit r: Random) = new Distribution[Boolean]{
 	  def sample() = r.nextBoolean(probSuccess)
 	}
+	
+	//TODO test
+	def binomial(probSuccess: Double, trials: Double)(implicit r: Random) = 
+		bernoulli(probSuccess)(r)
+			.until(_.size == trials)
+			.map(_.count(identity))
+			
+	//TODO test
+	def negativeBinomial(numFailures: Int, probSuccess: Double)(implicit r: Random) = {
+		bernoulli(probSuccess)(r)
+			.until(_.count(!_) == numFailures)
+			.map(_.size)
+	}
+	
+	//TODO test
+	def geometric(probSuccess: Double)(implicit r: Random) = 
+		bernoulli(probSuccess)(r)
+			.until(_.last)
+			.map(_.size)
+	
+	//TODO test
+	def hypergeometric(trials: Int, populationSize: Int, populationSuccesses: Int)(implicit r: Random) =
+		withoutReplacement(populationSize, populationSuccesses,_.size == trials)
+			.map(_.count(identity))
+		
+	//TODO test
+	def exponential(rate: Double)(implicit r: Random) = 
+		uniform(0,1).map(x => - math.log(x) / rate)
+			
+	//TODO test
+	def poisson(rate: Double)(implicit r: Random) = 
+		exponential(rate).until(_.sum >= 1).map(_.size - 1)
+	
 	
 	/** Builds a [[sampler.data.Distribution]] to sample from an indexed sequence of values
 	 *  according to the probabilities in a [[sampler.math.Partition]].  Uses the alias method: 
