@@ -10,10 +10,10 @@ import breeze.stats.distributions.LogNormal
 /*
   =========
   NOTES:
-  Function to simulate outbreak data for the EDS.
+  Function to simulate outbreak data for the Early Detection System.
     
-  Uses a negative binomial model if dispersion parameter > 1
-  Uses a Poission distribution if dispersion parameter == 1
+  Uses a negative binomial model if dispersion parameter > 1.
+  Uses a Poission distribution if dispersion parameter == 1.
   
   Follows the method outlined in
   Noufaily et al., Statist. Med. 2013 (32) 1206-1222
@@ -54,7 +54,9 @@ import breeze.stats.distributions.LogNormal
   =========  
   OUTPUT:
   
-  Simulated data with outbreak
+  counts          Outbreak counts at each month
+  hist            Binned count data corresponding to outbreak
+  start           Starting month of outbreak
     
   */
 
@@ -71,6 +73,12 @@ object GenerationParams{
   val default = GenerationParams(1.5, 0, 1, 0.2, -0.4, 1, 10)
 }
 
+case class GenerationResult(
+    counts: IndexedSeq[Int],
+    hist: List[(Int, Int)],
+    start: Int
+  )
+
 object GenerateData {
   
   def run(
@@ -79,7 +87,7 @@ object GenerateData {
       endPreOutbreak: Int,
       endOutbreak: Int,
       params: GenerationParams = GenerationParams.default
-    ): IndexedSeq[Int] = {
+    ): GenerationResult = {
     
     import params._
     
@@ -140,7 +148,9 @@ object GenerateData {
       outbreakHist.map{case (key, value) => (key+tOutbreak-1, value)}
     
     // Add to baseline data to return simulated outbreak data
-    addList(dataBaseline,outbreakIdx)
+    val dataOutbreak = addList(dataBaseline,outbreakIdx)
+    
+    GenerationResult(dataOutbreak, outbreakHist, tOutbreak)
         
   }
   

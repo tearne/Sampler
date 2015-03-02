@@ -30,9 +30,10 @@ import java.io.OutputStream
 /*
   =========
   NOTES:
-  Simulate outbreak data and run an Early Detection System,
-  which uses the Farrington algorithm to calculate the maximum number
-  of outbreak cases that should be expected each month.  
+  Calculates time taken for Early Detection System to detect an outbreak.
+  Uses the Farrington algorithm, which calculates the maximum number
+  of outbreak cases that should be expected each month (threshold) and
+  returns an alert if the actual count exceeds this value.
   
   Follows the method outlined in Farrington et al., 1996
   
@@ -43,8 +44,8 @@ import java.io.OutputStream
   AUTHOR:
   
   Author:    Teedah Saratoon (modified from EDS.scala by Oliver Tearne)
-  Date:      26/02/2015
-  Last edit: 26/02/2015
+  Date:      02/03/2015
+  Last edit: 02/03/2015
   
   ==========
   USER-DEFINED PARAMETERS:
@@ -74,29 +75,30 @@ import java.io.OutputStream
   exceed
   weights
   isAlert
+    
   
   
   */
 
-object EDS_simData extends App{
+object timeToDetection extends App{
   
   //=======================
   // User-defined parameters
   
-	// Number of months for which to simulate data:
-	val nData = 462
-	val endYear = 2014 
-	
-	// Choose "short" or "long" outbreaks
-	// outbreakLength = "short"
-	val outbreakLength = "long"
-	
-	// Define end of each period
-	//Baseline -> Pre-outbreak -> Outbreak -> Post-outbreak
-	val endBaseline = 146
-	val endPreOutbreak = 182
-	val endOutbreak = 282
-			
+  // Number of months for which to simulate data:
+  val nData = 462
+  val endYear = 2014 
+  
+  // Choose "short" or "long" outbreaks
+  // outbreakLength = "short"
+  val outbreakLength = "long"
+  
+  // Define end of each period
+  //Baseline -> Pre-outbreak -> Outbreak -> Post-outbreak
+  val endBaseline = 146
+  val endPreOutbreak = 182
+  val endOutbreak = 282
+      
   val resultsDir = "results/farrington"
   
   //=======================
@@ -132,22 +134,35 @@ object EDS_simData extends App{
   
   //=======================
   // Run Farrington algorithm
-  
+    
   RServeHelper.ensureRunning()
   val rCon = new RConnection                                                                                                                                        
   val results = try{
+    
     val indexedData = indexAndExclude(dataOutbreak, exclude2001)
-    (0 to (nData - endBaseline)).map{i => 
-      val series = extractWindow(indexedData.dropRight(i))
-      Farrington.run(series, rCon)
+    val maxDrop = nData - endBaseline
+    println(maxDrop)
+    
+    def runFarrington(maxDrop: Int): IndexedSeq[Result] = {
+      def loop(i: Int, acc: IndexedSeq[Result]): IndexedSeq[Result] = {
+        val series = extractWindow(indexedData.dropRight(i))
+        val x = Farrington.run(series, rCon)
+        if (x.isAlert) {
+          println("Outbreak detected at month " + i)
+          println("Results so far " + acc :+ x)
+          acc :+ x
+        }
+        else loop(i-1, acc :+ x)
+      }
+      loop(maxDrop, IndexedSeq())
     }
+    
+    runFarrington(maxDrop)
+
   } finally {
     rCon.close
     RServeHelper.shutdown
   }
-  
-  //=======================
-  // Visualisation
   
   val timeSeriesJSON = 
     ("source" -> "Simulated data" ) ~
@@ -156,9 +171,9 @@ object EDS_simData extends App{
     ("expected" -> results.map(_.expected)) ~
     ("threshold" -> results.map(_.threshold)) ~
     ("actual" -> results.map(_.actual))
-  println(timeSeriesJSON)
-  
-  // Create html plot
+    
+    //println(timeSeriesJSON)
+    
   FreeMarkerHelper.writeFile(
     Map("jsonData" -> pretty(render(timeSeriesJSON))),
     "plot.ftl",
