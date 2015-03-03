@@ -74,6 +74,8 @@ object GenerationParams{
 }
 
 case class GenerationResult(
+    year: IndexedSeq[Int],
+    month: IndexedSeq[Int],
     counts: IndexedSeq[Int],
     hist: List[(Int, Int)],
     start: Int
@@ -83,6 +85,7 @@ object GenerateData {
   
   def run(
       nData: Int,
+      endYear: Int,
       outbreakLength: String,
       endPreOutbreak: Int,
       endOutbreak: Int,
@@ -90,6 +93,11 @@ object GenerateData {
     ): GenerationResult = {
     
     import params._
+    
+    // Construct sequences of months and years
+    val startYear = math.round(endYear - nData.toDouble/12)  
+    val year = (1 to nData).map(i => (startYear + ((i-1) / 12)).toInt)
+    val month = (1 to nData).map(i => (i-1) % 12 + 1)  
     
     //=======================
     //Simulate baseline data
@@ -150,7 +158,7 @@ object GenerateData {
     // Add to baseline data to return simulated outbreak data
     val dataOutbreak = addList(dataBaseline,outbreakIdx)
     
-    GenerationResult(dataOutbreak, outbreakHist, tOutbreak)
+    GenerationResult(year, month, dataOutbreak, outbreakHist, tOutbreak)
         
   }
   

@@ -31,12 +31,9 @@ import sampler.r.process.ScriptRunner
 /*
   =========
   NOTES:
-  Simulate outbreak data and run an Early Detection System,
-  which uses the Farrington algorithm to calculate the maximum number
-  of outbreak cases that should be expected each month.  
-  
-  Follows the method outlined in Farrington et al., 1996
-  
+  Script which simulated 100 data sets and calculated times to detection
+  of an outbreak for each simulation.
+     
   Uses default parameters to simulate baseline and outbreak data
   (Scenario 14 in Noufaily et al., Statist. Med. 2013 (32) 1206-1222)
   
@@ -44,71 +41,68 @@ import sampler.r.process.ScriptRunner
   AUTHOR:
   
   Author:    Teedah Saratoon (modified from EDS.scala by Oliver Tearne)
-  Date:      26/02/2015
-  Last edit: 26/02/2015
+  Date:      03/03/2015
+  Last edit: 03/03/2015
   
   ==========
   USER-DEFINED PARAMETERS:
 
-  nData           No. of months for which to simulate data
   
-  outbreakLength  Length of outbreak ("short" or "long")
-               
-  endBaseline     Month in which baseline period ends
-  endPreOutbreak  Month in which pre-outbreak period ends
-  endOutbreak     Month in which outbreak period ends
   
   =========
   FUNCTIONS:
   
-  indexAndExclude
-  extractWindow  
+  
   
   =========  
   OUTPUTS:
     
-  date
-  actual
-  expected
-  threshold
-  trend
-  exceed
-  weights
-  isAlert
+  
   
   
   */
 
-object EDS_simData extends App{
+object EDS_TimeToDetection  extends App{
   
   //=======================
   // User-defined parameters
   
-	// Number of months for which to simulate data:
-	val nData = 462
-	val endYear = 2014 
-	
-	// Choose "short" or "long" outbreaks
-	// outbreakLength = "short"
-	val outbreakLength = "long"
-	
-	// Define end of each period
-	//Baseline -> Pre-outbreak -> Outbreak -> Post-outbreak
-	val endBaseline = 146
-	val endPreOutbreak = 182
-	val endOutbreak = 282
-			
+  // Number of sets of data to simulate
+  val nSimulations = 100
+  
+  // Number of months for which to simulate data:
+  val nData = 462
+  val endYear = 2014 
+  
+  // Choose "short" or "long" outbreaks
+  // outbreakLength = "short"
+  val outbreakLength = "long"
+  
+  // Define end of each period
+  //Baseline -> Pre-outbreak -> Outbreak -> Post-outbreak
+  val endBaseline = 146
+  val endPreOutbreak = 182
+  val endOutbreak = 282
+      
   // Identifiers for results files
   val csvName = "timeToDetection.csv" // CSV file to store simulated data from Scala
   val scriptName = "plotTimeToDetection.r" // R script to import the CSV and plot the data
   val pdfName = "timeToDetection.pdf" // PDF containing the plots
   
-  // Choose directory to place resulting plot
+  // Choose directory to place simulated data
   val resultsDir = Paths.get("results", "farrington")
   
   //=======================
-  // Simulate outbreak data
+  // Simulate outbreak data and calculate time to detect outbreak
     
+  val detectTimes = (0 until 100).map{i =>
+    val data = GenerateData.run(nData, endYear, outbreakLength, endPreOutbreak, endOutbreak)
+    val detected = timeToDetection.run(data, endBaseline)
+    val res = timeToDetection.times(detected, data.start, data.hist)
+    res.times(0)
+  }
+  println(detectTimes)
+ 
   val data = GenerateData.run(nData, endYear, outbreakLength, endPreOutbreak, endOutbreak)
   
   val year = data.year
@@ -117,12 +111,18 @@ object EDS_simData extends App{
   val histData = data.hist
   val tOutbreak = data.start
   
-  val outbreakDuration = histData.size
-  val tEnd = tOutbreak + outbreakDuration - 1
-  
   val detected = timeToDetection.run(data, endBaseline)
   
   val results = detected.results
+  
+  /*
+  
+  val flags = detected.flags
+  
+  val res = timeToDetection.times(detected, tOutbreak, histData)
+  val times = res.times
+  val falsePositives = res.falsePositives
+  val tDetect = times(0)
   
   //=======================
   // Print relevant information to console:
@@ -135,8 +135,13 @@ object EDS_simData extends App{
   println("Post-outbreak period starts at " + endOutbreak + " = " + year(endOutbreak) + "-" + month(endOutbreak))
   
   println("Outbreak begins at month " + tOutbreak + " = " + year(tOutbreak-1) + "-" + month(tOutbreak-1))
-  println("Outbreak occurs during months " + tOutbreak + "-" + tEnd)
-    
+  
+  println(times)
+  println(falsePositives)
+  println(tDetect)
+   
+  */
+  
   //=======================
   // Visualisation
   
@@ -158,6 +163,41 @@ object EDS_simData extends App{
     "plot.ftl",
     resultsDir.resolve("output.html") 
   )
+  
+  /*
+    
+  // Write times to CSV file
+  val writer = Files.newBufferedWriter(resultsDir.resolve(csvName), Charset.defaultCharset())
+  writer.write("Months")
+  writer.newLine
+  for (i <- 0 until nDetections) {
+    writer.write(s"${monthsWithDetection(i).toString}")
+    writer.newLine
+  }
+  writer.close
+  
+  // Write R script which imports and plots data in a pdf
+  val rScript = 
+  s"""
+    
+  data = read.csv("$csvName")
+  
+  nDetections = $nDetections
+  tStart = $tOutbreak
+  tEnd = $tEnd
+  
+  pdf("$pdfName", width=4.13, height=2.91) #A7 landscape paper
+  
+  
+  
+  dev.off()
+  """
+  
+  // Run the script in R and save the resulting PDF in the results directory
+  ScriptRunner.apply(rScript, resultsDir.resolve(scriptName))
+  
+  */
+  
   
   //=======================
   // Function definitions
@@ -194,5 +234,5 @@ object EDS_simData extends App{
     val t = timeSeries.filterKeys(keep)
         t
   }
-  
+
 }
