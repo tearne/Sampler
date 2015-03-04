@@ -50,7 +50,7 @@ trait ModelRunnerComponent[P] {
 		def run(job: GenerateJob[P]): Try[ScoredParticles[P]] = Try{
 			val paramDist: Distribution[P] =  {
 				val weightsTable = job.population.asInstanceOf[Map[P, Double]]
-				Distribution.fromProbabilityTable(weightsTable)
+				Distribution.fromWeightsTable(weightsTable)
 			}
 			
 			val maxParticleRetries = job.config.algorithm.maxParticleRetries
