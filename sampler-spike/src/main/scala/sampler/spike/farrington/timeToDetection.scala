@@ -46,7 +46,7 @@ import java.io.OutputStream
   
   Author:    Teedah Saratoon (modified from EDS.scala)
   Date:      02/03/2015
-  Last edit: 03/03/2015
+  Last edit: 04/03/2015
   
   ==========
   USER-DEFINED PARAMETERS:
@@ -87,8 +87,8 @@ object timeToDetection extends App{
   def run(
       data: GenerationResult,
       endBaseline: Int,
-      exclusions: Set[YearMonth] = Set.empty,
-      stop: Boolean = false
+      stop: String = "consecutive",
+      exclusions: Set[YearMonth] = Set.empty
     ): DetectionResult = {
     
     val year = data.year
@@ -108,18 +108,17 @@ object timeToDetection extends App{
     
     //=======================
     // Calculate time to detection
-    
-    RServeHelper.ensureRunning()
+
     val rCon = new RConnection
     try {    	
     	val indexedData = EDS.indexAndExclude(dataOutbreak, exclusions)
   		val maxDrop = nData - (endBaseline + 1)
-      if (stop == false) runAll(maxDrop, indexedData, rCon)
-      else runUntilDetection(maxDrop, indexedData, rCon)
+      if (stop == "false") runAll(maxDrop, indexedData, rCon)
+      else if (stop == "detect") runUntilDetection(maxDrop, indexedData, rCon)
+      else runUntilConsecutive(maxDrop, indexedData, rCon)
       }    
     finally {
   	  rCon.close
-  	  RServeHelper.shutdown
     }
             
   }
@@ -135,7 +134,9 @@ object timeToDetection extends App{
     val outbreakFlags = data.flags.intersect(tOutbreak to tEnd) 
     val falsePositives = data.flags.diff(tOutbreak to tEnd) 
     
-    val times = outbreakFlags.map(i => i - tOutbreak)
+    val times =
+      if (outbreakFlags.size == 0) IndexedSeq() 
+      else outbreakFlags.map(i => i - tOutbreak)
     
     FlagResult(times, falsePositives)
     
@@ -147,7 +148,8 @@ object timeToDetection extends App{
       rCon: RConnection
     ): DetectionResult = {
     def loop(i: Int, acc: IndexedSeq[Result], flags: IndexedSeq[Int]): DetectionResult = {
-        val series = EDS.extractWindow(indexedData.dropRight(i))
+//      println("loop "+i)  
+      val series = EDS.extractWindow(indexedData.dropRight(i))
         val x = Farrington.run(series, rCon)
         val detected = if (x.isAlert) flags :+ indexedData.size - i else flags
         if (i == 0) DetectionResult(acc :+ x, detected)
@@ -165,8 +167,31 @@ object timeToDetection extends App{
         val series = EDS.extractWindow(indexedData.dropRight(i))
         val x = Farrington.run(series, rCon)
         val index = IndexedSeq(indexedData.size - i)
-        if (x.isAlert) DetectionResult(acc :+ x, index)
+        if (x.isAlert || i == 0) DetectionResult(acc :+ x, index)
         else loop(i-1, acc :+ x)
+      }
+    loop(maxDrop, IndexedSeq())
+  }
+  
+  def runUntilConsecutive(
+      maxDrop: Int,
+      indexedData: SortedMap[Date, Int],
+      rCon: RConnection
+    ): DetectionResult = {
+    def loop(i: Int, acc: IndexedSeq[Result]): DetectionResult = {
+        val series = EDS.extractWindow(indexedData.dropRight(i))
+        val x = Farrington.run(series, rCon)
+        if (i == 0) {
+          DetectionResult(acc :+ x, IndexedSeq(indexedData.size - i))
+        }
+        else { if (acc.size == 0) {
+          loop(i-1, acc :+ x)
+        }
+        else { if (x.isAlert && acc.last.isAlert) {
+          DetectionResult(acc :+ x, IndexedSeq(indexedData.size - i))
+        } else {
+          loop(i-1, acc :+ x)
+        } } }
       }
     loop(maxDrop, IndexedSeq())
   }

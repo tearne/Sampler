@@ -95,16 +95,32 @@ object EDS_TimeToDetection  extends App{
   //=======================
   // Simulate outbreak data and calculate time to detect outbreak
     
-  val detectTimes = (0 until 100).map{i =>
-    val data = GenerateData.run(nData, endYear, outbreakLength, endPreOutbreak, endOutbreak)
-    val detected = timeToDetection.run(data, endBaseline)
-    val res = timeToDetection.times(detected, data.start, data.hist)
-    res.times(0)
-  }
-  println(detectTimes)
- 
-  val data = GenerateData.run(nData, endYear, outbreakLength, endPreOutbreak, endOutbreak)
+  // For multiple simulations:
+  ///*
+
+  RServeHelper.ensureRunning()
+  val detectTimes =
+    (0 until nSimulations).par.map{i =>
+      val data = GenerateData.run(nData, endYear, outbreakLength, endPreOutbreak, endOutbreak)
+      val detected = timeToDetection.run(data, endBaseline)
+      val res = timeToDetection.times(detected, data.start, data.hist)
+      if (res.times.size == 0) -1 else res.times(0)
+  }  
+  RServeHelper.shutdown
   
+  val timesHist = 
+      detectTimes.groupBy(w => w).mapValues(_.size).toList.sorted
+  println("Time to detection = " + timesHist)
+  
+  val pcSuccess = (nSimulations - timesHist(1)._2).toDouble / nSimulations * 100
+  println("Success rate = " + pcSuccess + "%")
+  
+  // For a single simulation:
+  //*/
+ 
+  /*
+  
+  val data = GenerateData.run(nData, endYear, outbreakLength, endPreOutbreak, endOutbreak)
   val year = data.year
   val month = data.month 
   val countData = data.counts
@@ -112,17 +128,13 @@ object EDS_TimeToDetection  extends App{
   val tOutbreak = data.start
   
   val detected = timeToDetection.run(data, endBaseline)
-  
   val results = detected.results
-  
-  /*
-  
   val flags = detected.flags
   
   val res = timeToDetection.times(detected, tOutbreak, histData)
   val times = res.times
   val falsePositives = res.falsePositives
-  val tDetect = times(0)
+  val tDetect = if (res.times.size == 0) "none" else res.times(0)
   
   //=======================
   // Print relevant information to console:
@@ -136,12 +148,12 @@ object EDS_TimeToDetection  extends App{
   
   println("Outbreak begins at month " + tOutbreak + " = " + year(tOutbreak-1) + "-" + month(tOutbreak-1))
   
+  println(histData)
+  
   println(times)
   println(falsePositives)
   println(tDetect)
-   
-  */
-  
+
   //=======================
   // Visualisation
   
@@ -164,14 +176,16 @@ object EDS_TimeToDetection  extends App{
     resultsDir.resolve("output.html") 
   )
   
-  /*
-    
+  */
+      
+  ///*
+  
   // Write times to CSV file
   val writer = Files.newBufferedWriter(resultsDir.resolve(csvName), Charset.defaultCharset())
-  writer.write("Months")
+  writer.write("time, count")
   writer.newLine
-  for (i <- 0 until nDetections) {
-    writer.write(s"${monthsWithDetection(i).toString}")
+  for (i <- 0 until timesHist.size) {
+    writer.write(s"${timesHist(i)._1.toString}, ${timesHist(i)._2.toString}")
     writer.newLine
   }
   writer.close
@@ -181,14 +195,17 @@ object EDS_TimeToDetection  extends App{
   s"""
     
   data = read.csv("$csvName")
-  
-  nDetections = $nDetections
-  tStart = $tOutbreak
-  tEnd = $tEnd
+    
+  times = data[["time"]]
+  count = data[["count"]]
   
   pdf("$pdfName", width=4.13, height=2.91) #A7 landscape paper
   
-  
+  barplot(count,
+        names.arg=as.character(times),
+        main = "Time to detection",
+        xlab = "Time to detect outbreak (months)",
+        ylab = "No. of counts")
   
   dev.off()
   """
@@ -196,7 +213,7 @@ object EDS_TimeToDetection  extends App{
   // Run the script in R and save the resulting PDF in the results directory
   ScriptRunner.apply(rScript, resultsDir.resolve(scriptName))
   
-  */
+  //*/
   
   
   //=======================
