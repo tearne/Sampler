@@ -23,14 +23,14 @@ import breeze.stats.distributions.LogNormal
   
   Author:    Teedah Saratoon
   Date:      27/02/2015
-  Last edit: 27/02/2015
+  Last edit: 04/03/2015
   
   ==========
   INPUTS:
 
   nData          No. of time intervals for which to simulate data
   
-  alpha           
+  alpha           Frequency of reports
   beta            Linear trend
   m               Seasonality (0 = none, 1 = annual, 2 = biannual)
   gamma_1         Controls magnitude of peaks
@@ -70,16 +70,23 @@ case class GenerationParams(
       k: Double
     )
 object GenerationParams{
-  val default = GenerationParams(1.5, 0, 1, 0.2, -0.4, 1, 10)
+  val scenario14 = GenerationParams(1.5, 0, 1, 0.2, -0.4, 1, 10)
+  val scenario1 = GenerationParams(0.1, 0, 0, 0, 0, 1.5, 6)
+  val default = scenario14
 }
 
 case class GenerationResult(
-    year: IndexedSeq[Int],
-    month: IndexedSeq[Int],
-    counts: IndexedSeq[Int],
-    hist: List[(Int, Int)],
-    start: Int
+  year: IndexedSeq[Int],
+  month: IndexedSeq[Int],
+  counts: IndexedSeq[Int],
+  hist: List[(Int, Int)],
+  start: Int
   )
+  
+case class SplitResult(
+  data1: IndexedSeq[Int],
+  data2: IndexedSeq[Int]
+)
 
 object GenerateData {
   
@@ -177,15 +184,32 @@ object GenerateData {
         
   // Adds a list of values at the specified indices to a given sequence
   def addList(
-      current: IndexedSeq[Int],
-      toDo: List[(Int, Int)]
-    ): IndexedSeq[Int] = {
-      @tailrec
-      def loop(update: IndexedSeq[Int], toDo: List[(Int, Int)]): IndexedSeq[Int] = {
-        if (toDo.size == 0) update
-        else loop(update.updated(toDo.head._1, update(toDo.head._1) + toDo.head._2), toDo.tail)
-  }
+    current: IndexedSeq[Int],
+    toDo: List[(Int, Int)]
+  ): IndexedSeq[Int] = {
+    @tailrec
+    def loop(update: IndexedSeq[Int], toDo: List[(Int, Int)]): IndexedSeq[Int] = {
+      if (toDo.size == 0) update
+      else loop(update.updated(toDo.head._1, update(toDo.head._1) + toDo.head._2), toDo.tail)
+    }
     loop(current,toDo)
   }
+  
+  def splitOutbreak(
+    dataBaseline: IndexedSeq[Int],
+    outbreakHist: List[(Int, Int)]
+  ): SplitResult = {
+    
+    //val count1 = outbreakHist.map(_._2 => )
+    
+    //val outbreakIdx1 =
+      //outbreakHist.map{case (key, value) => (key+tOutbreak-1, count1)}
+    
+    //val outbreakIdx2 =
+      //outbreakHist.map{case (key, value) => (key+tOutbreak-1, count2)}
+    
+    SplitResult(dataBaseline, dataBaseline)
+  }
+      
 
 }
