@@ -31,23 +31,34 @@ import sampler.r.process.ScriptRunner
 /*
   =========
   NOTES:
-  Script which simulated 100 data sets and calculated times to detection
-  of an outbreak for each simulation.
+  Script which simulates a number of simulated outbreak data sets
+  and calculates time to detect the outbreak for each simulation.
      
   Uses default parameters to simulate baseline and outbreak data
-  (Scenario 14 in Noufaily et al., Statist. Med. 2013 (32) 1206-1222)
+  (Default is Scenario 14 in Noufaily et al., Statist. Med. 2013 (32) 1206-1222)
   
   =========
   AUTHOR:
   
   Author:    Teedah Saratoon (modified from EDS.scala by Oliver Tearne)
   Date:      03/03/2015
-  Last edit: 03/03/2015
+  Last edit: 04/03/2015
   
   ==========
   USER-DEFINED PARAMETERS:
 
+  nSimulations
+  nData
+  endYear
+  outbreakLength
+  endBaseline
+  endPreOutbreak
+  endOutbreak
   
+  csvName
+  scriptName
+  pdfName
+  resultsDir
   
   =========
   FUNCTIONS:
@@ -57,7 +68,9 @@ import sampler.r.process.ScriptRunner
   =========  
   OUTPUTS:
     
-  
+  detectTimes
+  timesHist
+  successRate
   
   
   */
@@ -68,7 +81,7 @@ object EDS_TimeToDetection  extends App{
   // User-defined parameters
   
   // Number of sets of data to simulate
-  val nSimulations = 100
+  val nSimulations = 10
   
   // Number of months for which to simulate data:
   val nData = 462
@@ -112,9 +125,17 @@ object EDS_TimeToDetection  extends App{
       detectTimes.groupBy(w => w).mapValues(_.size).toList.sorted
   println("Time to detection = " + timesHist)
   
-  val pcSuccess = (nSimulations - timesHist(1)._2).toDouble / nSimulations * 100
-  println("Success rate = " + pcSuccess + "%")
+  val successRate = (nSimulations - timesHist(1)._2).toDouble / nSimulations * 100
+  println("Success rate = " + successRate + "%")
   
+  val data = GenerateData.run(nData, endYear, outbreakLength, endPreOutbreak, endOutbreak)
+  val splitData = GenerateData.splitOutbreak(data)
+  
+  println(data.hist)
+  println(splitData.data1.hist)
+  println(splitData.data2.hist)
+  
+   
   // For a single simulation:
   //*/
  
@@ -215,41 +236,4 @@ object EDS_TimeToDetection  extends App{
   
   //*/
   
-  
-  //=======================
-  // Function definitions
-  
-  def indexAndExclude(
-      obsByDate: SortedMap[YearMonth, Int], 
-      exclusions: Set[YearMonth] = Set.empty
-      ): SortedMap[Date, Int] = {
-    assert(!obsByDate.exists{case (ym, _) => exclusions.contains(ym)})
-    
-    val removedExclusions = obsByDate.filterKeys{ym => !exclusions.contains(ym)}
-    val firstDate = removedExclusions.firstKey
-        
-        implicit val dateOrdering = Ordering.by{d: Date => d.idx}
-    
-    removedExclusions.map{case (ym, count) => Date(ym, MONTHS.between(firstDate, ym)) -> count}
-  }
-  
-  def extractWindow(timeSeries: SortedMap[Date, Int]): SortedMap[Date, Int] = {
-    val lastObsDate = timeSeries.lastKey
-        val window = List(-1, 0, 1).map(v => (v + 12) % 12)
-        val windowLowerBound = lastObsDate.yearMonth.minus(12, YEARS).minus(1, MONTHS)
-        
-        def keep(date: Date) = {
-      val monthRemainder = MONTHS.between(date.yearMonth, lastObsDate.yearMonth) % 12
-          val inWindow = window.exists(_ == monthRemainder)
-          
-          val isAfterStartDate = windowLowerBound.compareTo(date.yearMonth) <= 0 
-          val isBeforeEndDate = MONTHS.between(date.yearMonth, lastObsDate.yearMonth) > 2
-          val isBaseline = inWindow && isAfterStartDate && isBeforeEndDate
-          
-          isBaseline || date == lastObsDate
-    }
-    val t = timeSeries.filterKeys(keep)
-        t
-  }
-
 }
