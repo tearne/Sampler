@@ -70,7 +70,7 @@ case class GenerationParams(
       k: Double
     )
 object GenerationParams{
-  val scenario14 = GenerationParams(1.5, 0, 1, 0.2, -0.4, 1, 10)
+  val scenario14 = GenerationParams(1.5, 0, 1, 0.2, -0.4, 1, 6)
   val scenario1 = GenerationParams(0.1, 0, 0, 0, 0, 1.5, 6)
   val default = scenario14
 }
@@ -81,7 +81,8 @@ case class GenerationResult(
   baseline: IndexedSeq[Int],
   counts: IndexedSeq[Int],
   hist: List[(Int, Int)],
-  start: Int
+  start: Int,
+  end: Int
   )
   
 case class SplitResult(
@@ -163,10 +164,13 @@ object GenerateData {
     val outbreakIdx =
       outbreakHist.map{case (key, value) => (key+tOutbreak-1, value)}
     
+    // Last month of outbreak
+    val tEnd = outbreakIdx.last._1 + 1
+    
     // Add to baseline data to return simulated outbreak data
     val dataOutbreak = addList(dataBaseline,outbreakIdx)
     
-    GenerationResult(year, month, dataBaseline, dataOutbreak, outbreakHist, tOutbreak)
+    GenerationResult(year, month, dataBaseline, dataOutbreak, outbreakHist, tOutbreak, tEnd)
         
   }
   
@@ -200,43 +204,55 @@ object GenerateData {
     
     val outbreakHist = data.hist
     val tOutbreak = data.start
-    
-    val rnd = new Random  
-    val count1 = outbreakHist.map{
-      case (key, value) => (key, 1 + rnd.nextInt(value))
+    val nData = data.baseline.length
+     
+    def splitData(list: List[(Int, Int)]) = {
+      val rnd = new Random
+      val count1 = list.map{ 
+        case (key, value) => (key, rnd.nextInt(value + 1))
+      }
+      val count1_indexed = count1.zipWithIndex
+      val count2_indexed = count1_indexed.map{
+        case ((key, value), i) => ((key, list(i)._2 - value), i)
+      }
+      val (count2, index) = count2_indexed.unzip
+      
+      (count1, count2)
+      
     }
     
-    val count1_indexed = count1.zipWithIndex
-    val count2_indexed = count1_indexed.map{
-      case ((key, value), i) => ((key, outbreakHist(i)._2 - value), i)
-    }
-    val (count2, index) = count2_indexed.unzip
+    val (baseline1, baseline2) =
+      splitData((1 to nData).map(i => (i,data.baseline(i-1))).toList)
+    val dataBaseline1 = baseline1.map(i => i._2).toIndexedSeq
+    val dataBaseline2 = baseline2.map(i => i._2).toIndexedSeq
     
+    val (count1, count2) = splitData(outbreakHist)    
     val outbreakIdx1 =
-      count1.map{case (key, value) => (key+tOutbreak-1, value)}
-    
+      count1.map{case (key, value) => (key+tOutbreak-1, value)}    
     val outbreakIdx2 =
       count2.map{case (key, value) => (key+tOutbreak-1, value)}
        
-    val dataOutbreak1 = addList(data.baseline,outbreakIdx1)
-    val dataOutbreak2 = addList(data.baseline,outbreakIdx2)
+    val dataOutbreak1 = addList(dataBaseline1,outbreakIdx1)
+    val dataOutbreak2 = addList(dataBaseline2,outbreakIdx2)
     
     val data1 = GenerationResult(
       data.year,
       data.month,
-      data.baseline,
+      dataBaseline1,
       dataOutbreak1,
       count1,
-      data.start
+      data.start,
+      data.end
     )
       
     val data2 = GenerationResult(
       data.year,
       data.month,
-      data.baseline,
+      dataBaseline2,
       dataOutbreak2,
       count2,
-      data.start
+      data.start,
+      data.end
     )
       
     SplitResult(data1, data2)

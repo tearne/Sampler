@@ -120,7 +120,7 @@ object EDS_simData extends App{
   val outbreakDuration = histData.size
   val tEnd = tOutbreak + outbreakDuration - 1
   
-  val detected = timeToDetection.run(data, endBaseline)
+  val detected = EDS.run(data, endBaseline)
   
   val results = detected.results
   

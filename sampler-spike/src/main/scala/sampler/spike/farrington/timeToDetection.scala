@@ -46,7 +46,7 @@ import java.io.OutputStream
   
   Author:    Teedah Saratoon (modified from EDS.scala)
   Date:      02/03/2015
-  Last edit: 04/03/2015
+  Last edit: 05/03/2015
   
   ==========
   USER-DEFINED PARAMETERS:
@@ -72,11 +72,6 @@ import java.io.OutputStream
   
   */
 
-case class DetectionResult(
-    results: IndexedSeq[Result],
-    flags: IndexedSeq[Int]
-)
-
 case class FlagResult (
     times: IndexedSeq[Int],
     falsePositives: IndexedSeq[Int]
@@ -84,47 +79,8 @@ case class FlagResult (
 
 object timeToDetection extends App{
   
-  def run(
-      data: GenerationResult,
-      endBaseline: Int,
-      stop: String = "consecutive",
-      exclusions: Set[YearMonth] = Set.empty
-    ): DetectionResult = {
-    
-    val year = data.year
-    val month = data.month 
-    val countData = data.counts
-    val tOutbreak = data.start
-    
-    val nData = countData.size
-        
-    // Create TreeMap with form (YearMonth, Count)
-    val dataOutbreak_all = TreeMap{
-    	(0 until nData).map{ i => YearMonth.of(year(i), month(i)) -> countData(i) }: _*
-    }
-    
-    // Exclude set of months if necessary
-    val dataOutbreak = dataOutbreak_all.--(exclusions)
-    
-    //=======================
-    // Calculate time to detection
-
-    val rCon = new RConnection
-    try {    	
-    	val indexedData = EDS.indexAndExclude(dataOutbreak, exclusions)
-  		val maxDrop = nData - (endBaseline + 1)
-      if (stop == "false") runAll(maxDrop, indexedData, rCon)
-      else if (stop == "detect") runUntilDetection(maxDrop, indexedData, rCon)
-      else runUntilConsecutive(maxDrop, indexedData, rCon)
-      }    
-    finally {
-  	  rCon.close
-    }
-            
-  }
-  
   def times(
-      data: DetectionResult,
+      data: FarringtonResult,
       tOutbreak: Int,
       histData: List[(Int, Int)]
     ): FlagResult = {
@@ -142,58 +98,5 @@ object timeToDetection extends App{
     
   }
   
-  def runAll(
-      maxDrop: Int,
-      indexedData: SortedMap[Date, Int],
-      rCon: RConnection
-    ): DetectionResult = {
-    def loop(i: Int, acc: IndexedSeq[Result], flags: IndexedSeq[Int]): DetectionResult = {
-//      println("loop "+i)  
-      val series = EDS.extractWindow(indexedData.dropRight(i))
-        val x = Farrington.run(series, rCon)
-        val detected = if (x.isAlert) flags :+ indexedData.size - i else flags
-        if (i == 0) DetectionResult(acc :+ x, detected)
-        else loop(i-1, acc :+ x, detected)
-      }
-    loop(maxDrop, IndexedSeq(), IndexedSeq())
-  }
-  
-  def runUntilDetection(
-      maxDrop: Int,
-      indexedData: SortedMap[Date, Int],
-      rCon: RConnection
-    ): DetectionResult = {
-    def loop(i: Int, acc: IndexedSeq[Result]): DetectionResult = {
-        val series = EDS.extractWindow(indexedData.dropRight(i))
-        val x = Farrington.run(series, rCon)
-        val index = IndexedSeq(indexedData.size - i)
-        if (x.isAlert || i == 0) DetectionResult(acc :+ x, index)
-        else loop(i-1, acc :+ x)
-      }
-    loop(maxDrop, IndexedSeq())
-  }
-  
-  def runUntilConsecutive(
-      maxDrop: Int,
-      indexedData: SortedMap[Date, Int],
-      rCon: RConnection
-    ): DetectionResult = {
-    def loop(i: Int, acc: IndexedSeq[Result]): DetectionResult = {
-        val series = EDS.extractWindow(indexedData.dropRight(i))
-        val x = Farrington.run(series, rCon)
-        if (i == 0) {
-          DetectionResult(acc :+ x, IndexedSeq(indexedData.size - i))
-        }
-        else { if (acc.size == 0) {
-          loop(i-1, acc :+ x)
-        }
-        else { if (x.isAlert && acc.last.isAlert) {
-          DetectionResult(acc :+ x, IndexedSeq(indexedData.size - i))
-        } else {
-          loop(i-1, acc :+ x)
-        } } }
-      }
-    loop(maxDrop, IndexedSeq())
-  }
   
 }

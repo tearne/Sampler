@@ -34,8 +34,7 @@ import sampler.r.process.ScriptRunner
   Script which simulates a number of simulated outbreak data sets
   and calculates time to detect the outbreak for each simulation.
      
-  Uses default parameters to simulate baseline and outbreak data
-  (Default is Scenario 14 in Noufaily et al., Statist. Med. 2013 (32) 1206-1222)
+  Default is Scenario 14 in Noufaily et al., Statist. Med. 2013 (32) 1206-1222
   
   =========
   AUTHOR:
@@ -107,39 +106,9 @@ object EDS_TimeToDetection  extends App{
   
   //=======================
   // Simulate outbreak data and calculate time to detect outbreak
-    
-  // For multiple simulations:
+  
+  // For a single simulation: 
   ///*
-
-  RServeHelper.ensureRunning()
-  val detectTimes =
-    (0 until nSimulations).par.map{i =>
-      val data = GenerateData.run(nData, endYear, outbreakLength, endPreOutbreak, endOutbreak)
-      val detected = timeToDetection.run(data, endBaseline)
-      val res = timeToDetection.times(detected, data.start, data.hist)
-      if (res.times.size == 0) -1 else res.times(0)
-  }  
-  RServeHelper.shutdown
-  
-  val timesHist = 
-      detectTimes.groupBy(w => w).mapValues(_.size).toList.sorted
-  println("Time to detection = " + timesHist)
-  
-  val successRate = (nSimulations - timesHist(1)._2).toDouble / nSimulations * 100
-  println("Success rate = " + successRate + "%")
-  
-  val data = GenerateData.run(nData, endYear, outbreakLength, endPreOutbreak, endOutbreak)
-  val splitData = GenerateData.splitOutbreak(data)
-  
-  println(data.hist)
-  println(splitData.data1.hist)
-  println(splitData.data2.hist)
-  
-   
-  // For a single simulation:
-  //*/
- 
-  /*
   
   val data = GenerateData.run(nData, endYear, outbreakLength, endPreOutbreak, endOutbreak)
   val year = data.year
@@ -147,15 +116,22 @@ object EDS_TimeToDetection  extends App{
   val countData = data.counts
   val histData = data.hist
   val tOutbreak = data.start
+  val tEnd = data.end
   
-  val detected = timeToDetection.run(data, endBaseline)
+  val detected = EDS.run(data, endBaseline)
   val results = detected.results
   val flags = detected.flags
+    
+  val outbreakDetected = EDS.detected(detected, tOutbreak, tEnd)
   
-  val res = timeToDetection.times(detected, tOutbreak, histData)
-  val times = res.times
-  val falsePositives = res.falsePositives
-  val tDetect = if (res.times.size == 0) "none" else res.times(0)
+  val falsePositives = EDS.falsePositives(detected, tOutbreak, tEnd)
+  val FPR = EDS.falsePositiveRate(detected, tOutbreak, tEnd)
+  
+  val times = EDS.timeToDetection(detected, tOutbreak, tEnd)
+  val TTD = if (times.size == 0) "none" else times(0)
+  
+  val hits = EDS.hits(detected, tOutbreak, tEnd)
+  
   
   //=======================
   // Print relevant information to console:
@@ -168,12 +144,17 @@ object EDS_TimeToDetection  extends App{
   println("Post-outbreak period starts at " + endOutbreak + " = " + year(endOutbreak) + "-" + month(endOutbreak))
   
   println("Outbreak begins at month " + tOutbreak + " = " + year(tOutbreak-1) + "-" + month(tOutbreak-1))
+  println("Outbreak ends at month " + tEnd + " = " + year(tEnd-1) + "-" + month(tEnd-1))
   
-  println(histData)
+  println("Outbreak shape: " + histData)
   
-  println(times)
-  println(falsePositives)
-  println(tDetect)
+  println("Outbreak detected: " + outbreakDetected)
+  println("Hits = " + hits(0) + " of " + hits(1))
+  println("False positives: " + falsePositives)
+  println("False positive rate = " + FPR)
+  println("Time to detection = " + TTD)
+  
+  
 
   //=======================
   // Visualisation
@@ -197,9 +178,27 @@ object EDS_TimeToDetection  extends App{
     resultsDir.resolve("output.html") 
   )
   
-  */
-      
-  ///*
+  //*/
+  
+  // For multiple simulations:
+  /*
+
+  RServeHelper.ensureRunning()
+  val detectTimes =
+    (0 until nSimulations).par.map{i =>
+      val data = GenerateData.run(nData, endYear, outbreakLength, endPreOutbreak, endOutbreak)
+      val detected = EDS.run(data, endBaseline)
+      val res = timeToDetection.times(detected, data.start, data.hist)
+      if (res.times.size == 0) -1 else res.times(0)
+  }  
+  RServeHelper.shutdown
+  
+  val timesHist = 
+      detectTimes.groupBy(w => w).mapValues(_.size).toList.sorted
+  println("Time to detection = " + timesHist)
+  
+  val successRate = (nSimulations - timesHist(1)._2).toDouble / nSimulations * 100
+  println("Success rate = " + successRate + "%")
   
   // Write times to CSV file
   val writer = Files.newBufferedWriter(resultsDir.resolve(csvName), Charset.defaultCharset())
@@ -213,27 +212,27 @@ object EDS_TimeToDetection  extends App{
   
   // Write R script which imports and plots data in a pdf
   val rScript = 
-  s"""
+    s"""
+      
+    data = read.csv("$csvName")
+      
+    times = data[["time"]]
+    count = data[["count"]]
     
-  data = read.csv("$csvName")
+    pdf("$pdfName", width=4.13, height=2.91) #A7 landscape paper
     
-  times = data[["time"]]
-  count = data[["count"]]
-  
-  pdf("$pdfName", width=4.13, height=2.91) #A7 landscape paper
-  
-  barplot(count,
-        names.arg=as.character(times),
-        main = "Time to detection",
-        xlab = "Time to detect outbreak (months)",
-        ylab = "No. of counts")
-  
-  dev.off()
-  """
+    barplot(count,
+          names.arg=as.character(times),
+          main = "Time to detection",
+          xlab = "Time to detect outbreak (months)",
+          ylab = "No. of counts")
+    
+    dev.off()
+    """
   
   // Run the script in R and save the resulting PDF in the results directory
   ScriptRunner.apply(rScript, resultsDir.resolve(scriptName))
   
-  //*/
+  */
   
 }
