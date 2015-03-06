@@ -10,10 +10,10 @@ import breeze.stats.distributions.LogNormal
 /*
   =========
   NOTES:
-  Function to simulate outbreak data for the EDS.
+  Function to simulate outbreak data for the Early Detection System.
     
-  Uses a negative binomial model if dispersion parameter > 1
-  Uses a Poission distribution if dispersion parameter == 1
+  Uses a negative binomial model if dispersion parameter > 1.
+  Uses a Poission distribution if dispersion parameter == 1.
   
   Follows the method outlined in
   Noufaily et al., Statist. Med. 2013 (32) 1206-1222
@@ -23,14 +23,14 @@ import breeze.stats.distributions.LogNormal
   
   Author:    Teedah Saratoon
   Date:      27/02/2015
-  Last edit: 27/02/2015
+  Last edit: 04/03/2015
   
   ==========
   INPUTS:
 
   nData          No. of time intervals for which to simulate data
   
-  alpha           
+  alpha           Frequency of reports
   beta            Linear trend
   m               Seasonality (0 = none, 1 = annual, 2 = biannual)
   gamma_1         Controls magnitude of peaks
@@ -54,7 +54,9 @@ import breeze.stats.distributions.LogNormal
   =========  
   OUTPUT:
   
-  Simulated data with outbreak
+  counts          Outbreak counts at each month
+  hist            Binned count data corresponding to outbreak
+  start           Starting month of outbreak
     
   */
 
@@ -68,20 +70,43 @@ case class GenerationParams(
       k: Double
     )
 object GenerationParams{
-  val default = GenerationParams(1.5, 0, 1, 0.2, -0.4, 1, 10)
+  val scenario14 = GenerationParams(1.5, 0, 1, 0.2, -0.4, 1, 6)
+  val scenario1 = GenerationParams(0.1, 0, 0, 0, 0, 1.5, 6)
+  val default = scenario14
 }
+
+case class GenerationResult(
+  year: IndexedSeq[Int],
+  month: IndexedSeq[Int],
+  baseline: IndexedSeq[Int],
+  counts: IndexedSeq[Int],
+  hist: List[(Int, Int)],
+  start: Int,
+  end: Int
+  )
+  
+case class SplitResult(
+  data1: GenerationResult,
+  data2: GenerationResult
+)
 
 object GenerateData {
   
   def run(
       nData: Int,
+      endYear: Int,
       outbreakLength: String,
       endPreOutbreak: Int,
       endOutbreak: Int,
       params: GenerationParams = GenerationParams.default
-    ): IndexedSeq[Int] = {
+    ): GenerationResult = {
     
     import params._
+    
+    // Construct sequences of months and years
+    val startYear = math.round(endYear - nData.toDouble/12)  
+    val year = (1 to nData).map(i => (startYear + ((i-1) / 12)).toInt)
+    val month = (1 to nData).map(i => (i-1) % 12 + 1)  
     
     //=======================
     //Simulate baseline data
@@ -139,8 +164,13 @@ object GenerateData {
     val outbreakIdx =
       outbreakHist.map{case (key, value) => (key+tOutbreak-1, value)}
     
+    // Last month of outbreak
+    val tEnd = outbreakIdx.last._1 + 1
+    
     // Add to baseline data to return simulated outbreak data
-    addList(dataBaseline,outbreakIdx)
+    val dataOutbreak = addList(dataBaseline,outbreakIdx)
+    
+    GenerationResult(year, month, dataBaseline, dataOutbreak, outbreakHist, tOutbreak, tEnd)
         
   }
   
@@ -159,15 +189,75 @@ object GenerateData {
         
   // Adds a list of values at the specified indices to a given sequence
   def addList(
-      current: IndexedSeq[Int],
-      toDo: List[(Int, Int)]
-    ): IndexedSeq[Int] = {
-      @tailrec
-      def loop(update: IndexedSeq[Int], toDo: List[(Int, Int)]): IndexedSeq[Int] = {
-        if (toDo.size == 0) update
-        else loop(update.updated(toDo.head._1, update(toDo.head._1) + toDo.head._2), toDo.tail)
-  }
+    current: IndexedSeq[Int],
+    toDo: List[(Int, Int)]
+  ): IndexedSeq[Int] = {
+    @tailrec
+    def loop(update: IndexedSeq[Int], toDo: List[(Int, Int)]): IndexedSeq[Int] = {
+      if (toDo.size == 0) update
+      else loop(update.updated(toDo.head._1, update(toDo.head._1) + toDo.head._2), toDo.tail)
+    }
     loop(current,toDo)
   }
+  
+  def splitOutbreak(data: GenerationResult): SplitResult = {
+    
+    val outbreakHist = data.hist
+    val tOutbreak = data.start
+    val nData = data.baseline.length
+     
+    def splitData(list: List[(Int, Int)]) = {
+      val rnd = new Random
+      val count1 = list.map{ 
+        case (key, value) => (key, rnd.nextInt(value + 1))
+      }
+      val count1_indexed = count1.zipWithIndex
+      val count2_indexed = count1_indexed.map{
+        case ((key, value), i) => ((key, list(i)._2 - value), i)
+      }
+      val (count2, index) = count2_indexed.unzip
+      
+      (count1, count2)
+      
+    }
+    
+    val (baseline1, baseline2) =
+      splitData((1 to nData).map(i => (i,data.baseline(i-1))).toList)
+    val dataBaseline1 = baseline1.map(i => i._2).toIndexedSeq
+    val dataBaseline2 = baseline2.map(i => i._2).toIndexedSeq
+    
+    val (count1, count2) = splitData(outbreakHist)    
+    val outbreakIdx1 =
+      count1.map{case (key, value) => (key+tOutbreak-1, value)}    
+    val outbreakIdx2 =
+      count2.map{case (key, value) => (key+tOutbreak-1, value)}
+       
+    val dataOutbreak1 = addList(dataBaseline1,outbreakIdx1)
+    val dataOutbreak2 = addList(dataBaseline2,outbreakIdx2)
+    
+    val data1 = GenerationResult(
+      data.year,
+      data.month,
+      dataBaseline1,
+      dataOutbreak1,
+      count1,
+      data.start,
+      data.end
+    )
+      
+    val data2 = GenerationResult(
+      data.year,
+      data.month,
+      dataBaseline2,
+      dataOutbreak2,
+      count2,
+      data.start,
+      data.end
+    )
+      
+    SplitResult(data1, data2)
+    
+  }
+      
 
 }
