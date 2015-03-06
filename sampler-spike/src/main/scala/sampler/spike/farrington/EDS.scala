@@ -102,7 +102,7 @@ object EDS extends App{
 	println(pretty(render(rOut)))
 	println("--------- END ----------")
 
-case class MyRes(expected: Double, threshold: Double, trend: Int, exceed: Double, weights: List[Double])
+case class MyRes(expected: Double, threshold: Double, trend: String, exceed: Double, weights: List[Double])
 	val res = rOut.extract[MyRes]
 	println(res)
 }

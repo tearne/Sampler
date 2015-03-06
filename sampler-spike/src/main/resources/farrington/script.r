@@ -79,7 +79,7 @@ m<-length(residuals1[residuals1<1])
 k=rep(0,times=n)
 	k[residuals1<1]=residuals1[residuals1<1]^-2
 y<-n/(sum(k)+(n-m))				#Calculate the weights
-w=k*y
+	w=k*y
 	w[w==0]=y     
 #----fit model with weights--------------------
 modelW<-glm(formula=basecont~basemth, family=quasipoisson(link=log), weights=w, data=basedata)   
@@ -103,7 +103,7 @@ z<-1.96
 U<-threshold(z,1)		#Calculate the threshold 
 trend=1          #denotes trend is included
 if (!( (tvalue>ttest | tvalue < -ttest) & expectedc<=max(basecont)))  { 
-	expected<-expected*0+exp(param0)
+    expected<-expected*0+exp(param0)
 	expectedc<-exp(param0)
 	trend="noTrend"
 	p<-1
