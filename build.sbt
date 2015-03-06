@@ -47,7 +47,7 @@ lazy val packageSettings = Seq(
 )	
 
 lazy val root = project.in(file("."))
-	.aggregate(core, examples, abc, arrr)
+	.aggregate(core, examples, abc, arrr, spike)
 	.settings(commonSettings: _*)
 	.settings(unidocSettings: _*)
 	.settings(
@@ -104,7 +104,9 @@ lazy val spike = project.in(file("sampler-spike"))
 			"org.json4s" %% "json4s-native" % "3.2.10",
 			"rengine" % "rengine" % "2015-01-20" from "http://rforge.net/Rserve/files/REngine.jar",
 			"rserveengine" % "rserveengine" % "2015-01-20" from "http://rforge.net/Rserve/files/RserveEngine.jar",
-			"ch.qos.logback" % "logback-classic" % "1.1.1"
+			"ch.qos.logback" % "logback-classic" % "1.1.1",
+			"org.freemarker" % "freemarker" % "2.3.21",
+			"org.scalanlp" %% "breeze" % "0.10"
 		)	
 	)
 	.settings(

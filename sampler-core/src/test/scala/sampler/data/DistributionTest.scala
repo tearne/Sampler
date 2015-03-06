@@ -190,14 +190,6 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
     results.count(_.contains(6)) should be (500 +- 100)
   }
   
-  "Sample infecteds from a binary population" in {
-    val model = Distribution.binaryPopulation(5, 100)
-    
-    val results = (1 to 10000).map(_ => model.sample)
-    
-    results.count(_ == true) should be (500 +- 100)
-  }
-  
   "Bernoulli trial with probability 1.0" in {
     val model = Distribution.bernoulliTrial(1)
     
@@ -220,14 +212,6 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
 		val result = (1 to 1000).map(_ => model.sample)
 		    
 	result.count(_ == true) should be (800 +- 50)
-  }
-  
-  "Coin toss is fair" in {
-    val model = Distribution.coinToss
-		  
-    val result = (1 to 1000).map(_ => model.sample)
-		  
-		result.count(_ == true) should be (500 +- 50)
   }
   
   "Building distribution from partition" in {
@@ -256,7 +240,7 @@ class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
   "Building distribution from probability table" in {
     val probTable = Map(1 -> 0.1, 2 -> 0.2, 3 -> 0.3, 4 -> 0.4)
     
-    val model = Distribution.fromProbabilityTable(probTable)
+    val model = Distribution.fromWeightsTable(probTable)
     
     val result = (1 to 1000).map(_ => model.sample)
     

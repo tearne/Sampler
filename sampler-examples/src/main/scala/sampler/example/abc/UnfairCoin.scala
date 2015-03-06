@@ -22,11 +22,11 @@ import java.nio.file.Paths
 import java.nio.file.StandardOpenOption.{APPEND,CREATE}
 import org.apache.commons.math3.distribution.NormalDistribution
 import com.typesafe.config.ConfigFactory
-import sampler.cluster.abc.ABC
-import sampler.cluster.abc.Model
-import sampler.cluster.abc.Prior
-import sampler.cluster.abc.actor.Report
-import sampler.cluster.abc.config.ABCConfig
+import sampler.abc.ABC
+import sampler.abc.Model
+import sampler.abc.Prior
+import sampler.abc.actor.Report
+import sampler.abc.config.ABCConfig
 import sampler.data.Distribution
 import sampler.math.Random
 import sampler.io.CSV
