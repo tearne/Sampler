@@ -60,9 +60,20 @@ object EDS_original extends App{
   val results = try{
     val indexedData = indexAndExclude(countData, exclude2001)
   
-    (0 to 40).map{i => 
-      val series = extractWindow(indexedData.dropRight(i))
-      Farrington.run(series, rCon)
+    (0 to 144).map{i => 
+//      Farrington.run(
+//          extractWindow(indexedData.dropRight(i)), 
+//          rCon, Farrington.FarNew
+//      )
+      
+//      Farrington.run(
+//          indexedData.dropRight(i), 
+//          rCon, Farrington.APHA
+//      )
+      Farrington.run(
+          indexedData.dropRight(i), 
+          rCon, Farrington.Stl
+      )
     }
   } finally {
     rCon.close

@@ -101,7 +101,7 @@ lazy val spike = project.in(file("sampler-spike"))
 	.settings(
 		libraryDependencies ++= Seq(
 			"org.apache.commons" % "commons-math3" % "3.2",
-			"org.json4s" %% "json4s-native" % "3.2.10",
+			"org.json4s" %% "json4s-native" % "3.2.11",
 			"rengine" % "rengine" % "2015-01-20" from "http://rforge.net/Rserve/files/REngine.jar",
 			"rserveengine" % "rserveengine" % "2015-01-20" from "http://rforge.net/Rserve/files/RserveEngine.jar",
 			"ch.qos.logback" % "logback-classic" % "1.1.1",
