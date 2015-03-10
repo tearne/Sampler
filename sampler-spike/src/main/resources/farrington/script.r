@@ -3,6 +3,17 @@
 #outDir<-paste(homeDir, "results", sep="")
 #setwd(paste(homeDir,fileDir,sep=""))
 
+debug=F
+if(debug==T) {
+	library(rjson)
+	jsonIn = fromJSON(file="outR.json")
+	modeFlag = "stl"
+	basedata=jsonIn$Baseline
+	currentmth=jsonIn$Current$Month
+	currentCount=jsonIn$Current$Incident
+}
+
+
 require(rjson)
 
 #allData = as.data.frame(fromJSON(readLines("tmp.json")))
@@ -13,7 +24,7 @@ require(rjson)
 ########This will not effect the validity of the results 
 
 notZero=1*10^(-150)
-
+resThresh=2.58      #put swithch in java to vary? New Farrington algorithm uses 2.58, old used 1
 #######################################################
 ## DISPERSION 
 ## This function estimates the dispersion parameter using the formula described in Farrington #(1996)
@@ -45,19 +56,50 @@ threshold <-function(z,trend0){
 ###				MAIN MODEL				
 ###########################################################################
 
+
+
 #allData = read.csv("/home/user/ENVIRONMENT/workspaces/workspace_scala/FarringtonTest/results/baselineData.txt")
 #allData = as.data.frame(fromJSON(paste(readLines("r-in.json"), collapse="")))
 
-baselineNum = nrow(basedata)
+baselineNum = length(basedata$basemth)
 #baseData = allData[1:baselineNum,]
 #currentCount = allData[nrow(allData),"Incidents"]
 #currentmth = allData[nrow(allData), "MonthNum"]
 basemth = basedata$basemth
 basecont = basedata$basecont
+tsSeasonal=0   #set to 0 unless use in stl
+tsRandom=0     #set to 0 unless use in stl
 
+#### Farrington New algorithm from R Surveillance library #-----------------------------------
+if(modeFlag=="farNew") {
+	#TODO: start needs to be two numbers year, month.  Get this from basedata$basemth???
+	DataF=disProg2sts(create.disProg(1:baselineNum,state=basecont*0,start=c(basemth,basemth),freq=12)) #put in format necessar for farringtonFlexible algorithm
+	# define contol parameters: may want to make some of these switches in Scala code?
+	#b is number of years to use in calculations, w is number of months to use either side of current month
+	# weigthsThreshold=resThresh, i.e. threshold above which data are weighted 
+	#noPeriods is seasonality term to enable inclusion of more months
+	control1<-   list(noPeriods=10,populationOffset=FALSE,
+			fitFun="algo.farrington.fitGLM.flexible",
+			b=5,w=12,weightsThreshold=2.58,
+			pastWeeksNotIncluded=26,
+			pThresholdTrend=1,trend=TRUE,
+			thresholdMethod="delta",alpha=0.1)
+	data1<-farringtonFlexible(DataF,control=control1)
+	plot(data1) 
+	#TODO: save figure somewhere...
+}
+#----- decomposition for full dataset use ------------------------------------------------
+if(modeFlag=="stl") {    
+	tsData=ts(basecont,frequency=12,start=c(1,12)) 	#turn data into time series object
+	tsSplit=stl(tsData,s.window=12)                  #splits data into 'seasonal,'trend' and 'random' components
+	basecont=as.vector(tsSplit$time.series[,2]) +as.vector(tsSplit$time.series[,3]) #redefine basecont as just the trend and random component
+	tsSeasonal=as.vector(tsSplit$time.series[,1])
+	tsRandom=0#as.vector(tsSplit$time.series[,3]) #including in basecont so set =0 here
+}
+#--------------------------------------------------------------------------------------------------
 #basedata<-data.frame(basecont, basemth)
-# currentc<-Data2[currentmth, 2+2]  	#LEAVE AS [,2+2] so only look at INCIDENTS. If wish to look at isolations change to [,1+1]. 
-n=nrow(basedata)
+# currentCount<-Data2[currentmth, 2+2]  	#LEAVE AS [,2+2] so only look at INCIDENTS. If wish to look at isolations change to [,1+1]. 
+n=length(basedata$basemth)
 w<-rep(1,times=n)					#Set weights = 1 
 #----fit model with no linear trend----------------------------------------------------------------------------------------
 model0<-glm(formula=basecont~1, family=quasipoisson(link=log), weights=w, data=basedata)  #model with no linear trend
@@ -75,11 +117,11 @@ calc2<-1/(n-p)
 dispersion<-if((calc2*calc)>1) calc2*calc else 1		#Calculate dispersion parameter final     
 residuals1= (3/(2*(dispersion)^(1/2)))*(((basecont)^(2/3))-((expected)^(2/3))) / (((expected)^(1/6))*((1-hatF)^(1/2)))         
 	residuals1[expected<notZero]=notZero 
-m<-length(residuals1[residuals1<1])
+m<-length(residuals1[residuals1>resThresh])
 k=rep(0,times=n)
-	k[residuals1<1]=residuals1[residuals1<1]^-2
+	k[residuals1<resThresh]=residuals1[residuals1<resThresh]^-2
 y<-n/(sum(k)+(n-m))				#Calculate the weights
-w=k*y
+	w=k*y
 	w[w==0]=y     
 #----fit model with weights--------------------
 modelW<-glm(formula=basecont~basemth, family=quasipoisson(link=log), weights=w, data=basedata)   
@@ -103,7 +145,7 @@ z<-1.96
 U<-threshold(z,1)		#Calculate the threshold 
 trend=1          #denotes trend is included
 if (!( (tvalue>ttest | tvalue < -ttest) & expectedc<=max(basecont)))  { 
-	expected<-expected*0+exp(param0)
+    expected<-expected*0+exp(param0)
 	expectedc<-exp(param0)
 	trend=0
 	p<-1
@@ -122,11 +164,16 @@ thresh<-U
 exceed<-(currentCount-expectedc)/(U-expectedc)
 if (U==0) exceed<-0 else exceed<-exceed
 
-ifelse(sum(basecont)==0&&currentc>0,exceed<-'>1',exceed<-exceed)
-
+ifelse(sum(basecont)==0&&currentCount>0,exceed<-'>1',exceed<-exceed)
+#----------transform back to original counts (add back in seasonality)-----------------
+currentc1=currentCount+tsSeasonal[length(tsSeasonal)] +tsRandom[length(tsRandom)]
+expectedc1=expectedc+tsSeasonal[length(tsSeasonal)] +tsRandom[length(tsRandom)]
+thresh1=thresh+tsSeasonal[length(tsSeasonal)] +tsRandom[length(tsRandom)]
+#note if not taken out seasonality then nothing will change here.
+#----output data --------------------------------------------------------------------
 output = toJSON(list(
-				"expected" = expectedc[[1]],
-				"threshold" = thresh[[1]],
+				"expected" = expectedc1[[1]],
+				"threshold" = thresh1[[1]],
 				"trend" = trend,
 				"exceed" = exceed[[1]],
 				"weights" = w

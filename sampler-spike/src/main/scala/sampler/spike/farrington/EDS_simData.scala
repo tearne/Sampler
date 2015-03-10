@@ -120,7 +120,7 @@ object EDS_simData extends App{
   import data._
   
   RServeHelper.ensureRunning()
-  val detected = EDS.run(data, endBaseline)
+  val detected = EDS_TS.run(data, endBaseline)
   RServeHelper.shutdown
   
   val results = detected.results

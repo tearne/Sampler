@@ -1,5 +1,6 @@
 package sampler.spike.farrington
 
+import java.nio.charset.Charset
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.YearMonth
@@ -8,19 +9,17 @@ import scala.collection.SortedMap
 import scala.io.Source
 
 import org.json4s.DefaultFormats
-import org.json4s.JField
 import org.json4s.JObject
 import org.json4s.JsonAST.JValue
 import org.json4s.JsonDSL.int2jvalue
-import org.json4s.JsonDSL.list2jvalue
+import org.json4s.JsonDSL.jobject2assoc
 import org.json4s.JsonDSL.long2jvalue
 import org.json4s.JsonDSL.pair2Assoc
 import org.json4s.JsonDSL.seq2jvalue
-import org.json4s.JsonDSL.string2jvalue
 import org.json4s.jvalue2extractable
 import org.json4s.jvalue2monadic
-import org.json4s.native.JsonMethods
 import org.json4s.native.JsonMethods.compact
+import org.json4s.native.JsonMethods.parse
 import org.json4s.native.JsonMethods.pretty
 import org.json4s.native.JsonMethods.render
 import org.json4s.string2JsonInput
@@ -46,6 +45,19 @@ object Result{
 }
 
 object Farrington {
+  trait Mode{
+    val rFlag: String
+  }
+  case object FarNew extends Mode{
+    val rFlag = "farNew"
+  }
+  case object APHA extends Mode{
+    val rFlag = "apha"
+  }
+  case object Stl extends Mode{
+    val rFlag = "stl"
+  }
+  
 	/*
 	 * TODO
 	 * 
@@ -59,14 +71,20 @@ object Farrington {
 	val cl = getClass.getClassLoader
 	val rScript = Source.fromURI(cl.getResource("farrington/script.r").toURI()).mkString
 	
-	def run(dataIn: SortedMap[Date, Int], rCon: RConnection): Result = {
+	def run(dataIn: SortedMap[Date, Int], rCon: RConnection, mode: Mode = APHA): Result = {
 		val json = buildJSON(dataIn)
 	  val jsonAsString = pretty(render(json))
-
+    
+    //Debug
+    val writer = Files.newBufferedWriter(Paths.get("outR.json"), Charset.defaultCharset())
+    writer.write(jsonAsString)
+    writer.close()
+    
 		val rExpression = {
 			import rCon._
 			parseAndEval("""library(rjson)""")
 			assign("jsonIn", compact(render(json)))
+      assign("modeFlag", mode.rFlag)
 			parseAndEval("basedata = as.data.frame(fromJSON(jsonIn)$Baseline)")
      	parseAndEval("currentCount = as.data.frame(fromJSON(jsonIn)$Current$Incidents)")
       parseAndEval("currentmth = as.data.frame(fromJSON(jsonIn)$Current$Month)")
@@ -74,7 +92,7 @@ object Farrington {
 			parseAndEval("output")
 		}
 		
-		val rOut = JsonMethods.parse(rExpression.asString())
+		val rOut = parse(rExpression.asString())
 		
 		val (date, value) = dataIn.last
 		
@@ -84,7 +102,11 @@ object Farrington {
 	def buildJSON(timeSeries: SortedMap[Date, Int]): JObject = {
 		val now = timeSeries.last
 		val history = timeSeries.dropRight(1)
+    val firstDate = timeSeries.head._1
 		
+    val t = now._1.idx
+    val r = now._2
+    
     ("Current" -> 
       ("Month" -> now._1.idx) ~
       ("Incidents" -> now._2)
@@ -92,6 +114,10 @@ object Farrington {
     ("Baseline" ->
       ("basemth" -> history.keySet.map(_.idx) ) ~
       ("basecont"-> history.values)
+    ) ~
+    ("StartDate" ->
+      ("year" -> firstDate.yearMonth.getYear) ~
+      ("month" -> firstDate.yearMonth.getMonthValue)
     )
 	}
 }

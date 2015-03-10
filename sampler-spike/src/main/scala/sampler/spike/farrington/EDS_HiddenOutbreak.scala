@@ -171,47 +171,47 @@ object EDS_HiddenOutbreak extends App{
         data.end)    
     
     // Run EDS for each data set
-    val dataFull = EDS.run(data, endBaseline)    
-    val dataSplit1 = EDS.run(data1, endBaseline)    
-    val dataSplit2 = EDS.run(data2, endBaseline)
+    val dataFull = EDS_TS.run(data, endBaseline)    
+    val dataSplit1 = EDS_TS.run(data1, endBaseline)    
+    val dataSplit2 = EDS_TS.run(data2, endBaseline)
     
     // Probability of detection
-    val detectedFull = EDS.detected(dataFull, data.start, data.end)    
-    val detectedSplit1 = EDS.detected(dataSplit1, data.start, data.end)    
-    val detectedSplit2 = EDS.detected(dataSplit2, data.start, data.end)
+    val detectedFull = EDS_TS.detected(dataFull, data.start, data.end)    
+    val detectedSplit1 = EDS_TS.detected(dataSplit1, data.start, data.end)    
+    val detectedSplit2 = EDS_TS.detected(dataSplit2, data.start, data.end)
     
     val POD = IndexedSeq(detectedFull, detectedSplit1, detectedSplit2)
     
     // Probability of consecutive detection
-    val consecutiveFull = EDS.detectedConsecutive(dataFull, data.start, data.end)    
-    val consecutiveSplit1 = EDS.detectedConsecutive(dataSplit1, data.start, data.end)    
-    val consecutiveSplit2 = EDS.detectedConsecutive(dataSplit2, data.start, data.end)
+    val consecutiveFull = EDS_TS.detectedConsecutive(dataFull, data.start, data.end)    
+    val consecutiveSplit1 = EDS_TS.detectedConsecutive(dataSplit1, data.start, data.end)    
+    val consecutiveSplit2 = EDS_TS.detectedConsecutive(dataSplit2, data.start, data.end)
     
     val POCD = IndexedSeq(consecutiveFull, consecutiveSplit1, consecutiveSplit2)
     
     // False Positive Rate
-    val fprFull = EDS.falsePositiveRate(dataFull, data.start, data.end)
-    val fprSplit1 = EDS.falsePositiveRate(dataSplit1, data.start, data.end)
-    val fprSplit2 = EDS.falsePositiveRate(dataSplit2, data.start, data.end)
+    val fprFull = EDS_TS.falsePositiveRate(dataFull, data.start, data.end)
+    val fprSplit1 = EDS_TS.falsePositiveRate(dataSplit1, data.start, data.end)
+    val fprSplit2 = EDS_TS.falsePositiveRate(dataSplit2, data.start, data.end)
     
     val FPR = IndexedSeq(fprFull, fprSplit1, fprSplit2)
     
     // Time To Detection
-    val timesFull = EDS.timeToDetection(dataFull, data.start, data.end)
+    val timesFull = EDS_TS.timeToDetection(dataFull, data.start, data.end)
     val tFull = if (timesFull.length == 0) -1 else timesFull(0)
     
-    val timesSplit1 = EDS.timeToDetection(dataSplit1, data.start, data.end)
+    val timesSplit1 = EDS_TS.timeToDetection(dataSplit1, data.start, data.end)
     val tSplit1 = if (timesSplit1.length == 0) -1 else timesSplit1(0)
     
-    val timesSplit2 = EDS.timeToDetection(dataSplit2, data.start, data.end)
+    val timesSplit2 = EDS_TS.timeToDetection(dataSplit2, data.start, data.end)
     val tSplit2 = if (timesSplit2.length == 0) -1 else timesSplit2(0)
     
     val TTD = IndexedSeq(tFull, tSplit1, tSplit2)
     
     // Proportion of Outbreak Times Detected
-    val potdFull = EDS.proportionDetected(dataFull, data.start, data.end)    
-    val potdSplit1 = EDS.proportionDetected(dataSplit1, data.start, data.end)    
-    val potdSplit2 = EDS.proportionDetected(dataSplit2, data.start, data.end)
+    val potdFull = EDS_TS.proportionDetected(dataFull, data.start, data.end)    
+    val potdSplit1 = EDS_TS.proportionDetected(dataSplit1, data.start, data.end)    
+    val potdSplit2 = EDS_TS.proportionDetected(dataSplit2, data.start, data.end)
     
     val POTD = IndexedSeq(potdFull, potdSplit1, potdSplit2)
     MeasureData(POD, POCD, FPR, TTD, POTD)

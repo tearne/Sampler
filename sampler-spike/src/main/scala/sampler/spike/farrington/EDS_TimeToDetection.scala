@@ -119,19 +119,19 @@ object EDS_TimeToDetection  extends App{
       nData, endYear, outbreakShape, outbreakLength, endPreOutbreak, endOutbreak, magnitude)
   import data._
   
-  val detected = EDS.run(data, endBaseline)
+  val detected = EDS_TS.run(data, endBaseline)
   val results = detected.results
   val flags = detected.flags
     
-  val outbreakDetected = EDS.detected(detected, start, end)
+  val outbreakDetected = EDS_TS.detected(detected, start, end)
   
-  val falsePositives = EDS.falsePositives(detected, start, end)
-  val FPR = EDS.falsePositiveRate(detected, start, end)
+  val falsePositives = EDS_TS.falsePositives(detected, start, end)
+  val FPR = EDS_TS.falsePositiveRate(detected, start, end)
   
-  val times = EDS.timeToDetection(detected, start, end)
+  val times = EDS_TS.timeToDetection(detected, start, end)
   val TTD = if (times.size == 0) "none" else times(0)
   
-  val hits = EDS.hits(detected, start, end)
+  val hits = EDS_TS.hits(detected, start, end)
   
   
   //=======================
