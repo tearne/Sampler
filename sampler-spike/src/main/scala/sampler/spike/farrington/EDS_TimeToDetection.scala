@@ -90,6 +90,10 @@ object EDS_TimeToDetection  extends App{
   // outbreakLength = "short"
   val outbreakLength = "long"
   
+  // Choose log-Normal or epidemic curve outbreak
+  // val outbreakShape = "logNormal"
+  val outbreakShape = "epidemicCurve"
+  
   // Define end of each period
   //Baseline -> Pre-outbreak -> Outbreak -> Post-outbreak
   val endBaseline = 146
@@ -110,27 +114,24 @@ object EDS_TimeToDetection  extends App{
   // For a single simulation: 
   ///*
   
-  val data = GenerateData.run(nData, endYear, outbreakLength, endPreOutbreak, endOutbreak)
-  val year = data.year
-  val month = data.month 
-  val countData = data.counts
-  val histData = data.hist
-  val tOutbreak = data.start
-  val tEnd = data.end
+  val magnitude = 10
+  val data = GenerateData.run(
+      nData, endYear, outbreakShape, outbreakLength, endPreOutbreak, endOutbreak, magnitude)
+  import data._
   
   val detected = EDS.run(data, endBaseline)
   val results = detected.results
   val flags = detected.flags
     
-  val outbreakDetected = EDS.detected(detected, tOutbreak, tEnd)
+  val outbreakDetected = EDS.detected(detected, start, end)
   
-  val falsePositives = EDS.falsePositives(detected, tOutbreak, tEnd)
-  val FPR = EDS.falsePositiveRate(detected, tOutbreak, tEnd)
+  val falsePositives = EDS.falsePositives(detected, start, end)
+  val FPR = EDS.falsePositiveRate(detected, start, end)
   
-  val times = EDS.timeToDetection(detected, tOutbreak, tEnd)
+  val times = EDS.timeToDetection(detected, start, end)
   val TTD = if (times.size == 0) "none" else times(0)
   
-  val hits = EDS.hits(detected, tOutbreak, tEnd)
+  val hits = EDS.hits(detected, start, end)
   
   
   //=======================
@@ -143,10 +144,10 @@ object EDS_TimeToDetection  extends App{
   println("Outbreak period starts at " + endPreOutbreak + " = " + year(endPreOutbreak) + "-" + month(endPreOutbreak))
   println("Post-outbreak period starts at " + endOutbreak + " = " + year(endOutbreak) + "-" + month(endOutbreak))
   
-  println("Outbreak begins at month " + tOutbreak + " = " + year(tOutbreak-1) + "-" + month(tOutbreak-1))
-  println("Outbreak ends at month " + tEnd + " = " + year(tEnd-1) + "-" + month(tEnd-1))
+  println("Outbreak begins at month " + start + " = " + year(start-1) + "-" + month(start-1))
+  println("Outbreak ends at month " + end + " = " + year(end-1) + "-" + month(end-1))
   
-  println("Outbreak shape: " + histData)
+  println("Outbreak shape: " + hist)
   
   println("Outbreak detected: " + outbreakDetected)
   println("Hits = " + hits(0) + " of " + hits(1))

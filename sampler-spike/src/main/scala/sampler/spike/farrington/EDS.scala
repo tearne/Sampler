@@ -65,6 +65,13 @@ import java.io.OutputStream
   runAll
   runUntilDetection
   runUntilConsecutive
+  timeToDetection
+  proportionDetected
+  hits
+  falsePositives
+  falsePositiveRate
+  detected
+  detectedConsecutive
   
   =========  
   OUTPUTS:
@@ -121,6 +128,7 @@ object EDS extends App{
   //=======================
   // FUNCTION DEFINITIONS 
 	
+  // Adds indices to the year-month and removes exclusions
 	def indexAndExclude(
 			obsByDate: SortedMap[YearMonth, Int], 
 			exclusions: Set[YearMonth] = Set.empty
@@ -135,7 +143,9 @@ object EDS extends App{
 		removedExclusions.map{case (ym, count) => Date(ym, MONTHS.between(firstDate, ym)) -> count}
 	}
 	
-	def extractWindow(timeSeries: SortedMap[Date, Int]): SortedMap[Date, Int] = {
+	
+  // Extracts a window of one month either side of the current month for each year
+  def extractWindow(timeSeries: SortedMap[Date, Int]): SortedMap[Date, Int] = {
 		val lastObsDate = timeSeries.lastKey
 		val window = List(-1, 0, 1).map(v => (v + 12) % 12)
 		val windowLowerBound = lastObsDate.yearMonth.minus(12, YEARS).minus(1, MONTHS)
@@ -154,6 +164,8 @@ object EDS extends App{
 		t
 	}
   
+  
+  // Runs EDS without stopping if flag is found
   def runAll(
       maxDrop: Int,
       indexedData: SortedMap[Date, Int],
@@ -169,6 +181,7 @@ object EDS extends App{
     loop(maxDrop, IndexedSeq(), IndexedSeq())
   }
   
+  // Runs EDS until flag is detected
   def runUntilDetection(
       maxDrop: Int,
       indexedData: SortedMap[Date, Int],
@@ -184,6 +197,8 @@ object EDS extends App{
     loop(maxDrop, IndexedSeq())
   }
   
+  
+  // Runs EDS until two consecutive flags are found
   def runUntilConsecutive(
       maxDrop: Int,
       indexedData: SortedMap[Date, Int],
@@ -206,7 +221,7 @@ object EDS extends App{
       }
     loop(maxDrop, IndexedSeq())
   }
-  
+
   // Returns list of times to detection of all alerts during outbreak
   def timeToDetection(
       data: FarringtonResult,
@@ -217,6 +232,7 @@ object EDS extends App{
     if (outbreakFlags.size == 0) IndexedSeq() 
     else outbreakFlags.map(i => i - tStart)    
   }
+  
   
   // Proportion of alerts made during outbreak to total outbreak months
   def proportionDetected(data: FarringtonResult, tStart: Int, tEnd: Int) = {
@@ -230,9 +246,11 @@ object EDS extends App{
     List(nDetected.toDouble, (tEnd - tStart + 1))
   }
   
-  // Returns list of months in which false positives occured
+  
+  // Returns list of months in which false positives occurred
   def falsePositives(data: FarringtonResult, tStart: Int, tEnd: Int) =   
     data.flags.diff(tStart to tEnd)
+  
   
   // Returns proportion of false positives
   def falsePositiveRate(data: FarringtonResult, tStart: Int, tEnd: Int) = {
@@ -246,22 +264,21 @@ object EDS extends App{
 			  if (times.size == 0) false else true    
   }
   
-  /*
-  // Returns boolean depending on whether outbreak has been detected
+  
+  // Returns boolean depending on whether outbreak has been detected at consecutive times
   def detectedConsecutive(data: FarringtonResult, tStart: Int, tEnd: Int ): Boolean = {    
-    val times = EDS.timeToDetection(data, tStart, tEnd)    
-      if (times.size == 0) false
+    val times = EDS.timeToDetection(data, tStart, tEnd)
+      if (times.size <= 1) false
       else {
         def loop(i: Int): Boolean = {
-          if (times(i) == times(i-1) + 1) true
-          else { if (i == times.length + 1) false
+          if (i == times.length) false
+          else { if (times(i) - times(i-1) == 1) true
           else loop(i+1)
           }
         }
         loop(1)
       }
   }
-  * 
-  */
+
   
 }
