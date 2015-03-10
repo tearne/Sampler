@@ -91,36 +91,37 @@ object EDS_simData extends App{
 	// Choose "short" or "long" outbreaks
 	// outbreakLength = "short"
 	val outbreakLength = "long"
+  
+  // Choose log-Normal or epidemic curve outbreak
+  // val outbreakShape = "logNormal"
+  val outbreakShape = "epidemicCurve"
 	
 	// Define end of each period
 	//Baseline -> Pre-outbreak -> Outbreak -> Post-outbreak
 	val endBaseline = 146
 	val endPreOutbreak = 182
 	val endOutbreak = 282
-			
+  
+  val magnitude = 2
+  
   // Identifiers for results files
-  val csvName = "timeToDetection.csv" // CSV file to store simulated data from Scala
-  val scriptName = "plotTimeToDetection.r" // R script to import the CSV and plot the data
-  val pdfName = "timeToDetection.pdf" // PDF containing the plots
+  val csvName = "simData.csv" // CSV file to store simulated data from Scala
+  val scriptName = "plotSimData.r" // R script to import the CSV and plot the data
+  val pdfName = "simulatedOutbreakData.pdf" // PDF containing the plots
   
   // Choose directory to place resulting plot
-  val resultsDir = Paths.get("results", "farrington")
+  val resultsDir = Paths.get("results", "simulatedOutbreakData")
   
   //=======================
   // Simulate outbreak data
-    
-  val data = GenerateData.run(nData, endYear, outbreakLength, endPreOutbreak, endOutbreak)
   
-  val year = data.year
-  val month = data.month 
-  val countData = data.counts
-  val histData = data.hist
-  val tOutbreak = data.start
+  val data = GenerateData.run(
+      nData, endYear, outbreakShape, outbreakLength, endPreOutbreak, endOutbreak, magnitude)
+  import data._
   
-  val outbreakDuration = histData.size
-  val tEnd = tOutbreak + outbreakDuration - 1
-  
-  val detected = EDS.run(data, endBaseline)
+  RServeHelper.ensureRunning()
+  val detected = EDS_TS.run(data, endBaseline)
+  RServeHelper.shutdown
   
   val results = detected.results
   
@@ -134,14 +135,71 @@ object EDS_simData extends App{
   println("Outbreak period starts at " + endPreOutbreak + " = " + year(endPreOutbreak) + "-" + month(endPreOutbreak))
   println("Post-outbreak period starts at " + endOutbreak + " = " + year(endOutbreak) + "-" + month(endOutbreak))
   
-  println("Outbreak begins at month " + tOutbreak + " = " + year(tOutbreak-1) + "-" + month(tOutbreak-1))
-  println("Outbreak occurs during months " + tOutbreak + "-" + tEnd)
-    
+  println("Outbreak begins at month " + start + " = " + year(start-1) + "-" + month(start-1))
+  println("Outbreak occurs during months " + start + "-" + end)
+  println("Outbreak counts " + hist)
+  
   //=======================
   // Visualisation
   
   // Create a directory to store results
   Files.createDirectories(resultsDir)
+  
+  // Write times to CSV file
+  val writer = Files.newBufferedWriter(resultsDir.resolve(csvName), Charset.defaultCharset())
+  writer.write("month, baseline, outbreak, start, end")
+  writer.newLine
+  writer.write(s"${1.toString}, ${data.baseline(0).toString}, ${data.counts(0).toString}, ${start.toString}, ${end.toString}")
+  writer.newLine
+  for (i <- 1 until nData) {
+    writer.write(s"${(i+1).toString}, ${data.baseline(i).toString}, ${data.counts(i).toString}")
+    writer.newLine
+  }
+  writer.close
+  
+  // Write R script which imports and plots data in a pdf
+  val rScript = 
+    s"""
+      
+    data = read.csv("$csvName")
+      
+    month = data[["month"]]
+    dataBaseline = data[["baseline"]]
+    dataOutbreak = data[["outbreak"]]
+    start = data[["start"]][1]
+    end = data[["end"]][1]
+    
+    counts = dataOutbreak - dataBaseline
+    
+    pdf("$pdfName", width=4.13, height=2.91) #A7 landscape paper
+      
+    cmin = min(c(dataBaseline,dataOutbreak))
+    cmax = max(c(dataBaseline,dataOutbreak))
+    
+    plot(month,dataBaseline,"l",
+         ylim = c(cmin,cmax),
+         main = "Simulated baseline data",
+         xlab = "Months",
+         ylab = "No. of cases")
+    
+    plot(month,dataOutbreak,"l",
+         ylim = c(cmin,cmax),
+         main = "Simulated outbreak data",
+         xlab = "Months",
+         ylab = "No. of cases")
+    
+    barplot(counts[c(start:end)],
+          names.arg=as.character(month[c(start:end)]),
+          main = "Time to detection",
+          xlab = "Time to detect outbreak (months)",
+          ylab = "No. of counts")
+    
+    dev.off()
+    """
+  
+  // Run the script in R and save the resulting PDF in the results directory
+  ScriptRunner.apply(rScript, resultsDir.resolve(scriptName))
+  
   
   val timeSeriesJSON = 
     ("source" -> "Simulated data" ) ~
@@ -159,40 +217,6 @@ object EDS_simData extends App{
     resultsDir.resolve("output.html") 
   )
   
-  //=======================
-  // Function definitions
   
-  def indexAndExclude(
-      obsByDate: SortedMap[YearMonth, Int], 
-      exclusions: Set[YearMonth] = Set.empty
-      ): SortedMap[Date, Int] = {
-    assert(!obsByDate.exists{case (ym, _) => exclusions.contains(ym)})
-    
-    val removedExclusions = obsByDate.filterKeys{ym => !exclusions.contains(ym)}
-    val firstDate = removedExclusions.firstKey
-        
-        implicit val dateOrdering = Ordering.by{d: Date => d.idx}
-    
-    removedExclusions.map{case (ym, count) => Date(ym, MONTHS.between(firstDate, ym)) -> count}
-  }
-  
-  def extractWindow(timeSeries: SortedMap[Date, Int]): SortedMap[Date, Int] = {
-    val lastObsDate = timeSeries.lastKey
-        val window = List(-1, 0, 1).map(v => (v + 12) % 12)
-        val windowLowerBound = lastObsDate.yearMonth.minus(12, YEARS).minus(1, MONTHS)
-        
-        def keep(date: Date) = {
-      val monthRemainder = MONTHS.between(date.yearMonth, lastObsDate.yearMonth) % 12
-          val inWindow = window.exists(_ == monthRemainder)
-          
-          val isAfterStartDate = windowLowerBound.compareTo(date.yearMonth) <= 0 
-          val isBeforeEndDate = MONTHS.between(date.yearMonth, lastObsDate.yearMonth) > 2
-          val isBaseline = inWindow && isAfterStartDate && isBeforeEndDate
-          
-          isBaseline || date == lastObsDate
-    }
-    val t = timeSeries.filterKeys(keep)
-        t
-  }
   
 }

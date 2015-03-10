@@ -6,6 +6,7 @@ import scala.util.Random
 import breeze.stats.distributions.Poisson
 import breeze.stats.distributions.NegativeBinomial
 import breeze.stats.distributions.LogNormal
+import breeze.stats.distributions.Binomial
 
 /*
   =========
@@ -23,12 +24,16 @@ import breeze.stats.distributions.LogNormal
   
   Author:    Teedah Saratoon
   Date:      27/02/2015
-  Last edit: 04/03/2015
+  Last edit: 10/03/2015
   
   ==========
   INPUTS:
 
-  nData          No. of time intervals for which to simulate data
+  nData           No. of time intervals for which to simulate data
+  endYear         Last year in which outbreak data should be simulated
+  outbreakShape   Choose "logNormal" or "epidemicCurve" shape
+  outbreakLength  Choose "long" or "short" outbreak (~7 or ~3 months)
+  
   
   alpha           Frequency of reports
   beta            Linear trend
@@ -46,10 +51,17 @@ import breeze.stats.distributions.LogNormal
   =========
   FUNCTIONS:
   
-  stdDev          Calculates standard deviation
-  sumFunction     Performs sum of a function of an integer from a to b
-  sumTerm         Function of j which is to be summed from j= 1 to m:
-  addList         Adds a list of values at the specified indices to a given sequence
+  genPoisson            Generate a nonzero number from a Poisson distribution (mean = 0, sd = 0.5)
+  stdDev                Calculates standard deviation
+  atanh                 Inverse hyperbolic tan function  
+  sumFunction           Performs sum of a function of an integer from a to b
+  sumTerm               Function of j which is to be summed from j= 1 to m:
+  addList               Adds a list of values at the specified indices to a given sequence
+  runBaseline           Simulates baseline data using a Negative Binomial distribution
+  logNormalOutbreak     Simulates outbreak data using a log-Normal distribution
+  epidemicCurveOutbeak  Simulates outbreak data using an epidemic curve shape
+  addOutbreak           Simulates an outbreak and adds to baseline data
+  splitOutbreak         Splits an outbreak into two counts using a binomial distribution
   
   =========  
   OUTPUT:
@@ -61,43 +73,44 @@ import breeze.stats.distributions.LogNormal
   */
 
 case class GenerationParams(
-      alpha: Double,
-      beta: Double,
-      m: Int,
-      gamma_1: Double,
-      gamma_2: Double,
-      dispersion: Double,
-      k: Double
-    )
+    alpha: Double,
+    beta: Double,
+    m: Int,
+    gamma_1: Double,
+    gamma_2: Double,
+    dispersion: Double
+  )
 object GenerationParams{
-  val scenario14 = GenerationParams(1.5, 0, 1, 0.2, -0.4, 1, 6)
-  val scenario1 = GenerationParams(0.1, 0, 0, 0, 0, 1.5, 6)
-  val default = scenario14
+  val default = GenerationParams(1.5, 0, 1, 0.2, -0.4, 1)
 }
 
 case class GenerationResult(
-  year: IndexedSeq[Int],
-  month: IndexedSeq[Int],
-  baseline: IndexedSeq[Int],
-  counts: IndexedSeq[Int],
-  hist: List[(Int, Int)],
-  start: Int,
-  end: Int
+    year: IndexedSeq[Int],
+    month: IndexedSeq[Int],
+    baseline: IndexedSeq[Int],
+    counts: IndexedSeq[Int],
+    hist: List[(Int, Int)],
+    start: Int,
+    end: Int
   )
   
-case class SplitResult(
-  data1: GenerationResult,
-  data2: GenerationResult
-)
-
+case class BaselineResult(
+    year: IndexedSeq[Int],
+    month: IndexedSeq[Int],
+    baseline: IndexedSeq[Int],
+    mean: Double
+  )
+  
 object GenerateData {
   
   def run(
       nData: Int,
       endYear: Int,
+      outbreakShape: String,
       outbreakLength: String,
       endPreOutbreak: Int,
       endOutbreak: Int,
+      magnitude: Double,
       params: GenerationParams = GenerationParams.default
     ): GenerationResult = {
     
@@ -118,16 +131,16 @@ object GenerateData {
     }
     
     // Calculate the mean of the baseline data
-		val mean_baseline = math.exp(alpha + beta*nData + sumFunction(sumTerm)(1,m))
+		val mean = math.exp(alpha + beta*nData + sumFunction(sumTerm)(1,m))
     
     // Sample baseline data from a Poisson or Negative Binomial distribution
-    val dataBaseline = 
+    val baseline = 
     if (dispersion == 1) {
-      val poi = new Poisson(mean_baseline)
+      val poi = new Poisson(mean)
       poi.sample(nData)
     }
     else {
-      val n = mean_baseline / (dispersion - 1) // number of failures
+      val n = mean / (dispersion - 1) // number of failures
       val p = 1 - math.pow(dispersion,-1)      // probability of success
       val nb = new NegativeBinomial(n,p)
       nb.sample(nData)
@@ -140,26 +153,23 @@ object GenerateData {
     val tOutbreak = (endPreOutbreak + 1) + rnd.nextInt(endOutbreak - endPreOutbreak)
     
     // Calculate standard deviation of the baseline count at each tOutbreak
-    def stdDev(data: IndexedSeq[Int], mean: Double): Double = {
-      data.map(x => math.pow(x - mean, 2)).sum / nData
-    }
-    val sd = stdDev(dataBaseline, mean_baseline)
+    val sd = stdDev(baseline, mean)
     
-    // Calculate no. of outbreak cases to simulate
-    val poi_outbreak = new Poisson(k * sd)
-    val nCases = poi_outbreak.sample()
+    // Calculate number of outbreak cases from Poisson distribution
+    val poi_outbreak = new Poisson(magnitude * sd)    
+    val n = genPoisson(poi_outbreak)
     
-    // Distribute over required period (~3 months for short, ~6 months for long)
-    val outbreakDistribution = 
-      if (outbreakLength == "short")
-        LogNormal(0,0.5).sample(nCases).sorted.map(x => math.floor(x).toInt)
-      else
-        LogNormal(0,0.5).sample(nCases).sorted.map(x => math.floor(2*x).toInt)
+    // Calculate outbreak and distribute
+    val outbreakDistribution =
+      if (outbreakShape == "logNormal") logNormalOutbreak(n, outbreakLength)
+      else epidemicCurveOutbreak(n, outbreakLength)
+    //println(outbreakDistribution)
     
     // Count number of outbreak cases for each month of the outbreak
     val outbreakHist = 
       outbreakDistribution.groupBy(w => w).mapValues(_.size).toList.sorted
-    
+    //println(outbreakHist)
+      
     // Create list of pairs of time index and number of cases to be added
     val outbreakIdx =
       outbreakHist.map{case (key, value) => (key+tOutbreak-1, value)}
@@ -168,14 +178,27 @@ object GenerateData {
     val tEnd = outbreakIdx.last._1 + 1
     
     // Add to baseline data to return simulated outbreak data
-    val dataOutbreak = addList(dataBaseline,outbreakIdx)
+    val dataOutbreak = addList(baseline,outbreakIdx)
     
-    GenerationResult(year, month, dataBaseline, dataOutbreak, outbreakHist, tOutbreak, tEnd)
+    GenerationResult(year, month, baseline, dataOutbreak, outbreakHist, tOutbreak, tEnd)
         
   }
   
-  //=======================
-  // Function definitions
+  @tailrec
+  def genPoisson(rng: Poisson): Int = {
+    val nTry = rng.sample()
+    if (nTry != 0) nTry
+    else genPoisson(rng: Poisson)
+  }
+  
+  // Standard deviation
+  def stdDev(data: IndexedSeq[Int], mean: Double): Double = {
+    val n = data.length
+      data.map(x => math.pow(x - mean, 2)).sum / n
+  }
+  
+  // Inverse hyperbolic tan
+  def atanh(x: Double) = 0.5 * ( math.log(1.0 + x) - math.log(1.0 - x) )
   
   // Performs sum of a function of an integer from integer a to integer b
   def sumFunction(f: Int => Double)(a: Int, b: Int): Double = {
@@ -200,62 +223,140 @@ object GenerateData {
     loop(current,toDo)
   }
   
-  def splitOutbreak(data: GenerationResult): SplitResult = {
+  
+  def runBaseline(
+      nData: Int,
+      endYear: Int,
+      params: GenerationParams = GenerationParams.default
+    ): BaselineResult = {
     
-    val outbreakHist = data.hist
-    val tOutbreak = data.start
-    val nData = data.baseline.length
-     
-    def splitData(list: List[(Int, Int)]) = {
-      val rnd = new Random
-      val count1 = list.map{ 
-        case (key, value) => (key, rnd.nextInt(value + 1))
-      }
-      val count1_indexed = count1.zipWithIndex
-      val count2_indexed = count1_indexed.map{
-        case ((key, value), i) => ((key, list(i)._2 - value), i)
-      }
-      val (count2, index) = count2_indexed.unzip
-      
-      (count1, count2)
-      
+    import params._
+    
+    // Construct sequences of months and years
+    val startYear = math.round(endYear - nData.toDouble/12)  
+    val year = (1 to nData).map(i => (startYear + ((i-1) / 12)).toInt)
+    val month = (1 to nData).map(i => (i-1) % 12 + 1)  
+    
+    //=======================
+    //Simulate baseline data
+    
+    // Function of j which is to be summed from j= 1 to m:
+    def sumTerm(j: Int): Double = {
+      gamma_1*math.cos((2*math.Pi*j*nData).toDouble / 12) + 
+      gamma_2*math.sin((2*math.Pi*j*nData).toDouble / 12)
     }
     
-    val (baseline1, baseline2) =
-      splitData((1 to nData).map(i => (i,data.baseline(i-1))).toList)
-    val dataBaseline1 = baseline1.map(i => i._2).toIndexedSeq
-    val dataBaseline2 = baseline2.map(i => i._2).toIndexedSeq
+    // Calculate the mean of the baseline data
+    val mean = math.exp(alpha + beta*nData + sumFunction(sumTerm)(1,m))
     
-    val (count1, count2) = splitData(outbreakHist)    
-    val outbreakIdx1 =
-      count1.map{case (key, value) => (key+tOutbreak-1, value)}    
-    val outbreakIdx2 =
-      count2.map{case (key, value) => (key+tOutbreak-1, value)}
-       
-    val dataOutbreak1 = addList(dataBaseline1,outbreakIdx1)
-    val dataOutbreak2 = addList(dataBaseline2,outbreakIdx2)
+    // Sample baseline data from a Poisson or Negative Binomial distribution
+    val baseline = 
+      if (dispersion == 1) {
+        val poi = new Poisson(mean)
+        poi.sample(nData)
+      }
+      else {
+        val n = mean / (dispersion - 1) // number of failures
+        val p = 1 - math.pow(dispersion,-1)      // probability of success
+        val nb = new NegativeBinomial(n,p)
+        nb.sample(nData)
+      }
     
-    val data1 = GenerationResult(
-      data.year,
-      data.month,
-      dataBaseline1,
-      dataOutbreak1,
-      count1,
-      data.start,
-      data.end
-    )
+    BaselineResult(year, month, baseline, mean)
+    
+  }
+  
+  
+  def logNormalOutbreak(n: Int, outbreakLength: String) = {    
+    if (outbreakLength == "short")
+      LogNormal(0,0.5).sample(n).sorted.map(x => math.floor(x).toInt)
+    else
+      LogNormal(0,0.5).sample(n).sorted.map(x => math.floor(2*x).toInt)
+  }
+  
+  
+  def epidemicCurveOutbreak(n: Int, outbreakLength: String) = {
+      val rnd = new Random
+      val Finv = (1 to n).map(x => 4*atanh(2*rnd.nextDouble() - 1))
+      val Finv_floored = 
+        if (outbreakLength == "short")
+          Finv.map(x => math.floor(0.25*x).toInt)
+        else
+          Finv.map(x => math.floor(0.5*x).toInt)
+      val count = 
+        if (Finv_floored.min <= 0)
+          Finv_floored.map(x => (x - Finv_floored.min) + 1)
+        else
+          Finv_floored
+      count
+  }
+  
+  def addOutbreak(
+      dataBaseline: BaselineResult,
+      outbreakShape: String,
+      outbreakLength: String,
+      endPreOutbreak: Int,
+      endOutbreak: Int,
+      magnitude: Double,
+      params: GenerationParams = GenerationParams.default
+    ): GenerationResult = {
+    
+    import dataBaseline._
+    
+    val nData = baseline.length
+    
+    val rnd = new Random  
+    val tOutbreak = (endPreOutbreak + 1) + rnd.nextInt(endOutbreak - endPreOutbreak)
+    
+    // Calculate standard deviation of the baseline count at each tOutbreak
+    val sd = stdDev(baseline, mean)
+    
+    // Calculate number of outbreak cases from Poisson distribution
+    val poi_outbreak = new Poisson(magnitude * sd)
+    val n = genPoisson(poi_outbreak)
+    
+    // Calculate outbreak and distribute
+    val outbreakDistribution =
+      if (outbreakShape == "logNormal") logNormalOutbreak(n, outbreakLength)
+      else epidemicCurveOutbreak(n, outbreakLength)
+    
+    // Count number of outbreak cases for each month of the outbreak
+    val outbreakHist = 
+      outbreakDistribution.groupBy(w => w).mapValues(_.size).toList.sorted
       
-    val data2 = GenerationResult(
-      data.year,
-      data.month,
-      dataBaseline2,
-      dataOutbreak2,
-      count2,
-      data.start,
-      data.end
-    )
+    // Create list of pairs of time index and number of cases to be added
+    val outbreakIdx =
+      outbreakHist.map{case (key, value) => (key+tOutbreak-1, value)}
+    
+    // Last month of outbreak
+    val tEnd = outbreakIdx.last._1 + 1
+    
+    // Add to baseline data to return simulated outbreak data
+    val dataOutbreak = addList(baseline,outbreakIdx)
+    
+    GenerationResult(year, month, baseline, dataOutbreak, outbreakHist, tOutbreak, tEnd)     
+    
+  }
+  
+  
+  def splitOutbreak(hist: List[(Int, Int)], start: Int) = {
+    
+    // Split outbreaks according to a binomial model
+    val count1 = hist.map{ 
+      case (key, value) => (key, Binomial(value, 0.5).draw())
+    }
+    val count1_indexed = count1.zipWithIndex
+    val count2_indexed = count1_indexed.map{
+      case ((key, value), i) => ((key, hist(i)._2 - value), i)
+    }
+    val (count2, index) = count2_indexed.unzip
+  
+    val outbreak1 =
+      count1.map{case (key, value) => (key+start-1, value)}    
+    val outbreak2 =
+      count2.map{case (key, value) => (key+start-1, value)}
       
-    SplitResult(data1, data2)
+    (outbreak1, outbreak2)
     
   }
       

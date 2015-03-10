@@ -100,14 +100,23 @@ object EDS_HiddenOutbreak extends App{
   // outbreakLength = "short"
   val outbreakLength = "long"
   
+  // Choose log-Normal or epidemic curve outbreak
+  // val outbreakShape = "logNormal"
+  val outbreakShape = "epidemicCurve"
+  
   // Define end of each period
   //Baseline -> Pre-outbreak -> Outbreak -> Post-outbreak
   val endBaseline = 146
   val endPreOutbreak = 182
   val endOutbreak = 282
+  
+  // Magnitude of outbreak
+  val magnitude = 1
       
   // Identifiers for results files
-  val csvName = "hiddenOutbreak.csv" // CSV file to store simulated data from Scala
+  val csv_full = "hiddenOutbreak_full.csv" // CSV file to store simulated data from Scala
+  val csv_split1 = "hiddenOutbreak_split1.csv"
+  val csv_split2 = "hiddenOutbreak_split2.csv"
   val scriptName = "plotHiddenOutbreak.r" // R script to import the CSV and plot the data
   val pdfName = "hiddenOutbreak.pdf" // PDF containing the plots
   
@@ -125,58 +134,86 @@ object EDS_HiddenOutbreak extends App{
   //val stats = (0 until nSimulations).map{i =>
     println(i)
     
-    // Simulate outbreak data and split outbreak into two sets
-    val data = GenerateData.run(nData, endYear, outbreakLength, endPreOutbreak, endOutbreak)
-    val splitData = GenerateData.splitOutbreak(data)
+    // Simulate two sets of baseline data and combine to create full set
+    val dataBaseline1 = GenerateData.runBaseline(nData, endYear)
+    val dataBaseline2 = GenerateData.runBaseline(nData, endYear)
+    val year = dataBaseline1.year
+    val month = dataBaseline1.month
+    val mean = dataBaseline1.mean
+    val baseline1 = dataBaseline1.baseline
+    val baseline2 = dataBaseline2.baseline
+    val baselineFull = baseline1.zip(baseline2).map(i => i._1 + i._2)
+    
+    val dataBaselineFull = BaselineResult(year, month, baselineFull, mean)
+    
+    // Simulate an outbreak using the full set of baseline data
+    val data = GenerateData.addOutbreak(
+      dataBaselineFull, outbreakShape, outbreakLength, endPreOutbreak, endOutbreak, magnitude
+    )
+    
+    // Split the outbreak and add to the two smaller sets of baseline data:
+    val (outbreak1, outbreak2) = GenerateData.splitOutbreak(data.hist, data.start)
+    val data1 = GenerationResult(
+        year,
+        month,
+        baseline1,
+        GenerateData.addList(baseline1, outbreak1),
+        outbreak1,
+        data.start,
+        data.end)
+    val data2 = GenerationResult(
+        year,
+        month,
+        baseline2,
+        GenerateData.addList(baseline2, outbreak2),
+        outbreak2,
+        data.start,
+        data.end)    
     
     // Run EDS for each data set
-    val dataFull = EDS.run(data, endBaseline)    
-    val dataSplit1 = EDS.run(splitData.data1, endBaseline)    
-    val dataSplit2 = EDS.run(splitData.data2, endBaseline)
+    val dataFull = EDS_TS.run(data, endBaseline)    
+    val dataSplit1 = EDS_TS.run(data1, endBaseline)    
+    val dataSplit2 = EDS_TS.run(data2, endBaseline)
     
     // Probability of detection
-    val detectedFull = EDS.detected(dataFull, data.start, data.end)    
-    val detectedSplit1 = EDS.detected(dataSplit1, data.start, data.end)    
-    val detectedSplit2 = EDS.detected(dataSplit2, data.start, data.end)
+    val detectedFull = EDS_TS.detected(dataFull, data.start, data.end)    
+    val detectedSplit1 = EDS_TS.detected(dataSplit1, data.start, data.end)    
+    val detectedSplit2 = EDS_TS.detected(dataSplit2, data.start, data.end)
     
     val POD = IndexedSeq(detectedFull, detectedSplit1, detectedSplit2)
     
-    /*
-    // Probability of detection
-    val consecutiveFull = EDS.detectedConsecutive(dataFull, data.start, data.end)    
-    val consecutiveSplit1 = EDS.detectedConsecutive(dataSplit1, data.start, data.end)    
-    val consecutiveSplit2 = EDS.detectedConsecutive(dataSplit2, data.start, data.end)
+    // Probability of consecutive detection
+    val consecutiveFull = EDS_TS.detectedConsecutive(dataFull, data.start, data.end)    
+    val consecutiveSplit1 = EDS_TS.detectedConsecutive(dataSplit1, data.start, data.end)    
+    val consecutiveSplit2 = EDS_TS.detectedConsecutive(dataSplit2, data.start, data.end)
     
     val POCD = IndexedSeq(consecutiveFull, consecutiveSplit1, consecutiveSplit2)
-    */
     
     // False Positive Rate
-    val fprFull = EDS.falsePositiveRate(dataFull, data.start, data.end)
-    val fprSplit1 = EDS.falsePositiveRate(dataSplit1, data.start, data.end)
-    val fprSplit2 = EDS.falsePositiveRate(dataSplit2, data.start, data.end)
+    val fprFull = EDS_TS.falsePositiveRate(dataFull, data.start, data.end)
+    val fprSplit1 = EDS_TS.falsePositiveRate(dataSplit1, data.start, data.end)
+    val fprSplit2 = EDS_TS.falsePositiveRate(dataSplit2, data.start, data.end)
     
     val FPR = IndexedSeq(fprFull, fprSplit1, fprSplit2)
     
     // Time To Detection
-    val timesFull = EDS.timeToDetection(dataFull, data.start, data.end)
+    val timesFull = EDS_TS.timeToDetection(dataFull, data.start, data.end)
     val tFull = if (timesFull.length == 0) -1 else timesFull(0)
     
-    val timesSplit1 = EDS.timeToDetection(dataSplit1, data.start, data.end)
+    val timesSplit1 = EDS_TS.timeToDetection(dataSplit1, data.start, data.end)
     val tSplit1 = if (timesSplit1.length == 0) -1 else timesSplit1(0)
     
-    val timesSplit2 = EDS.timeToDetection(dataSplit2, data.start, data.end)
+    val timesSplit2 = EDS_TS.timeToDetection(dataSplit2, data.start, data.end)
     val tSplit2 = if (timesSplit2.length == 0) -1 else timesSplit2(0)
     
     val TTD = IndexedSeq(tFull, tSplit1, tSplit2)
     
     // Proportion of Outbreak Times Detected
-    val potdFull = EDS.proportionDetected(dataFull, data.start, data.end)    
-    val potdSplit1 = EDS.proportionDetected(dataSplit1, data.start, data.end)    
-    val potdSplit2 = EDS.proportionDetected(dataSplit2, data.start, data.end)
+    val potdFull = EDS_TS.proportionDetected(dataFull, data.start, data.end)    
+    val potdSplit1 = EDS_TS.proportionDetected(dataSplit1, data.start, data.end)    
+    val potdSplit2 = EDS_TS.proportionDetected(dataSplit2, data.start, data.end)
     
     val POTD = IndexedSeq(potdFull, potdSplit1, potdSplit2)
-    
-    val POCD = IndexedSeq(false, false, false)
     MeasureData(POD, POCD, FPR, TTD, POTD)
     
   }  
@@ -184,31 +221,33 @@ object EDS_HiddenOutbreak extends App{
   
   //=======================
   // Extract measures
+  
+  println("Magnitude of outbreak = " + magnitude)
     
   // Probability of detection
   val POD_Full =
-    stats.map(i => i.POD(0)).count(i => i==true).toDouble / stats.map(i => i.POD(0)).length
+    stats.map(i => i.POD(0)).count(i => i==true).toDouble / nSimulations
   val POD_Split1 =
-    stats.map(i => i.POD(1)).count(i => i==true).toDouble / stats.map(i => i.POD(1)).length
+    stats.map(i => i.POD(1)).count(i => i==true).toDouble / nSimulations
   val POD_Split2 =
-    stats.map(i => i.POD(2)).count(i => i==true).toDouble / stats.map(i => i.POD(2)).length
+    stats.map(i => i.POD(2)).count(i => i==true).toDouble / nSimulations
   
   val POD_Split = 1 - ((1 - POD_Split1) * (1 - POD_Split2))  
   
   // Probability of consecutive detection
   val POCD_Full =
-    stats.map(i => i.POCD(0)).count(i => i==true).toDouble / stats.map(i => i.POCD(0)).length
+    stats.map(i => i.POCD(0)).count(i => i==true).toDouble / nSimulations
   val POCD_Split1 =
-    stats.map(i => i.POCD(1)).count(i => i==true).toDouble / stats.map(i => i.POCD(1)).length
+    stats.map(i => i.POCD(1)).count(i => i==true).toDouble / nSimulations
   val POCD_Split2 =
-    stats.map(i => i.POCD(2)).count(i => i==true).toDouble / stats.map(i => i.POCD(2)).length
+    stats.map(i => i.POCD(2)).count(i => i==true).toDouble / nSimulations
   
   val POCD_Split = 1 - ((1 - POCD_Split1) * (1 - POCD_Split2))  
     
   // False positive rate
-  val FPR_Full = stats.map(i => i.FPR(0)).sum.toDouble / stats.map(i => i.FPR(0)).length
-  val FPR_Split1 = stats.map(i => i.FPR(1)).sum.toDouble / stats.map(i => i.FPR(1)).length
-  val FPR_Split2 = stats.map(i => i.FPR(2)).sum.toDouble / stats.map(i => i.FPR(2)).length
+  val FPR_Full = stats.map(i => i.FPR(0)).sum.toDouble / nSimulations
+  val FPR_Split1 = stats.map(i => i.FPR(1)).sum.toDouble / nSimulations
+  val FPR_Split2 = stats.map(i => i.FPR(2)).sum.toDouble / nSimulations
   
   // Time to detection
   val TTD_Full = 
@@ -219,9 +258,9 @@ object EDS_HiddenOutbreak extends App{
     stats.map(i => i.TTD(2)).groupBy(w => w).mapValues(_.size).toList.sorted
     
   // Proportion of outbreak times detected
-  val POTD_Full = stats.map(i => i.POTD(0)).sum.toDouble / stats.map(i => i.POTD(0)).length
-  val POTD_Split1 = stats.map(i => i.POTD(1)).sum.toDouble / stats.map(i => i.POTD(1)).length
-  val POTD_Split2 = stats.map(i => i.POTD(2)).sum.toDouble / stats.map(i => i.POTD(2)).length
+  val POTD_Full = stats.map(i => i.POTD(0)).sum.toDouble / nSimulations
+  val POTD_Split1 = stats.map(i => i.POTD(1)).sum.toDouble / nSimulations
+  val POTD_Split2 = stats.map(i => i.POTD(2)).sum.toDouble / nSimulations
   
   
   //=======================
@@ -243,53 +282,76 @@ object EDS_HiddenOutbreak extends App{
     
   println("Proportion of outbreak times detected for full data = " + POTD_Full)
   println("Proportion of outbreak times detected for split 1 data = " + POTD_Split1)
-  println("Proportion of outbreak timesn detected for split 2 data = " + POTD_Split2)
+  println("Proportion of outbreak times detected for split 2 data = " + POTD_Split2)
   
-  println("Time to detection saved to " + pdfName + ".pdf")
+  println("Time to detection saved to " + pdfName)
   
   //=======================
-  // Output and plot      
+  // Output and plot
       
   // Create a directory to store results
-  Files.createDirectories(resultsDir)  
-      
-  // Write times to CSV file
-  val writer = Files.newBufferedWriter(resultsDir.resolve(csvName), Charset.defaultCharset())
-  writer.write("time, full, split1, split2")
+  Files.createDirectories(resultsDir)
+  
+  // Write times to detection to CSV file for full data
+  val writer = Files.newBufferedWriter(resultsDir.resolve(csv_full), Charset.defaultCharset())
+  writer.write("time, count")
   writer.newLine
   for (i <- 0 until TTD_Full.length) {
-    writer.write(s"${TTD_Full(i)._1.toString}, ${TTD_Full(i)._2.toString}, ${TTD_Split1(i)._2.toString}, ${TTD_Split2(i)._2.toString}")
+    writer.write(s"${TTD_Full(i)._1.toString}, ${TTD_Full(i)._2.toString}")
     writer.newLine
   }
   writer.close
+  
+  // Write times to detection to CSV file for split 1 data
+  val writer2 = Files.newBufferedWriter(resultsDir.resolve(csv_split1), Charset.defaultCharset())
+  writer2.write("time, count")
+  writer2.newLine
+  for (i <- 0 until TTD_Split1.length) {
+    writer2.write(s"${TTD_Split1(i)._1.toString}, ${TTD_Split1(i)._2.toString}")
+    writer2.newLine
+  }
+  writer2.close
+  
+  // Write times to detection to CSV file for split 2 data
+  val writer3 = Files.newBufferedWriter(resultsDir.resolve(csv_split2), Charset.defaultCharset())
+  writer3.write("time, count")
+  writer3.newLine
+  for (i <- 0 until TTD_Split2.length) {
+    writer3.write(s"${TTD_Split2(i)._1.toString}, ${TTD_Split2(i)._2.toString}")
+    writer3.newLine
+  }
+  writer3.close
   
   // Write R script which imports and plots data in a pdf
   val rScript = 
     s"""
       
-    data = read.csv("$csvName")
-      
-    times = data[["time"]]
-    full = data[["full"]]
-    split1 = data[["split1"]]
-    split2 = data[["split2"]]
+    full = read.csv("$csv_full")
+    split1 = read.csv("$csv_split1")
+    split2 = read.csv("$csv_split2")
+          
+    cmin = 0
+    cmax = max(full[["count"]], split1[["count"]], split2[["count"]])
     
     pdf("$pdfName", width=4.13, height=2.91) #A7 landscape paper
     
-    barplot(full,
-          names.arg=as.character(times),
+    barplot(full[["count"]],
+          names.arg = as.character(full[["time"]]),
+          ylim = c(cmin, cmax),
           main = "Time to detection (full set)",
           xlab = "Time to detect outbreak (months)",
           ylab = "No. of counts")
           
-    barplot(split1,
-          names.arg=as.character(times),
+    barplot(split1[["count"]],
+          names.arg = as.character(split1[["time"]]),
+          ylim = c(cmin, cmax),
           main = "Time to detection (split 1)",
           xlab = "Time to detect outbreak (months)",
           ylab = "No. of counts")
           
-    barplot(split2,
-          names.arg=as.character(times),
+    barplot(split2[["count"]],
+          names.arg = as.character(split2[["time"]]),
+          ylim = c(cmin, cmax),
           main = "Time to detection (split 2)",
           xlab = "Time to detect outbreak (months)",
           ylab = "No. of counts")
