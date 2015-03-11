@@ -61,11 +61,12 @@ object EDS_original extends App{
     val indexedData = indexAndExclude(countData, exclude2001)
   
     (0 to 144).map{i => 
+      println(i)
 //      Farrington.run(
-//          extractWindow(indexedData.dropRight(i)), 
+//          indexedData.dropRight(i), 
 //          rCon, Farrington.FarNew
 //      )
-      
+//      
 //      Farrington.run(
 //          indexedData.dropRight(i), 
 //          rCon, Farrington.APHA
@@ -92,6 +93,7 @@ object EDS_original extends App{
     Map("jsonData" -> pretty(render(timeSeriesJSON))),
     "plot.ftl",
     resultsDir.resolve("output.html") 
+   
   ) 
   
   def indexAndExclude(
