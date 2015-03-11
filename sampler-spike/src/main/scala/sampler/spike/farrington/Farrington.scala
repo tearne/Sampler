@@ -88,6 +88,7 @@ object Farrington {
 			parseAndEval("basedata = as.data.frame(fromJSON(jsonIn)$Baseline)")
      	parseAndEval("currentCount = as.data.frame(fromJSON(jsonIn)$Current$Incidents)")
       parseAndEval("currentmth = as.data.frame(fromJSON(jsonIn)$Current$Month)")
+      parseAndEval("startdte = as.data.frame(fromJSON(jsonIn)$StartDate)")
 			parseAndEval(rScript)
 			parseAndEval("output")
 		}
