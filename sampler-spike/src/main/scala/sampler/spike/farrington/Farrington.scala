@@ -24,6 +24,10 @@ import org.json4s.native.JsonMethods.pretty
 import org.json4s.native.JsonMethods.render
 import org.json4s.string2JsonInput
 import org.rosuda.REngine.Rserve.RConnection
+import sampler.spike.farrington.Farrington.Mode
+import sampler.spike.farrington.Farrington.APHA
+import sampler.spike.farrington.Farrington.Stl
+import sampler.spike.farrington.Farrington.FarNew
 
 case class Date(yearMonth: YearMonth, idx: Long)
 
@@ -102,7 +106,9 @@ object Farrington {
 	
 	def buildJSON(timeSeries: SortedMap[Date, Int]): JObject = {
 		val now = timeSeries.last
-		val history = timeSeries.dropRight(1)
+		val history = timeSeries
+//      if (Mode == APHA) timeSeries.dropRight(1)
+//      else timeSeries
     val firstDate = timeSeries.head._1
 		
     val t = now._1.idx
