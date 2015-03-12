@@ -3,17 +3,16 @@
 #outDir<-paste(homeDir, "results", sep="")
 #setwd(paste(homeDir,fileDir,sep=""))
 
-## debug=F
-## if(debug==T) {
-##     library(rjson)
-##     jsonIn = fromJSON(file="outR.json")
-##     modeFlag = "stl"
-##     basedata=jsonIn$Baseline
-##     currentmth=jsonIn$Current$Month
-##     currentCount=jsonIn$Current$Incident
-##     startdte=jsonIn$StartDate
-## }
-
+ debug=F
+ if(debug==T) {
+     library(rjson)
+     jsonIn = fromJSON(file="outR.json")
+     modeFlag = "stl"
+     basedata=jsonIn$Baseline
+     currentmth=jsonIn$Current$Month
+     currentCount=jsonIn$Current$Incident
+     startdte=jsonIn$StartDate
+ }
 
 require(rjson)
 
@@ -56,8 +55,6 @@ threshold <-function(z,trend0){
 ###########################################################################
 ###				MAIN MODEL				
 ###########################################################################
-
-
 
 #allData = read.csv("/home/user/ENVIRONMENT/workspaces/workspace_scala/FarringtonTest/results/baselineData.txt")
 #allData = as.data.frame(fromJSON(paste(readLines("r-in.json"), collapse="")))
@@ -138,19 +135,20 @@ if  ( modeFlag %in% c("far", "farNew") )  {
 		tsRandom=0#as.vector(tsSplit$time.series[,3]) #including in basecont so set =0 here
 	}
 	basecont[basecont<=0]=0 #cant have -ve values for glm fit - shouldnt be -ve anyway
-	
+	currentCount=basecont[length(basecont)]
 	#--------------------------------------------------------------------------------------------------
 	#basedata<-data.frame(basecont, basemth)
 	# currentCount<-Data2[currentmth, 2+2]  	#LEAVE AS [,2+2] so only look at INCIDENTS. If wish to look at isolations change to [,1+1]. 
 	n=length(basedata$basemth)
 	basemth<-c(1:n)
+	currentmth=max(basemth)
 	w<-rep(1,times=n)					#Set weights = 1 
 	#----fit model with no linear trend----------------------------------------------------------------------------------------
-	model0<-glm(formula=basecont~1, family=quasipoisson(link=log), weights=w, data=basedata)  #model with no linear trend
+	model0<-glm(formula=basecont~1, family=quasipoisson(link=log), weights=w)  #model with no linear trend
 		param0<-coef(model0)
 		coeff0<-summary(model0)$coeff
 	#--------fit full model-------------------------------------------------------------------------------------------------
-	modelF<-glm(formula=basecont~basemth, family=quasipoisson(link=log), weights=w, data=basedata)	#Fit model
+	modelF<-glm(formula=basecont~basemth, family=quasipoisson(link=log))	#Fit model
 		paramF<-coef(modelF)
 		hatF<-lm.influence(modelF)$hat
 	#---calculate weights----------------     
@@ -168,7 +166,7 @@ if  ( modeFlag %in% c("far", "farNew") )  {
 		w=k*y
 		w[w==0]=y     
 	#----fit model with weights--------------------
-	modelW<-glm(formula=basecont~basemth, family=quasipoisson(link=log), weights=w, data=basedata)   
+	modelW<-glm(formula=basecont~basemth, family=quasipoisson(link=log), weights=w)  
 		paramW<-coef(modelW)
 		if( any(is.na(paramW)) ) {modelW=modelF ;  paramW=coef(modelW) }
 		coeffW<-summary(modelW)$coeff
