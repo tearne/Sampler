@@ -30,6 +30,10 @@ import org.json4s.native.JsonMethods
 import java.nio.charset.Charset
 import java.nio.file.Path
 import java.io.OutputStream
+import sampler.spike.farrington.Farrington.Mode
+import sampler.spike.farrington.Farrington.APHA
+import sampler.spike.farrington.Farrington.Stl
+import sampler.spike.farrington.Farrington.FarNew
 
 object EDS_original extends App{
   val resultsDir = Paths.get("results", "farrington")
@@ -61,19 +65,25 @@ object EDS_original extends App{
     val indexedData = indexAndExclude(countData, exclude2001)
   
     (0 to 144).map{i => 
+      println(i)
 //      Farrington.run(
-//          extractWindow(indexedData.dropRight(i)), 
+//          indexedData.dropRight(i), 
 //          rCon, Farrington.FarNew
 //      )
       
 //      Farrington.run(
-//          indexedData.dropRight(i), 
+//         extractWindow( indexedData.dropRight(i),APHA, 5), 
 //          rCon, Farrington.APHA
 //      )
+
       Farrington.run(
-          indexedData.dropRight(i), 
+          extractWindow(indexedData.dropRight(i), Stl,5), 
           rCon, Farrington.Stl
       )
+//        Farrington.run(
+//         indexedData.dropRight(i), 
+//          rCon, Farrington.Stl
+//      )
     }
   } finally {
     rCon.close
@@ -92,6 +102,7 @@ object EDS_original extends App{
     Map("jsonData" -> pretty(render(timeSeriesJSON))),
     "plot.ftl",
     resultsDir.resolve("output.html") 
+   
   ) 
   
   def indexAndExclude(
@@ -108,19 +119,24 @@ object EDS_original extends App{
     removedExclusions.map{case (ym, count) => Date(ym, MONTHS.between(firstDate, ym)) -> count}
   }
   
-  def extractWindow(timeSeries: SortedMap[Date, Int]): SortedMap[Date, Int] = {
+  def extractWindow(timeSeries: SortedMap[Date, Int], mode: Mode = APHA, nYears: Int=12): SortedMap[Date, Int] = {
     val lastObsDate = timeSeries.lastKey
-    val window = List(-1, 0, 1).map(v => (v + 12) % 12)
-    val windowLowerBound = lastObsDate.yearMonth.minus(12, YEARS).minus(1, MONTHS)
-    
+    val window =
+      if (mode == APHA) List(-1, 0, 1).map(v => (v + 12) % 12)
+      else (0 to 11).toList
+    val windowLowerBound = 
+      if (mode == APHA) lastObsDate.yearMonth.minus(nYears, YEARS).minus(1, MONTHS)
+      else lastObsDate.yearMonth.minus(nYears, YEARS)
     def keep(date: Date) = {
       val monthRemainder = MONTHS.between(date.yearMonth, lastObsDate.yearMonth) % 12
       val inWindow = window.exists(_ == monthRemainder)
-      
+    
       val isAfterStartDate = windowLowerBound.compareTo(date.yearMonth) <= 0 
-      val isBeforeEndDate = MONTHS.between(date.yearMonth, lastObsDate.yearMonth) > 2
+      val isBeforeEndDate = 
+        if (mode == APHA) MONTHS.between(date.yearMonth, lastObsDate.yearMonth) > 2
+        else MONTHS.between(date.yearMonth, lastObsDate.yearMonth) > -1
       val isBaseline = inWindow && isAfterStartDate && isBeforeEndDate
-      
+    
       isBaseline || date == lastObsDate
     }
     val t = timeSeries.filterKeys(keep)
