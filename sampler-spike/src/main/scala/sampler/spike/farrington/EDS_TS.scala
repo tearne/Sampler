@@ -26,6 +26,10 @@ import org.json4s.native.JsonMethods
 import java.nio.charset.Charset
 import java.nio.file.Path
 import java.io.OutputStream
+import sampler.spike.farrington.Farrington.Mode
+import sampler.spike.farrington.Farrington.APHA
+import sampler.spike.farrington.Farrington.FarNew
+import sampler.spike.farrington.Farrington.Stl
 
 /*
   =========
@@ -45,7 +49,7 @@ import java.io.OutputStream
   
   Author:    Teedah Saratoon (modified from EDS_original.scala)
   Date:      05/03/2015
-  Last edit: 05/03/2015
+  Last edit: 10/03/2015
   
   ==========
   USER-DEFINED PARAMETERS:
@@ -89,6 +93,7 @@ object EDS_TS extends App{
   def run(
       data: GenerationResult,
       endBaseline: Int,
+      mode: Mode = APHA,
       stop: String = "false",
       exclusions: Set[YearMonth] = Set.empty
     ): FarringtonResult = {
@@ -113,11 +118,11 @@ object EDS_TS extends App{
 
     val rCon = new RConnection
     try {     
-      val indexedData = EDS.indexAndExclude(dataOutbreak, exclusions)
+      val indexedData = EDS_TS.indexAndExclude(dataOutbreak, exclusions)
       val maxDrop = nData - (endBaseline + 1)
-      if (stop == "false") runAll(maxDrop, indexedData, rCon)
-      else if (stop == "detect") runUntilDetection(maxDrop, indexedData, rCon)
-      else runUntilConsecutive(maxDrop, indexedData, rCon)
+      if (stop == "false") runAll(maxDrop, indexedData, rCon, mode)
+      else if (stop == "detect") runUntilDetection(maxDrop, indexedData, rCon, mode)
+      else runUntilConsecutive(maxDrop, indexedData, rCon, mode)
       }    
     finally {
       rCon.close
@@ -165,16 +170,18 @@ object EDS_TS extends App{
   }
   
   
+  
   // Runs EDS without stopping if flag is found
   def runAll(
       maxDrop: Int,
       indexedData: SortedMap[Date, Int],
-      rCon: RConnection
+      rCon: RConnection,
+      mode: Mode
     ): FarringtonResult = {
     def loop(i: Int, acc: IndexedSeq[Result], flags: IndexedSeq[Int]): FarringtonResult = {
-      val series = EDS.extractWindow(indexedData.dropRight(i))
-        val x = Farrington.run(series, rCon)
-        val detected = if (x.isAlert) flags :+ (indexedData.size - i) else flags
+      val series = EDS_TS.extractWindow(indexedData.dropRight(i))
+      val x = Farrington.run(series, rCon, mode)
+      val detected = if (x.isAlert) flags :+ (indexedData.size - i) else flags
         if (i == 0) FarringtonResult(acc :+ x, detected)
         else loop(i-1, acc :+ x, detected)
       }
@@ -185,11 +192,12 @@ object EDS_TS extends App{
   def runUntilDetection(
       maxDrop: Int,
       indexedData: SortedMap[Date, Int],
-      rCon: RConnection
+      rCon: RConnection,
+      mode: Mode
     ): FarringtonResult = {
     def loop(i: Int, acc: IndexedSeq[Result]): FarringtonResult = {
-        val series = EDS.extractWindow(indexedData.dropRight(i))
-        val x = Farrington.run(series, rCon)
+        val series = EDS_TS.extractWindow(indexedData.dropRight(i))
+        val x = Farrington.run(series, rCon, mode)
         val index = IndexedSeq(indexedData.size - i)
         if (x.isAlert || i == 0) FarringtonResult(acc :+ x, index)
         else loop(i-1, acc :+ x)
@@ -202,11 +210,12 @@ object EDS_TS extends App{
   def runUntilConsecutive(
       maxDrop: Int,
       indexedData: SortedMap[Date, Int],
-      rCon: RConnection
+      rCon: RConnection,
+      mode: Mode
     ): FarringtonResult = {
     def loop(i: Int, acc: IndexedSeq[Result]): FarringtonResult = {
-        val series = EDS.extractWindow(indexedData.dropRight(i))
-        val x = Farrington.run(series, rCon)
+        val series = EDS_TS.extractWindow(indexedData.dropRight(i))
+        val x = Farrington.run(series, rCon, mode)
         if (i == 0) {
           FarringtonResult(acc :+ x, IndexedSeq(indexedData.size - i))
         }
@@ -231,8 +240,7 @@ object EDS_TS extends App{
     val outbreakFlags = data.flags.intersect(tStart to tEnd)
     if (outbreakFlags.size == 0) IndexedSeq() 
     else outbreakFlags.map(i => i - tStart)    
-  }
-  
+  }  
   
   // Proportion of alerts made during outbreak to total outbreak months
   def proportionDetected(data: FarringtonResult, tStart: Int, tEnd: Int) = {
@@ -244,13 +252,11 @@ object EDS_TS extends App{
   def hits(data: FarringtonResult, tStart: Int, tEnd: Int) = {
     val nDetected = data.flags.intersect(tStart to tEnd).length
     List(nDetected.toDouble, (tEnd - tStart + 1))
-  }
-  
+  }  
   
   // Returns list of months in which false positives occurred
   def falsePositives(data: FarringtonResult, tStart: Int, tEnd: Int) =   
     data.flags.diff(tStart to tEnd)
-  
   
   // Returns proportion of false positives
   def falsePositiveRate(data: FarringtonResult, tStart: Int, tEnd: Int) = {
@@ -258,26 +264,81 @@ object EDS_TS extends App{
     EDS_TS.falsePositives(data, tStart, tEnd).length.toDouble / noOutbreak
   }
   
+  def trueNegativeRate(data: FarringtonResult, tStart: Int, tEnd: Int) = {
+	  val n = data.results.length - (tEnd - tStart + 1)
+	  val nFP = falsePositives(data, tStart, tEnd).length
+	  (n - nFP).toDouble/n
+  }
+  
+  def positivePredictive(data: FarringtonResult, tStart: Int, tEnd: Int) = {
+	  val nTP = data.flags.intersect(tStart to tEnd).length
+	  val nFP = data.flags.diff(tStart to tEnd).length
+    //println("true positives = " + nTP)
+    //println("false positives = " + nFP)
+	  if (nTP + nFP == 0) 0 else nTP.toDouble / (nTP + nFP)
+  }
+  
+  // Returns consecutive detections
+  def flagsConsecutive(data: FarringtonResult, tStart: Int, tEnd: Int) = {
+    if (data.flags.length <= 1) IndexedSeq()
+    else {
+      def loop(i: Int, acc: IndexedSeq[Int]): IndexedSeq[Int] = {
+        if (i == data.flags.length) acc
+        else { if (data.flags(i) - data.flags(i-1) == 1) loop(i+1, acc :+ data.flags(i))
+        else loop(i+1, acc)
+        }
+      }
+      loop(1, IndexedSeq())
+    }
+  }
+  
+  def fpConsecutive(data: FarringtonResult, tStart: Int, tEnd: Int) = {
+    val n = data.results.length - (tEnd - tStart + 1)
+    flagsConsecutive(data, tStart, tEnd).diff(tStart to tEnd)
+  }
+  
+  def fprConsecutive(data: FarringtonResult, tStart: Int, tEnd: Int) = {
+    val n = data.results.length - (tEnd - tStart + 1)
+    flagsConsecutive(data, tStart, tEnd).diff(tStart to tEnd).length.toDouble / n
+  }
+  
+  def tnrConsecutive(data: FarringtonResult, tStart: Int, tEnd: Int) = {
+    val n = data.results.length - (tEnd - tStart + 1)
+    val nFP = fpConsecutive(data, tStart, tEnd).length
+    (n - nFP).toDouble/n
+  }
+  
+  def ppvConsecutive(data: FarringtonResult, tStart: Int, tEnd: Int) = {
+    val nTP = flagsConsecutive(data, tStart, tEnd).intersect(tStart to tEnd).length
+    val nFP = fpConsecutive(data, tStart, tEnd).length
+    //println("true positives (consecutive) = " + nTP)
+    //println("false positives (consecutive) = " + nFP)
+    if (nTP + nFP == 0) 0 else nTP.toDouble / (nTP + nFP)
+  }
+  
   // Returns boolean depending on whether outbreak has been detected
   def detected(data: FarringtonResult, tStart: Int, tEnd: Int ): Boolean = {    
     val times = EDS_TS.timeToDetection(data, tStart, tEnd)    
-        if (times.size == 0) false else true    
+        if (times.length == 0) false else true    
   }
   
   
   // Returns boolean depending on whether outbreak has been detected at consecutive times
   def detectedConsecutive(data: FarringtonResult, tStart: Int, tEnd: Int ): Boolean = {    
+    val flags = EDS_TS.flagsConsecutive(data, tStart, tEnd).intersect(tStart to tEnd)
+      if (flags.length == 0) false else true
+  }
+  
+  def allMeasures(data: FarringtonResult, tStart: Int, tEnd: Int ) = {
+    val alert = EDS_TS.detected(data, tStart, tEnd)
+    val consecutive = EDS_TS.detectedConsecutive(data, tStart, tEnd)
+    val fpr = EDS_TS.falsePositiveRate(data, tStart, tEnd)
+    val fprCon = EDS_TS.fprConsecutive(data, tStart, tEnd)
+    val ppv = EDS_TS.positivePredictive(data, tStart, tEnd)
+    val ppvCon = EDS_TS.ppvConsecutive(data, tStart, tEnd)
     val times = EDS_TS.timeToDetection(data, tStart, tEnd)
-      if (times.size <= 1) false
-      else {
-        def loop(i: Int): Boolean = {
-          if (i == times.length) false
-          else { if (times(i) - times(i-1) == 1) true
-          else loop(i+1)
-          }
-        }
-        loop(1)
-      }
+    val potd = EDS_TS.proportionDetected(data, tStart, tEnd)
+    List(alert, consecutive, fpr, fprCon, ppv, ppvCon, times, potd)    
   }
 
 }

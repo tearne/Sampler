@@ -45,7 +45,7 @@ import sampler.r.process.ScriptRunner
   
   Author:    Teedah Saratoon
   Date:      04/03/2015
-  Last edit: 05/03/2015
+  Last edit: 10/03/2015
   
   ==========
   USER-DEFINED PARAMETERS:
@@ -80,6 +80,9 @@ case class MeasureData(
     POD: IndexedSeq[Boolean],
     POCD: IndexedSeq[Boolean],
     FPR: IndexedSeq[Double],
+    FPRCon: IndexedSeq[Double],
+    PPV: IndexedSeq[Double],
+    PPVCon: IndexedSeq[Double],
     TTD: IndexedSeq[Int],
     POTD: IndexedSeq[Double]
 )
@@ -90,18 +93,18 @@ object EDS_HiddenOutbreak extends App{
   // User-defined parameters
   
   // Number of sets of data to simulate
-  val nSimulations = 100
+  val nSimulations = 24
   
   // Number of months for which to simulate data:
   val nData = 462
   val endYear = 2014 
   
   // Choose "short" or "long" outbreaks
-  // outbreakLength = "short"
+  //val outbreakLength = "short"
   val outbreakLength = "long"
   
   // Choose log-Normal or epidemic curve outbreak
-  // val outbreakShape = "logNormal"
+  //val outbreakShape = "logNormal"
   val outbreakShape = "epidemicCurve"
   
   // Define end of each period
@@ -111,7 +114,7 @@ object EDS_HiddenOutbreak extends App{
   val endOutbreak = 282
   
   // Magnitude of outbreak
-  val magnitude = 1
+  val magnitude = 8
       
   // Identifiers for results files
   val csv_full = "hiddenOutbreak_full.csv" // CSV file to store simulated data from Scala
@@ -139,12 +142,13 @@ object EDS_HiddenOutbreak extends App{
     val dataBaseline2 = GenerateData.runBaseline(nData, endYear)
     val year = dataBaseline1.year
     val month = dataBaseline1.month
-    val mean = dataBaseline1.mean
+    val mean1 = dataBaseline1.mean
+    val mean2 = dataBaseline2.mean
     val baseline1 = dataBaseline1.baseline
     val baseline2 = dataBaseline2.baseline
     val baselineFull = baseline1.zip(baseline2).map(i => i._1 + i._2)
     
-    val dataBaselineFull = BaselineResult(year, month, baselineFull, mean)
+    val dataBaselineFull = BaselineResult(year, month, baselineFull, mean1+mean2)
     
     // Simulate an outbreak using the full set of baseline data
     val data = GenerateData.addOutbreak(
@@ -158,7 +162,7 @@ object EDS_HiddenOutbreak extends App{
         month,
         baseline1,
         GenerateData.addList(baseline1, outbreak1),
-        outbreak1,
+        outbreak1.map{ case (key, value) => (key - data.start + 1, value) },
         data.start,
         data.end)
     val data2 = GenerationResult(
@@ -166,7 +170,7 @@ object EDS_HiddenOutbreak extends App{
         month,
         baseline2,
         GenerateData.addList(baseline2, outbreak2),
-        outbreak2,
+        outbreak2.map{ case (key, value) => (key - data.start + 1, value) },
         data.start,
         data.end)    
     
@@ -196,6 +200,27 @@ object EDS_HiddenOutbreak extends App{
     
     val FPR = IndexedSeq(fprFull, fprSplit1, fprSplit2)
     
+    // False Positive Rate (consecutive)
+    val fprFullCon = EDS_TS.fprConsecutive(dataFull, data.start, data.end)
+    val fprSplit1Con = EDS_TS.fprConsecutive(dataSplit1, data.start, data.end)
+    val fprSplit2Con = EDS_TS.fprConsecutive(dataSplit2, data.start, data.end)
+    
+    val FPRCon = IndexedSeq(fprFullCon, fprSplit1Con, fprSplit2Con)
+    
+    // Positive predictive value
+    val ppvFull = EDS_TS.positivePredictive(dataFull, data.start, data.end)
+    val ppvSplit1 = EDS_TS.positivePredictive(dataSplit1, data.start, data.end)
+    val ppvSplit2 = EDS_TS.positivePredictive(dataSplit2, data.start, data.end)
+    
+    val PPV = IndexedSeq(ppvFull, ppvSplit1, ppvSplit2)
+    
+    // Positive predictive value
+    val ppvFullCon = EDS_TS.ppvConsecutive(dataFull, data.start, data.end)
+    val ppvSplit1Con = EDS_TS.ppvConsecutive(dataSplit1, data.start, data.end)
+    val ppvSplit2Con = EDS_TS.ppvConsecutive(dataSplit2, data.start, data.end)
+    
+    val PPVCon = IndexedSeq(ppvFullCon, ppvSplit1Con, ppvSplit2Con)
+    
     // Time To Detection
     val timesFull = EDS_TS.timeToDetection(dataFull, data.start, data.end)
     val tFull = if (timesFull.length == 0) -1 else timesFull(0)
@@ -214,7 +239,7 @@ object EDS_HiddenOutbreak extends App{
     val potdSplit2 = EDS_TS.proportionDetected(dataSplit2, data.start, data.end)
     
     val POTD = IndexedSeq(potdFull, potdSplit1, potdSplit2)
-    MeasureData(POD, POCD, FPR, TTD, POTD)
+    MeasureData(POD, POCD, FPR, FPRCon, PPV, PPVCon, TTD, POTD)
     
   }  
   RServeHelper.shutdown
@@ -249,6 +274,21 @@ object EDS_HiddenOutbreak extends App{
   val FPR_Split1 = stats.map(i => i.FPR(1)).sum.toDouble / nSimulations
   val FPR_Split2 = stats.map(i => i.FPR(2)).sum.toDouble / nSimulations
   
+  // False positive rate (consecutive
+  val FPRCon_Full = stats.map(i => i.FPRCon(0)).sum.toDouble / nSimulations
+  val FPRCon_Split1 = stats.map(i => i.FPRCon(1)).sum.toDouble / nSimulations
+  val FPRCon_Split2 = stats.map(i => i.FPRCon(2)).sum.toDouble / nSimulations
+  
+  // False positive rate
+  val PPV_Full = stats.map(i => i.PPV(0)).sum.toDouble / nSimulations
+  val PPV_Split1 = stats.map(i => i.PPV(1)).sum.toDouble / nSimulations
+  val PPV_Split2 = stats.map(i => i.PPV(2)).sum.toDouble / nSimulations
+  
+  // False positive rate (consecutive
+  val PPVCon_Full = stats.map(i => i.PPVCon(0)).sum.toDouble / nSimulations
+  val PPVCon_Split1 = stats.map(i => i.PPVCon(1)).sum.toDouble / nSimulations
+  val PPVCon_Split2 = stats.map(i => i.PPVCon(2)).sum.toDouble / nSimulations
+  
   // Time to detection
   val TTD_Full = 
     stats.map(i => i.TTD(0)).groupBy(w => w).mapValues(_.size).toList.sorted
@@ -279,6 +319,18 @@ object EDS_HiddenOutbreak extends App{
   println("False positive rate for full data = " + FPR_Full)
   println("False positive rate for split 1 data = " + FPR_Split1)
   println("False positive rate for split 2 data = " + FPR_Split2)
+  
+  println("False positive rate (consecutive) for full data = " + FPRCon_Full)
+  println("False positive rate (consecutive) for split 1 data = " + FPRCon_Split1)
+  println("False positive rate (consecutive) for split 2 data = " + FPRCon_Split2)
+  
+  println("Positive prediction for full data = " + PPV_Full)
+  println("Positive prediction for split 1 data = " + PPV_Split1)
+  println("Positive prediction for split 2 data = " + PPV_Split2)
+  
+  println("Positive prediction (consecutive) for full data = " + PPVCon_Full)
+  println("Positive prediction (consecutive) for split 1 data = " + PPVCon_Split1)
+  println("Positive prediction (consecutive) for split 2 data = " + PPVCon_Split2)
     
   println("Proportion of outbreak times detected for full data = " + POTD_Full)
   println("Proportion of outbreak times detected for split 1 data = " + POTD_Split1)

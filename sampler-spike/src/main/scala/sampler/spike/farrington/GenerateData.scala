@@ -276,19 +276,20 @@ object GenerateData {
   
   
   def epidemicCurveOutbreak(n: Int, outbreakLength: String) = {
-      val rnd = new Random
-      val Finv = (1 to n).map(x => 4*atanh(2*rnd.nextDouble() - 1))
-      val Finv_floored = 
-        if (outbreakLength == "short")
-          Finv.map(x => math.floor(0.25*x).toInt)
-        else
-          Finv.map(x => math.floor(0.5*x).toInt)
-      val count = 
-        if (Finv_floored.min <= 0)
-          Finv_floored.map(x => (x - Finv_floored.min) + 1)
-        else
-          Finv_floored
-      count
+    val rnd = new Random
+    val Finv = (1 to n).map(x => atanh(2*rnd.nextDouble() - 1))
+    val maxF = Finv.max
+    val Finv_round = 
+      if (outbreakLength == "short")
+        Finv.map(x => math.ceil(x).toInt)
+      else
+        Finv.map(x => math.ceil(2*x).toInt)
+    val count = 
+      if (Finv_round.min <= 0)
+        Finv_round.map(x => (x - Finv_round.min) + 1)
+      else
+        Finv_round
+    count
   }
   
   def addOutbreak(
@@ -355,7 +356,10 @@ object GenerateData {
       count1.map{case (key, value) => (key+start-1, value)}    
     val outbreak2 =
       count2.map{case (key, value) => (key+start-1, value)}
-      
+    
+    //println("full = " + hist)
+    //println("count1 = " + count1)
+    //println("count2 = " + count2)
     (outbreak1, outbreak2)
     
   }

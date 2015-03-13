@@ -27,6 +27,7 @@ import java.nio.charset.Charset
 import java.nio.file.Path
 import java.io.OutputStream
 import sampler.r.process.ScriptRunner
+import sampler.spike.farrington.Farrington.APHA
 
 /*
   =========
@@ -45,7 +46,7 @@ import sampler.r.process.ScriptRunner
   
   Author:    Teedah Saratoon (modified from EDS.scala by Oliver Tearne)
   Date:      26/02/2015
-  Last edit: 26/02/2015
+  Last edit: 10/03/2015
   
   ==========
   USER-DEFINED PARAMETERS:
@@ -57,12 +58,6 @@ import sampler.r.process.ScriptRunner
   endBaseline     Month in which baseline period ends
   endPreOutbreak  Month in which pre-outbreak period ends
   endOutbreak     Month in which outbreak period ends
-  
-  =========
-  FUNCTIONS:
-  
-  indexAndExclude
-  extractWindow  
   
   =========  
   OUTPUTS:
@@ -102,7 +97,7 @@ object EDS_simData extends App{
 	val endPreOutbreak = 182
 	val endOutbreak = 282
   
-  val magnitude = 2
+  val magnitude = 8
   
   // Identifiers for results files
   val csvName = "simData.csv" // CSV file to store simulated data from Scala
@@ -120,10 +115,41 @@ object EDS_simData extends App{
   import data._
   
   RServeHelper.ensureRunning()
-  val detected = EDS_TS.run(data, endBaseline)
+  val EDS_result = EDS_TS.run(data, endBaseline)
   RServeHelper.shutdown
   
-  val results = detected.results
+  val results = EDS_result.results
+  
+  // Probability of detection
+  val POD = EDS_TS.detected(EDS_result, data.start, data.end)
+
+  // Probability of consecutive detection
+  val POCD = EDS_TS.detectedConsecutive(EDS_result, data.start, data.end)    
+  
+  // False Positive Rate
+  val FPR = EDS_TS.falsePositiveRate(EDS_result, data.start, data.end)
+  
+  // True negative rate
+  val TNR = EDS_TS.trueNegativeRate(EDS_result, data.start, data.end)
+  
+  // Positive predictive value
+  val PPV = EDS_TS.positivePredictive(EDS_result, data.start, data.end)
+  
+  // False Positive Rate
+  val FPRcon = EDS_TS.fprConsecutive(EDS_result, data.start, data.end)
+  
+  // True negative rate
+  val TNRcon = EDS_TS.tnrConsecutive(EDS_result, data.start, data.end)
+  
+  // Positive predictive value
+  val PPVcon = EDS_TS.ppvConsecutive(EDS_result, data.start, data.end)
+
+  // Time To Detection
+  val times = EDS_TS.timeToDetection(EDS_result, data.start, data.end)
+  val TTD = if (times.length == 0) -1 else times(0)
+    
+  // Proportion of Outbreak Times Detected
+  val POTD = EDS_TS.proportionDetected(EDS_result, data.start, data.end)
   
   //=======================
   // Print relevant information to console:
@@ -138,6 +164,17 @@ object EDS_simData extends App{
   println("Outbreak begins at month " + start + " = " + year(start-1) + "-" + month(start-1))
   println("Outbreak occurs during months " + start + "-" + end)
   println("Outbreak counts " + hist)
+  
+  println("Outbreak detected = " + POD)
+  println("Outbreak detected (consecutive) = " + POCD)
+  println("False positive rate = " + FPR)
+  println("False positive rate (consecutive) = " + FPRcon)
+  println("True negative rate = " + TNR)
+  println("True negative rate (consecutive) = " + TNRcon)
+  println("Positive predictive value = " + PPV)
+  println("Positive predictive value (consecutive) = " + PPVcon)
+  println("Time to detection = " + TTD)
+  println("Proportion of outbreak times detected = " + POTD)
   
   //=======================
   // Visualisation

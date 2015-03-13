@@ -74,13 +74,14 @@ object Farrington {
 	def run(dataIn: SortedMap[Date, Int], rCon: RConnection, mode: Mode = APHA): Result = {
 		val json = buildJSON(dataIn)
 	  val jsonAsString = pretty(render(json))
-    
+        
     //Debug
     val writer = Files.newBufferedWriter(Paths.get("outR.json"), Charset.defaultCharset())
     writer.write(jsonAsString)
     writer.close()
     
 		val rExpression = {
+      
 			import rCon._
 			parseAndEval("""library(rjson)""")
 			assign("jsonIn", compact(render(json)))
