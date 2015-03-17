@@ -1,8 +1,8 @@
 package sampler.spike.farrington
 
-// Author: Oliver Tearne
-// EDS as of 09/02/2015
-// For reference only - do not edit
+// Authors: Oliver Tearne, Robin Simons, Teedah Saratoon
+// Last edit: 16/03/2015
+// Testbed for EDS
 
 import java.nio.file.{Files,Paths}
 import java.time.YearMonth
@@ -34,8 +34,10 @@ import sampler.spike.farrington.Farrington.Mode
 import sampler.spike.farrington.Farrington.APHA
 import sampler.spike.farrington.Farrington.Stl
 import sampler.spike.farrington.Farrington.FarNew
+import sampler.r.process.ScriptRunner
 
 object EDS_original extends App{
+
   val resultsDir = Paths.get("results", "farrington")
   Files.createDirectories(resultsDir)
   
@@ -59,51 +61,77 @@ object EDS_original extends App{
       .toSeq: _*
   }
   
+  //RServeHelper.shutdown
   RServeHelper.ensureRunning()
   val rCon = new RConnection
-  val results = try{
-    val indexedData = indexAndExclude(countData, exclude2001)
+  val indexedData = indexAndExclude(countData, exclude2001)
   
-    (0 to 144).map{i => 
-      println(i)
-//      Farrington.run(
-//          indexedData.dropRight(i), 
-//          rCon, Farrington.FarNew
-//      )
+  val results = try{
       
+    // Farrington new
+    val mode = Farrington.FarNew
+    Farrington.runFarNew(indexedData, rCon, mode, 5)
+    
+//    // APHA
+//    val mode = Farrington.APHA
+//    (0 to 144).map{i => 
+//    println(i)
+//    Farrington.run(
+//  		  extractWindow(indexedData.dropRight(i), APHA, 5), 
+//  		  rCon, mode ) }
+        
+//    // Stl
+//    val mode = Farrington.Stl
+//    (0 to 144).map{i => 
+//      println(i)
 //      Farrington.run(
-//         extractWindow( indexedData.dropRight(i),APHA, 5), 
-//          rCon, Farrington.APHA
-//      )
+//        extractWindow(indexedData.dropRight(i), Stl, 5), 
+//        rCon, mode ) }
 
-      Farrington.run(
-          extractWindow(indexedData.dropRight(i), Stl,5), 
-          rCon, Farrington.Stl
-      )
-//        Farrington.run(
-//         indexedData.dropRight(i), 
-//          rCon, Farrington.Stl
-//      )
-    }
+
   } finally {
     rCon.close
     RServeHelper.shutdown
   }
+  
+  
+  // Code to produce output for Farrington new
+  
+//  val monthStr = results.date.map(_.yearMonth.toString)
+//  val idx = results.date.map(_.idx)
+//  
+//  val timeSeriesJSON = 
+//    ("source" -> "Simulated data" ) ~
+//    ("month" -> monthStr) ~
+//    ("monthId" -> idx) ~
+//    ("expected" -> results.expected) ~
+//    ("threshold" -> results.threshold) ~
+//    ("actual" -> results.actual)
+//  //println(timeSeriesJSON)
+//  
+//  // Create html plot
+//  FreeMarkerHelper.writeFile(
+//    Map("jsonData" -> pretty(render(timeSeriesJSON))),
+//    "plot.ftl",
+//    resultsDir.resolve("EDSoutput.html")
+//  )
+  
+  // Code to produce output plot for APHA or Stl
 
-  val timeSeriesJSON = 
-    ("source" -> input.toString()) ~
-    ("month" -> results.map(_.date.yearMonth.toString)) ~
-    ("monthId" -> results.map(_.date.idx)) ~
-    ("expected" -> results.map(_.expected)) ~
-    ("threshold" -> results.map(_.threshold)) ~
-    ("actual" -> results.map(_.actual))
-    
-  FreeMarkerHelper.writeFile(
-    Map("jsonData" -> pretty(render(timeSeriesJSON))),
-    "plot.ftl",
-    resultsDir.resolve("output.html") 
-   
-  ) 
+//  val timeSeriesJSON = 
+//    ("source" -> input.toString()) ~
+//    ("month" -> results.map(_.date.yearMonth.toString)) ~
+//    ("monthId" -> results.map(_.date.idx)) ~
+//    ("expected" -> results.map(_.expected)) ~
+//    ("threshold" -> results.map(_.threshold)) ~
+//    ("actual" -> results.map(_.actual))
+//    
+//  FreeMarkerHelper.writeFile(
+//    Map("jsonData" -> pretty(render(timeSeriesJSON))),
+//    "plot.ftl",
+//    resultsDir.resolve("output.html") 
+//   
+//  ) 
   
   def indexAndExclude(
       obsByDate: SortedMap[YearMonth, Int], 
