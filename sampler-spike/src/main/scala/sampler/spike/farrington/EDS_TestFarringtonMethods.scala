@@ -85,7 +85,7 @@ object EDS_TestFarringtonMethods extends App{
   // User-defined parameters
   
   // Number of sets of data to simulate
-  val nSimulations = 10
+  val nSimulations = 100
   
   // Number of months for which to simulate data:
   val nData = 462
@@ -108,6 +108,7 @@ object EDS_TestFarringtonMethods extends App{
   val magnitude = 5
   
   // Identifiers for results files
+  val csv_Stats = "compareFarrington_stats.csv"
   val csv_APHA = "compareFarrington_APHA.csv" // CSV file to store simulated data from Scala
   val csv_FarNew = "compareFarrington_FarNew.csv"
   val csv_Stl = "compareFarrington_Stl.csv"
@@ -120,8 +121,8 @@ object EDS_TestFarringtonMethods extends App{
   //=======================
   // Simulation
   
+  RServeHelper.shutdown
   RServeHelper.ensureRunning()
-  
   val stats = (0 until nSimulations).par.map{i =>
   // val stats = (0 until nSimulations).map{i =>
   println(i)
@@ -129,71 +130,66 @@ object EDS_TestFarringtonMethods extends App{
     val data = GenerateData.run(
       nData, endYear, outbreakShape, outbreakLength, endPreOutbreak, endOutbreak, magnitude)
       
-    val EDS_APHA = EDS_TS.run(data, endBaseline, Farrington.APHA)
-    val EDS_FarNew = EDS_TS.run(data, endBaseline, Farrington.FarNew)
-    val EDS_Stl = EDS_TS.run(data, endBaseline, Farrington.Stl)
-    
-    println(EDS_APHA.results)
-    println(EDS_FarNew.results)
-    println(EDS_Stl.results)
-    
-    println(EDS_APHA.flags)
-    println(EDS_FarNew.flags)
-    println(EDS_Stl.flags)
-    
+    val EDS_APHA = EDS.run(data, endBaseline, Farrington.APHA)
+    //println("Done APHA")
+    val EDS_FarNew = EDS.run(data, endBaseline, Farrington.FarNew)
+    //println("Done FarNew")
+    val EDS_Stl = EDS.run(data, endBaseline, Farrington.Stl)
+    //println("Done Stl")
+        
     val results_APHA = EDS_APHA.results
     val results_FarNew = EDS_FarNew.results
     val results_Stl = EDS_Stl.results
     
     // Probability of detection
-    val detected_APHA = EDS_TS.detected(EDS_APHA, data.start, data.end)
-    val detected_FarNew = EDS_TS.detected(EDS_FarNew, data.start, data.end)
-    val detected_Stl = EDS_TS.detected(EDS_Stl, data.start, data.end)
+    val detected_APHA = EDS.detected(EDS_APHA, data.start, data.end)
+    val detected_FarNew = EDS.detected(EDS_FarNew, data.start, data.end)
+    val detected_Stl = EDS.detected(EDS_Stl, data.start, data.end)
         
     val POD = IndexedSeq(detected_APHA, detected_FarNew, detected_Stl)
     //println(POD)
   
     // Probability of consecutive detection
-    val consecutive_APHA = EDS_TS.detectedConsecutive(EDS_APHA, data.start, data.end)
-    val consecutive_FarNew = EDS_TS.detectedConsecutive(EDS_FarNew, data.start, data.end)
-    val consecutive_Stl = EDS_TS.detectedConsecutive(EDS_Stl, data.start, data.end)
+    val consecutive_APHA = EDS.detectedConsecutive(EDS_APHA, data.start, data.end)
+    val consecutive_FarNew = EDS.detectedConsecutive(EDS_FarNew, data.start, data.end)
+    val consecutive_Stl = EDS.detectedConsecutive(EDS_Stl, data.start, data.end)
   
     val POCD = IndexedSeq(consecutive_APHA, consecutive_FarNew, consecutive_Stl)
     //println(POCD)
     
     // False Positive Rate
-    val FPR_APHA = EDS_TS.falsePositiveRate(EDS_APHA, data.start, data.end)
-    val FPR_FarNew = EDS_TS.falsePositiveRate(EDS_FarNew, data.start, data.end)
-    val FPR_Stl = EDS_TS.falsePositiveRate(EDS_Stl, data.start, data.end)
+    val FPR_APHA = EDS.falsePositiveRate(EDS_APHA, data.start, data.end)
+    val FPR_FarNew = EDS.falsePositiveRate(EDS_FarNew, data.start, data.end)
+    val FPR_Stl = EDS.falsePositiveRate(EDS_Stl, data.start, data.end)
     
     val FPR = IndexedSeq(FPR_APHA, FPR_FarNew, FPR_Stl)
     //println(FPR)
     
-    // False Positive Rate (conseutive
-    val FPRCon_APHA = EDS_TS.fprConsecutive(EDS_APHA, data.start, data.end)
-    val FPRCon_FarNew = EDS_TS.fprConsecutive(EDS_FarNew, data.start, data.end)
-    val FPRCon_Stl = EDS_TS.fprConsecutive(EDS_Stl, data.start, data.end)
+    // False Positive Rate (consecutive)
+    val FPRCon_APHA = EDS.fprConsecutive(EDS_APHA, data.start, data.end)
+    val FPRCon_FarNew = EDS.fprConsecutive(EDS_FarNew, data.start, data.end)
+    val FPRCon_Stl = EDS.fprConsecutive(EDS_Stl, data.start, data.end)
     
     val FPRCon = IndexedSeq(FPR_APHA, FPR_FarNew, FPR_Stl)
     
     // Positive predictive value
-    val ppvAPHA = EDS_TS.positivePredictive(EDS_APHA, data.start, data.end)
-    val ppvFarNew = EDS_TS.positivePredictive(EDS_FarNew, data.start, data.end)
-    val ppvStl = EDS_TS.positivePredictive(EDS_Stl, data.start, data.end)
+    val ppvAPHA = EDS.positivePredictive(EDS_APHA, data.start, data.end)
+    val ppvFarNew = EDS.positivePredictive(EDS_FarNew, data.start, data.end)
+    val ppvStl = EDS.positivePredictive(EDS_Stl, data.start, data.end)
     
     val PPV = IndexedSeq(ppvAPHA, ppvFarNew, ppvStl)
     
     // Positive predictive value
-    val ppvAPHACon = EDS_TS.ppvConsecutive(EDS_APHA, data.start, data.end)
-    val ppvFarNewCon = EDS_TS.ppvConsecutive(EDS_FarNew, data.start, data.end)
-    val ppvStlCon = EDS_TS.ppvConsecutive(EDS_Stl, data.start, data.end)
+    val ppvAPHACon = EDS.ppvConsecutive(EDS_APHA, data.start, data.end)
+    val ppvFarNewCon = EDS.ppvConsecutive(EDS_FarNew, data.start, data.end)
+    val ppvStlCon = EDS.ppvConsecutive(EDS_Stl, data.start, data.end)
     
     val PPVCon = IndexedSeq(ppvAPHACon, ppvFarNewCon, ppvStlCon)
   
     // Time To Detection  
-    val times_APHA = EDS_TS.timeToDetection(EDS_APHA, data.start, data.end)
-    val times_FarNew = EDS_TS.timeToDetection(EDS_FarNew, data.start, data.end)
-    val times_Stl = EDS_TS.timeToDetection(EDS_Stl, data.start, data.end)
+    val times_APHA = EDS.timeToDetection(EDS_APHA, data.start, data.end)
+    val times_FarNew = EDS.timeToDetection(EDS_FarNew, data.start, data.end)
+    val times_Stl = EDS.timeToDetection(EDS_Stl, data.start, data.end)
     
     val TTD_APHA = if (times_APHA.length == 0) -1 else times_APHA(0)
     val TTD_FarNew = if (times_FarNew.length == 0) -1 else times_FarNew(0)
@@ -203,9 +199,9 @@ object EDS_TestFarringtonMethods extends App{
     //println(TTD)
     
     // Proportion of Outbreak Times Detected
-    val POTD_APHA = EDS_TS.proportionDetected(EDS_APHA, data.start, data.end)
-    val POTD_FarNew = EDS_TS.proportionDetected(EDS_FarNew, data.start, data.end)
-    val POTD_Stl = EDS_TS.proportionDetected(EDS_Stl, data.start, data.end)
+    val POTD_APHA = EDS.proportionDetected(EDS_APHA, data.start, data.end)
+    val POTD_FarNew = EDS.proportionDetected(EDS_FarNew, data.start, data.end)
+    val POTD_Stl = EDS.proportionDetected(EDS_Stl, data.start, data.end)
     
     val POTD = IndexedSeq(POTD_APHA, POTD_FarNew, POTD_Stl)
     //println(POTD)
@@ -239,6 +235,21 @@ object EDS_TestFarringtonMethods extends App{
   val FPR_FarNew = stats.map(i => i.FPR(1)).sum.toDouble / nSimulations
   val FPR_Stl = stats.map(i => i.FPR(2)).sum.toDouble / nSimulations
   
+  // False positive rate
+  val FPRCon_APHA = stats.map(i => i.FPRCon(0)).sum.toDouble / nSimulations
+  val FPRCon_FarNew = stats.map(i => i.FPRCon(1)).sum.toDouble / nSimulations
+  val FPRCon_Stl = stats.map(i => i.FPRCon(2)).sum.toDouble / nSimulations
+  
+  // Positive predictive value
+  val PPV_APHA = stats.map(i => i.PPV(0)).sum.toDouble / nSimulations
+  val PPV_FarNew = stats.map(i => i.PPV(1)).sum.toDouble / nSimulations
+  val PPV_Stl = stats.map(i => i.PPV(2)).sum.toDouble / nSimulations
+  
+  // False positive rate
+  val PPVCon_APHA = stats.map(i => i.PPVCon(0)).sum.toDouble / nSimulations
+  val PPVCon_FarNew = stats.map(i => i.PPVCon(1)).sum.toDouble / nSimulations
+  val PPVCon_Stl = stats.map(i => i.PPVCon(2)).sum.toDouble / nSimulations
+  
   // Time to detection
   val TTD_APHA = 
     stats.map(i => i.TTD(0)).groupBy(w => w).mapValues(_.size).toList.sorted
@@ -257,21 +268,33 @@ object EDS_TestFarringtonMethods extends App{
   // Print relevant information to console
   println("Magnitude of outbreak = " + magnitude)
   
-  println("Probability of any detection for full data = " + POD_APHA)
-  println("Probability of any detection for split 1 data = " + POD_FarNew)
-  println("Probability of any detection for split 2 data = " + POD_Stl)
+  println("Probability of any detection for APHA = " + POD_APHA)
+  println("Probability of any detection for Farrington new = " + POD_FarNew)
+  println("Probability of any detection for Stl = " + POD_Stl)
   
-  println("Probability of consecutive detection for full data = " + POCD_APHA)
-  println("Probability of consecutive detection for split 1 data = " + POCD_FarNew)
-  println("Probability of consecutive detection for split 2 data = " + POCD_Stl)
+  println("Probability of consecutive detection for APHA = " + POCD_APHA)
+  println("Probability of consecutive detection for Farrington new = " + POCD_FarNew)
+  println("Probability of consecutive detection for Stl = " + POCD_Stl)
   
-  println("False positive rate for full data = " + FPR_APHA)
-  println("False positive rate for split 1 data = " + FPR_FarNew)
-  println("False positive rate for split 2 data = " + FPR_Stl)
+  println("False positive rate for APHA = " + FPR_APHA)
+  println("False positive rate for Farrington new= " + FPR_FarNew)
+  println("False positive rate for Stl = " + FPR_Stl)
+  
+  println("False positive rate (consecutive) for APHA = " + FPRCon_APHA)
+  println("False positive rate (consecutive) for Farrington new= " + FPRCon_FarNew)
+  println("False positive rate (consecutive) for Stl = " + FPRCon_Stl)
+  
+  println("Positive predictive value for APHA = " + PPV_APHA)
+  println("Positive predictive value for Farrington new= " + PPV_FarNew)
+  println("Positive predictive value for Stl = " + PPV_Stl)
+  
+  println("Positive predictive value (consecutive) for APHA = " + PPVCon_APHA)
+  println("Positive predictive value (consecutive) for Farrington new= " + PPVCon_FarNew)
+  println("Positive predictive value (consecutive) for Stl = " + PPVCon_Stl)
     
-  println("Proportion of outbreak times detected for full data = " + POTD_APHA)
-  println("Proportion of outbreak times detected for split 1 data = " + POTD_FarNew)
-  println("Proportion of outbreak times detected for split 2 data = " + POTD_Stl)
+  println("Proportion of outbreak times detected for APHA = " + POTD_APHA)
+  println("Proportion of outbreak times detected for Farrington new = " + POTD_FarNew)
+  println("Proportion of outbreak times detected for Stl = " + POTD_Stl)
   
   println("Time to detection saved to " + pdfName)
   
@@ -281,7 +304,18 @@ object EDS_TestFarringtonMethods extends App{
   // Create a directory to store results
   Files.createDirectories(resultsDir)
   
-  // Write times to detection to CSV file for full data
+  // Write times to detection to CSV file for APHA
+  val writerStats = Files.newBufferedWriter(resultsDir.resolve(csv_Stats), Charset.defaultCharset())
+  writerStats.write("mode, pod, pocd, fpr, fprc, ppv, ppvc, ttd, ttcd, notd")
+  writerStats.newLine
+  for (i <- 0 until 2) {
+      writerStats.write(s" ${"APHA"}, ${POD_APHA.toString}, ${POCD_APHA.toString}, ${FPR_APHA.toString}, ${FPRCon_APHA.toString}, ${PPV_APHA.toString}, ${PPVCon_APHA.toString}, ${TTD_APHA.toString}, ${POTD_APHA.toString}")
+      writerStats.newLine
+    }
+  writerStats.newLine
+  writerStats.close
+  
+  // Write times to detection to CSV file for APHA
   val writer = Files.newBufferedWriter(resultsDir.resolve(csv_APHA), Charset.defaultCharset())
   writer.write("time, count")
   writer.newLine
@@ -291,7 +325,7 @@ object EDS_TestFarringtonMethods extends App{
   }
   writer.close
   
-  // Write times to detection to CSV file for split 1 data
+  // Write times to detection to CSV file for Farrington New
   val writer2 = Files.newBufferedWriter(resultsDir.resolve(csv_FarNew), Charset.defaultCharset())
   writer2.write("time, count")
   writer2.newLine
@@ -301,7 +335,7 @@ object EDS_TestFarringtonMethods extends App{
   }
   writer2.close
   
-  // Write times to detection to CSV file for split 2 data
+  // Write times to detection to CSV file for Stl
   val writer3 = Files.newBufferedWriter(resultsDir.resolve(csv_Stl), Charset.defaultCharset())
   writer3.write("time, count")
   writer3.newLine
@@ -350,6 +384,5 @@ object EDS_TestFarringtonMethods extends App{
   
   // Run the script in R and save the resulting PDF in the results directory
   ScriptRunner.apply(rScript, resultsDir.resolve(scriptName))
-
 
 }

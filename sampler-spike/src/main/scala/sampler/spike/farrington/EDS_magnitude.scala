@@ -109,41 +109,41 @@ object EDS_magnitude extends App{
     }
     
     // Run EDS for each data set
-    val EDS_result = (0 until nk).map(i => EDS_TS.run(data(i), endBaseline))
+    val EDS_result = (0 until nk).map(i => EDS.run(data(i), endBaseline))
     
     // Probability of detection
     val flag = (0 until nk).map(
-      i => EDS_TS.detected(EDS_result(i), data(i).start, data(i).end) )
+      i => EDS.detected(EDS_result(i), data(i).start, data(i).end) )
     
     // Probability of consecutive detection
     val consecutive = (0 until nk).map(
-      i => EDS_TS.detectedConsecutive(EDS_result(i), data(i).start, data(i).end) )
+      i => EDS.detectedConsecutive(EDS_result(i), data(i).start, data(i).end) )
 
     // False Positive Rate
     val fpr = (0 until nk).map(
-      i => EDS_TS.falsePositiveRate(EDS_result(i), data(i).start, data(i).end) )
+      i => EDS.falsePositiveRate(EDS_result(i), data(i).start, data(i).end) )
     
     // False Positive Rate (consecutive)
     val fprCon = (0 until nk).map(
-      i => EDS_TS.fprConsecutive(EDS_result(i), data(i).start, data(i).end) )
+      i => EDS.fprConsecutive(EDS_result(i), data(i).start, data(i).end) )
     
     // Positive predictive value
     val ppv = (0 until nk).map(
-      i => EDS_TS.positivePredictive(EDS_result(i), data(i).start, data(i).end) )
+      i => EDS.positivePredictive(EDS_result(i), data(i).start, data(i).end) )
     
     // Positive predictive value
     val ppvCon = (0 until nk).map(
-      i => EDS_TS.ppvConsecutive(EDS_result(i), data(i).start, data(i).end) )
+      i => EDS.ppvConsecutive(EDS_result(i), data(i).start, data(i).end) )
     
     // Time To Detection
     val times = (0 until nk).map(
-      i => EDS_TS.timeToDetection(EDS_result(i), data(i).start, data(i).end) )
+      i => EDS.timeToDetection(EDS_result(i), data(i).start, data(i).end) )
     val ttd = (0 until nk).map(
         i => if (times(i).length == 0) -1 else times(i).head )
     
     // Proportion of Outbreak Times Detected
     val potd = (0 until nk).map(
-      i => EDS_TS.proportionDetected(EDS_result(i), data(i).start, data(i).end) )
+      i => EDS.proportionDetected(EDS_result(i), data(i).start, data(i).end) )
     
     MeasureData(flag, consecutive, fpr, fprCon, ppv, ppvCon, ttd, potd)
     

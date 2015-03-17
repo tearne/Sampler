@@ -31,7 +31,7 @@ import sampler.spike.farrington.Farrington.FarNew
 
 case class Date(yearMonth: YearMonth, idx: Long)
 
-case class Result(date: Date, actual: Int, expected: Double, threshold: Double, trend: Int, exceed: Double, weights: List[Double]){
+case class Result(date: Date, actual: Int, expected: Double, threshold: Double, trend: Int, exceed: Double, weights: IndexedSeq[Double]){
 	lazy val isAlert = actual > threshold
 }
 object Result{
@@ -44,8 +44,24 @@ object Result{
 			(json \ "threshold").extract[Double],
 			(json \ "trend").extract[Int],		
 			(json \ "exceed").extract[Double],
-			(json \ "weights").extract[List[Double]]
+			(json \ "weights").extract[List[Double]].toIndexedSeq
 		)
+}
+case class ResultVector(date: IndexedSeq[Date], actual: IndexedSeq[Int], expected: IndexedSeq[Double], threshold: IndexedSeq[Double], trend: IndexedSeq[Int], exceed: IndexedSeq[Double], weights: IndexedSeq[Double]){
+  lazy val isAlert = (0 until threshold.length).map(i => (actual(i) > threshold(i)))
+}
+object ResultVector{
+  implicit val formats = DefaultFormats
+
+  def apply(date: IndexedSeq[Date], actual: IndexedSeq[Int], json: JValue): ResultVector = ResultVector(
+      date,     
+      actual,
+      (json \ "expected").extract[List[Double]].toIndexedSeq,
+      (json \ "threshold").extract[List[Double]].toIndexedSeq,
+      (json \ "trend").extract[List[Int]].toIndexedSeq,    
+      (json \ "exceed").extract[List[Double]].toIndexedSeq,
+      (json \ "weights").extract[List[Double]].toIndexedSeq
+    )
 }
 
 object Farrington {
@@ -74,8 +90,14 @@ object Farrington {
 	
 	val cl = getClass.getClassLoader
 	val rScript = Source.fromURI(cl.getResource("farrington/script.r").toURI()).mkString
-	
-	def run(dataIn: SortedMap[Date, Int], rCon: RConnection, mode: Mode = APHA): Result = {
+	val rScriptFarNew = Source.fromURI(cl.getResource("farrington/scriptFarNew.r").toURI()).mkString
+  
+  
+	def run(
+      dataIn: SortedMap[Date, Int],
+      rCon: RConnection,
+      mode: Mode = APHA
+    ): Result = {
 		val json = buildJSON(dataIn)
 	  val jsonAsString = pretty(render(json))
         
@@ -97,13 +119,59 @@ object Farrington {
 			parseAndEval(rScript)
 			parseAndEval("output")
 		}
+      
+    val rOut = parse(rExpression.asString())		
+
+	  val (date, value) = dataIn.last    
+    
+	  Result(date, value, rOut)
 		
-		val rOut = parse(rExpression.asString())
-		
-		val (date, value) = dataIn.last
-		
-		Result(date, value, rOut)
 	}
+  
+  // To Do: Amend this function (runFarNew) so that no of years can be adjusted through Scala
+  def runFarNew(
+      dataIn: SortedMap[Date, Int],
+      rCon: RConnection,
+      mode: Mode = FarNew,
+      nYearsBack: Int = 5
+    ): ResultVector = {
+    val rExpression = {
+      val json = buildJSON(dataIn)
+      val jsonAsString = pretty(render(json))
+      
+      //Debug
+      val writer = Files.newBufferedWriter(Paths.get("outR.json"), Charset.defaultCharset())
+      writer.write(jsonAsString)
+      writer.close()
+      
+      val nString = nYearsBack.toString()
+      
+      import rCon._
+      parseAndEval("""library(rjson)""")
+      assign("jsonIn", compact(render(json)))
+      assign("modeFlag", mode.rFlag)
+      assign("nYears", nString)
+      parseAndEval("basedata = as.data.frame(fromJSON(jsonIn)$Baseline)")
+      parseAndEval("currentCount = as.data.frame(fromJSON(jsonIn)$Current$Incidents)")
+      parseAndEval("currentmth = as.data.frame(fromJSON(jsonIn)$Current$Month)")
+      parseAndEval("startdte = as.data.frame(fromJSON(jsonIn)$StartDate)")
+      parseAndEval(rScriptFarNew)
+      parseAndEval("output")
+    }
+      
+    val rOut = parse(rExpression.asString())
+
+    val date = dataIn.keys.toIndexedSeq
+    val value = dataIn.values.toIndexedSeq
+    
+    val resultvec = ResultVector(date, value, rOut)
+    
+    val nDrop = date.length - resultvec.threshold.length
+    
+    ResultVector(date.drop(nDrop), value.drop(nDrop), rOut)
+    
+  }
+
 	
 	def buildJSON(timeSeries: SortedMap[Date, Int]): JObject = {
 		val now = timeSeries.last

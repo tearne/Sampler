@@ -116,18 +116,24 @@ if  ( modeFlag %in% c("far", "farNew") )  {
 	#trendNewF=rev(control(data2)$trend[nrowF:(nrowF-143)])
 	
 #outputs
-		expectedc1=control(data1)$expected[nrowF]
-		thresh1=upperbound(data1)[nrowF]
-		exceed=control(data1)$score[nrowF]
-		trend=control(data1)$trend[nrowF]
-		w=rep(0,times=length(basedata$basemth))
+	#expectedc1=control(data1)$expected
+	#thresh1=upperbound(data1)
+	#exceed=control(data1)$score
+	#trend=control(data1)$trend
+	#w=rep(0,times=length(basedata$basemth))
+	
+	expectedc1=control(data1)$expected[nrowF]
+	thresh1=upperbound(data1)[nrowF]
+	exceed=control(data1)$score[nrowF]
+	trend=control(data1)$trend[nrowF]
+	w=rep(0,times=length(basedata$basemth))
 
 	#plot(data1) 
 	#TODO: quit code here
 } else {
 #----- decomposition for full dataset use ------------------------------------------------
 #if ( modeFlag %in% c("stl", "apha") )  {
-    if (modeFlag =="stl") {    
+    if (modeFlag =="stl") { 
 		tsData=ts(basecont,frequency=12,start=c(startdte$year,startdte$month)) 	#turn data into time series object
 		tsSplit=stl(tsData,s.window=12)                  #splits data into 'seasonal,'trend' and 'random' components
 		basecont=as.vector(tsSplit$time.series[,2]) +as.vector(tsSplit$time.series[,3]) #redefine basecont as just the trend and random component
@@ -212,14 +218,16 @@ if  ( modeFlag %in% c("far", "farNew") )  {
 	currentc1=currentCount+tsSeasonal[length(tsSeasonal)] +tsRandom[length(tsRandom)]
 	expectedc1=expectedc+tsSeasonal[length(tsSeasonal)] +tsRandom[length(tsRandom)]
 	thresh1=thresh+tsSeasonal[length(tsSeasonal)] +tsRandom[length(tsRandom)]
-	} 
-
-#note if not taken out seasonality then nothing will change here.
+	
+	
+	}
+	
+	#note if not taken out seasonality then nothing will change here.
 #----output data --------------------------------------------------------------------
-output = toJSON(list(
-				"expected" = expectedc1[[1]],
-				"threshold" = thresh1[[1]],
-				"trend" = trend,
-				"exceed" = exceed[[1]],
-				"weights" = w
-		))
+	output = toJSON(list(
+					"expected" = expectedc1[[1]],
+					"threshold" = thresh1[[1]],
+					"trend" = trend,
+					"exceed" = exceed[[1]],
+					"weights" = w
+			))
