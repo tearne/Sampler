@@ -1,4 +1,4 @@
-package sampler.abc.algorithm
+package sampler.abc.core
 
 import org.scalatest.FreeSpec
 import org.scalatest.Matchers

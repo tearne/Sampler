@@ -30,7 +30,6 @@ import akka.cluster.ClusterEvent.CurrentClusterState
 import akka.cluster.ClusterEvent.MemberRemoved
 import akka.cluster.ClusterEvent.MemberUp
 import akka.cluster.MemberStatus
-import sampler.data.Distribution
 import sampler.math.Random
 import akka.actor.Identify
 import akka.actor.ActorIdentity
@@ -44,6 +43,7 @@ import scala.concurrent.duration._
 import akka.cluster.ClusterEvent.ReachableMember
 import akka.cluster.ClusterEvent.UnreachableMember
 import akka.cluster.Member
+import sampler.data.DistributionBuilder
 
 class BroadcastActor(abcParams: ABCConfig) extends Actor with ActorLogging{
 	implicit val r = Random
@@ -142,7 +142,7 @@ class BroadcastActor(abcParams: ABCConfig) extends Actor with ActorLogging{
   			}
   		case msg: MixPayload[_] =>
   			if(!nodes.isEmpty){
-	  			val recipient = Distribution.uniform(nodes.toIndexedSeq).sample 
+	  			val recipient = DistributionBuilder.uniform(nodes.toIndexedSeq).sample 
 	  			if(!preMixingTests.contains(recipient)){
 		  			val test = PreMixingTest(msg)
 		  			preMixingTests = preMixingTests + (recipient -> test)

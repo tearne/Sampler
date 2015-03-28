@@ -1,4 +1,4 @@
-package sampler.abc.actor
+package sampler.abc.core
 
 import akka.event.LoggingAdapter
 import akka.actor.ActorLogging

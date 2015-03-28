@@ -30,7 +30,7 @@ trait WeigherComponent[P] {
 				
 				val fHat = particle.repScores.filter(_ < job.tolerance).size.toDouble / particle.numReps
 				val numerator = fHat * model.prior.density(particle.params)
-				val denominator = job.previousPopulation.map{case (params0, weight) => 
+				val denominator = job.previousWeights.map{case (params0, weight) => 
 					weight * model.perturbDensity(params0, particle.params)
 				}.sum
 				if(numerator > 0 && denominator > 0) Some(numerator / denominator)

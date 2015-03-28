@@ -6,7 +6,7 @@ import org.scalatest.mock.MockitoSugar
 import org.mockito.Mockito._
 import sampler.math.StatisticsComponent
 import sampler.math.Statistics
-import sampler.abc.algorithm.Generation
+import sampler.abc.core.Generation
 import sampler.abc.actor.ScoredParticles
 import sampler.abc.actor.WeighedParticles
 import scala.collection.immutable.Queue
@@ -15,6 +15,7 @@ import sampler.abc.actor.Tagged
 import sampler.abc.Weighted
 import sampler.abc.Scored
 import sampler.abc.config.ClusterParameters
+import sampler.abc.algorithm.EvolvingGeneration
 
 class ParticleMixerComponentTest extends FreeSpec with Matchers with MockitoSugar {
 
@@ -48,29 +49,25 @@ class ParticleMixerComponentTest extends FreeSpec with Matchers with MockitoSuga
     val weighed4 = Tagged(Weighted(Scored(4, Seq(0.25)), 0.25), id4)
     
     "Returns None when no weighed particles present in generation" in {
-      val gen1 = Generation[Int](
+      val gen1 = EvolvingGeneration[Int](
+          0.1,
           null,
           ScoredParticles(Seq()),
           WeighedParticles(Seq()),
-          Queue(),
-          0.1,
-          1,
-          null
+          Queue()
         )
         
       assert(particleMixer.apply(gen1, config) === None)
     }
     
     "Returns the current weighed particles as scored when those present don't exceed mixing size" in {
-      val gen1 = Generation[Int](
+      val gen1 = EvolvingGeneration[Int](
+          0.1,
           null,
           ScoredParticles(Seq()),
           WeighedParticles(Seq(weighed1, weighed2)),
-          Queue(),
-          0.1,
-          1,
-          null
-        )
+          Queue()
+      )
         
       val result = particleMixer.apply(gen1, config).get
       
@@ -80,14 +77,12 @@ class ParticleMixerComponentTest extends FreeSpec with Matchers with MockitoSuga
     }
     
     "Randomly select from weighteds when more particles present than mixin size" in {
-      val gen1 = Generation[Int](
+      val gen1 = EvolvingGeneration[Int](
+          0.1,
           null,
           ScoredParticles(Seq()),
           WeighedParticles(Seq(weighed1, weighed2, weighed3, weighed4)),
-          Queue(),
-          0.1,
-          1,
-          null
+          Queue()
         )
       
       val iterations = 1000

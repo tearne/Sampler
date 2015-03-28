@@ -27,12 +27,12 @@ import akka.pattern.ask
 import akka.util.Timeout
 import sampler.abc.actor.Report
 import sampler.abc.actor.root.ABCActorImpl
-import sampler.abc.algorithm.Generation
 import sampler.abc.config.ABCConfig
 import sampler.cluster.PortFallbackSystemFactory
 import sampler.io.Logging
 import sampler.abc.actor.Start
 import scala.concurrent.duration.Duration
+import sampler.abc.core.Generation
 
 trait ABCActors {
 	val system: ActorSystem
@@ -84,11 +84,11 @@ object ABC extends ABCActorsImpl with Logging {
 		log.info("Terminate at target generations: {}",config.cluster.terminateAtTargetGenerations)
 		log.info("Number of workers (router configured): {}", ConfigFactory.load().getInt("akka.actor.deployment./root/work-router.nr-of-instances"))
 		
-		val initState = Generation.init(model, config)
+		val gen0 = Generation.init(model, config)
 		val actor = entryPointActor(model, config, reporting)
 		
 		implicit val timeout = Timeout(config.cluster.futuresTimeoutMS, TimeUnit.MILLISECONDS)
-		val future = (actor ? Start(initState)).mapTo[Report[P]]
+		val future = (actor ? Start(gen0)).mapTo[Report[P]]
 		val result = Await.result(future, Duration.Inf).posterior
 		
 		if(config.cluster.terminateAtTargetGenerations){

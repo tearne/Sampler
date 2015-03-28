@@ -10,6 +10,12 @@ import sampler.abc.config.ABCConfig
 import sampler.abc.Model
 import sampler.abc.actor.ReportingActor
 
+trait ChildrenActorsComponentImpl[P] extends ChildrenActorsComponent[P]{
+	this: Actor with ABCActor[P] =>
+	
+	val childActors = new ChildActors{}
+}
+
 trait ChildrenActorsComponent[P] {
 	this: Actor with ABCActor[P] =>
 		
@@ -25,8 +31,10 @@ trait ChildrenActorsComponent[P] {
 			"receiver"
 		)
 		val router = context.actorOf(
-//			Props(new WorkerActorImpl[P](model)).withRouter(FromConfig()),	// Akka 2.2.3
-			FromConfig.props(Props(new WorkerActorImpl[P](model))), 		// Akka 2.3
+//		Props(new WorkerActorImpl[P](model)).withRouter(FromConfig()),// Akka 2.2.3
+			FromConfig.props( 			// Akka 2.3
+					Props(new WorkerActorImpl[P](model))
+			),
 			"work-router"
 		)
 		

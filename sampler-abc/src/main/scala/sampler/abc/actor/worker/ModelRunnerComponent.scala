@@ -21,17 +21,18 @@ import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.tailrec
 import scala.util.Try
 import sampler.abc.actor.Job
-import sampler.data.Distribution
+import sampler.data.DistributionBuilder
 import sampler.data.SerialSampler
 import sampler.io.Logging
 import sampler.math.Random
 import sampler.abc.Model
 import sampler.abc.Scored
 import sampler.abc.actor.Tagged
-import sampler.abc.actor.GenerateJob
+import sampler.abc.actor.GenerateParticles
 import sampler.abc.actor.ScoredParticles
 import sampler.data.ConvergenceProtocol
 import sampler.data.MaxMetric
+import sampler.data.Distribution
 
 trait ModelRunnerComponent[P] {
 	val model: Model[P]
@@ -47,10 +48,10 @@ trait ModelRunnerComponent[P] {
 		def reset() { aborted.set(false) }
 		private def isAborted = aborted.get
 		
-		def run(job: GenerateJob[P]): Try[ScoredParticles[P]] = Try{
+		def run(job: GenerateParticles[P]): Try[ScoredParticles[P]] = Try{
 			val paramDist: Distribution[P] =  {
 				val weightsTable = job.population.asInstanceOf[Map[P, Double]]
-				Distribution.fromWeightsTable(weightsTable)
+				DistributionBuilder.fromWeightsTable(weightsTable)
 			}
 			
 			val maxParticleRetries = job.config.algorithm.maxParticleRetries
@@ -62,7 +63,8 @@ trait ModelRunnerComponent[P] {
 				else{
 					def getScores(params: P): IndexedSeq[Double] = {
 						val modelWithMetric = model.distanceToObservations(params)
-//						SerialSampler(modelWithMetric)(_.size == job.config.job.numReplicates)
+						//TODO what's this?
+						//						SerialSampler(modelWithMetric)(_.size == job.config.job.numReplicates)
 						val replicates = job.config.job.numReplicates
 						SerialSampler.apply(modelWithMetric)(new ConvergenceProtocol[Double](replicates, 0.5, 1000000) with MaxMetric).toIndexedSeq
 					}

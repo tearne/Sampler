@@ -53,7 +53,7 @@ class EmpiricalSeq[A](val values: IndexedSeq[A]) extends Empirical[A]{ self =>
     /** Creates a new [[sampler.data.Samplable]] from the distribution
      *  
      *  @return [[sampler.data.Samplable]] object */
-	def toDistribution(implicit r: Random): Distribution[A] = Distribution.uniform(values)
+	def toDistribution(implicit r: Random): Distribution[A] = DistributionBuilder.uniform(values)
 
 	override def canEqual(other: Any): Boolean = other.isInstanceOf[EmpiricalSeq[_]]
 }
