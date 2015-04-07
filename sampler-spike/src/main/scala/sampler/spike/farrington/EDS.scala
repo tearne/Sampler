@@ -93,13 +93,25 @@ case class FarringtonResult2(
     flags: IndexedSeq[Int]
 )
 
+case class MeasureData(
+    POD: IndexedSeq[Boolean],
+    POCD: IndexedSeq[Boolean],
+    FPR: IndexedSeq[Double],
+    FPRCon: IndexedSeq[Double],
+    PPV: IndexedSeq[Double],
+    PPVCon: IndexedSeq[Double],
+    TTD: IndexedSeq[Int],
+    TTCD: IndexedSeq[Int],
+    POTD: IndexedSeq[Double]
+)
+
 object EDS extends App{
   
   def run(
       data: GenerationResult,
       endBaseline: Int,
       mode: Mode = APHA,
-      nYearsBack: Int = 5,
+      nYearsBack: Int = 12,
       stop: String = "false",
       exclusions: Set[YearMonth] = Set.empty
     ): FarringtonResult = {
@@ -300,7 +312,7 @@ object EDS extends App{
     val outbreakFlags = data.flags.intersect(tStart to tEnd)
     if (outbreakFlags.size == 0) IndexedSeq() 
     else outbreakFlags.map(i => i - tStart)    
-  }  
+  }
   
   // Proportion of alerts made during outbreak to total outbreak months
   def proportionDetected(data: FarringtonResult, tStart: Int, tEnd: Int) = {
@@ -332,8 +344,8 @@ object EDS extends App{
   
   def positivePredictive(data: FarringtonResult, tStart: Int, tEnd: Int) = {
 	  val nTP = data.flags.intersect(tStart to tEnd).length
-	  val nFP = data.flags.diff(tStart to tEnd).length
-	  if (nTP + nFP == 0) 0 else nTP.toDouble / (nTP + nFP)
+	  val nFP = falsePositives(data, tStart, tEnd).length
+	  if (nTP + nFP == 0) 1 else nTP.toDouble / (nTP + nFP)
   }
   
   // Returns consecutive detections
@@ -351,7 +363,6 @@ object EDS extends App{
   }
   
   def fpConsecutive(data: FarringtonResult, tStart: Int, tEnd: Int) = {
-    val n = data.results.actual.length - (tEnd - tStart + 1)
     flagsConsecutive(data, tStart, tEnd).diff(tStart to tEnd)
   }
   
@@ -369,7 +380,18 @@ object EDS extends App{
   def ppvConsecutive(data: FarringtonResult, tStart: Int, tEnd: Int) = {
     val nTP = flagsConsecutive(data, tStart, tEnd).intersect(tStart to tEnd).length
     val nFP = fpConsecutive(data, tStart, tEnd).length
-    if (nTP + nFP == 0) 0 else nTP.toDouble / (nTP + nFP)
+    if (nTP + nFP == 0) 1 else nTP.toDouble / (nTP + nFP)
+  }
+  
+  // Returns list of times to detection of all alerts during outbreak
+  def timeToConsecutiveDetection(
+      data: FarringtonResult,
+      tStart: Int,
+      tEnd: Int
+    ): IndexedSeq[Int] = {    
+    val outbreakFlags = flagsConsecutive(data, tStart, tEnd).intersect(tStart to tEnd)
+    if (outbreakFlags.size == 0) IndexedSeq() 
+    else outbreakFlags.map(i => i - tStart)    
   }
   
   // Returns boolean depending on whether outbreak has been detected

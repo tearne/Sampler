@@ -53,7 +53,7 @@ object EDS_splitData extends App{
   val baseline2 = dataBaseline2.baseline
   val baselineFull = baseline1.zip(baseline2).map(i => i._1 + i._2)
   
-  val meanFull = mean1 + mean2
+  val meanFull = (0 until mean1.length).map(i => mean1(i) + mean2(i))
   val dataBaselineFull = BaselineResult(year, month, baselineFull, meanFull)
   
   // Simulate an outbreak using the full set of baseline data
@@ -70,7 +70,9 @@ object EDS_splitData extends App{
       GenerateData.addList(baseline1, outbreak1),
       outbreak1.map{ case (key, value) => (key - data.start + 1, value) },
       data.start,
-      data.end)
+      data.end,
+      data.min,
+      data.max)
   val data2 = GenerationResult(
       year,
       month,
@@ -78,7 +80,9 @@ object EDS_splitData extends App{
       GenerateData.addList(baseline2, outbreak2),
       outbreak2.map{ case (key, value) => (key - data.start + 1, value) },
       data.start,
-      data.end)    
+      data.end,
+      data.min,
+      data.max)    
       
   // Run EDS for each data set
   RServeHelper.ensureRunning()
@@ -141,6 +145,18 @@ object EDS_splitData extends App{
   
   val TTD = IndexedSeq(tFull, tSplit1, tSplit2)
   
+  // Time To Consecutive Detection
+  val timesFullCon = EDS.timeToConsecutiveDetection(dataFull, data.start, data.end)
+  val tFullCon = if (timesFullCon.length == 0) -1 else timesFullCon(0)
+  
+  val timesSplit1Con = EDS.timeToConsecutiveDetection(dataSplit1, data.start, data.end)
+  val tSplit1Con = if (timesSplit1Con.length == 0) -1 else timesSplit1Con(0)
+  
+  val timesSplit2Con = EDS.timeToConsecutiveDetection(dataSplit2, data.start, data.end)
+  val tSplit2Con = if (timesSplit2Con.length == 0) -1 else timesSplit2Con(0)
+  
+  val TTCD = IndexedSeq(tFullCon, tSplit1Con, tSplit2Con)
+   
   // Proportion of Outbreak Times Detected
   val potdFull = EDS.proportionDetected(dataFull, data.start, data.end)    
   val potdSplit1 = EDS.proportionDetected(dataSplit1, data.start, data.end)    
@@ -148,7 +164,7 @@ object EDS_splitData extends App{
   
   val POTD = IndexedSeq(potdFull, potdSplit1, potdSplit2)
   
-  MeasureData(POD, POCD, FPR, FPRCon, PPV, PPVCon, TTD, POTD)
+  MeasureData(POD, POCD, FPR, FPRCon, PPV, PPVCon, TTD, TTCD, POTD)
   
   //=======================
   // Print relevant information to console:
