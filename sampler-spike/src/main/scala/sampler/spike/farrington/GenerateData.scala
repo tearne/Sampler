@@ -7,6 +7,9 @@ import breeze.stats.distributions.Poisson
 import breeze.stats.distributions.NegativeBinomial
 import breeze.stats.distributions.LogNormal
 import breeze.stats.distributions.Binomial
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.charset.Charset
 
 /*
   =========
@@ -91,14 +94,16 @@ case class GenerationResult(
     counts: IndexedSeq[Int],
     hist: List[(Int, Int)],
     start: Int,
-    end: Int
+    end: Int,
+    min: Int,
+    max: Int
   )
   
 case class BaselineResult(
     year: IndexedSeq[Int],
     month: IndexedSeq[Int],
     baseline: IndexedSeq[Int],
-    mean: Double
+    mean: IndexedSeq[Double]
   )
   
 object GenerateData {
@@ -125,25 +130,36 @@ object GenerateData {
     //Simulate baseline data
     
     // Function of j which is to be summed from j= 1 to m:
-    def sumTerm(j: Int): Double = {
-      gamma_1*math.cos((2*math.Pi*j*nData).toDouble / 12) + 
-      gamma_2*math.sin((2*math.Pi*j*nData).toDouble / 12)
+    def sumTerm(t: Int, j: Int): Double = {
+      gamma_1*math.cos((2*math.Pi*j*t).toDouble / 12) + 
+      gamma_2*math.sin((2*math.Pi*j*t).toDouble / 12)
     }
     
     // Calculate the mean of the baseline data
-		val mean = math.exp(alpha + beta*nData + sumFunction(sumTerm)(1,m))
+    val mean = (1 to nData).map(i =>
+      math.exp(alpha + beta*i + sumFunction(sumTerm)(i,1,m)) )
+    
+    val lower = mean.map(i => i - 1.96*math.sqrt(i))
+    val upper = mean.map(i => i + 1.96*math.sqrt(i))
+    
+//    println("Mean cases for baseline data = ")
+//    println(mean)
+//    println("95% confidence interval (lower) = ")
+//    println(lower)
+//    println("95% confidence interval (upper) = ")
+//    println(upper)
     
     // Sample baseline data from a Poisson or Negative Binomial distribution
     val baseline = 
     if (dispersion == 1) {
-      val poi = new Poisson(mean)
-      poi.sample(nData)
+      val poi = mean.map(i => new Poisson(i))
+      poi.map(i => i.draw())
     }
     else {
-      val n = mean / (dispersion - 1) // number of failures
-      val p = 1 - math.pow(dispersion,-1)      // probability of success
-      val nb = new NegativeBinomial(n,p)
-      nb.sample(nData)
+      val n = mean.map(i => i / (dispersion - 1))
+      val p = 1 - math.pow(dispersion,-1)
+      val nb = n.map(i => new NegativeBinomial(i,p))
+      nb.map(i => i.draw())
     }
     
     //=======================
@@ -152,12 +168,19 @@ object GenerateData {
     val rnd = new Random  
     val tOutbreak = (endPreOutbreak + 1) + rnd.nextInt(endOutbreak - endPreOutbreak)
     
-    // Calculate standard deviation of the baseline count at each tOutbreak
-    val sd = stdDev(baseline, mean)
+//    // Calculate standard deviation of the baseline count at tOutbreak
+//    val std = stdDev(mean, dispersion)
+//    
+//    val sd = std(tOutbreak - 1)
+//    //val sd = math.abs(baseline(tOutbreak-1)-mean(tOutbreak-1))
+//    
+//    // Calculate number of outbreak cases from Poisson distribution
+//    val poi_outbreak = new Poisson(magnitude * sd)    
+//    val n = genPoisson(poi_outbreak)
+//    //println("No. of outbreak cases = " + n)
     
-    // Calculate number of outbreak cases from Poisson distribution
-    val poi_outbreak = new Poisson(magnitude * sd)    
-    val n = genPoisson(poi_outbreak)
+    val nBaseline = (0 until 7).map(i => baseline(tOutbreak-1+i)).sum
+    val n = math.round(magnitude * nBaseline).toInt
     
     // Calculate outbreak and distribute
     val outbreakDistribution =
@@ -169,6 +192,14 @@ object GenerateData {
     val outbreakHist = 
       outbreakDistribution.groupBy(w => w).mapValues(_.size).toList.sorted
     //println(outbreakHist)
+    
+    val outbreakMonths = outbreakHist.map(i => i._1)
+    val min =
+      if ((outbreakMonths.min to outbreakMonths.max).diff(outbreakMonths).isEmpty) {
+        outbreakHist.map(i => i._2).min
+      }
+      else 0
+    val max = outbreakHist.map(i => i._2).max
       
     // Create list of pairs of time index and number of cases to be added
     val outbreakIdx =
@@ -180,7 +211,7 @@ object GenerateData {
     // Add to baseline data to return simulated outbreak data
     val dataOutbreak = addList(baseline,outbreakIdx)
     
-    GenerationResult(year, month, baseline, dataOutbreak, outbreakHist, tOutbreak, tEnd)
+    GenerationResult(year, month, baseline, dataOutbreak, outbreakHist, tOutbreak, tEnd, min, max)
         
   }
   
@@ -192,20 +223,43 @@ object GenerateData {
   }
   
   // Standard deviation
-  def stdDev(data: IndexedSeq[Int], mean: Double): Double = {
-    val n = data.length
-      data.map(x => math.pow(x - mean, 2)).sum / n
+  def stdDev(
+      mean: IndexedSeq[Double],
+      dispersion: Double
+    ): IndexedSeq[Double] = {
+    
+    val dataBaseline = (0 until 10).map( j =>
+      if (dispersion == 1) {
+        val poi = mean.map(i => new Poisson(i))
+        poi.map(i => i.draw())
+      }
+      else {
+        val n = mean.map(i => i / (dispersion - 1))
+        val p = 1 - math.pow(dispersion,-1)
+        val nb = n.map(i => new NegativeBinomial(i,p))
+        nb.map(i => i.draw())
+      }
+    )
+    val meanBL = dataBaseline.map(i => i.sum.toDouble / i.length)
+
+    val n = dataBaseline(0).length
+
+    val sumOfSquares = (0 until n).map(i =>
+      (0 until 10).map(j =>
+        math.pow(dataBaseline(j)(i) - meanBL(j), 2)).sum)
+    (0 until n).map(i => math.sqrt(sumOfSquares(i))/10)
+    
   }
   
   // Inverse hyperbolic tan
   def atanh(x: Double) = 0.5 * ( math.log(1.0 + x) - math.log(1.0 - x) )
   
   // Performs sum of a function of an integer from integer a to integer b
-  def sumFunction(f: Int => Double)(a: Int, b: Int): Double = {
+  def sumFunction(f: (Int, Int) => Double)(x: Int, a: Int, b: Int): Double = {
     @tailrec
     def loop(a: Int, acc: Double): Double = {
       if (a > b) acc
-      else loop(a+1, acc + f(a))
+      else loop(a+1, acc + f(x, a))
     }
     loop(a,0)    
   }
@@ -241,26 +295,27 @@ object GenerateData {
     //Simulate baseline data
     
     // Function of j which is to be summed from j= 1 to m:
-    def sumTerm(j: Int): Double = {
-      gamma_1*math.cos((2*math.Pi*j*nData).toDouble / 12) + 
-      gamma_2*math.sin((2*math.Pi*j*nData).toDouble / 12)
+    def sumTerm(t: Int, j: Int): Double = {
+      gamma_1*math.cos((2*math.Pi*j*t).toDouble / 12) + 
+      gamma_2*math.sin((2*math.Pi*j*t).toDouble / 12)
     }
     
     // Calculate the mean of the baseline data
-    val mean = math.exp(alpha + beta*nData + sumFunction(sumTerm)(1,m))
-    
+    val mean = (1 to nData).map(i =>
+      math.exp(alpha + beta*i + sumFunction(sumTerm)(i,1,m)) )
+      
     // Sample baseline data from a Poisson or Negative Binomial distribution
     val baseline = 
-      if (dispersion == 1) {
-        val poi = new Poisson(mean)
-        poi.sample(nData)
-      }
-      else {
-        val n = mean / (dispersion - 1) // number of failures
-        val p = 1 - math.pow(dispersion,-1)      // probability of success
-        val nb = new NegativeBinomial(n,p)
-        nb.sample(nData)
-      }
+    if (dispersion == 1) {
+      val poi = mean.map(i => new Poisson(i))
+      poi.map(i => i.draw())
+    }
+    else {
+      val n = mean.map(i => i / (dispersion - 1))
+      val p = 1 - math.pow(dispersion,-1)
+      val nb = n.map(i => new NegativeBinomial(i,p))
+      nb.map(i => i.draw())
+    }
     
     BaselineResult(year, month, baseline, mean)
     
@@ -285,7 +340,7 @@ object GenerateData {
       else
         Finv.map(x => math.ceil(2*x).toInt)
     val count = 
-      if (Finv_round.min <= 0)
+      if (Finv_round.min < 0)
         Finv_round.map(x => (x - Finv_round.min) + 1)
       else
         Finv_round
@@ -305,21 +360,28 @@ object GenerateData {
     import dataBaseline._
     
     val nData = baseline.length
-    
+
     val rnd = new Random  
     val tOutbreak = (endPreOutbreak + 1) + rnd.nextInt(endOutbreak - endPreOutbreak)
     
-    // Calculate standard deviation of the baseline count at each tOutbreak
-    val sd = stdDev(baseline, mean)
+//    // Calculate standard deviation of the baseline count at each tOutbreak
+//    val std = stdDev(mean, params.dispersion)    
+//    val sd = std(tOutbreak - 1)
+//    
+//    // Calculate number of outbreak cases from Poisson distribution
+//    val poi_outbreak = new Poisson(magnitude * sd)
+//    val n = genPoisson(poi_outbreak)
     
-    // Calculate number of outbreak cases from Poisson distribution
-    val poi_outbreak = new Poisson(magnitude * sd)
-    val n = genPoisson(poi_outbreak)
+    val nBaseline = (0 until 7).map(i => baseline(tOutbreak-1+i)).sum
+    val n = math.round(magnitude * nBaseline).toInt
     
     // Calculate outbreak and distribute
     val outbreakDistribution =
       if (outbreakShape == "logNormal") logNormalOutbreak(n, outbreakLength)
       else epidemicCurveOutbreak(n, outbreakLength)
+      
+    val min = outbreakDistribution.min
+    val max = outbreakDistribution.max
     
     // Count number of outbreak cases for each month of the outbreak
     val outbreakHist = 
@@ -335,7 +397,7 @@ object GenerateData {
     // Add to baseline data to return simulated outbreak data
     val dataOutbreak = addList(baseline,outbreakIdx)
     
-    GenerationResult(year, month, baseline, dataOutbreak, outbreakHist, tOutbreak, tEnd)     
+    GenerationResult(year, month, baseline, dataOutbreak, outbreakHist, tOutbreak, tEnd, min, max)     
     
   }
   
