@@ -6,6 +6,9 @@ import java.nio.file.Files
 import java.nio.charset.Charset
 import java.nio.file.Path
 import sampler.r.process.ScriptRunner
+import sampler.spike.farrington.Farrington.FarNew
+import sampler.spike.farrington.Farrington.APHA
+import sampler.spike.farrington.Farrington.Stl
 
 /*
   =========
@@ -59,7 +62,7 @@ object EDS_magnitude extends App{
   // User-defined parameters
   
   // Number of sets of data to simulate
-  val nSimulations = 24
+  val nSimulations = 150
   
   // Number of months for which to simulate data:
   val nData = 462
@@ -80,17 +83,15 @@ object EDS_magnitude extends App{
   val endOutbreak = 282
   
   // Magnitude of outbreak
-  val magnitude = (1 to 10)
-      
-  // Identifiers for results files
-  val csv_full = "hiddenOutbreak_full.csv" // CSV file to store simulated data from Scala
-  val csv_split1 = "hiddenOutbreak_split1.csv"
-  val csv_split2 = "hiddenOutbreak_split2.csv"
-  val scriptName = "plotHiddenOutbreak.r" // R script to import the CSV and plot the data
-  val pdfName = "hiddenOutbreak.pdf" // PDF containing the plots
+  val magnitude = (0.2 to 2 by 0.2)
+  //val magnitude = (1 to 10)
   
+//  val mode = APHA
+//  val mode = FarNew
+  val mode = Stl
+       
   // Choose directory to place data and results
-  val resultsDir = Paths.get("results", "hiddenOutbreak")
+  val resultsDir = Paths.get("results", "compareMagnitude")
   
   //=======================
   // Simulate outbreak data and calculate measures
@@ -109,7 +110,7 @@ object EDS_magnitude extends App{
     }
     
     // Run EDS for each data set
-    val EDS_result = (0 until nk).map(i => EDS.run(data(i), endBaseline))
+    val EDS_result = (0 until nk).map(i => EDS.run(data(i), endBaseline, mode))
     
     // Probability of detection
     val flag = (0 until nk).map(
@@ -140,18 +141,24 @@ object EDS_magnitude extends App{
       i => EDS.timeToDetection(EDS_result(i), data(i).start, data(i).end) )
     val ttd = (0 until nk).map(
         i => if (times(i).length == 0) -1 else times(i).head )
+        
+    // Time To Consecutive Detection
+    val timesCon = (0 until nk).map(
+      i => EDS.timeToConsecutiveDetection(EDS_result(i), data(i).start, data(i).end) )
+    val ttcd = (0 until nk).map(
+        i => if (timesCon(i).length == 0) -1 else timesCon(i).head )
     
     // Proportion of Outbreak Times Detected
     val potd = (0 until nk).map(
       i => EDS.proportionDetected(EDS_result(i), data(i).start, data(i).end) )
     
-    MeasureData(flag, consecutive, fpr, fprCon, ppv, ppvCon, ttd, potd)
+    MeasureData(flag, consecutive, fpr, fprCon, ppv, ppvCon, ttd, ttcd, potd)
     
   }  
   RServeHelper.shutdown
   
   //=======================
-  // Extract measures  
+  // Extract measures
     
   // Probability of detection
   val POD =
@@ -193,7 +200,7 @@ object EDS_magnitude extends App{
   val TTD =
     (0 until nk).map(i => 
       (0 until nSimulations).map(j => 
-        stats(j).TTD(i)).groupBy(w => w).mapValues(_.size).toList.sorted )     
+        stats(j).TTD(i)).groupBy(w => w).mapValues(_.size).toList.sorted )
         
   // Proportion of outbreak times detected
   val POTD =
@@ -222,14 +229,17 @@ object EDS_magnitude extends App{
   //=======================
   // Output and plot
   
-  plotTwo(resultsDir, "POD.csv", "POD.pdf", POD, POCD)
-  plotTwo(resultsDir, "FPR.csv", "FPR.pdf", FPR, FPRCon)
-  plotTwo(resultsDir, "PPV.csv", "PPV.pdf", PPV, PPVCon)
+  plotTwo(resultsDir, "Probability of detection", "POD.csv", "POD.r", "POD.pdf", magnitude, POD, POCD)
+  plotTwo(resultsDir, "False positive rate", "FPR.csv", "FPR.r", "FPR.pdf", magnitude, FPR, FPRCon)
+  plotTwo(resultsDir, "Positive predictive value", "PPV.csv", "PPV.r", "PPV.pdf", magnitude, PPV, PPVCon)
   
   def plotTwo(
       resultsDir: Path,
+      measure: String,
       csvName: String,
+      scriptName: String,
       pdfName: String,
+      x: IndexedSeq[Any],
       data: IndexedSeq[Any],
       data2: IndexedSeq[Any]) = {
     
@@ -239,7 +249,7 @@ object EDS_magnitude extends App{
     // Write times to detection to CSV file for full data
     val writer = Files.newBufferedWriter(resultsDir.resolve(csvName), Charset.defaultCharset())
     for (i <- 0 until data.length) {
-      writer.write(s"${data(i).toString}, ${data2(i).toString}")
+      writer.write(s"${x(i).toString}, ${data(i).toString}, ${data2(i).toString}")
       writer.newLine
     }
     writer.close
@@ -249,18 +259,18 @@ object EDS_magnitude extends App{
       s"""
         
       data = read.csv("$csvName")
-      y1 = data[[1]]
-      y2 = data[[2]]
-      x = 1:length(y1)
+      x = data[[1]]
+      y1 = data[[2]]
+      y2 = data[[3]]
             
       cmin = min(y1, y2)
       cmax = max(y1, y2)
       
       pdf("$pdfName", width=4.13, height=2.91) #A7 landscape paper
       
-      plot(x,y1,type="l",col="red")
-  >   lines(x,y2,col="green")
-      legend("topright", c["any alert", "consecutive alerts"])
+      plot(x, y1, type="l", col=2, lwd=5, ylim = c(cmin, cmax), xlab="Magnitude of outbreak", ylab="$measure", )
+      lines(x, y2, col=3, lwd=5)
+      legend("topright", xpd=TRUE, inset=c(0.2,-0.65), legend=c("any alert", "consecutive alerts"), fill=2:3)
       
       dev.off()
       """

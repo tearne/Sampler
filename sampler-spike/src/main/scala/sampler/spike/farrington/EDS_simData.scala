@@ -46,7 +46,7 @@ import sampler.spike.farrington.Farrington.APHA
   
   Author:    Teedah Saratoon (modified from EDS.scala by Oliver Tearne)
   Date:      26/02/2015
-  Last edit: 10/03/2015
+  Last edit: 17/03/2015
   
   ==========
   USER-DEFINED PARAMETERS:
@@ -94,13 +94,11 @@ object EDS_simData extends App{
 	// Define end of each period
 	//Baseline -> Pre-outbreak -> Outbreak -> Post-outbreak
 	val endBaseline = 146
-	val endPreOutbreak = 182
-	val endOutbreak = 282
+  val endPreOutbreak = 182
+  val endOutbreak = 282
   
-  val magnitude = 8
-  
-//  val mode = Farrington.APHA
-  val mode = Farrington.FarNew
+  val mode = Farrington.APHA
+//  val mode = Farrington.FarNew
 //  val mode = Farrington.Stl
   
   // Identifiers for results files
@@ -112,11 +110,55 @@ object EDS_simData extends App{
   val resultsDir = Paths.get("results", "simulatedOutbreakData")
   
   //=======================
+  // Stats of simulated data
+  
+  val k = (0.2 to 2 by 0.2)
+  val nSimulations = 250
+  val nk = k.length
+  
+  val stats = (0 until nSimulations).par.map{i =>
+  //val stats = (0 until nSimulations).map{i =>
+    println(i)
+    
+    // Simulate two sets of baseline data and combine to create full set
+    val data = (0 until nk).map{j => 
+      GenerateData.run(nData, endYear,outbreakShape, outbreakLength,
+          endPreOutbreak, endOutbreak, k(j))
+    }
+    
+    val lower = (0 until nk).map(i => data(i).min)
+    val upper = (0 until nk).map(i => data(i).max)
+    val n = (0 until nk).map(i => data(i).counts.sum - data(i).baseline.sum)
+    
+    List(lower, upper, n)
+    
+  }
+  
+  val outbreakLower = stats.map(i => i(0))
+  val outbreakUpper = stats.map(i => i(1))
+  val nCases = stats.map(i => i(2))
+  
+  val lower = (0 until nk).map(j =>
+    outbreakLower.map(i => i(j)).sum.toDouble / nSimulations)
+  val upper = (0 until nk).map(j =>
+    outbreakUpper.map(i => i(j)).sum.toDouble / nSimulations)
+  val nMean = (0 until nk).map(j =>
+    nCases.map(i => i(j)).sum.toDouble / nSimulations)
+  
+  println("Mean outbreak cases (lower bound) as magnitude changes:")
+  println(lower)
+  println("Mean outbreak cases (upper bound) as magnitude changes:")
+  println(upper)
+  println("Mean no. of cases as magnitude changes:")
+  println(nMean)
+  
+  
+  //=======================
   // Simulate outbreak data
   
   val data = GenerateData.run(
-      nData, endYear, outbreakShape, outbreakLength, endPreOutbreak, endOutbreak, magnitude)
-  
+      nData, endYear, outbreakShape, outbreakLength, endPreOutbreak, endOutbreak, 1)   
+      
   //RServeHelper.shutdown
   RServeHelper.ensureRunning()
   val EDS_result = EDS.run(data, endBaseline, mode)

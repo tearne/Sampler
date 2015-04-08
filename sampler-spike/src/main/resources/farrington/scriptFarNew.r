@@ -7,7 +7,7 @@
  if(debug==T) {
      library(rjson)
      jsonIn = fromJSON(file="outR.json")
-     nYearsBack = 5
+	 modeFlag = "FarNew"
      basedata=jsonIn$Baseline
      currentmth=jsonIn$Current$Month
      currentCount=jsonIn$Current$Incident
@@ -84,14 +84,14 @@ DataF=disProg2sts(create.disProg(1:baselineNum,basecont,state=basecont*0,start=c
 
 control1 <-  list(noPeriods=1,populationOffset=FALSE,
 		fitFun="algo.farrington.fitGLM.flexible",
-		b=nYearsBack,w=3,weightsThreshold=1,
-		pastWeeksNotIncluded=3,
+		b=12,w=1,weightsThreshold=1,
+		pastWeeksNotIncluded=12,
 		pThresholdTrend=0.05,trend=TRUE,
 		thresholdMethod="delta",alpha=0.1)
 control2<-   list(noPeriods=10,populationOffset=FALSE,
 		fitFun="algo.farrington.fitGLM.flexible",
-		b=nYearsBack,w=7,weightsThreshold=2.58,
-		pastWeeksNotIncluded=0,
+		b=12,w=1,weightsThreshold=2.58,
+		pastWeeksNotIncluded=12,
 		pThresholdTrend=1,trend=TRUE,
 		thresholdMethod="delta",alpha=0.1)
 if (modeFlag=="far") { 
@@ -114,18 +114,15 @@ nrowF=nrow(data1)
 #trendNewF=rev(control(data2)$trend[nrowF:(nrowF-143)])
 
 #outputs
-#expectedc1=control(data1)$expected
-#thresh1=upperbound(data1)
-#exceed=control(data1)$score
-#trend=control(data1)$trend
-#w=rep(0,times=length(basedata$basemth))
-
 expectedc1=control(data1)$expected
 thresh1=upperbound(data1)
 exceed=control(data1)$score
 trend=control(data1)$trend
 w=rep(0,times=length(basedata$basemth))
 
+# Set NA values to 0 (or should we set to something else?)
+expectedc1[is.na(expectedc1)] <- 0
+thresh1[is.na(thresh1)] <- 0
 	
 #note if not taken out seasonality then nothing will change here.
 #----output data --------------------------------------------------------------------
