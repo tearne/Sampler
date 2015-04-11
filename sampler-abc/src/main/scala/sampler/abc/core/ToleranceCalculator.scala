@@ -20,17 +20,24 @@ package sampler.abc.core
 import sampler.abc.Weighted
 import sampler.math.StatisticsComponent
 import sampler.Implicits._
+import sampler.math.Statistics
+import sampler.math.StatisticsImpl
+import sampler.io.Logging
 
-class ToleranceCalculator extends StatisticsComponent with LoggingAdapterComponent{
+trait ToleranceCalculator extends StatisticsComponent with Logging {
 	def apply[P](weighedParameters: Seq[Weighted[P]], currentTolerance: Double): Double = {
 		val medianMeanScore = statistics.quantile(weighedParameters.map{_.meanRepScore}.toEmpiricalSeq, 0.5)
 		if(medianMeanScore == 0) {
-			logg.warning("Median of mean scores from last generation evaluated to 0. Will use old tolerance again.")
+			log.warn("Median of mean scores from last generation evaluated to 0. Will use old tolerance again.")
 			currentTolerance
 		} else if(medianMeanScore > currentTolerance) {
-			logg.warning("Median of mean scores from last generation greater than old tolerance. Will use old tolerance again.")
+			log.warn("Median of mean scores from last generation greater than old tolerance. Will use old tolerance again.")
 			currentTolerance
 		}
 		else medianMeanScore
 	}
 }
+
+object ToleranceCalculator 
+	extends ToleranceCalculator 
+	with StatisticsImpl

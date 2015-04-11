@@ -1,30 +1,36 @@
-package sampler.abc.algorithm.component
+package sampler.abc.actor.algorithm
 
 import org.scalatest.FreeSpec
 import org.scalatest.Matchers
 import org.scalatest.mock.MockitoSugar
 import org.mockito.Mockito._
-import sampler.math.StatisticsComponent
-import sampler.math.Statistics
-import sampler.abc.core.Generation
+import sampler.abc.config.ABCConfig
+import sampler.abc.config.ClusterParameters
+import sampler.abc.config.ClusterParameters
+import sampler.abc.actor.Tagged
+import sampler.abc.Scored
+import sampler.abc.Weighted
 import sampler.abc.actor.ScoredParticles
 import sampler.abc.actor.WeighedParticles
 import scala.collection.immutable.Queue
-import sampler.abc.config.ABCConfig
-import sampler.abc.actor.Tagged
-import sampler.abc.Weighted
-import sampler.abc.Scored
-import sampler.abc.config.ClusterParameters
-import sampler.abc.algorithm.EvolvingGeneration
+import org.scalatest.BeforeAndAfter
+import sampler.math.Random
 
-class ParticleMixerComponentTest extends FreeSpec with Matchers with MockitoSugar {
+class ParticleMixerTest extends FreeSpec with Matchers with MockitoSugar with BeforeAndAfter{
 
-  "Particle Mixer Component should" - {
+	implicit var r: Random = mock[Random]
+	
+	def before{
+		r = mock[Random]
+	}
+	
+  "ParticleMixer should" - {
     
-    val instance = new ParticleMixerComponent with StatisticsComponent {
-      val statistics = Statistics
-      val particleMixer = new ParticleMixer{}
-    }
+    val instance = new ParticleMixer()
+//    Component with StatisticsComponent {
+//      val statistics = Statistics
+//      val particleMixer = new ParticleMixer{}
+//    }
     
     val config = mock[ABCConfig]
     val clusterParameters = mock[ClusterParameters]
@@ -33,8 +39,6 @@ class ParticleMixerComponentTest extends FreeSpec with Matchers with MockitoSuga
     
     when(clusterParameters.mixPayloadSize).thenReturn(payloadSize)
     when(config.cluster).thenReturn(clusterParameters)
-    
-    val particleMixer = instance.particleMixer
     
     val (id1, id2, id3, id4) = (111111, 111112, 111113, 111114)
     
@@ -48,8 +52,9 @@ class ParticleMixerComponentTest extends FreeSpec with Matchers with MockitoSuga
     val weighed3 = Tagged(Weighted(Scored(3, Seq(0.25)), 0.25), id3)
     val weighed4 = Tagged(Weighted(Scored(4, Seq(0.25)), 0.25), id4)
     
-    "Returns None when no weighed particles present in generation" in {
-      val gen1 = EvolvingGeneration[Int](
+    "return None when no weighed particles present in generation" in {
+    	//TODO why not just return an empty seq?
+      val eGen = EvolvingGeneration[Int](
           0.1,
           null,
           ScoredParticles(Seq()),
@@ -57,11 +62,11 @@ class ParticleMixerComponentTest extends FreeSpec with Matchers with MockitoSuga
           Queue()
         )
         
-      assert(particleMixer.apply(gen1, config) === None)
+      assert(instance.apply(eGen, config)(null) === None)
     }
     
-    "Returns the current weighed particles as scored when those present don't exceed mixing size" in {
-      val gen1 = EvolvingGeneration[Int](
+    "return the current weighed particles if fewer available than exceed mixing size" in {
+      val eGen = EvolvingGeneration[Int](
           0.1,
           null,
           ScoredParticles(Seq()),
@@ -69,7 +74,7 @@ class ParticleMixerComponentTest extends FreeSpec with Matchers with MockitoSuga
           Queue()
       )
         
-      val result = particleMixer.apply(gen1, config).get
+      val result = instance.apply(eGen, config).get
       
       assert(result.seq.size === 2)
       assert(result.seq.contains(scored1))
@@ -87,9 +92,10 @@ class ParticleMixerComponentTest extends FreeSpec with Matchers with MockitoSuga
       
       val iterations = 1000
         
+      //TODO something clever with mock random or distriubtion builder?
       def buildSamples(acc: Seq[Tagged[Scored[Int]]], count:Int = 0, reps: Int = 1000): Seq[Tagged[Scored[Int]]] = {
         if(count >= reps) acc
-        else buildSamples(acc ++ particleMixer.apply(gen1, config).get.seq, count+1)
+        else buildSamples(acc ++ instance.apply(gen1, config).get.seq, count+1)
       }
       
       val accum = buildSamples(Seq.empty[Tagged[Scored[Int]]])

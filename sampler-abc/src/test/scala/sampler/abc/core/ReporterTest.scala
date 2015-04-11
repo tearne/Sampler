@@ -1,9 +1,12 @@
 package sampler.abc.core
 
-import org.scalatest.FreeSpec
 import org.scalatest.mock.MockitoSugar
 import org.mockito.Mockito._
 import org.mockito.Matchers._
+import org.scalatest.FreeSpec
+import sampler.data.DistributionBuilder
+import sampler.abc.config.ABCConfig
+import sampler.abc.config.JobParameters
 
 class ReporterTest extends FreeSpec with MockitoSugar{
 	type T = Int
@@ -12,8 +15,15 @@ class ReporterTest extends FreeSpec with MockitoSugar{
 	val tolerance = 0.001
 	
 	"Generates a report of a completed generation" in {
+		//TODO put the random inside the distribution builder?
 		val distBuilder = mock[DistributionBuilder]
-    val instance = new Reporter(distBuilder, null)
+        val config = ABCConfig(
+    		JobParameters(thousandParticles,0,0), 
+    		null, 
+    		null
+    )
+		
+		val instance = new Reporter(distBuilder, null, null)
 		
 		val particleWeights = mock[Map[T, Double]]
 		when(distBuilder.fromWeightsTable(particleWeights)(any()))
@@ -26,9 +36,7 @@ class ReporterTest extends FreeSpec with MockitoSugar{
         tolerance
     )
       
-    val config = ABCConfig(JobParameters(thousandParticles,0,0), null, null)
-    
-    val report = instance.buildReport(generation, config)
+    val report = instance.build(generation)
     
     val posterior = report.posterior
     

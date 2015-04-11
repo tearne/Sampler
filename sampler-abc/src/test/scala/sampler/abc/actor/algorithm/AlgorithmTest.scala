@@ -11,6 +11,7 @@ import sampler.abc.actor.WeighedParticles
 import sampler.abc.actor.ScoredParticles
 import scala.collection.immutable.Queue
 import org.mockito.Mockito._
+import org.mockito.Matchers._
 import sampler.abc.config.ABCConfig
 import sampler.abc.config.JobParameters
 
@@ -163,7 +164,7 @@ class AlgorithmTest extends FreeSpec with Matchers with MockitoSugar {
       val gen1 = mock[EvolvingGeneration[Int]]
       val config = mock[ABCConfig]
       
-      when(particleMixer.apply(gen1, config)).thenReturn(mixinResponse)
+      when(particleMixer.apply(gen1, config)(any[Random])).thenReturn(mixinResponse)
       
       assert(instance.buildMixPayload(gen1, config) === mixinResponse)
     }

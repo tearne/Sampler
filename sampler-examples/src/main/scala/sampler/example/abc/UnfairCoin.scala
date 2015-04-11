@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Crown Copyright 
- *                    Animal Health and Veterinary Laboratories Agency
+ * Copyright (c) 2012-2015 Crown Copyright
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

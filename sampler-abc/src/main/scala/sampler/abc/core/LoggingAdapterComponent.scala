@@ -10,8 +10,10 @@ trait LoggingAdapterComponent{
 	val logg: LoggingAdapter
 }
 
+//TODO Sort out logging, so it works the same for actors or not
+
 trait LoggingAdapterComponentImpl extends LoggingAdapterComponent{
 	self: ActorLogging =>
-	  
-	 val logg = self.log
+	
+	val logg = self.log
 }

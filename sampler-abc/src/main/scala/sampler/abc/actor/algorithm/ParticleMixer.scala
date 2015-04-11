@@ -5,10 +5,14 @@ import sampler.abc.actor.ScoredParticles
 import sampler.abc.actor.Tagged
 import sampler.math.Random
 
-class ParticleMixer(random: Random) {    
-	implicit val r = random
+class ParticleMixer {    
+//	implicit val r = random
 	
-  def apply[P](gen: EvolvingGeneration[P], abcParameters: ABCConfig): Option[ScoredParticles[P]] = {
+  def apply[P](
+  		gen: EvolvingGeneration[P], 
+  		abcParameters: ABCConfig
+  	)(
+  		implicit random: Random): Option[ScoredParticles[P]] = {
     val weightedParticles = gen.weighed
 		
     val mixingSize = abcParameters.cluster.mixPayloadSize

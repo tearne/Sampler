@@ -19,11 +19,12 @@ package sampler.math
 
 import sampler.data.Empirical
 
-trait StatisticsComponentImpl{
+//TODO confirm whether to delete
+trait StatisticsImpl{
 	val statistics = new Statistics{}
 }
 
-
+//TODO confirm whether to delete
 trait StatisticsComponent{
 	val statistics: Statistics
 }

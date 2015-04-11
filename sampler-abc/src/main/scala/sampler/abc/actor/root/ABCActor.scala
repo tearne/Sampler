@@ -73,17 +73,20 @@ class ABCActorImpl[P](
 		with WorkDispatcherComponentImpl
 		with LoggingAdapterComponentImpl
 		with StatisticsComponent {
+	val random = Random
+	val distributionBuilder = DistributionBuilder
+	
 	val getters = new Getters()
 	val algorithm = new Algorithm(
 			new GenerationFlusher(
-					new ToleranceCalculator(),
+					ToleranceCalculator,
 					new ObservedIdsTrimmer(
 							config.cluster.particleMemoryGenerations, 
 							config.job.numParticles),
 					new WeightsHelper(),
 					getters,
 					config.job.numParticles),
-			new ParticleMixer(Random),
+			new ParticleMixer(),
 			getters,
 			Random)
 	val reporter = new Reporter(

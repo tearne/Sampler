@@ -34,6 +34,7 @@ import sampler.abc.core.Generation
 import sampler.abc.actor.algorithm.Algorithm
 import sampler.abc.actor.GenerateParticles
 import sampler.abc.actor.algorithm.EvolvingGeneration
+import sampler.abc.core.Reporter
 
 @RunWith(classOf[JUnitRunner])
 class ABCActorTest 
@@ -61,6 +62,10 @@ class ABCActorTest
 		val childActors = mock[ChildActors]
 		val algorithm = mock[Algorithm]
 		val workDispatcher = context.dispatcher
+		
+		implicit val distributionBuilder =  sampler.data.DistributionBuilder
+		implicit val random = sampler.math.Random
+		val reporter = mock[Reporter]
 	}
 	
 	override def afterAll {
