@@ -18,6 +18,6 @@ class Getters {
 	def weighedParticlesWithoutIdTags[P](weighed: WeighedParticles[P]): Seq[Weighted[P]]
 		= weighed.seq.map(_.value)
 		
-	def getPreviousWeightsTable[P](eGen: EvolvingGeneration[P]): Map[P, Double]
-		=	eGen.previousGen.particleWeights
+//	def getPreviousWeightsTable[P](eGen: EvolvingGeneration[P]): Map[P, Double]
+//		=	eGen.previousGen.particleWeights
 }

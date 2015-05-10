@@ -166,7 +166,10 @@ trait ABCActor[P]
 			import s._
 			
 			val evolvingGen = EvolvingGeneration.init(s.generationZero)
-			childActors.router ! Broadcast(GenerateParticles.buildFrom(evolvingGen, config))
+			childActors.router ! Broadcast(GenerateParticles(
+					evolvingGen.previousGen.particleWeights, 
+					config
+			))
 			
 			// TODO this code block untested
 			val mixMS = getters.getMixRateMS(config)
@@ -198,7 +201,7 @@ trait ABCActor[P]
 			stay using stateData.copy(generation = updatedGeneration.emptyWeighingBuffer)
 			
 		case Event(mixP: MixPayload[P], stateData: StateData[P]) =>
-			val scored = mixP.tss
+			val scored = mixP.scoredParticles
 			val updatedGeneration = algorithm.filterAndQueueUnweighedParticles(scored, stateData.generation)
 			log.info("New filtered and queued ({}) => |Q| = {},  from REMOTE {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
 			stay using StateData(updatedGeneration, stateData.client, stateData.cancellableMixing)//stateData.copy(generation = updatedGeneration)
@@ -260,8 +263,11 @@ trait ABCActor[P]
 				
 				goto(WaitingForShutdown) using data.setGeneration(flushedGeneration)
 			} else {
-				// Report and start next generation
-				childActors.router ! Broadcast(GenerateParticles.buildFrom(flushedGeneration, config))
+				// Start next generation
+				childActors.router ! Broadcast(GenerateParticles(
+						flushedGeneration.previousGen.particleWeights, 
+						config
+				))
 				reportCompletedGeneration(flushedGeneration.previousGen)
 				goto(Gathering) using data.setGeneration(flushedGeneration)
 			}
@@ -281,13 +287,18 @@ trait ABCActor[P]
 		val generation = stateData.generation
 		import generation._
 		
+		println("ALLOCATE WORK")
+		
 		if(dueWeighing.size > 0) {
+			println("A")
 			// Tell worker to weigh particles
 			worker ! WeighJob.buildFrom(generation)
 			stay using stateData.updateGeneration(algorithm.emptyWeighingBuffer(generation))	//Weigh existing particles
 		} else {
+			println("B")
 			// Tell worker to make more particles
-			worker ! GenerateParticles.buildFrom(generation, config)	
+			val previousParticleWeights = generation.previousGen.particleWeights
+			worker ! GenerateParticles(previousParticleWeights, config)	
 			stay using stateData.updateGeneration(generation)
 		}
 	}

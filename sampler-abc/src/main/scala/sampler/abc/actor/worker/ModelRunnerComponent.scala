@@ -50,7 +50,7 @@ trait ModelRunnerComponent[P] {
 		
 		def run(job: GenerateParticles[P]): Try[ScoredParticles[P]] = Try{
 			val paramDist: Distribution[P] =  {
-				val weightsTable = job.population.asInstanceOf[Map[P, Double]]
+				val weightsTable = job.prevParticleWeights.asInstanceOf[Map[P, Double]]
 				DistributionBuilder.fromWeightsTable(weightsTable)
 			}
 			
