@@ -1,8 +1,8 @@
 import UnidocKeys._
 
 val buildOrganization 	= "org.tearne"
-val buildVersion 	= "0.2.0"
-val buildScalaVersion	= "2.11.5"
+val buildVersion 	= "0.2.1"
+val buildScalaVersion	= "2.11.6"
 
 lazy val commonSettings = Seq(
 	organization := buildOrganization,
@@ -28,7 +28,7 @@ lazy val commonSettings = Seq(
 		"org.slf4j" % "slf4j-api" % "1.7.7",
 		"org.scalaz" %% "scalaz-core" % "7.1.0",
 		"com.novocode" % "junit-interface" % "0.11" % "test",
-		"org.spire-math" %% "spire" % "0.9.0"
+		"org.spire-math" %% "spire" % "0.9.1"
 	)
 )
 
