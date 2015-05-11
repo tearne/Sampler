@@ -63,7 +63,7 @@ class ABCActorTest
 	var eGen1: EvolvingGeneration[DullParams] = _
 	
 	before {
-		gen1 = Generation(null, 0, mock[Map[DullParams, Double]], 99)
+		gen1 = Generation(null, 3, mock[Map[DullParams, Double]], 99)
 		
 		eGen1 = EvolvingGeneration(
 			99, 
@@ -522,42 +522,43 @@ class ABCActorTest
 	  }
 	  
 	  "and receives FlushComplete message / " - {
-	    val eGen0 = mock[EvolvingGeneration[DullParams]]
-	    val flushedGeneration = mock[Generation[DullParams]]
+	    //val eGen0 = mock[EvolvingGeneration[DullParams]]
+	    //val flushedGeneration = mock[Generation[DullParams]]
 	    
 	    val flushingData = FlushingData(null, None)
 	    
-	    "shuts down if the required number of generations completed" in new Instance{
+	    "reports and shuts down if the required number of generations completed" in new Instance{
 	      val workerProbe = TestProbe()
 	      val reportingProbe = TestProbe()
 	      val routerProbe = TestProbe()
 	      
 	      val instanceObj = instanceRef.underlyingActor
 	      when(instanceObj.childActors.reportingActor).thenReturn(reportingProbe.ref)
-//	      when(instanceObj.childActors.router).thenReturn(routerProbe.ref)
+	      when(instanceObj.childActors.router).thenReturn(routerProbe.ref)
 	   
-	      when(flushedGeneration.iteration).thenReturn(fiveGenerations)
- 	      when(eGen0.currentIteration).thenReturn(fiveGenerations)
+	      //when(flushedGeneration.iteration).thenReturn(fiveGenerations)
+ 	      val eGen0 = mock[EvolvingGeneration[DullParams]]
+	      when(eGen0.currentIteration).thenReturn(fiveGenerations)
+	      val flushedGen = mock[Generation[DullParams]]
+	      when(eGen0.previousGen).thenReturn(flushedGen)
 
-	      
-	      val algorithm = instanceObj.algorithm
+//	      val algorithm = instanceObj.algorithm
 	      
 	      //TODO remove if not used
 	      val report = mock[Report[DullParams]]
-	      when(instanceObj.reporter.build(flushedGeneration)).thenReturn(report)
-	      
-	      val flushComplete = instanceObj.FlushComplete(eGen0)
+	      when(instanceObj.reporter.build(flushedGen)).thenReturn(report)
 	      
 	      instanceRef.setState(Flushing, flushingData)
 	      
 	      // Action
-	      instanceRef tell(flushComplete, null)
+	      instanceRef ! instanceObj.FlushComplete(eGen0)
 	      
 	      // Assertion
 	      routerProbe.expectMsg(Abort)
+	      reportingProbe.expectMsg(report)
 	      
 	      assertResult(WaitingForShutdown)(instanceRef.stateName)
-	      assertResult(flushedGeneration)(instanceRef.stateData match {
+	      assertResult(eGen0)(instanceRef.stateData match {
 	        case gd: StateData[_] => gd.generation
 	        case d => fail("Unexpected StateData type: "+d.getClass())
 	      })
@@ -574,29 +575,32 @@ class ABCActorTest
 	   
 	      val prevWeights = Map[DullParams, Double]()
 	      
-	      when(flushedGeneration.iteration).thenReturn(1)
-	      when(flushedGeneration.particleWeights).thenReturn(prevWeights)
-	      when(eGen0.previousGen).thenReturn(flushedGeneration)
+//	      when(flushedGeneration.iteration).thenReturn(1)
+//	      when(flushedGeneration.particleWeights).thenReturn(prevWeights)
+//	      when(eGen0.previousGen).thenReturn(flushedGeneration)
+//	      val eGen0 = mock[EvolvingGeneration[DullParams]]
+//	      when(eGen0.currentIteration).thenReturn(1)
 	      
-	      val algorithm = instanceObj.algorithm
+	      //eGen1 has a previous gen with iteration == 1
+	      val reporter = instanceObj.reporter
 	      
-	      //TODO needed?
-//	      val report = mock[Report[DullParams]]
-//	      when(algorithm.buildReport(flushedGeneration, instanceObj.config)).thenReturn(report)
+	      //TODO needed?  Yes, else reporting gets null message
+	      val report = mock[Report[DullParams]]
+	      when(reporter.build(gen1)).thenReturn(report)
 	      
-	      val flushComplete = instanceObj.FlushComplete(eGen0)
+//	      val flushComplete = instanceObj.FlushComplete(eGen1)
 	      
 	      instanceRef.setState(Flushing, flushingData)
 	      
 	      // Action
-	      instanceRef tell(flushComplete, null)
+	      instanceRef tell(instanceObj.FlushComplete(eGen1), null)
 	      
 	      // Assertion
-	      routerProbe.expectMsg(Broadcast(GenerateParticles(prevWeights, instanceObj.config)))
+	      routerProbe.expectMsg(Broadcast(GenerateParticles(eGen1.previousGen.particleWeights, instanceObj.config)))
 	      
 	      assertResult(Gathering)(instanceRef.stateName)
-	      assertResult(flushedGeneration)(instanceRef.stateData match {
-	        case gd: StateData[_] => gd.generation
+	      assertResult(eGen1)(instanceRef.stateData match {
+	        case sd: StateData[_] => sd.generation
 	        case d => fail("Unexpected StateData type: "+d.getClass())
 	      })
 	    }

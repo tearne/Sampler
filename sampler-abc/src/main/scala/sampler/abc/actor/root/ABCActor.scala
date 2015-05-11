@@ -140,7 +140,7 @@ trait ABCActor[P]
 	implicit val distributionBuilder: DistributionBuilder
 	implicit val random : Random
 	
-	case class FlushComplete(generation: EvolvingGeneration[P])
+	case class FlushComplete(eGeneration: EvolvingGeneration[P])
 	case class AddComplete(generation: EvolvingGeneration[P])
 	case object MixNow
 	
@@ -246,30 +246,30 @@ trait ABCActor[P]
 	when(Flushing) {
 		case Event(_: ScoredParticles[P], _) => 	log.info("Ignore new paylod"); 		stay
 		case Event(MixNow, _) => 				log.info("Ignore mix request"); 	stay
-		case Event(FlushComplete(flushedGeneration), data: FlushingData) =>
+		case Event(FlushComplete(flushedEGeneration), data: FlushingData) =>
 			val numGenerations = config.job.numGenerations
 			log.info(
 					"Generation {}/{} complete, next tolerance {}", 
-					flushedGeneration.currentIteration, 
+					flushedEGeneration.currentIteration, 
 					numGenerations, 
-					flushedGeneration.currentTolerance
+					flushedEGeneration.currentTolerance
 			)
 			
-			if(flushedGeneration.currentIteration == numGenerations && config.cluster.terminateAtTargetGenerations){
+			if(flushedEGeneration.currentIteration == numGenerations && config.cluster.terminateAtTargetGenerations){
 				// Stop work
 				childActors.router ! Abort  // TODO superfluous?
-				reportCompletedGeneration(flushedGeneration.previousGen)
+				reportCompletedGeneration(flushedEGeneration.previousGen)
 				log.info("Required generations completed and reported to requestor")
 				
-				goto(WaitingForShutdown) using data.setGeneration(flushedGeneration)
+				goto(WaitingForShutdown) using data.setGeneration(flushedEGeneration)
 			} else {
 				// Start next generation
 				childActors.router ! Broadcast(GenerateParticles(
-						flushedGeneration.previousGen.particleWeights, 
+						flushedEGeneration.previousGen.particleWeights, 
 						config
 				))
-				reportCompletedGeneration(flushedGeneration.previousGen)
-				goto(Gathering) using data.setGeneration(flushedGeneration)
+				reportCompletedGeneration(flushedEGeneration.previousGen)
+				goto(Gathering) using data.setGeneration(flushedEGeneration)
 			}
 		case Event(rc: ReportCompleted[P], _) => 
 			log.debug(s"Report for generation ${rc.report.generationId} completed.")
