@@ -287,8 +287,6 @@ trait ABCActor[P]
 		val generation = stateData.generation
 		import generation._
 		
-		println("ALLOCATE WORK")
-		
 		if(dueWeighing.size > 0) {
 			// Tell worker to weigh particles
 			worker ! WeighJob.buildFrom(generation)
