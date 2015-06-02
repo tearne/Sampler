@@ -142,9 +142,6 @@ class ABCActorTest
 	
 	"When Gathering / " - {
 	  "and Failed msg arrives / " - {
-	    //TODO delete
-	  	val prevWeights = Map[DullParams, Double]()
-	    val prevGen = Generation(null, 0, prevWeights, 0)
 	    
 	    "if zero weighing jobs then tell worker to start generating" in new Instance{
 	    	val workerProbe = TestProbe()  
@@ -229,7 +226,6 @@ class ABCActorTest
 	  "filters and queue particles from a MixPayload" in new Instance{
 	    val clientProbe = TestProbe()
 	    val routerProbe = TestProbe()
-	    //val workerProbe = TestProbe()
 	    
 			val instanceObj = instanceRef.underlyingActor
 			when(instanceObj.childActors.router).thenReturn(routerProbe.ref)
@@ -371,6 +367,8 @@ class ABCActorTest
 	    
 	    "if got enough particles and generations then stop generating and await shutdown" in new Instance{
 	      //TODO shouldn't it enter flushing state?!
+	    	//This test somehow jumps to the next state
+	    	//TODO, going to add the FlushingActor to sort this out...
 	    	
 	    	val clientRef = mock[ActorRef]
 	    	val routerProbe = TestProbe()

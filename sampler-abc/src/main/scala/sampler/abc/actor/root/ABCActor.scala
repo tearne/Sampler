@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2012-13 Crown Copyright 
- *                       Animal Health and Veterinary Laboratories Agency
+ * Copyright (c) 2012-15 Crown Copyright 
+ *                       Animal and Plant Health Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -290,12 +290,10 @@ trait ABCActor[P]
 		println("ALLOCATE WORK")
 		
 		if(dueWeighing.size > 0) {
-			println("A")
 			// Tell worker to weigh particles
 			worker ! WeighJob.buildFrom(generation)
 			stay using stateData.updateGeneration(algorithm.emptyWeighingBuffer(generation))	//Weigh existing particles
 		} else {
-			println("B")
 			// Tell worker to make more particles
 			val previousParticleWeights = generation.previousGen.particleWeights
 			worker ! GenerateParticles(previousParticleWeights, config)	
