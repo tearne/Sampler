@@ -19,12 +19,6 @@ package sampler.abc.config
 
 import com.typesafe.config.Config
 import scalaz.Lens._
-import sampler.abc.config.AlgorithmParameters
-import sampler.abc.config.JobParameters
-import sampler.abc.config.AlgorithmParameters
-import sampler.abc.config.ClusterParameters
-import sampler.abc.config.JobParameters
-import sampler.abc.config.ClusterParameters
 
 case class ABCConfig(
 		job: JobParameters,

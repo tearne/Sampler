@@ -19,9 +19,8 @@ package sampler.data
 
 import scala.collection.GenSeq
 import scala.collection.parallel.ParSeq
-import sampler.math.StatisticsComponentImpl
-import sampler.math.Statistics
 import sampler.Implicits._ 
+import sampler.math.Statistics
 
 /** For producing samples from a distribution until a condition is met */
 
@@ -41,12 +40,14 @@ trait EmpiricalMetric {
 }
 
 /** Implementation of [[sampler.data.EmpiricalMetric]] using the maximum distance statistical method */ 
-trait MaxMetric extends EmpiricalMetric with StatisticsComponentImpl {
-  def distance[T](e1: Empirical[T], e2: Empirical[T]): Double = statistics.maxDistance(e1, e2)
+trait MaxMetric extends EmpiricalMetric with Statistics{
+  def distance[T](e1: Empirical[T], e2: Empirical[T]): Double 
+  	= maxDistance(e1, e2)
 }
 
-trait MeanMetric extends EmpiricalMetric with StatisticsComponentImpl {
-	def distance[T: Fractional](e1: Empirical[T], e2: Empirical[T]): Double = statistics.meanDistance(e1, e2)
+trait MeanMetric extends EmpiricalMetric with Statistics{
+	def distance[T: Fractional](e1: Empirical[T], e2: Empirical[T]): Double 
+		= meanDistance(e1, e2)
 }
 
 /** Determines whether a sequence of samples has converged. Requires mixin of a [[sampler.data.EmpiricalMetric]] 

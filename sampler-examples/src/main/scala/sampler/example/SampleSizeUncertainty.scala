@@ -9,6 +9,7 @@ import sampler.math.Random
 import sampler.math.Statistics.maxDistance
 import sampler.data.ConvergenceProtocol
 import sampler.data.MaxMetric
+import sampler.data.DistributionBuilder
 
 /* 
  *  Given an imperfect test characterised by empirical data, how many samples should be taken to
@@ -55,14 +56,14 @@ object SampleSizeUncertainty extends App{
 	 * and loaded, for example using the [[sampler.io.ChainReader]].
 	 */
 	val normal = new NormalDistribution(0.7,0.9)
-	val distributionWithVariance = Distribution(normal.sample)
+	val distributionWithVariance = DistributionBuilder(normal.sample)
 			.filter(x => x > 0 && x < 1)
 			.until(_.size == 1e5) 
 			.sample
 			.toEmpiricalSeq
 			.toDistribution
 	
-	val distributionWithoutVariance = Distribution.continually(0.7)
+	val distributionWithoutVariance = DistributionBuilder.continually(0.7)
 			
 	println("Calculating sample size when test has mean sensitivity 0.7, with variance 0.3")
 	val result1 = calcSampleSize(distributionWithVariance, requiredSensitivity)

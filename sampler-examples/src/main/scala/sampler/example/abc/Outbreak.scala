@@ -21,6 +21,7 @@ import sampler.math.Random
 import sampler.math.Statistics
 import sampler.r.process.ScriptRunner
 import sampler.io.Logging
+import sampler.data.DistributionBuilder
 
 /*
  * This file contains a number of applications
@@ -239,7 +240,7 @@ case class ModelWithSequenceMetric(observed: DifferenceMatrix) extends ToSamplab
 	}
 	fitList.foreach(println)
 	
-	def scoreDistribution(params: Parameters) = Distribution[Double]{
+	def scoreDistribution(params: Parameters) = DistributionBuilder[Double]{
 		val scores = fitList.toSeq.map{case ToFit(root, mechanism, obsDiff) =>
 			val directDestinations: Set[Int] = directDestByMech(root)
 				.collect{case (dest, `mechanism`) => dest}
@@ -444,7 +445,7 @@ case class Sequence(basesInReverseOrder: IndexedSeq[Int] = IndexedSeq.empty){
 }
 object Sequence{
 	implicit val r = Random
-	val randomBase = Distribution.uniform((1 to 4).toSeq)
+	val randomBase = DistributionBuilder.uniform((1 to 4).toSeq)
 
 	def mutate(s: Sequence) = Sequence(randomBase.sample +: s.basesInReverseOrder)
 		

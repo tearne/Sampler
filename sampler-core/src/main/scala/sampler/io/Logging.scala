@@ -18,7 +18,9 @@
 package sampler.io
 
 import org.slf4j.LoggerFactory
+import org.slf4j.Logger
 
-trait Logging{
+
+trait Logging {
 	lazy val log = LoggerFactory.getLogger(getClass)
 }

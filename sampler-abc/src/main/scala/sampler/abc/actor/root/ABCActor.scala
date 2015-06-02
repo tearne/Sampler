@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2012-13 Crown Copyright 
- *                       Animal Health and Veterinary Laboratories Agency
+ * Copyright (c) 2012-15 Crown Copyright 
+ *                       Animal and Plant Health Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,11 +29,6 @@ import akka.pattern.pipe
 import sampler.abc.Model
 import sampler.abc.actor.Abort
 import sampler.abc.actor.Start
-import sampler.abc.algorithm.AlgorithmComponent
-import sampler.abc.algorithm.AlgorithmComponentImpl
-import sampler.abc.algorithm.Generation
-import sampler.abc.algorithm.component.ToleranceCalculatorComponent
-import sampler.abc.algorithm.component.WeigherComponent
 import sampler.abc.config.ABCConfig
 import sampler.math.Random
 import sampler.math.Statistics
@@ -43,7 +38,6 @@ import sampler.abc.Scored
 import sampler.abc.actor.ScoredParticles
 import akka.routing.Broadcast
 import sampler.abc.actor.WeighedParticles
-import sampler.abc.actor.GenerateJob
 import sampler.abc.actor.WeighJob
 import scala.util.Failure
 import scala.util.Success
@@ -52,32 +46,54 @@ import sampler.abc.actor.MixPayload
 import sampler.abc.actor.ReportCompleted
 import sampler.abc.actor.Report
 import sampler.math.Statistics
-import sampler.abc.actor.LoggingAdapterComponent
-import sampler.abc.actor.LoggingAdapterComponentImpl
-import sampler.abc.algorithm.component.ParticleMixerComponent
+import sampler.abc.core.LoggingAdapterComponent
+import sampler.abc.core.LoggingAdapterComponentImpl
+import sampler.abc.actor.GenerateParticles
+import sampler.abc.actor.algorithm.Algorithm
+import sampler.abc.actor.algorithm.EvolvingGeneration
+import sampler.abc.core.Generation
+import sampler.abc.actor.algorithm.Getters
+import sampler.abc.core.WeightsHelper
+import sampler.abc.core.ToleranceCalculator
+import sampler.abc.actor.algorithm.ParticleMixer
+import sampler.abc.actor.algorithm.ObservedIdsTrimmer
+import sampler.abc.actor.algorithm.GenerationFlusher
+import sampler.abc.actor.algorithm.ObservedIdsTrimmer
+import sampler.data.DistributionBuilder
+import sampler.abc.core.Reporter
+import sampler.abc.core.Reporter
+import sampler.abc.core.Reporter
 
 class ABCActorImpl[P](
 		val model: Model[P],
 		val config: ABCConfig,
 		val reportAction: Option[Report[P] => Unit]
-) extends ABCActor[P]
-		with ChildrenActorsComponent[P]
+	) extends ABCActor[P]
+		with ChildrenActorsComponentImpl[P]
 		with WorkDispatcherComponentImpl
-		with AlgorithmComponentImpl 
-		with ParticleMixerComponent
-		with WeigherComponent
-		with ToleranceCalculatorComponent
 		with LoggingAdapterComponentImpl
-		with StatisticsComponent 
-		with GettersComponent {
-	val childActors = new ChildActors{}
-	val weigher = new Weigher{}
-	val toleranceCalculator = new ToleranceCalculator{}
-	val particleMixer = new ParticleMixer{}
-	val algorithm = new AlgorithmImpl{}
-	val statistics = Statistics
+		with StatisticsComponent {
 	val random = Random
-	val getters = new Getters{}
+	val distributionBuilder = DistributionBuilder
+	
+	val getters = new Getters()
+	val algorithm = new Algorithm(
+			new GenerationFlusher(
+					ToleranceCalculator,
+					new ObservedIdsTrimmer(
+							config.cluster.particleMemoryGenerations, 
+							config.job.numParticles),
+					new WeightsHelper(),
+					getters,
+					config.job.numParticles),
+			new ParticleMixer(),
+			getters,
+			Random)
+	val reporter = new Reporter(
+			DistributionBuilder,
+			Random,
+			config)
+	val statistics = Statistics
 }
 
 sealed trait Status
@@ -93,40 +109,39 @@ case object Uninitialized extends Data{
 	val cancellableMixing: Option[Cancellable] = None
 }
 case class StateData[P](	// TODO change to WorkingData
-		generation: Generation[P],
+		generation: EvolvingGeneration[P],
 		client: ActorRef, 
 		cancellableMixing: Option[Cancellable]
 ) extends Data{
     def getFlushingData = FlushingData(client, cancellableMixing)
-	def updateGeneration(g: Generation[P]) = copy(generation = g)
+	def updateGeneration(g: EvolvingGeneration[P]) = copy(generation = g)
 }
 
 case class FlushingData(
     client: ActorRef,
     cancellableMixing: Option[Cancellable]
 ) extends Data {
-  def setGeneration[P](g: Generation[P]) = StateData(g, client, cancellableMixing)
+  def setGeneration[P](g: EvolvingGeneration[P]) = StateData(g, client, cancellableMixing)
 }
 
-abstract class ABCActor[P]
+trait ABCActor[P]
 		extends FSM[Status, Data] 
 		with Actor 
 		with ActorLogging
 {
-	this: ChildrenActorsComponent[P]
-		with AlgorithmComponent
-		with GettersComponent 
-		with WorkDispatcherComponent =>
+	this: ChildrenActorsComponent[P] with WorkDispatcherComponent =>
 	
 	val config: ABCConfig
 	val model: Model[P]
+	val algorithm: Algorithm
+	val reporter: Reporter	//TODO better name to help distinguish between report action and reporting actor
 	val reportAction: Option[Report[P] => Unit]
+	val getters: Getters
+	implicit val distributionBuilder: DistributionBuilder
+	implicit val random : Random
 	
-	import childActors._
-	type G = Generation[P]
-	
-	case class FlushComplete(generation: G)
-	case class AddComplete(generation: G)
+	case class FlushComplete(eGeneration: EvolvingGeneration[P])
+	case class AddComplete(generation: EvolvingGeneration[P])
 	case object MixNow
 	
 	startWith(Idle, Uninitialized)
@@ -150,7 +165,11 @@ abstract class ABCActor[P]
 			val client = sender
 			import s._
 			
-			router ! Broadcast(GenerateJob(generationZero.prevWeightsTable, config))
+			val evolvingGen = EvolvingGeneration.init(s.generationZero)
+			childActors.router ! Broadcast(GenerateParticles(
+					evolvingGen.previousGen.particleWeights, 
+					config
+			))
 			
 			// TODO this code block untested
 			val mixMS = getters.getMixRateMS(config)
@@ -164,7 +183,7 @@ abstract class ABCActor[P]
 						context.dispatcher)
 			)
 			
-			goto(Gathering) using StateData(generationZero, client, cancellableMixing)
+			goto(Gathering) using StateData(evolvingGen, client, cancellableMixing)
 	}
 	
 	when(Gathering) {
@@ -174,32 +193,35 @@ abstract class ABCActor[P]
 			
 		case Event(scored: ScoredParticles[P], stateData: StateData[P]) =>
 			val sndr = sender
-			val updatedGeneration = algorithm.filterAndQueueForWeighing(scored, stateData.generation)
+			val updatedGeneration = algorithm.filterAndQueueUnweighedParticles(scored, stateData.generation)
 			log.info("New filtered and queued ({}) => |Q| = {},  from {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
-			import updatedGeneration._
-			sndr ! WeighJob(dueWeighing, prevWeightsTable, currentTolerance)
+//			import updatedGeneration._
+			sndr ! WeighJob.buildFrom(updatedGeneration)
 			log.debug("Allocate weighing of {} particles to {}", updatedGeneration.dueWeighing.size, sndr)
 			stay using stateData.copy(generation = updatedGeneration.emptyWeighingBuffer)
 			
 		case Event(mixP: MixPayload[P], stateData: StateData[P]) =>
-			val scored = mixP.tss
-			val updatedGeneration = algorithm.filterAndQueueForWeighing(scored, stateData.generation)
+			val scored = mixP.scoredParticles
+			val updatedGeneration = algorithm.filterAndQueueUnweighedParticles(scored, stateData.generation)
 			log.info("New filtered and queued ({}) => |Q| = {},  from REMOTE {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
 			stay using StateData(updatedGeneration, stateData.client, stateData.cancellableMixing)//stateData.copy(generation = updatedGeneration)
 
 		case Event(weighted: WeighedParticles[P], stateData: StateData[P]) =>
-			val updatedGen = algorithm.addWeighted(weighted, stateData.generation)
+			val updatedGen = algorithm.addWeightedParticles(weighted, stateData.generation)
 
-			log.info(s"Generation ${updatedGen.currentIteration}, Particles + ${getters.getNumParticles(weighted)} = ${getters.getAccumulatedGenerationSize(updatedGen)}/${config.job.numParticles}")
+			log.info(
+					s"Generation ${updatedGen.currentIteration}, "+
+					s"Particles + ${getters.getNumParticles(weighted)} = "+
+					s"${getters.getNumEvolvedParticles(updatedGen)}/${config.job.numParticles}")
 			
 			if(algorithm.isEnoughParticles(updatedGen, config)){
-				router ! Broadcast(Abort)
+				childActors.router ! Broadcast(Abort) //TODO what if abort doesn't happen in time?
 				
 				//Flush the current generation
 				implicit val dispatcher = workDispatcher
 				Future{
-					val flushedGen = algorithm.flushGeneration(updatedGen, config.job.numParticles, config.cluster.particleMemoryGenerations)
-					FlushComplete(flushedGen)
+					val newEvolvingGeneration = algorithm.flushGeneration(updatedGen)
+					FlushComplete(newEvolvingGeneration)
 				}.pipeTo(self)
 				
 				goto(Flushing) using stateData.getFlushingData
@@ -210,7 +232,8 @@ abstract class ABCActor[P]
 			
 		case Event(MixNow, p: StateData[P]) => 
 			val payload = algorithm.buildMixPayload(p.generation, config)
-			payload.foreach{message => broadcaster ! MixPayload(message)}
+			payload.foreach{message => 
+				childActors.broadcaster ! MixPayload(message)}
 			
 			stay
 		
@@ -223,22 +246,30 @@ abstract class ABCActor[P]
 	when(Flushing) {
 		case Event(_: ScoredParticles[P], _) => 	log.info("Ignore new paylod"); 		stay
 		case Event(MixNow, _) => 				log.info("Ignore mix request"); 	stay
-		case Event(FlushComplete(flushedGeneration), data: FlushingData) =>
+		case Event(FlushComplete(flushedEGeneration), data: FlushingData) =>
 			val numGenerations = config.job.numGenerations
-			log.info("Generation {}/{} complete, new tolerance {}", flushedGeneration.currentIteration, numGenerations, flushedGeneration.currentTolerance)
+			log.info(
+					"Generation {}/{} complete, next tolerance {}", 
+					flushedEGeneration.currentIteration, 
+					numGenerations, 
+					flushedEGeneration.currentTolerance
+			)
 			
-			if(flushedGeneration.currentIteration == numGenerations && config.cluster.terminateAtTargetGenerations){
+			if(flushedEGeneration.currentIteration == numGenerations && config.cluster.terminateAtTargetGenerations){
 				// Stop work
-				router ! Abort  // TODO superfluous?
-				report(flushedGeneration)
+				childActors.router ! Abort  // TODO superfluous?
+				reportCompletedGeneration(flushedEGeneration.previousGen)
 				log.info("Required generations completed and reported to requestor")
 				
-				goto(WaitingForShutdown) using data.setGeneration(flushedGeneration)
+				goto(WaitingForShutdown) using data.setGeneration(flushedEGeneration)
 			} else {
-				// Report and start next generation
-				router ! Broadcast(GenerateJob(flushedGeneration.prevWeightsTable, config))
-				report(flushedGeneration)
-				goto(Gathering) using data.setGeneration(flushedGeneration)
+				// Start next generation
+				childActors.router ! Broadcast(GenerateParticles(
+						flushedEGeneration.previousGen.particleWeights, 
+						config
+				))
+				reportCompletedGeneration(flushedEGeneration.previousGen)
+				goto(Gathering) using data.setGeneration(flushedEGeneration)
 			}
 		case Event(rc: ReportCompleted[P], _) => 
 			log.debug(s"Report for generation ${rc.report.generationId} completed.")
@@ -256,18 +287,21 @@ abstract class ABCActor[P]
 		val generation = stateData.generation
 		import generation._
 		
+		println("ALLOCATE WORK")
+		
 		if(dueWeighing.size > 0) {
 			// Tell worker to weigh particles
-			worker ! WeighJob(dueWeighing, prevWeightsTable, currentTolerance)
+			worker ! WeighJob.buildFrom(generation)
 			stay using stateData.updateGeneration(algorithm.emptyWeighingBuffer(generation))	//Weigh existing particles
 		} else {
 			// Tell worker to make more particles
-			worker ! GenerateJob(prevWeightsTable, config)	
+			val previousParticleWeights = generation.previousGen.particleWeights
+			worker ! GenerateParticles(previousParticleWeights, config)	
 			stay using stateData.updateGeneration(generation)
 		}
 	}
 	
-	def report(generation: Generation[P]){
-		reportingActor ! algorithm.buildReport(generation, config)
+	def reportCompletedGeneration(generation: Generation[P]){
+		childActors.reportingActor ! reporter.build(generation)
 	}
 }

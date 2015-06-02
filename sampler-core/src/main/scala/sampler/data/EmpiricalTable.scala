@@ -63,7 +63,7 @@ class EmpiricalTable[A](val freqTable: Map[A, Int]) extends Empirical[A]{
 	/** Creates a new [[sampler.data.Distribution]] from the Empirical Table
      *  
      *  @return [[sampler.data.Distribution]] object */
-	def toDistribution(implicit r: Random): Distribution[A] = Distribution.fromPartition(items.toIndexedSeq, partition)
+	def toDistribution(implicit r: Random): Distribution[A] = DistributionBuilder.fromPartition(items.toIndexedSeq, partition)
 	
 	override def canEqual(other: Any): Boolean = other.isInstanceOf[EmpiricalTable[_]]
 }

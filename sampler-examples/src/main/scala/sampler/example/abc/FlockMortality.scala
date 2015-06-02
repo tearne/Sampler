@@ -43,6 +43,7 @@ import sampler.math.Random
 import sampler.math.Statistics.quantile
 import sampler.r.process.ScriptRunner
 import sampler.math.Statistics
+import sampler.data.DistributionBuilder
 
 object FlockMortality extends App {
 	import FlockMortalityModel._
@@ -259,7 +260,7 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 			normal.density(at)
 		}
 	}
-	val threeDie = Distribution.uniform(IndexedSeq(-1,0,1))(random)
+	val threeDie = DistributionBuilder.uniform(IndexedSeq(-1,0,1))(random)
 	private def threeDensity(v: Int) = if(v <= 1 || v >= -1) 1.0 / 3 else 0
 	
 	def perturb(p: FlockMortalityParams) = {
@@ -385,7 +386,7 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 		}
 		
 		//Deterministic model will always return the same answer
-		Distribution.continually(solve)
+		DistributionBuilder.continually(solve)
 	}
 }
 

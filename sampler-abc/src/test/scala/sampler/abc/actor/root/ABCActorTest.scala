@@ -14,31 +14,36 @@ import akka.testkit.TestProbe
 import sampler.abc.Model
 import sampler.abc.Scored
 import sampler.abc.actor.Failed
-import sampler.abc.actor.GenerateJob
 import sampler.abc.actor.Report
 import sampler.abc.actor.ScoredParticles
 import sampler.abc.actor.Start
 import sampler.abc.actor.Tagged
 import sampler.abc.actor.WeighJob
-import sampler.abc.algorithm.Algorithm
-import sampler.abc.algorithm.AlgorithmComponent
-import sampler.abc.algorithm.Generation
 import sampler.abc.config.ABCConfig
 import sampler.abc.config.ClusterParameters
 import sampler.abc.config.JobParameters
 import sampler.abc.actor.MixPayload
 import sampler.abc.actor.WeighedParticles
 import sampler.abc.actor.Abort
-import sampler.abc.actor.GenerateJob
 import sampler.abc.actor.ReportCompleted
 import sampler.abc.actor.ReportCompleted
 import akka.actor.Cancellable
 import sampler.abc.actor.ScoredParticles
+import sampler.abc.actor.algorithm.Getters
+import sampler.abc.core.Generation
+import sampler.abc.actor.algorithm.Algorithm
+import sampler.abc.actor.GenerateParticles
+import sampler.abc.actor.algorithm.EvolvingGeneration
+import sampler.abc.core.Reporter
+import scala.collection.immutable.Queue
+import org.scalatest.BeforeAndAfter
+import akka.actor.ActorRef
 
 @RunWith(classOf[JUnitRunner])
 class ABCActorTest 
 		extends TestKit(ActorSystem("ABC"))
 		with FreeSpecLike
+		with BeforeAndAfter
 		with BeforeAndAfterAll
 		with MockitoSugar {
 	
@@ -46,30 +51,60 @@ class ABCActorTest
 	val hundredParticles = 100
 	val fiveGenerations = 5
 	val isFinal = true
-	val terminateAtTargetGen = true
+	val terminateAtTargetGen = true	//TODO why would we have false?  Hasn't been tested
+	
+	//val model = mock[Model[DullParams]]
+	
+	//val gen1 = Generation(null, 1, Map[DullParams, Double](), 50)
+	//val gen2 = Generation(null, 2, Map[DullParams, Double](), 20)
+
+	//TODO before each
+	var gen1: Generation[DullParams] = _
+	var eGen1: EvolvingGeneration[DullParams] = _
+	
+	before {
+		gen1 = Generation(null, 3, mock[Map[DullParams, Double]], 99)
+		
+		eGen1 = EvolvingGeneration(
+			99, 
+			gen1, 
+			mock[ScoredParticles[DullParams]],//ScoredParticles(Seq.empty[Tagged[Scored[DullParams]]]), 
+			mock[WeighedParticles[DullParams]], 
+			mock[Queue[Long]])
+	}
+	
+	
+//	val eGen0 = {
+//		val dueWeighing0 = ScoredParticles(Seq.empty[Tagged[Scored[DullParams]]])
+//		  val tolerance0 = 30;
+//	    val eGen0 = EvolvingGeneration(tolerance0, prevGen0, dueWeighing0, null, null)
+//	}
 	
 	case class DullParams()
 	
-	class ConcreteABCActor(
+	class TestableABCActor(
 			val model: Model[DullParams], 
 			val config: ABCConfig,
 			val reportAction: Option[Report[DullParams] => Unit],
 			override val getters: Getters
-	) extends ABCActor[DullParams]
-			with AlgorithmComponent
+		) extends ABCActor[DullParams]
 			with ChildrenActorsComponent[DullParams] 
-			with WorkDispatcherComponent
-			with GettersComponent {
+			with WorkDispatcherComponent {
 		val childActors = mock[ChildActors]
 		val algorithm = mock[Algorithm]
 		val workDispatcher = context.dispatcher
+		
+		implicit val distributionBuilder =  sampler.data.DistributionBuilder
+		implicit val random = sampler.math.Random
+		val reporter = mock[Reporter]
 	}
 	
 	override def afterAll {
 		TestKit.shutdownActorSystem(system)
 	}
 	
-	def getInstance = {
+	//TODO use instance setup trait
+	trait Instance {
 		val model = mock[Model[DullParams]]
 		val config = ABCConfig(
 				JobParameters(hundredParticles, 0, fiveGenerations),
@@ -77,330 +112,331 @@ class ABCActorTest
 				ClusterParameters(terminateAtTargetGen, 0, 0l, 0, oneSecond, 0l)
 		)
 		val reportAction = None
-		val getters = mock[Getters]; when(getters.getMixRateMS(config)).thenReturn(oneSecond)
+		val getters = mock[Getters]
+		when(getters.getMixRateMS(config)).thenReturn(oneSecond)
 			
-		TestFSMRef(new ConcreteABCActor(model, config, reportAction, getters))
+		val instanceRef = TestFSMRef(new TestableABCActor(model, config, reportAction, getters))
 	}
 	
-	"When Idle" - {
-
-	  "Initialise and generate a job" in {
-	    val routerProbe = TestProbe()
-	    val clientProbe = TestProbe()
+	"When Idle / " - {
+	  "Start msg sets internal state & sends Broadcast to generate particles" in new Instance {
+			val routerProbe = TestProbe()
 				  
-	    val instanceRef = getInstance
-		val instanceObj = instanceRef.underlyingActor
-		when(instanceObj.childActors.router).thenReturn(routerProbe.ref)
-		
-		val prevWeights = Map[DullParams, Double]()
+			val instanceObj = instanceRef.underlyingActor
+			when(instanceObj.childActors.router).thenReturn(routerProbe.ref)
+			
+			val particleWeights = Map[DullParams, Double]()
 	    
-	    val gen0 = mock[Generation[DullParams]]
-	    when(gen0.prevWeightsTable).thenReturn(prevWeights)
-	    
-		// Action
-		instanceRef tell(Start(gen0), clientProbe.ref)
+			// Action
+			instanceRef ! Start(gen1)
 		
-		// Assertions
-		routerProbe.expectMsg(Broadcast(GenerateJob(prevWeights, instanceObj.config)))
-		assertResult(Gathering)(instanceRef.stateName)
-		assertResult(gen0)(instanceRef.stateData match {
-			case gd: StateData[_] => gd.generation
-			case d => fail("Unexpected StateData type: "+d.getClass())
-		})
+			// Assertions
+			routerProbe.expectMsg(Broadcast(GenerateParticles(gen1.particleWeights, instanceObj.config)))
+			assertResult(Gathering)(instanceRef.stateName)
+			assertResult(gen1)(instanceRef.stateData match {
+				case gd: StateData[_] => gd.generation.previousGen
+				case d => fail("Unexpected StateData type: "+d.getClass())
+			})
 	  }
 	}
 	
-	"When Gathering" - {
-	  "Failed message from Worker" - {
+	"When Gathering / " - {
+	  "and Failed msg arrives / " - {
 	    
-	    val failed = Failed
-	    
-	    val prevWeights = Map[DullParams, Double]()
-	    
-	    val gen0 = mock[Generation[DullParams]]
-	    when(gen0.prevWeightsTable).thenReturn(prevWeights)
-	    
-	    "Nothing due weighing generates a new job" in {
-	      val workerProbe = TestProbe()
+	    "if zero weighing jobs then tell worker to start generating" in new Instance{
+	    	val workerProbe = TestProbe()  
+		  	val instanceObj = instanceRef.underlyingActor
+		
+		  	when(eGen1.dueWeighing.size).thenReturn(0)
+		  	
+		  	instanceRef.setState(Gathering, StateData(eGen1, null, None))
 		  
-	      val instanceRef = getInstance
-		  val instanceObj = instanceRef.underlyingActor
+		  	// Action
+		  	instanceRef tell(Failed, workerProbe.ref)
 		  
-		  val dueWeighing = mock[ScoredParticles[DullParams]]
-		  when(dueWeighing.size).thenReturn(0)
-		  
-		  when(gen0.dueWeighing).thenReturn(dueWeighing)
-			
-		  instanceRef.setState(Gathering, StateData(gen0, null, None))
-		  
-		  // Action
-		  instanceRef tell(failed, workerProbe.ref)
-		  
-		  // Assertion
-		  workerProbe.expectMsg(GenerateJob(prevWeights, instanceObj.config))
-		  
-		  assertResult(Gathering)(instanceRef.stateName)
-		  assertResult(gen0)(instanceRef.stateData match {
-		  	case gd: StateData[_] => gd.generation
-		  	case d => fail("Unexpected StateData type: "+d.getClass())
-		  })
-	  }
+		  	// Assertions
+		  	workerProbe.expectMsg(GenerateParticles(eGen1.previousGen.particleWeights, instanceObj.config))
+		  	assertResult(Gathering)(instanceRef.stateName)
+		  	assertResult(eGen1)(instanceRef.stateData match {
+			  	case sd: StateData[_] => sd.generation
+			  	case e => fail("Unexpected StateData type: "+e.getClass())
+			  })
+		  }
 	  
-	    "With particles due weighing instructs to weigh" in {
+	    "if weighing job available tell worker to weigh" in new Instance{
 	      val workerProbe = TestProbe()
-
-	      val instanceRef = getInstance
 	      val instanceObj = instanceRef.underlyingActor
 
-	      val dueWeighing = mock[ScoredParticles[DullParams]]
-	      when(dueWeighing.size).thenReturn(10)
+	      when(eGen1.dueWeighing.size).thenReturn(10)
+	      instanceRef.setState(Gathering, StateData(eGen1, null, None))
 	    	
-	      when(gen0.dueWeighing).thenReturn(dueWeighing)
-	    	
-	      val gen1 = mock[Generation[DullParams]]
-
-	      instanceRef.setState(Gathering, StateData(gen0, null, None))
-	    	
-	      val algorithm = instanceObj.algorithm
-	      when(algorithm.emptyWeighingBuffer(gen0)).thenReturn(gen1)
+	      val eGen2 = mock[EvolvingGeneration[DullParams]]
+	      when(instanceObj.algorithm.emptyWeighingBuffer(eGen1)).thenReturn(eGen2)
 	    	
 	      // Action
-	      instanceRef tell(failed, workerProbe.ref)
+	      instanceRef tell(Failed, workerProbe.ref)
 
 	      // Assertion
-	      workerProbe.expectMsg(WeighJob(dueWeighing, prevWeights, 0))
+	      workerProbe.expectMsg(
+	      		WeighJob(
+	      				eGen1.dueWeighing, 
+	      				eGen1.previousGen.particleWeights, 
+	      				eGen1.currentTolerance))
 
 	      assertResult(Gathering)(instanceRef.stateName)
-	      assertResult(gen1)(instanceRef.stateData match {
+	      assertResult(eGen2)(instanceRef.stateData match {
 	        case gd: StateData[_] => gd.generation
 	        case d => fail("Unexpected StateData type: "+d.getClass())
 	      })
 	    }
 	  }
 	  
-	  "Receives scored particles and weights them" in {
-	      val clientProbe = TestProbe()
-	      val workerProbe = TestProbe()
+	  "after worker sends new scored particles it gets a weighing job" in new Instance{
+	    val clientProbe = TestProbe() //TODO would be better to offload this somehow
+	    val workerProbe = TestProbe()
 	  
-		  val instanceRef = getInstance
 		  val instanceObj = instanceRef.underlyingActor
 				  
-		  val gen0 = Generation(null, null, null, null, 0, 0, Map[DullParams, Double]())
+		  val eGen0 = mock[EvolvingGeneration[DullParams]]
+		  instanceRef.setState(Gathering, StateData(eGen0, clientProbe.ref, None))
 				  
-		  instanceRef.setState(Gathering, StateData(gen0, clientProbe.ref, None))
-				  
-		  val dueWeighing = ScoredParticles(Seq.empty[Tagged[Scored[DullParams]]])
-		  val prevWeightsTable = Map[DullParams, Double]()
-		  val currentTolerance = 25
-		  val gen1 = Generation(null, dueWeighing, null, null, currentTolerance, 0, prevWeightsTable)
-		  val newScoredParticles = ScoredParticles(Seq.empty[Tagged[Scored[DullParams]]])
-		  when(instanceObj.algorithm.filterAndQueueForWeighing(
-			newScoredParticles,
-			gen0
-		  )).thenReturn(gen1)
+		  val incomingScoredParticles = ScoredParticles(Seq.empty[Tagged[Scored[DullParams]]])
+	    
+		  when(instanceObj.algorithm.filterAndQueueUnweighedParticles(
+				incomingScoredParticles,
+				eGen0
+		  )).thenReturn(eGen1)
 						  
 		  // Action
-		  instanceRef tell(newScoredParticles, workerProbe.ref)
+		  instanceRef tell(incomingScoredParticles, workerProbe.ref)
 		  
 		  // Assertions
-		  workerProbe.expectMsg(WeighJob(dueWeighing, prevWeightsTable, currentTolerance))
+		  workerProbe.expectMsg(
+		  		WeighJob(
+		  				eGen1.dueWeighing, 
+		  				eGen1.previousGen.particleWeights, 
+		  				eGen1.currentTolerance))
 		  
 		  assertResult(Gathering)(instanceRef.stateName)
-		  val stateData1 = instanceRef.stateData.asInstanceOf[StateData[DullParams]]
-		  assertResult(gen1)(stateData1.generation)
-		  assertResult(clientProbe.ref)(stateData1.client)
+		  val stateData = instanceRef.stateData.asInstanceOf[StateData[DullParams]]
+	    assertResult(eGen1.emptyWeighingBuffer)(stateData.generation)
+		  assertResult(clientProbe.ref)(stateData.client)
 	  }
 	  
-	  "Filters and queue particles from a MixPayload" in {
+	  "filters and queue particles from a MixPayload" in new Instance{
 	    val clientProbe = TestProbe()
 	    val routerProbe = TestProbe()
-	    val workerProbe = TestProbe()
 	    
-	    val instanceRef = getInstance
-		val instanceObj = instanceRef.underlyingActor
-		when(instanceObj.childActors.router).thenReturn(routerProbe.ref)
+			val instanceObj = instanceRef.underlyingActor
+			when(instanceObj.childActors.router).thenReturn(routerProbe.ref)
 	    
-		val gen0 = mock[Generation[DullParams]]
-		val gen1 = mock[Generation[DullParams]]
-	    
-	    when(gen1.dueWeighing).thenReturn(ScoredParticles(Seq.empty[Tagged[Scored[DullParams]]]))
+			val eGen0 = mock[EvolvingGeneration[DullParams]]
 	    
 	    val payload = mock[MixPayload[DullParams]]
 	    val scored = mock[ScoredParticles[DullParams]]
-	    when(scored.seq).thenReturn(Seq())
-	    when(payload.tss).thenReturn(scored)
+	    val seq = mock[Seq[Tagged[Scored[DullParams]]]]
+	    when(scored.seq).thenReturn(seq)
+	    when(payload.scoredParticles).thenReturn(scored)
 	    
 	    val algorithm = instanceObj.algorithm
-	    when(algorithm.filterAndQueueForWeighing(scored, gen0)).thenReturn(gen1)
+	    when(algorithm.filterAndQueueUnweighedParticles(scored, eGen0)).thenReturn(eGen1)
 		
-	    instanceRef.setState(Gathering, StateData(gen0, clientProbe.ref, None))
+	    instanceRef.setState(Gathering, StateData(eGen0, clientProbe.ref, None))
 	    
 	    // Action
-	    instanceRef tell(payload, clientProbe.ref)
+	    instanceRef ! payload
 	    
 	    // Assert
 	    assertResult(Gathering)(instanceRef.stateName)
-	    assertResult(gen1)(instanceRef.stateData match {
-	    	case gd: StateData[_] => gd.generation
+	    val stateData = instanceRef.stateData.asInstanceOf[StateData[DullParams]]
+	    assertResult(eGen1)(stateData match {
+	    	case sd: StateData[_] => sd.generation
 	    	case d => fail("Unexpected StateData type: "+d.getClass())
 	    })
+	    assertResult(clientProbe.ref)(stateData.client)
 	  }
 	  
-	  "Adding weighed particles" - {
+	  "and weighed particles arrive / " - {
+	    val newlyWeighted = mock[WeighedParticles[DullParams]]
 	    
-	    val weighted = mock[WeighedParticles[DullParams]]
+	    val eGen0 = mock[EvolvingGeneration[DullParams]]
+	    val eGen2 = mock[EvolvingGeneration[DullParams]]
 	    
-	    val gen0 = mock[Generation[DullParams]]
-	    val gen1 = mock[Generation[DullParams]]
-	    
-	    val prevWeights = Map[DullParams, Double]()
-	    when(gen1.prevWeightsTable).thenReturn(prevWeights)
-	    
-	    "Then generate job to gather more particles" in {
-	      val workerProbe = TestProbe()
-	      val stateData0 = StateData(gen0, null, None)
-	   
-	      val instanceRef = getInstance
-	      val instanceObj = instanceRef.underlyingActor
-	      
-	      val algorithm = instanceObj.algorithm
-	      when(algorithm.addWeighted(weighted, gen0)).thenReturn(gen1)
-	      
-	      when(algorithm.isEnoughParticles(gen1, instanceObj.config)).thenReturn(false)
-	      
-	      val dueWeighing = mock[ScoredParticles[DullParams]]
-	      when(dueWeighing.size).thenReturn(0)
-	      
-	      when(gen1.dueWeighing).thenReturn(dueWeighing)
-	      
+	    "do more weighing if more jobs already arrived and gen is incomplete" in new Instance {
+	    	val clientRef = mock[ActorRef]
+	    	val workerProbe = TestProbe()
+	    	
+	      val stateData0 = StateData(eGen0, clientRef, None)
 	      instanceRef.setState(Gathering, stateData0)
 	      
+	      when(eGen1.dueWeighing.size).thenReturn(100)
+	    	
+	    	val algorithm = instanceRef.underlyingActor.algorithm
+	    	when(algorithm.addWeightedParticles(newlyWeighted, eGen0)).thenReturn(eGen1)
+	    	when(algorithm.isEnoughParticles(eGen1, config)).thenReturn(false)
+	      when(algorithm.emptyWeighingBuffer(eGen1)).thenReturn(eGen2)
+	      
 	      // Action
-	      instanceRef tell(weighted, workerProbe.ref)
+	      instanceRef tell(newlyWeighted, workerProbe.ref)
 	      
-	      // Assertion
-	      workerProbe.expectMsg(GenerateJob(prevWeights, instanceObj.config))
+	      // Assertions
+	    	workerProbe.expectMsg(
+	    			WeighJob(
+	    					eGen1.dueWeighing, 
+	    					eGen1.previousGen.particleWeights, 
+	    					eGen1.currentTolerance))
 	      
-	      assertResult(Gathering)(instanceRef.stateName)
-	      assertResult(gen1)(instanceRef.stateData match {
-	    	case gd: StateData[_] => gd.generation
-	    	case d => fail("Unexpected StateData type: "+d.getClass())
-	    })
+		    val stateData = instanceRef.stateData.asInstanceOf[StateData[DullParams]]
+		    assertResult(eGen2)(stateData match {
+		    	case sd: StateData[_] => sd.generation
+		    	case d => fail("Unexpected StateData type: "+d.getClass())
+		    })
+		    assertResult(clientRef)(stateData.client)
 	    }
 	    
-	    "Start new generation if gathered enough particles but not met target for termination" in {
-	      val routerProbe = TestProbe()
+	    "make more particles if gen incomplete and no weighing jobs waiting" in new Instance{
+	      val clientRef = mock[ActorRef]
+	    	val workerProbe = TestProbe()
+	   
+	      val algorithm = instanceRef.underlyingActor.algorithm
+	      when(algorithm.addWeightedParticles(newlyWeighted, eGen0)).thenReturn(eGen1)
+	      when(algorithm.isEnoughParticles(eGen1, config)).thenReturn(false)
+	      
+	      when(eGen1.dueWeighing.size).thenReturn(0)
+	      
+	      instanceRef.setState(
+	      		Gathering, 
+	      		StateData(eGen0, clientRef, None))
+	      
+	      // Action
+	      instanceRef tell(newlyWeighted, workerProbe.ref)
+	      
+	      // Assertion
+	      workerProbe.expectMsg(GenerateParticles(eGen1.previousGen.particleWeights, config))
+	      
+	      assertResult(Gathering)(instanceRef.stateName)
+	      assertResult(eGen1)(instanceRef.stateData match {
+		    	case gd: StateData[_] => gd.generation
+		    	case d => fail("Unexpected StateData type: "+d.getClass())
+		    })
+		    assertResult(clientRef)(instanceRef.stateData.asInstanceOf[StateData[DullParams]].client)
+	    }
+	    
+	    "start new generation if got enough particles but need more generations" in new Instance{
+	      val clientRef = mock[ActorRef]
+	    	val routerProbe = TestProbe()
 	      val workerProbe = TestProbe()
 	      val reportingProbe = TestProbe()
 	      
-	      val stateData0 = StateData(gen0, null, None)
-	   
-	      val instanceRef = getInstance
 	      val instanceObj = instanceRef.underlyingActor
 	      when(instanceObj.childActors.router).thenReturn(routerProbe.ref)
 	      when(instanceObj.childActors.reportingActor).thenReturn(reportingProbe.ref)
 	      
 	      val algorithm = instanceObj.algorithm
-	      when(algorithm.addWeighted(weighted, gen0)).thenReturn(gen1)
+	      when(algorithm.addWeightedParticles(newlyWeighted, eGen0)).thenReturn(eGen1)
+	      when(algorithm.isEnoughParticles(eGen1, config)).thenReturn(true)
 	      
-	      when(algorithm.isEnoughParticles(gen1, instanceObj.config)).thenReturn(true)
 	      
-	      val flushedWeightsTable = Map[DullParams, Double](DullParams() -> 0.5, DullParams() -> 0.5)
-	      
-	      val flushedGen = mock[Generation[DullParams]]
-	      when(flushedGen.currentIteration).thenReturn(1)
-	      when(flushedGen.currentTolerance).thenReturn(100)
-	      when(flushedGen.prevWeightsTable).thenReturn(flushedWeightsTable)
-	      
-	      when(algorithm.flushGeneration(gen1, instanceObj.config.job.numParticles, instanceObj.config.cluster.particleMemoryGenerations))
-	      	.thenReturn(flushedGen)
+	      when(algorithm.flushGeneration(eGen1)).thenReturn(eGen2)
 	      
 	      val report = mock[Report[DullParams]]	
-	      	
-	      when(algorithm.buildReport(flushedGen, instanceObj.config)).thenReturn(report)
+	      val completedGeneration = mock[Generation[DullParams]]
+	    	val flushedWeightsTable = Map[DullParams, Double](DullParams() -> 0.5, DullParams() -> 0.5)
+	      when(eGen2.previousGen).thenReturn(completedGeneration)
+	      when(completedGeneration.particleWeights).thenReturn(flushedWeightsTable)
+	      when(instanceObj.reporter.build(completedGeneration)).thenReturn(report)
 	      
-	      instanceRef.setState(Gathering, stateData0)
+	      instanceRef.setState(Gathering, StateData(eGen0, clientRef, None))
 	      
 	      // Action
-	      instanceRef tell(weighted, workerProbe.ref)
+	      instanceRef tell(newlyWeighted, workerProbe.ref)
 	      
-	      // Assertion
+	      // Expectations
 	      routerProbe.expectMsg(Broadcast(Abort))
+	      routerProbe.expectMsg(Broadcast(GenerateParticles(flushedWeightsTable, instanceObj.config)))
 	      
-	      routerProbe.expectMsg(Broadcast(GenerateJob(flushedWeightsTable, instanceObj.config)))
+	      reportingProbe.expectMsg(report)
 	      
 	      assertResult(Gathering)(instanceRef.stateName)
-	      assertResult(flushedGen)(instanceRef.stateData match {
-	    	case gd: StateData[_] => gd.generation
-	    	case d => fail("Unexpected StateData type: "+d.getClass())
+	      assertResult(eGen2)(instanceRef.stateData match {
+	    		case sd: StateData[_] => sd.generation
+	    		case d => fail("Unexpected StateData type: "+d.getClass())
 	      })
+	      assertResult(clientRef)(instanceRef.stateData.asInstanceOf[StateData[DullParams]].client)
 	    }
 	    
-	    // Failing test
-	    "Abort and wait for shutdown if gathered enough particles and completed target generations" in {
-	      val routerProbe = TestProbe()
+	    "if got enough particles and generations then stop generating and await shutdown" in new Instance{
+	      //TODO shouldn't it enter flushing state?!
+	    	//This test somehow jumps to the next state
+	    	//TODO, going to add the FlushingActor to sort this out...
+	    	
+	    	val clientRef = mock[ActorRef]
+	    	val routerProbe = TestProbe()
 	      val workerProbe = TestProbe()
 	      val reportingProbe = TestProbe()
 	      
-	      val stateData0 = StateData(gen0, null, None)
+	      val stateData0 = StateData(eGen1, clientRef, None)
 	   
-	      val instanceRef = getInstance
 	      val instanceObj = instanceRef.underlyingActor
 	      when(instanceObj.childActors.router).thenReturn(routerProbe.ref)
 	      when(instanceObj.childActors.reportingActor).thenReturn(reportingProbe.ref)
 	      
 	      val algorithm = instanceObj.algorithm
-	      when(algorithm.addWeighted(weighted, gen0)).thenReturn(gen1)
+	      when(algorithm.addWeightedParticles(newlyWeighted, eGen1)).thenReturn(eGen2)	      
+	      when(algorithm.isEnoughParticles(eGen2, instanceObj.config)).thenReturn(true)
 	      
-	      when(algorithm.isEnoughParticles(gen1, instanceObj.config)).thenReturn(true)
+	      val completedGen = mock[Generation[DullParams]]
+
+	      //TODO was needed for logging to avoid errors
+//	      when(completedGen.iteration).thenReturn(fiveGenerations)	// Matches config in setup above
+//	      when(completedGen.tolerance).thenReturn(hundredParticles)// Matches config in setup above
+	      when(eGen2.previousGen).thenReturn(completedGen)
 	      
-	      val flushedGen = mock[Generation[DullParams]]
-	      when(flushedGen.currentIteration).thenReturn(5)	// Matches config target
-	      when(flushedGen.currentTolerance).thenReturn(100)
-	      
-	      when(algorithm.flushGeneration(gen1, instanceObj.config.job.numParticles, instanceObj.config.cluster.particleMemoryGenerations))
-	      	.thenReturn(flushedGen)
+	      val eGen3 = mock[EvolvingGeneration[DullParams]]
+	      when(eGen3.currentIteration).thenReturn(fiveGenerations)// Matches config in setup above
+	      when(algorithm.flushGeneration(eGen2)).thenReturn(eGen3)
 	      
 	      val report = mock[Report[DullParams]]	
-	      	
-	       when(algorithm.buildReport(flushedGen, instanceObj.config)).thenReturn(report)
-	      	
+	      val completedGeneration = mock[Generation[DullParams]]
+	      val flushedWeightsTable = Map[DullParams, Double](DullParams() -> 0.5, DullParams() -> 0.5)
+	      when(eGen3.previousGen).thenReturn(completedGeneration)
+	      when(completedGeneration.particleWeights).thenReturn(flushedWeightsTable)
+	      when(instanceObj.reporter.build(completedGeneration)).thenReturn(report)
+	      
 	      instanceRef.setState(Gathering, stateData0)
 	      
 	      // Action
-	      instanceRef tell(weighted, workerProbe.ref)
+	      instanceRef tell(newlyWeighted, workerProbe.ref)
 	      
-	      // Assertion
+	      // Expectations
 	      routerProbe.expectMsg(Broadcast(Abort))
+	      reportingProbe.expectMsg(report)
 	      
 	      assertResult(WaitingForShutdown)(instanceRef.stateName)
-	      assertResult(flushedGen)(instanceRef.stateData match {
-	    	case gd: StateData[_] => gd.generation
-	    	case d => fail("Unexpected StateData type: "+d.getClass())
+	      assertResult(eGen3)(instanceRef.stateData match {
+	    		case sd: StateData[_] => sd.generation
+	    		case d => fail("Unexpected StateData type: "+d.getClass())
 	      })
+	      assertResult(clientRef)(instanceRef.stateData.asInstanceOf[StateData[DullParams]].client)
 	    }
 	  }
 	  
-	  "Builds a new payload and sends message to mix it in when instructed to mix now" in {
+	  "Builds a new payload and sends message to mix it in when instructed to mix now" in new Instance{
 	    val broadcasterProbe = TestProbe()
 	    val workerProbe = TestProbe()
 	    
-	    val instanceRef = getInstance
 	    val instanceObj = instanceRef.underlyingActor
 	    when(instanceObj.childActors.broadcaster).thenReturn(broadcasterProbe.ref)
 	    
-	    val gen0 = mock[Generation[DullParams]]
+	    val eGen0 = mock[EvolvingGeneration[DullParams]]
 	    
-	    val stateData = StateData(gen0, null, None)
+	    val scoredParticles = ScoredParticles(Seq(Tagged(Scored(DullParams(), Seq(1.0)), 100)))
+	    val mixPayload = Some(scoredParticles)
 	    
-	    val scored = ScoredParticles(Seq(Tagged(Scored(DullParams(), Seq(1.0)), 100)))
+	    when(instanceObj.algorithm.buildMixPayload(eGen0, instanceObj.config)).thenReturn(mixPayload)
 	    
-	    val payload = Some(scored)
-	    
-	    val algorithm = instanceObj.algorithm
-	    
-	    when(algorithm.buildMixPayload(gen0, instanceObj.config)).thenReturn(payload)
-	    
+	    // TODO Factor out to common?
+	    val stateData = StateData(eGen0, null, None)
 	    instanceRef.setState(Gathering, stateData)
 	    
 	    val mixNow = instanceObj.MixNow
@@ -409,21 +445,20 @@ class ABCActorTest
 	    instanceRef tell(mixNow, workerProbe.ref)
 	    
 	    // Assertions
-	    broadcasterProbe.expectMsg(MixPayload(scored))
+	    broadcasterProbe.expectMsg(MixPayload(scoredParticles))
 	    
 	    assertResult(Gathering)(instanceRef.stateName)
-	    assertResult(gen0)(instanceRef.stateData match {
+	    assertResult(eGen0)(instanceRef.stateData match {
 	      case gd: StateData[_] => gd.generation
 	      case d => fail("Unexpected StateData type: "+d.getClass())
 	    })
 	  }
 	  
-	  "Stays gathering when report completed message received" in {
-	    val instanceRef = getInstance
+	  "Continues gathering when report completed message received" in new Instance{
 	    val instanceObj = instanceRef.underlyingActor
-	    
-	    val gen0 = mock[Generation[DullParams]]
-	    val stateData = StateData(gen0, null, None)
+	    val eGen0 = mock[EvolvingGeneration[DullParams]]
+//	    val gen0 = mock[Generation[DullParams]]
+	    val stateData = StateData(eGen0, null, None)
 	    
 	    val report = mock[Report[DullParams]]
 	    when(report.generationId).thenReturn(1)
@@ -435,21 +470,19 @@ class ABCActorTest
 	    instanceRef tell(reportCompleted, null)
 	    
 	    // Assertions
-	    
 	    assertResult(Gathering)(instanceRef.stateName)
-	    assertResult(gen0)(instanceRef.stateData match {
+	    assertResult(eGen0)(instanceRef.stateData match {
 	      case gd: StateData[_] => gd.generation
 	      case d => fail("Unexpected StateData type: "+d.getClass())
 	    })
 	  }
 	}
 	
-	"When Flushing" - {
-	  "Ignores any new particles" in {
-	    val instanceRef = getInstance
+	"When Flushing a completed generation / " - {
+	  "incoming particles are discarded" in new Instance{
 	    val instanceObj = instanceRef.underlyingActor
 	    
-	    val stateData = StateData(mock[Generation[DullParams]], null, None)
+	    val stateData = StateData(eGen1, null, None)
 	    
 	    val scored = mock[ScoredParticles[DullParams]]
 	    
@@ -466,11 +499,10 @@ class ABCActorTest
 	    })
 	  }
 	  
-	  "Ignores any request to mix now" in {
-	    val instanceRef = getInstance
+	  "mix timers are ignored" in new Instance{
 	    val instanceObj = instanceRef.underlyingActor
 	    
-	    val stateData = StateData(mock[Generation[DullParams]], null, None)
+	    val stateData = StateData(eGen1, null, None)
 	    
 	    instanceRef.setState(Flushing, stateData)
 	    
@@ -487,91 +519,95 @@ class ABCActorTest
 	    })
 	  }
 	  
-	  "Receiving FlushComplete message" - {
-	    val gen0 = mock[Generation[DullParams]]
-	    val flushedGeneration = mock[Generation[DullParams]]
+	  "and receives FlushComplete message / " - {
+	    //val eGen0 = mock[EvolvingGeneration[DullParams]]
+	    //val flushedGeneration = mock[Generation[DullParams]]
 	    
 	    val flushingData = FlushingData(null, None)
 	    
-	    "Shuts down when required number of generations reached" in {
+	    "reports and shuts down if the required number of generations completed" in new Instance{
 	      val workerProbe = TestProbe()
 	      val reportingProbe = TestProbe()
 	      val routerProbe = TestProbe()
 	      
-	      val instanceRef = getInstance
 	      val instanceObj = instanceRef.underlyingActor
 	      when(instanceObj.childActors.reportingActor).thenReturn(reportingProbe.ref)
 	      when(instanceObj.childActors.router).thenReturn(routerProbe.ref)
 	   
-	      when(flushedGeneration.currentIteration).thenReturn(5)
+	      //when(flushedGeneration.iteration).thenReturn(fiveGenerations)
+ 	      val eGen0 = mock[EvolvingGeneration[DullParams]]
+	      when(eGen0.currentIteration).thenReturn(fiveGenerations)
+	      val flushedGen = mock[Generation[DullParams]]
+	      when(eGen0.previousGen).thenReturn(flushedGen)
+
+//	      val algorithm = instanceObj.algorithm
 	      
-	      val algorithm = instanceObj.algorithm
-	      
+	      //TODO remove if not used
 	      val report = mock[Report[DullParams]]
-	      
-	      when(algorithm.buildReport(flushedGeneration, instanceObj.config)).thenReturn(report)
-	      
-	      val flushComplete = instanceObj.FlushComplete(flushedGeneration)
+	      when(instanceObj.reporter.build(flushedGen)).thenReturn(report)
 	      
 	      instanceRef.setState(Flushing, flushingData)
 	      
 	      // Action
-	      instanceRef tell(flushComplete, null)
+	      instanceRef ! instanceObj.FlushComplete(eGen0)
 	      
 	      // Assertion
 	      routerProbe.expectMsg(Abort)
+	      reportingProbe.expectMsg(report)
 	      
 	      assertResult(WaitingForShutdown)(instanceRef.stateName)
-	      assertResult(flushedGeneration)(instanceRef.stateData match {
+	      assertResult(eGen0)(instanceRef.stateData match {
 	        case gd: StateData[_] => gd.generation
 	        case d => fail("Unexpected StateData type: "+d.getClass())
 	      })
 	    }
 	    
-	    "Generates a job for more particle gathering when more generations required" in {
+	    "starts generating more particles if more generations are required" in new Instance{
 	      val workerProbe = TestProbe()
 	      val reportingProbe = TestProbe()
 	      val routerProbe = TestProbe()
 	      
-	      val instanceRef = getInstance
 	      val instanceObj = instanceRef.underlyingActor
 	      when(instanceObj.childActors.reportingActor).thenReturn(reportingProbe.ref)
 	      when(instanceObj.childActors.router).thenReturn(routerProbe.ref)
 	   
 	      val prevWeights = Map[DullParams, Double]()
 	      
-	      when(flushedGeneration.currentIteration).thenReturn(1)
-	      when(flushedGeneration.prevWeightsTable).thenReturn(prevWeights)
+//	      when(flushedGeneration.iteration).thenReturn(1)
+//	      when(flushedGeneration.particleWeights).thenReturn(prevWeights)
+//	      when(eGen0.previousGen).thenReturn(flushedGeneration)
+//	      val eGen0 = mock[EvolvingGeneration[DullParams]]
+//	      when(eGen0.currentIteration).thenReturn(1)
 	      
-	      val algorithm = instanceObj.algorithm
+	      //eGen1 has a previous gen with iteration == 1
+	      val reporter = instanceObj.reporter
 	      
+	      //TODO needed?  Yes, else reporting gets null message
 	      val report = mock[Report[DullParams]]
+	      when(reporter.build(gen1)).thenReturn(report)
 	      
-	      when(algorithm.buildReport(flushedGeneration, instanceObj.config)).thenReturn(report)
-	      
-	      val flushComplete = instanceObj.FlushComplete(flushedGeneration)
+//	      val flushComplete = instanceObj.FlushComplete(eGen1)
 	      
 	      instanceRef.setState(Flushing, flushingData)
 	      
 	      // Action
-	      instanceRef tell(flushComplete, null)
+	      instanceRef tell(instanceObj.FlushComplete(eGen1), null)
 	      
 	      // Assertion
-	      routerProbe.expectMsg(Broadcast(GenerateJob(prevWeights, instanceObj.config)))
+	      routerProbe.expectMsg(Broadcast(GenerateParticles(eGen1.previousGen.particleWeights, instanceObj.config)))
 	      
 	      assertResult(Gathering)(instanceRef.stateName)
-	      assertResult(flushedGeneration)(instanceRef.stateData match {
-	        case gd: StateData[_] => gd.generation
+	      assertResult(eGen1)(instanceRef.stateData match {
+	        case sd: StateData[_] => sd.generation
 	        case d => fail("Unexpected StateData type: "+d.getClass())
 	      })
 	    }
 	  }
 	  
-	  "Stay flushing when report completed message received" in {
-	    val instanceRef = getInstance
+	  "Stay flushing when report completed message received" in new Instance{
 	    val instanceObj = instanceRef.underlyingActor
 	    
-	    val stateData = StateData(mock[Generation[DullParams]], null, None)
+	    val stateData = StateData(mock[EvolvingGeneration[DullParams]], null, None)
 	    
 	    instanceRef.setState(Flushing, stateData)
 	    
@@ -592,18 +628,17 @@ class ABCActorTest
 	
 	"When Waiting For Shutdown" - {
 	  
-	  "Reports to Client when waiting for shutdown" in {
+	  "Reports to Client when waiting for shutdown" in new Instance{
 	    val clientProbe = TestProbe()
 	    val workerProbe = TestProbe()
 	    
-	    val instanceRef = getInstance
 	    val instanceObj = instanceRef.underlyingActor
 
-	    val gen = mock[Generation[DullParams]]
+	    val eGen = mock[EvolvingGeneration[DullParams]]
 	    val report = mock[Report[DullParams]]
 	    val reportCompleted = ReportCompleted(report)
 	    
-	    val stateData = StateData(gen, clientProbe.ref, None)
+	    val stateData = StateData(eGen, clientProbe.ref, None)
 	    
 	    instanceRef.setState(WaitingForShutdown, stateData)
 	    
@@ -614,7 +649,7 @@ class ABCActorTest
 	    clientProbe.expectMsg(report)
 	    
 	    assertResult(WaitingForShutdown)(instanceRef.stateName)
-	    assertResult(gen)(instanceRef.stateData match {
+	    assertResult(eGen)(instanceRef.stateData match {
 	      case gd: StateData[_] => gd.generation
 	      case d => fail("Unexpected StateData type: "+d.getClass())
 	    })

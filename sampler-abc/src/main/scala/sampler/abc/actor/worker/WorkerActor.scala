@@ -39,7 +39,7 @@ import sampler.abc.config.ABCConfig
 import akka.actor.FSM
 import akka.pattern.pipe
 import sampler.abc.Weighted
-import sampler.abc.actor.GenerateJob
+import sampler.abc.actor.GenerateParticles
 import sampler.abc.actor.WeighJob
 import sampler.abc.actor.Failed
 import sampler.abc.actor.WeighedParticles
@@ -137,12 +137,12 @@ abstract class WorkerActor[P]
 	
 	def startWork(job: Job[P]){
 		job match {
-			case g: GenerateJob[P] => startGenerating(g)
+			case g: GenerateParticles[P] => startGenerating(g)
 			case w: WeighJob[P] => startWeighing(w)
 		}
 	}
 	
-	def startGenerating(gJob: GenerateJob[P]) {
+	def startGenerating(gJob: GenerateParticles[P]) {
 		Future{
 			log.debug("Generating")
 			val result: Try[ScoredParticles[P]] = modelRunner.run(gJob) 

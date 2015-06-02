@@ -6,7 +6,8 @@ import scala.concurrent.ExecutionContext
 trait WorkDispatcherComponentImpl extends WorkDispatcherComponent {
 	this: Actor => 
 		
-	val workDispatcher = context.system.dispatchers.lookup("sampler.work-dispatcher")
+	val workDispatcher = 
+		context.system.dispatchers.lookup("sampler.work-dispatcher")
 }
 
 trait WorkDispatcherComponent {
