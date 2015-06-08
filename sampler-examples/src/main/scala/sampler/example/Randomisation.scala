@@ -49,13 +49,9 @@ object Randomisation extends App {
 			.map{responses => 
 				val sorted = responses.sorted.zipWithIndex
 				val controlRankSum = sorted.collect{case (Response(_, Control), idx) => idx + 1}.sum
-				//val treatmentRankSum = sorted.collect{case (Response(_, Treatment), idx) => idx + 1}.sum
 				
 				val uControl = controlRankSum - (SampleSize.control*(SampleSize.control + 1.0) / 2.0)
 				val uTreatment = SampleSize.control * SampleSize.treatment - uControl
-				//val uTreatment2 = treatmentRankSum- (SampleSize.treatment*(SampleSize.treatment + 1.0) / 2.0)
-				
-				//assert(uTreatment == uTreatment2)
 				
 				math.max(uControl, uTreatment)
 			}
@@ -70,8 +66,10 @@ object Randomisation extends App {
 			.map{responses => 
 			val sorted = responses.sorted.zipWithIndex
 			val controlRankSum = sorted.collect{case (Response(_, Control), idx) => idx + 1}.sum
+			
 			val uControl = controlRankSum - (SampleSize.control*(SampleSize.control + 1.0) / 2.0)
 			val uTreatment = SampleSize.control * SampleSize.treatment - uControl
+			
 			math.max(uControl, uTreatment)
 		}
 	}
@@ -84,21 +82,16 @@ object Randomisation extends App {
 
 	val experiments = (1 to 1000).map{_ => randomisationStatistic.sample}
 	val rightTails = experiments.map{e => Statistics.rightTail(table, e)}
+	val meanRightTail = round(rightTails.sum / rightTails.size.toDouble)
 	
-	rightTails.foreach(println)
-	
-	println(s"Mean right tail = ${round(rightTails.sum / rightTails.size.toDouble)}")
+	println(s"Mean right tail = $meanRightTail")
 	
 	val json = 
 		("rightTails" -> rightTails.map(round)) ~
 		("experiments" -> experiments.map(round)) ~
 		("nullSamples" -> nullSamples.map(round))
 
-//	println(pretty(render(json)))
-		
 	val wd = Paths.get("").toAbsolutePath()
-	println(wd)
-	
 	val writer = Files.newBufferedWriter(wd.resolve("json.json"))
 	writer.write(pretty(render(json)))
 	writer.close()
