@@ -12,8 +12,9 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import sampler.r.rserve.RServeHelper
 import java.nio.file.Files
+import sampler.io.Rounding
 
-object Randomisation extends App {
+object Randomisation extends App with Rounding{
 	
 	implicit val r = Random
 
@@ -74,27 +75,29 @@ object Randomisation extends App {
 		}
 	}
 		
-	val nullSamples = (1 to 100000).map(_ => nullDistribution.sample)
-	val table = nullSamples.toEmpiricalTable
+	val nullSamples = (1 to 1000000).map(_ => nullDistribution.sample)
+	val nullTable = nullSamples.toEmpiricalTable
 	
-	def round(d: Double) = 
-		BigDecimal(d).setScale(3, BigDecimal.RoundingMode.HALF_UP).doubleValue
-
-	val experiments = (1 to 1000).map{_ => randomisationStatistic.sample}
-	val rightTails = experiments.map{e => Statistics.rightTail(table, e)}
-	val meanRightTail = round(rightTails.sum / rightTails.size.toDouble)
+	val experiments = (1 to 10000).map{_ => randomisationStatistic.sample}
+	val rightTails = experiments.map{e => Statistics.rightTail(nullTable, e)}
+	val nintyFifthPercentile = Statistics.quantile(nullTable, 0.95)
+	println("-----> "+nintyFifthPercentile)
+	val meanRightTail = (rightTails.sum / rightTails.size.toDouble).decimalPlaces(3)
 	
 	println(s"Mean right tail = $meanRightTail")
 	
 	val json = 
-		("rightTails" -> rightTails.map(round)) ~
-		("experiments" -> experiments.map(round)) ~
-		("nullSamples" -> nullSamples.map(round))
+		("rightTails" -> rightTails.map(_.decimalPlaces(3))) ~
+		("experiments" -> experiments.map(_.decimalPlaces(3))) ~
+		("nullSamples" -> nullSamples.map(_.decimalPlaces(3))) ~
+		("ninetyFifthPercentile" -> nintyFifthPercentile)
 
-	val wd = Paths.get("").toAbsolutePath()
+	val wd = Paths.get("results", "Randomisation").toAbsolutePath()
+	Files.createDirectories(wd)
 	val writer = Files.newBufferedWriter(wd.resolve("json.json"))
 	writer.write(pretty(render(json)))
 	writer.close()
+//	println(s"""------>setwd("$wd")""")
 	
 	RServeHelper.ensureRunning()
 	val rCon = new RConnection
@@ -104,7 +107,7 @@ object Randomisation extends App {
   	rCon.parseAndEval("library(rjson)")
   	rCon.parseAndEval(s"""setwd("$wd")""")
   	rCon.parseAndEval("""
-  	  pdf("out2.pdf", width=4.13, height=2.91) #A7 landscape paper
+  	  pdf("plot.pdf", width=8.26, height=2.91)
   		data = fromJSON(jsonIn)
   		statistics = rbind(
   			data.frame(variable = "null", statistic = data$nullSamples),
@@ -112,7 +115,8 @@ object Randomisation extends App {
   		)
   	  print(
   	  	ggplot(statistics, aes(x=statistic, colour = variable)) + 
-  	  	geom_density()
+  	  	geom_density() +
+  	  	geom_vline(xintercept = data$ninetyFifthPercentile, colour = 'red')
   	  )
   		
   	  tailsData = data.frame(rightTails = fromJSON(jsonIn)$rightTails)
