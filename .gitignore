@@ -12,6 +12,7 @@ bin/
 examples/data/
 *.pdf
 *.csv
+*.json
 .Rhistory
 
 
