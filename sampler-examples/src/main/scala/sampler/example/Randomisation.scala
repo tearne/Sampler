@@ -116,5 +116,4 @@ object Randomisation extends App with Rounding{
 	  """,
 		wd.resolve("plot.r")  
 	)
-	
 }
