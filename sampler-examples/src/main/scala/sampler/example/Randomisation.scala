@@ -43,54 +43,84 @@ object Randomisation extends App with Rounding{
 	val treatmentDist = DistributionBuilder.uniform(treatmentObs)
 	val combinedDist = DistributionBuilder.uniform(controlObs ++: treatmentObs)
 			
-	def buildSamplingDistribution(control: Distribution[Response], treatment: Distribution[Response]) = {
+	def rankStatistic(responses: Seq[Response]) = {
+		val sorted = responses.sorted.zipWithIndex
+		val controlRankSum = sorted.collect{case (Response(_, Control), idx) => idx + 1}.sum
+		
+		val uControl = controlRankSum - (SampleSize.control*(SampleSize.control + 1.0) / 2.0)
+		val uTreatment = SampleSize.control * SampleSize.treatment - uControl
+		
+		math.max(uControl, uTreatment)
+	}
+	
+	def sumStatistic(responses: Seq[Response]) = {
+		val controlScores = responses.collect{case Response(value, Control) => value}
+		val treatmentScores = responses.collect{case Response(value, Treatment) => value}
+		math.abs(controlScores.sum - treatmentScores.sum)
+	}
+	
+	def buildSamplingDistribution(
+			control: Distribution[Response], 
+			treatment: Distribution[Response],
+			statistic: Seq[Response] => Double) = {
 		{for{
 			controlOutcomes <- control.until(_.size == SampleSize.control)
 			treatmentOutcomes <- treatment.until(_.size == SampleSize.treatment)
 		} yield { controlOutcomes ++: treatmentOutcomes }}
-			.map{responses =>
-				val sorted = responses.sorted.zipWithIndex
-				val controlRankSum = sorted.collect{case (Response(_, Control), idx) => idx + 1}.sum
-				
-				val uControl = controlRankSum - (SampleSize.control*(SampleSize.control + 1.0) / 2.0)
-				val uTreatment = SampleSize.control * SampleSize.treatment - uControl
-				
-				math.min(uControl, uTreatment)
-			}
+			.map(statistic)
 	}
 	
-	val experimentStatistic = buildSamplingDistribution(
-			controlDist, 
-			treatmentDist
-	)
-	val nullStatistic = buildSamplingDistribution(
-			combinedDist.map(_.copy(group = Control)), 
-			combinedDist.map(_.copy(group = Treatment))
-	)
+	case class Results(
+			statisticName: String, 
+			nullObs: Seq[Double],
+			experimentalObs: Seq[Double]
+	){
+		lazy val nullTable = nullObs.toEmpiricalSeq
 		
-	val nullExperiments = (1 to 1000000).par.map(_ => nullStatistic.sample).seq
-	val nullTable = nullExperiments.toEmpiricalTable
-	
-	val experiments = (1 to 100000).map{_ => experimentStatistic.sample}
-	val tails = experiments.map{e => Statistics.leftTail(nullTable, e)}
-	
-	val significance = 0.5 until 1 by 0.0001
-	val power = significance.map{s => 
-		val criticalLeftValue = Statistics.quantile(nullTable, 1 - s)
-		experiments.count{e => e < criticalLeftValue} / experiments.size.toDouble
+		def powerAtConfidence(confSeq: Seq[Double]): Seq[Double] = {
+			Statistics.quantiles(nullTable, confSeq)
+				.map{criticalRightValue => 
+					experimentalObs.count{e => e > criticalRightValue} / experimentalObs.size.toDouble
+				}
+		}
+	}
+		
+	val statistics = Map(
+			"Rank" -> rankStatistic _, 
+			"Sum" -> sumStatistic _
+	)
+
+	val results = statistics.map{case (statName,statFun) =>
+		val experimentalDist = buildSamplingDistribution(
+				controlDist, 
+				treatmentDist,
+				statFun)
+				
+		val nullDist = buildSamplingDistribution(
+			combinedDist.map(_.copy(group = Control)), 
+			combinedDist.map(_.copy(group = Treatment)),
+			statFun)
+			
+		val nullObs = (1 to 500000).par.map(_ => nullDist.sample).seq
+		val experimentObs = (1 to 500000).par.map(_ => experimentalDist.sample).seq
+		
+		Results(statName, nullObs, experimentObs)
 	}
 	
-	val json = 
-		("samples" -> 
-			("experimental" -> experiments.map(_.decimalPlaces(3))) ~
-			("null" -> nullExperiments.map(_.decimalPlaces(3)))
-		) ~
-		("fifthPercentile" -> Statistics.quantile(nullTable, 0.05).decimalPlaces(3)) ~
-		("powers" -> 
-			("significance" -> significance) ~
-			("power" -> power.map(_.decimalPlaces(6)))
-		)
-
+	val confidence = 0.8 until 1 by 0.0002
+	
+	val json = results.map{r => 
+		("stat_name" -> r.statisticName) ~
+		("observations" -> {
+			("null" -> r.nullObs.map(_.decimalPlaces(3))) ~
+			("experimental" -> r.experimentalObs.map(_.decimalPlaces(3)))
+		}) ~
+		("powers" -> {
+			("confidence" -> confidence) ~
+			("power" -> r.powerAtConfidence(confidence).map(_.decimalPlaces(3)))
+		})
+	}
+	
 	val wd = Paths.get("results", "Randomisation").toAbsolutePath()
 	Files.createDirectories(wd)
 	val writer = Files.newBufferedWriter(wd.resolve("json.json"))
@@ -100,18 +130,38 @@ object Randomisation extends App with Rounding{
 	ScriptRunner.apply("""
 	  library(ggplot2)
 	  library(rjson)
+	  
+	  jsonData = fromJSON(file = "json.json")
+	  
+	  drawPlots = function(statName){
+		  statData = Filter(function(x) x$stat_name == statName, jsonData)[[1]]
+			obsData = rbind(
+				data.frame(Variable = "null", Statistic = statData$observations$null),
+				data.frame(Variable = "experimental", Statistic = statData$observations$experimental)
+			)
+	  	print(
+		  	ggplot(obsData, aes(x=Statistic, colour = Variable)) + 
+		  		geom_density() +
+		  		ggtitle(paste(statName, "Statistic Density"))
+			)
+	  }
+	  
 	  pdf("plot.pdf", width=8.26, height=2.91)
-		data = fromJSON(file = "json.json")
-		statistics = rbind(
-			data.frame(variable = "null", statistic = data$samples$null),
-			data.frame(variable = "experimental", statistic = data$samples$experimental)
-		)
-  	ggplot(statistics, aes(x=statistic, colour = variable)) + 
-  	geom_density() +
-  	geom_vline(xintercept = data$fifthPercentile, colour = 'red')
-		
-	  powerData = as.data.frame(data$powers)
-	  ggplot(powerData, aes(x=significance, y=power)) + geom_line()
+	  
+	  drawPlots("Rank")
+	 	drawPlots("Sum")
+	  
+	  rankPowers = Filter(function(x) x$stat_name == "Rank",jsonData)[[1]]$powers
+	  sumPowers = Filter(function(x) x$stat_name == "Sum",jsonData)[[1]]$powers
+	  
+	  powerData = rbind(
+	  	data.frame(rankPowers, Statistic = "Rank"),
+	  	data.frame(sumPowers, Statistic = "Sum")
+	  )
+  	ggplot(powerData, aes(x=confidence, y=power, colour=Statistic)) + 
+  		geom_line() +
+			ggtitle("Power at Confidence Levels")
+	  
 	  dev.off()
 	  """,
 		wd.resolve("plot.r")  
