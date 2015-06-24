@@ -7,3 +7,5 @@ trait Rounding {
 		def decimalPlaces(n: Int) = BigDecimal(d).setScale(n, BigDecimal.RoundingMode.HALF_UP).doubleValue
 	}
 }
+
+object Rounding extends Rounding
