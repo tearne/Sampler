@@ -44,7 +44,7 @@ object SampleSizeUncertainty extends App with Rounding {
 		val normal = new NormalDistribution(0.7,0.3)
 		DistributionBuilder(normal.sample)
 			.filter(x => x > 0 && x < 1)
-			.until(_.size == 100) 
+			.until(_.size == 1000) 
 			.sample
 			.toEmpiricalSeq
 	}
@@ -78,9 +78,9 @@ object SampleSizeUncertainty extends App with Rounding {
 					.probabilityTable(true)
 			}
 			
-			println(f" - Sample Size $currentSampleSize => Sensitivity $se%.2f")
+			println(s" - Sample Size $currentSampleSize => Sensitivity ${se.decimalPlaces(3)}")
 			
-			if(se > requiredSensitivity) currentSampleSize
+			if(se >= requiredSensitivity) currentSampleSize
 			else loop(currentSampleSize + 1)
 		}	
 		
@@ -106,7 +106,8 @@ object SampleSizeUncertainty extends App with Rounding {
   	ggplot(jsonData, aes(x=samples)) + 
   		geom_histogram() +
 			ggtitle("Test Performance Data") +
-			geom_vline(xintercept = jsonRaw$Mean, colour = 'red')
+			geom_vline(xintercept = jsonRaw$Mean, colour = 'red') +
+			coord_cartesian(xlim = c(0, 1)) 
 			
 	  
 	  dev.off()
