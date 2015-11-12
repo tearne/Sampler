@@ -15,29 +15,38 @@
  * limitations under the License.
  */
 
-package sampler.r.process
+package sampler.r.script
 
 import java.io.FileWriter
 import java.nio.file.Path
-
 import scala.sys.process.stringSeqToProcess
+import java.nio.file.Files
 
-/** A class to allow the running of an R script from within the Scala environment*/
-class ScriptRunner {
-	/** Writes and R script to the location defined by path. Executes the script using 
+trait RScript {
+	def apply(script: String, workingDirectory: Path)
+}
+
+/** Allows saving and running of an R script, eliminating concerns on working directory
+ *  and allowing the saved scripts to be easily debugged on the command line.
+ *  */
+object RScript extends RScript{
+	/** Writes and R script to the location defined by path, adding a line to ensure
+	 *  the script will be run from the correct working directory. Executes the script using 
 	 *  the Rscript shell script
 	 * 	
 	 *  @param script The R script to be executed
-	 *  @param scriptPath The path to where the script should be written, including filename
+	 *  @param workingDirectory The directory to where the script will be saved and run from
 	 */
-	def apply(script: String, scriptPath: Path){
-		assert(scriptPath.toString.endsWith(".r"), "R script does not have correct file extension")
+	def apply(script: String, workingDirectory: Path){
+		assert(Files.exists(workingDirectory), s"Working dir ${workingDirectory.toAbsolutePath()} doesn't exist")
+		assert(Files.isDirectory(workingDirectory), s"Working dir is not a directory")
+		
+		val scriptPath = workingDirectory.resolve("script.r").toAbsolutePath
 		val writer = new FileWriter(scriptPath.toFile)
-		val parentPath = scriptPath.toAbsolutePath.getParent.toFile
 		
 		val fullScript = new StringBuilder()
 		
-		fullScript.append("setwd(\""+parentPath+"\")\n")
+		fullScript.append("setwd(\""+workingDirectory.toAbsolutePath()+"\")\n")
 		fullScript.append(script + "\n")
 		
 		writer.write(fullScript.toString)
@@ -46,14 +55,8 @@ class ScriptRunner {
 		import scala.sys.process._
 		val processOutcome = Seq("/usr/bin/Rscript", scriptPath.toString()).!
 		
-		if(processOutcome != 0) throw new ScriptRunnerException("An error has occured whilst running the R script")
+		if(processOutcome != 0) throw new RScriptException("An error has occured whilst running the R script")
 	}
 }
 
-/** Companion object to allow running of an R script*/
-object ScriptRunner{
-	lazy val instance = new ScriptRunner
-	def apply(script: String, scriptTarget: Path) = instance(script, scriptTarget) 
-}
-
-class ScriptRunnerException(msg: String) extends RuntimeException(msg)
+class RScriptException(msg: String) extends RuntimeException(msg)

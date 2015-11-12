@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2012 Crown Copyright 
- *                    Animal Health and Veterinary Laboratories Agency
+ * Copyright (c) 2012-15 Crown Copyright 
+ * Animal & Plant Health Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package sampler.r.process
+package sampler.r.script
 
 import sampler.Implicits._
-import sampler.r.process.QuickPlot._
+import sampler.r.script.QuickPlot._
 import java.nio.file.Paths
 import scala.io.Source
 import java.io.File
@@ -29,7 +29,10 @@ import org.scalatest.FreeSpec
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.BeforeAndAfter
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
+@RunWith(classOf[JUnitRunner])
 class QuickPlotTest 
 		extends FreeSpec 
 		with MockitoSugar 
@@ -76,7 +79,7 @@ dev.off()
   "Should write single discrete distribution" in {
 		val seq = IndexedSeq(1,2,2,3,3,3,4,4,5)
 			 
-		val instance = new QuickPlot{val runner = mock[ScriptRunner]}
+		val instance = new QuickPlot{val runner = mock[RScript]}
 		
 		instance.writeDiscrete(pdfPath, width, height, seq.discrete("Integers"))
 
@@ -90,7 +93,7 @@ dev.off()
 		val seq1 = IndexedSeq(1,2,2,3,3,3,4,4,5)
 		val seq2 = IndexedSeq(3,4,4,5,5,5,6,6,7)
 				  
-		val instance = new QuickPlot{val runner = mock[ScriptRunner]}
+		val instance = new QuickPlot{val runner = mock[RScript]}
 		instance.writeDiscrete(pdfPath, width, height, seq1.discrete("s1"), seq2.discrete("s2"))
 		
     val expected = discreteScript(fileName)
@@ -102,7 +105,7 @@ dev.off()
   "Should write a single distribution" in {
     val seq = IndexedSeq(0.1,0.2,0.2,0.3,0.3,0.3,0.4,0.4,0.5)
     
-    val instance = new QuickPlot{val runner = mock[ScriptRunner]}
+    val instance = new QuickPlot{val runner = mock[RScript]}
     instance.writeDensity(pdfPath, width, height, seq.continuous("Doubles"))
     
     val expected = densityScript(fileName)
@@ -116,7 +119,7 @@ dev.off()
     val seq1 = IndexedSeq(0.1,0.2,0.2,0.3,0.3,0.3,0.4,0.4,0.5)
     val seq2 = IndexedSeq(0.3,0.4,0.4,0.5,0.5,0.5,0.6,0.6,0.7)
     	
-    val instance = new QuickPlot{val runner = mock[ScriptRunner]}
+    val instance = new QuickPlot{val runner = mock[RScript]}
     instance.writeDensity(pdfPath, width, height, seq1.continuous("s1"), seq2.continuous("s2"))
     	
     val expected = densityScript(fileName)
