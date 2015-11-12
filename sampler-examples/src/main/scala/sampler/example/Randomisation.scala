@@ -2,20 +2,17 @@ package sampler.example
 
 import java.nio.file.Files
 import java.nio.file.Paths
-
 import scala.IndexedSeq
-
 import org.apache.commons.io.FileUtils
 import org.json4s.JsonDSL._
 import org.json4s.native.JsonMethods._
-
 import sampler.Implicits.RichIndexedSeq
 import sampler.data.Distribution
 import sampler.data.DistributionBuilder
 import sampler.io.Rounding.Roundable
 import sampler.math.Random
 import sampler.math.Statistics
-import sampler.r.process.ScriptRunner
+import sampler.r.script.RScript
 
 /*
  * Bootstrap on observations to determine the power of a sampling 
@@ -112,8 +109,8 @@ object Randomisation extends App {
 					statFun
 			)
 				
-			val nullObs = (1 to 500000).par.map(_ => nullDist.sample).seq
-			val experimentObs = (1 to 500000).par.map(_ => experimentalDist.sample).seq
+			val nullObs = (1 to 100000).par.map(_ => nullDist.sample).seq
+			val experimentObs = (1 to 100000).par.map(_ => experimentalDist.sample).seq
 			
 			Results(statName, nullObs, experimentObs)
 		}
@@ -136,7 +133,7 @@ object Randomisation extends App {
 			wd.resolve("json.json").toFile(), 
 			pretty(render(json)))
 	
-	ScriptRunner.apply("""
+	RScript("""
 	  library(ggplot2)
 	  library(rjson)
 	  
@@ -148,11 +145,9 @@ object Randomisation extends App {
 				data.frame(Variable = "null", Statistic = statData$observations$null),
 				data.frame(Variable = "experimental", Statistic = statData$observations$experimental)
 			)
-	  	print(
-		  	ggplot(obsData, aes(x=Statistic, colour = Variable)) + 
-		  		geom_density() +
-		  		ggtitle(paste(statName, "Statistic Density"))
-			)
+		  ggplot(obsData, aes(x=Statistic, colour = Variable)) + 
+		  	geom_density() +
+		  	ggtitle(paste(statName, "Statistic Density"))
 	  }
 	  
 	  pdf("plot.pdf", width=8.26, height=2.91)
@@ -173,6 +168,6 @@ object Randomisation extends App {
 	  
 	  dev.off()
 	  """,
-		wd.resolve("plot.r")  
+		wd
 	)
 }
