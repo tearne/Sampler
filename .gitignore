@@ -15,6 +15,7 @@ examples/data/
 *.json
 .Rhistory
 
+.idea/
 
 
 # sbt specific
