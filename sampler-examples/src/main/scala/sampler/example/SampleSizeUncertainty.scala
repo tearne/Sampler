@@ -20,7 +20,7 @@ import sampler.data.ParallelSampler
 import sampler.io.Rounding
 import sampler.math.Random
 import sampler.math.Statistics
-import sampler.r.process.ScriptRunner
+import sampler.r.script.RScript
 
 /* 
  *  Given an imperfect test characterised by empirical data, how many samples should be taken to
@@ -94,7 +94,7 @@ object SampleSizeUncertainty extends App with Rounding {
 	Files.createDirectories(wd)
 	FileUtils.writeStringToFile(wd.resolve("json.json").toFile(), pretty(render(json)))
 	
-	ScriptRunner.apply("""
+	RScript("""
 	  library(ggplot2)
 	  library(rjson)
 	  

@@ -25,12 +25,12 @@ object RServeHelper extends Logging{
 		if(countdown == 0) Failure(new ConnectException("Could not connect to Rserve"))
 		else try{
 			val c = new RConnection()
-			log.debug("Rserve connection confirmed")
+			debug("Rserve connection confirmed")
 			Success(c)
 		} catch {
 			case _: Exception => 
 				val newCountdown = countdown - 1
-				log.debug("Searching for Rserve {} tries left",newCountdown)
+				debug(s"Searching for Rserve $newCountdown tries left")
 				Thread.sleep(100)
 				getConnection(newCountdown)
 		}
@@ -50,15 +50,15 @@ object RServeHelper extends Logging{
 	private def startRserve(daemonizeThreads: Boolean){
 		implicit def toLines(in: InputStream) = Source.fromInputStream(in).getLines
 		
-		log.info("Starting new Rserve process (daemon = {})", daemonizeThreads)
+		info("Starting new Rserve process (daemon = $daemonizeThreads)")
 		val io = new ProcessIO(
 					in => in.close,
 					out => {
-						out.foreach(log.info)
+						out.foreach(info(_))
 						out.close	
 					},
       		err => {
-      			err.foreach(log.error)
+      			err.foreach(error(_))
       			err.close	
       		},
       		daemonizeThreads

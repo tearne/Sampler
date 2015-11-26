@@ -18,21 +18,20 @@ import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClient
 
 import sampler.io.Logging
 
-object AWSTest extends App{
+object AWSTest extends App {
 	println(AWSProperties.load)
 }
 
 case class AWSProperties(
-	accessKey: String,
-	secretKey: String,
-	endpoint: String, 
-	masterTag: Tag,
-	workerTag: Tag,
-	instanceUserName: String,
-	s3Bucket: String,
-	s3CfgPath: Path,
-	sshKeyPath: Path
-) extends AWSCredentials {
+		accessKey: String,
+		secretKey: String,
+		endpoint: String,
+		masterTag: Tag,
+		workerTag: Tag,
+		instanceUserName: String,
+		s3Bucket: String,
+		s3CfgPath: Path,
+		sshKeyPath: Path) extends AWSCredentials {
 	def getAWSAccessKeyId = accessKey
 	def getAWSSecretKey = secretKey
 }
@@ -49,40 +48,38 @@ object AWSProperties {
 			props.getProperty("accessKey"),
 			props.getProperty("secretKey"),
 			props.getProperty("endpoint"),
-			new Tag(props.getProperty("tagName"),props.getProperty("masterTag")),
-			new Tag(props.getProperty("tagName"),props.getProperty("workerTag")),
+			new Tag(props.getProperty("tagName"), props.getProperty("masterTag")),
+			new Tag(props.getProperty("tagName"), props.getProperty("workerTag")),
 			props.getProperty("instanceUserName"),
 			props.getProperty("s3Bucket"),
 			resolve(propertiesPath, props.getProperty("s3cfgPath")),
-			resolve(propertiesPath, props.getProperty("sshKeyPath"))
-		)
+			resolve(propertiesPath, props.getProperty("sshKeyPath")))
 	}
-	
-	private def resolve(propertiesPath: Path, targetPathStr: String): Path= {
+
+	private def resolve(propertiesPath: Path, targetPathStr: String): Path = {
 		val p = Paths.get(targetPathStr)
-		val result = if(p.isAbsolute()) p
+		val result = if (p.isAbsolute()) p
 		else propertiesPath.getParent().resolve(p)
 		assert(Files.exists(result), s"$result does not exist")
 		result
 	}
 }
 
-class AWS(props: AWSProperties) extends Logging{
+class AWS(props: AWSProperties) extends Logging {
 	val ec2 = new AmazonEC2Client(props)
 	ec2.setEndpoint(props.endpoint)
-	
+
 	val ssh = new SSH(props.sshKeyPath)
-	
+
 	def getUserDetails = new AmazonIdentityManagementClient(props).getUser
-	
+
 	def runningInstances = ec2
-			.describeInstances()
-			.getReservations
-			.map(_.getInstances)
-			.flatten
-			.filter(_.getState.getName == "running")
-		
-	
+		.describeInstances()
+		.getReservations
+		.map(_.getInstances)
+		.flatten
+		.filter(_.getState.getName == "running")
+
 	def masterNode = {
 		val nodes = runningInstances
 			.filter(_.getTags().contains(props.masterTag))
@@ -90,43 +87,42 @@ class AWS(props: AWSProperties) extends Logging{
 		assert(nodes.size == 1, s"Expected precisely one master node, found ${nodes.size}")
 		nodes.head
 	}
-			
+
 	def workerNodes = {
 		val nodes = runningInstances
 			.filter(_.getTags().contains(props.workerTag))
 			.toList
-		if(nodes.size == 0) log.warn("No instances running")
+		if (nodes.size == 0) warn("No instances running")
 		nodes
 	}
-	
-	def scpUpload(localPath: Path, node: Instance, remoteDestination: String){
+
+	def scpUpload(localPath: Path, node: Instance, remoteDestination: String) {
 		val cmd = ssh.scpCommand(props.instanceUserName, node.getPublicDnsName(), localPath, remoteDestination)
-		log.info(cmd)
-		Process(cmd) ! ProcessLogger(line => log.info(line))
+		info(cmd)
+		Process(cmd) ! ProcessLogger(line => info(line))
 	}
-			
-	def s3Upload(localDir: Path){
+
+	def s3Upload(localDir: Path) {
 		assert(Files.isDirectory(localDir))
 		val cmd = Seq[String](
-				"s3cmd",
-				"sync",
-				"-c",
-				props.s3CfgPath.toString,
-				"--delete-removed",
-				"--progress",
-				"--recursive",
-				localDir.toString+"/",
-				props.s3Bucket
-		).mkString(" ")
-		log.info(cmd)
-		Process(cmd) ! ProcessLogger(line => log.info(line))
+			"s3cmd",
+			"sync",
+			"-c",
+			props.s3CfgPath.toString,
+			"--delete-removed",
+			"--progress",
+			"--recursive",
+			localDir.toString + "/",
+			props.s3Bucket).mkString(" ")
+		info(cmd)
+		Process(cmd) ! ProcessLogger(line => info(line))
 	}
-	
+
 	def s3RemoteDownload(instance: Instance, remoteDir: String) {
-		val dirTrailingSlash = if(!remoteDir.endsWith("/")) remoteDir+"/" else remoteDir
+		val dirTrailingSlash = if (!remoteDir.endsWith("/")) remoteDir + "/" else remoteDir
 		val command = s"mkdir -p $dirTrailingSlash && s3cmd sync --delete-removed ${props.s3Bucket}/ $dirTrailingSlash"
 		val fullCmd = ssh.forgroundCommand(props.instanceUserName, instance.getPublicDnsName(), command)
-		log.info(fullCmd)
-		Process(fullCmd) ! ProcessLogger(line => log.debug(line))
+		info(fullCmd)
+		Process(fullCmd) ! ProcessLogger(line => debug(line))
 	}
 }

@@ -41,7 +41,7 @@ import sampler.data.Distribution
 import sampler.io.CSV
 import sampler.math.Random
 import sampler.math.Statistics.quantile
-import sampler.r.process.ScriptRunner
+import sampler.r.script.RScript
 import sampler.math.Statistics
 import sampler.data.DistributionBuilder
 
@@ -180,7 +180,7 @@ ggplot(fitted, aes(x=Day)) +
 dev.off()
 """
 
-	ScriptRunner.apply(rScript, wd.resolve("script.r"))
+	RScript(rScript, wd.resolve("script.r"))
 	
 }
 

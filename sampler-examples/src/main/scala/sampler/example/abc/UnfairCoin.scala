@@ -32,9 +32,9 @@ import sampler.io.CSV
 import sampler.io.CSV
 import org.apache.commons.math3.random.SynchronizedRandomGenerator
 import org.apache.commons.math3.random.MersenneTwister
-import sampler.r.process.ToNamedSeq
-import sampler.r.process.QuickPlot
-import sampler.r.process.ScriptRunner
+import sampler.r.script.ToNamedSeq
+import sampler.r.script.QuickPlot
+import sampler.r.script.RScript
 
 object UnfairCoin extends App with ToNamedSeq{
 	/*
@@ -78,7 +78,7 @@ pdf("generations.pdf", width=4.13, height=2.91) #A7 landscape paper
 ggplot(melt(data), aes(x=value, colour=variable)) + geom_density() + scale_x_continuous(limits=c(0, 1))
 dev.off()	
 """
-	ScriptRunner.apply(rScript, wd.resolve("script.r"))
+	RScript(rScript, wd.resolve("script.r"))
 }
 
 case class CoinParams(pHeads: Double){

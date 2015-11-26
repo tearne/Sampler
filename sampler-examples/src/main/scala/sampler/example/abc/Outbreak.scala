@@ -19,7 +19,7 @@ import sampler.data.ToSamplable
 import sampler.io.CSV
 import sampler.math.Random
 import sampler.math.Statistics
-import sampler.r.process.ScriptRunner
+import sampler.r.script.RScript
 import sampler.io.Logging
 import sampler.data.DistributionBuilder
 
@@ -59,7 +59,7 @@ object Data extends ToSamplable with Logging {
 			observedFarms.contains(fidA) && observedFarms.contains(fidB)
 		})
 	
-		log.info(s"${fullMatrix.infectedFarms.size} true infections, ${observedPartialMatrix.infectedFarms.size} are used as observed")
+		info(s"${fullMatrix.infectedFarms.size} true infections, ${observedPartialMatrix.infectedFarms.size} are used as observed")
 		observedPartialMatrix
 	}
 }
@@ -78,9 +78,9 @@ object ObservedDataGenerator extends App with Logging {
 			SizeStopCondition(20),
 			true
 	)	
-	log.info("Generated outbreak size: "+fullOutbreak.size)
+	info("Generated outbreak size: "+fullOutbreak.size)
 	val companyInfections = fullOutbreak.infectionMap.collect{case (id, Infection(_,_,Some(Source(_,CompanyTransmission)))) => id}
-	log.info(s"${companyInfections.size} company Infections: $companyInfections")
+	info(s"${companyInfections.size} company Infections: $companyInfections")
 	
 	Files.createDirectories(Data.wd)
 	val header = Seq("FarmA", "FarmB", "Diff")
@@ -132,7 +132,7 @@ object FittingApplication extends App {
 				ggtitle("Sequence difference fitting")
 			dev.off()
 		"""
-		ScriptRunner.apply(rScript, Data.wd.resolve("script.r"))
+		RScript(rScript, Data.wd.resolve("script.r"))
 	}
 		
 	ABC(model, params, reporting)
@@ -187,7 +187,7 @@ object MetricTest extends App {
 			scale_colour_discrete("Company\nparameter")
 		dev.off()
 	"""
-	ScriptRunner.apply(rScript, wd.resolve("script.r"))
+	RScript.apply(rScript, wd.resolve("script.r"))
 }
 
 class ABCModel(observed: DifferenceMatrix) 
@@ -326,7 +326,7 @@ object OutbreakModel extends Logging{
 			 		
 			 		if(logging){
 			 			(newCompanyInfections ++ newLocalInfections).foreach{case (newId,newInf) =>
-			 				log.info(s"Infection ($iFid)---->($newId), sequence delta = ${Sequence.differenceCount(infection.original , newInf.original)}")
+			 				info(s"Infection ($iFid)---->($newId), sequence delta = ${Sequence.differenceCount(infection.original , newInf.original)}")
 			 			}
 			 		} 
 			 		
@@ -338,7 +338,7 @@ object OutbreakModel extends Logging{
 		}
 		
 		@tailrec def iterate(current: Outbreak, tick: Int): Outbreak = {
-			if(logging) log.info(s"Now on tick $tick")
+			if(logging) info(s"Now on tick $tick")
 			if(stop(current, tick)) current
 			else {
 				val updated = addNewInfections(Outbreak.updateCurrentMutations(current))

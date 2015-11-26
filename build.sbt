@@ -2,7 +2,7 @@ import UnidocKeys._
 
 val buildOrganization 	= "org.tearne"
 val buildVersion 	= "0.2.1"
-val buildScalaVersion	= "2.11.6"
+val buildScalaVersion	= "2.11.7"
 
 lazy val commonSettings = Seq(
 	organization := buildOrganization,
@@ -28,7 +28,7 @@ lazy val commonSettings = Seq(
 		"org.slf4j" % "slf4j-api" % "1.7.7",
 		"org.scalaz" %% "scalaz-core" % "7.1.0",
 		"com.novocode" % "junit-interface" % "0.11" % "test",
-		"org.spire-math" %% "spire" % "0.9.1"
+		"org.spire-math" %% "spire" % "0.11.0"
 	)
 )
 
@@ -107,8 +107,7 @@ lazy val spike = project.in(file("sampler-spike"))
 			"rengine" % "rengine" % "2015-01-20" from "http://rforge.net/Rserve/files/REngine.jar",
 			"rserveengine" % "rserveengine" % "2015-01-20" from "http://rforge.net/Rserve/files/RserveEngine.jar",
 			"ch.qos.logback" % "logback-classic" % "1.1.1",
-			"org.freemarker" % "freemarker" % "2.3.21",
-			"org.scalanlp" %% "breeze" % "0.10"
+			"org.freemarker" % "freemarker" % "2.3.21"
 		)	
 	)
 	.settings(

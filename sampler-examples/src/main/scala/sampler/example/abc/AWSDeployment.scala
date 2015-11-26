@@ -125,36 +125,36 @@ $application
 			aws.s3RemoteDownload(node, "~/deploy/")
 			val runScriptName = uploadScript(node, getRunScript(node.getPrivateIpAddress(),	masterPrivateIP))
 			runRemoteScript(node, runScriptName)
-			log.info("started application on "+node.getPrivateIpAddress())
+			info("started application on "+node.getPrivateIpAddress())
 		}
 	}
 	
 	(masterNode +: aws.workerNodes).foreach{node => deploy(node)}
 	
-	log.info(s"----==== Cluster ready captain ====----")
+	info(s"----==== Cluster ready captain ====----")
 	aws.workerNodes.foreach{node =>
-		log.info(s"      Worker: ssh -i ${awsProps.sshKeyPath} ec2-user@${node.getPublicDnsName}")
+		info(s"      Worker: ssh -i ${awsProps.sshKeyPath} ec2-user@${node.getPublicDnsName}")
 	}
-	log.info(s" ***  Master: ssh -i ${awsProps.sshKeyPath} ec2-user@${masterNode.getPublicDnsName}")
+	info(s" ***  Master: ssh -i ${awsProps.sshKeyPath} ec2-user@${masterNode.getPublicDnsName}")
 }
 
 trait CommonDeployTasks extends Logging{
 	def runRemoteScript(node: Instance, fileName: String){
 		val cmd = ssh.backgroundCommand(awsProps.instanceUserName, node.getPublicDnsName(), s"~/deploy/$fileName")
-		log.info(cmd)
+		info(cmd)
 		Process(cmd).!
 	}
 	
 	def javaRunning(node: Instance): Boolean = {
 		val cmd = ssh.forgroundCommand(awsProps.instanceUserName, node.getPublicDnsName(), s"pgrep -f java")
 		val result = 0 == Process(cmd).!
-		log.info("Java running {}:  {}",result, cmd)
+		info("Java running $result:  $cmd")
 		result
 	}
 	
 	def killJava(node: Instance){
 		val cmd = ssh.backgroundCommand(awsProps.instanceUserName, node.getPublicDnsName(), "killall java")
-		log.info(cmd)
+		info(cmd)
 		Process(cmd).!
 	}
 		
@@ -183,13 +183,13 @@ trait CommonDeployTasks extends Logging{
 
 	val localDeployDir = Paths.get(System.getProperty("user.home")).resolve("Sampler/sampler-examples/deploy/")
 	assert(Files.exists(localDeployDir))	
-	log.info("localDeployDir: {}", localDeployDir)
+	info(s"localDeployDir: ${localDeployDir}")
 	
 	val awsProps = AWSProperties.load
 	val ssh = new SSH(awsProps.sshKeyPath)
 	val aws = new AWS(awsProps)
-	log.info(""+awsProps)
+	info(""+awsProps)
 	
-	log.info("Account Confirmed: {}", aws.getUserDetails)
+	info(s"Account Confirmed: ${aws.getUserDetails}")
 	aws.s3Upload(localDeployDir.toAbsolutePath)
 }
