@@ -27,7 +27,7 @@ import org.json4s.native.JsonMethods
 import java.nio.charset.Charset
 import java.nio.file.Path
 import java.io.OutputStream
-import sampler.r.process.ScriptRunner
+import sampler.r.script.RScript
 
 
 object EDS_convergence extends App {
@@ -143,7 +143,7 @@ object EDS_convergence extends App {
     """
   
   // Run the script in R and save the resulting PDF in the results directory
-  ScriptRunner.apply(rScript, resultsDir.resolve(scriptName))
+  RScript(rScript, resultsDir.resolve(scriptName))
   
 
 }

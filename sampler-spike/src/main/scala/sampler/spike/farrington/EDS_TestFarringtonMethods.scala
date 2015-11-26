@@ -26,7 +26,7 @@ import org.json4s.native.JsonMethods
 import java.nio.charset.Charset
 import java.nio.file.Path
 import java.io.OutputStream
-import sampler.r.process.ScriptRunner
+import sampler.r.script.RScript
 
 /*
   =========
@@ -415,7 +415,7 @@ object EDS_TestFarringtonMethods extends App{
     """
   
   // Run the script in R and save the resulting PDF in the results directory
-  ScriptRunner.apply(rScript_stats, resultsDir.resolve(scriptName_Stats))
+  RScript(rScript_stats, resultsDir.resolve(scriptName_Stats))
   
   //=======================
   // Output and plot: Time to detection
@@ -488,7 +488,7 @@ object EDS_TestFarringtonMethods extends App{
     """
   
   // Run the script in R and save the resulting PDF in the results directory
-  ScriptRunner.apply(rScript, resultsDir.resolve(scriptName))
+  RScript(rScript, resultsDir.resolve(scriptName))
   
   //=======================
   // Output and plot: Time to detection
@@ -561,6 +561,6 @@ object EDS_TestFarringtonMethods extends App{
     """
   
   // Run the script in R and save the resulting PDF in the results directory
-  ScriptRunner.apply(rScript_Con, resultsDir.resolve(scriptName_Con))
+  RScript(rScript_Con, resultsDir.resolve(scriptName_Con))
 
 }

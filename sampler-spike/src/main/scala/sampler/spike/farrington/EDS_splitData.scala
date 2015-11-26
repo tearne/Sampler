@@ -4,7 +4,7 @@ import java.nio.file.Paths
 import sampler.r.rserve.RServeHelper
 import java.nio.file.Files
 import java.nio.charset.Charset
-import sampler.r.process.ScriptRunner
+import sampler.r.script.RScript
 
 object EDS_splitData extends App{
   
@@ -271,6 +271,6 @@ object EDS_splitData extends App{
     """
   
   // Run the script in R and save the resulting PDF in the results directory
-  ScriptRunner.apply(rScript, resultsDir.resolve(scriptName))
+  RScript(rScript, resultsDir.resolve(scriptName))
 
 }

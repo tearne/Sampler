@@ -4,7 +4,7 @@ import sampler.data.DistributionBuilder
 import sampler.math.Random
 import java.nio.file.Files
 import java.nio.file.Paths
-import sampler.r.process.ScriptRunner
+import sampler.r.script.RScript
 
 object TestApp extends App {
 	import Stuff._
@@ -36,7 +36,7 @@ object TestApp extends App {
 		dev.off()
 	"""
 	
-	ScriptRunner.apply(rScript, fileOut.getParent.resolve("script.r"))
+	RScript.apply(rScript, fileOut.getParent.resolve("script.r"))
 }
 
 object Stuff{

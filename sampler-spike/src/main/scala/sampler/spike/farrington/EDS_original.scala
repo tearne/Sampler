@@ -34,7 +34,7 @@ import sampler.spike.farrington.Farrington.Mode
 import sampler.spike.farrington.Farrington.APHA
 import sampler.spike.farrington.Farrington.Stl
 import sampler.spike.farrington.Farrington.FarNew
-import sampler.r.process.ScriptRunner
+import sampler.r.script.RScript
 
 object EDS_original extends App{
 

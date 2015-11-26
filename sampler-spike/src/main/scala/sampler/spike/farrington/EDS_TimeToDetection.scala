@@ -26,7 +26,7 @@ import org.json4s.native.JsonMethods
 import java.nio.charset.Charset
 import java.nio.file.Path
 import java.io.OutputStream
-import sampler.r.process.ScriptRunner
+import sampler.r.script.RScript
 
 /*
   =========
