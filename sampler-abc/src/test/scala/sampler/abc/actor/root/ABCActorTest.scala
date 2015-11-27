@@ -1,8 +1,6 @@
 package sampler.abc.actor.root
 
-import org.junit.runner.RunWith
 import org.mockito.Mockito.when
-import org.scalatest.junit.JUnitRunner
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.FreeSpecLike
 import org.scalatest.mock.MockitoSugar
@@ -32,14 +30,13 @@ import sampler.abc.actor.ScoredParticles
 import sampler.abc.actor.algorithm.Getters
 import sampler.abc.core.Generation
 import sampler.abc.actor.algorithm.Algorithm
-import sampler.abc.actor.GenerateParticles
+import sampler.abc.actor.GenerateParticlesFrom
 import sampler.abc.actor.algorithm.EvolvingGeneration
 import sampler.abc.core.Reporter
 import scala.collection.immutable.Queue
 import org.scalatest.BeforeAndAfter
 import akka.actor.ActorRef
 
-@RunWith(classOf[JUnitRunner])
 class ABCActorTest 
 		extends TestKit(ActorSystem("ABC"))
 		with FreeSpecLike
@@ -63,7 +60,7 @@ class ABCActorTest
 	var eGen1: EvolvingGeneration[DullParams] = _
 	
 	before {
-		gen1 = Generation(null, 3, mock[Map[DullParams, Double]], 99)
+		gen1 = Generation(3, mock[Map[DullParams, Double]], 99)
 		
 		eGen1 = EvolvingGeneration(
 			99, 
@@ -131,7 +128,7 @@ class ABCActorTest
 			instanceRef ! Start(gen1)
 		
 			// Assertions
-			routerProbe.expectMsg(Broadcast(GenerateParticles(gen1.particleWeights, instanceObj.config)))
+			routerProbe.expectMsg(Broadcast(GenerateParticlesFrom(gen1.particleWeights, 0, instanceObj.config)))
 			assertResult(Gathering)(instanceRef.stateName)
 			assertResult(gen1)(instanceRef.stateData match {
 				case gd: StateData[_] => gd.generation.previousGen
@@ -155,7 +152,10 @@ class ABCActorTest
 		  	instanceRef tell(Failed, workerProbe.ref)
 		  
 		  	// Assertions
-		  	workerProbe.expectMsg(GenerateParticles(eGen1.previousGen.particleWeights, instanceObj.config))
+		  	workerProbe.expectMsg(GenerateParticlesFrom(
+		  			eGen1.previousGen.particleWeights, 
+		  			eGen1.previousGen.iteration, 
+		  			instanceObj.config))
 		  	assertResult(Gathering)(instanceRef.stateName)
 		  	assertResult(eGen1)(instanceRef.stateData match {
 			  	case sd: StateData[_] => sd.generation
@@ -312,7 +312,10 @@ class ABCActorTest
 	      instanceRef tell(newlyWeighted, workerProbe.ref)
 	      
 	      // Assertion
-	      workerProbe.expectMsg(GenerateParticles(eGen1.previousGen.particleWeights, config))
+	      workerProbe.expectMsg(GenerateParticlesFrom(
+	      		eGen1.previousGen.particleWeights, 
+	      		eGen1.previousGen.iteration,
+	      		config))
 	      
 	      assertResult(Gathering)(instanceRef.stateName)
 	      assertResult(eGen1)(instanceRef.stateData match {
@@ -353,7 +356,10 @@ class ABCActorTest
 	      
 	      // Expectations
 	      routerProbe.expectMsg(Broadcast(Abort))
-	      routerProbe.expectMsg(Broadcast(GenerateParticles(flushedWeightsTable, instanceObj.config)))
+	      routerProbe.expectMsg(Broadcast(GenerateParticlesFrom(
+	      		flushedWeightsTable, 
+	      		eGen2.previousGen.iteration,
+	      		instanceObj.config)))
 	      
 	      reportingProbe.expectMsg(report)
 	      
@@ -393,7 +399,7 @@ class ABCActorTest
 	      when(eGen2.previousGen).thenReturn(completedGen)
 	      
 	      val eGen3 = mock[EvolvingGeneration[DullParams]]
-	      when(eGen3.currentIteration).thenReturn(fiveGenerations)// Matches config in setup above
+	      when(eGen3.buildingGeneration).thenReturn(fiveGenerations)// Matches config in setup above
 	      when(algorithm.flushGeneration(eGen2)).thenReturn(eGen3)
 	      
 	      val report = mock[Report[DullParams]]	
@@ -536,7 +542,7 @@ class ABCActorTest
 	   
 	      //when(flushedGeneration.iteration).thenReturn(fiveGenerations)
  	      val eGen0 = mock[EvolvingGeneration[DullParams]]
-	      when(eGen0.currentIteration).thenReturn(fiveGenerations)
+	      when(eGen0.buildingGeneration).thenReturn(fiveGenerations)
 	      val flushedGen = mock[Generation[DullParams]]
 	      when(eGen0.previousGen).thenReturn(flushedGen)
 
@@ -594,7 +600,10 @@ class ABCActorTest
 	      instanceRef tell(instanceObj.FlushComplete(eGen1), null)
 	      
 	      // Assertion
-	      routerProbe.expectMsg(Broadcast(GenerateParticles(eGen1.previousGen.particleWeights, instanceObj.config)))
+	      routerProbe.expectMsg(Broadcast(GenerateParticlesFrom(
+	      		eGen1.previousGen.particleWeights, 
+	      		eGen1.previousGen.iteration,
+	      		instanceObj.config)))
 	      
 	      assertResult(Gathering)(instanceRef.stateName)
 	      assertResult(eGen1)(instanceRef.stateData match {

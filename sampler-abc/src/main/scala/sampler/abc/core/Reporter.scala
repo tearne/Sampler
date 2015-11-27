@@ -17,6 +17,8 @@ class Reporter(
 				.until(_.size == numParticles)
 				.sample
 
+				
+		//TODO consider changing the report to output a weights table instead of sampling?
 		Report(
 				gen.iteration,
 				gen.tolerance,

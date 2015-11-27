@@ -43,7 +43,7 @@ case class Report[P](generationId: Int, tolerance: Double, posterior: Seq[P])
 case class ReportCompleted[P](report: Report[P])
 
 sealed trait Job[P]
-case class GenerateParticles[P](prevParticleWeights: Map[P, Double], config: ABCConfig) extends Job[P]
+case class GenerateParticlesFrom[P](prevParticleWeights: Map[P, Double], prevGenIteration: Int, config: ABCConfig) extends Job[P]
 //object GenerateParticles{
 //	def buildFrom[P](gen: EvolvingGeneration[P], config: ABCConfig) = 
 //		GenerateParticles(

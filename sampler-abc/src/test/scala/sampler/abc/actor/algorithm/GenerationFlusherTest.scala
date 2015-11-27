@@ -22,18 +22,18 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 		val observedIdsTrimmer = mock[ObservedIdsTrimmer]
 		val weightsConsolodator = mock[WeightsHelper]
 		val getters = mock[Getters]
-		def getInstance(numParticles: Int) = 
+		def getInstance(numParticlesRequired: Int): GenerationFlusher = 
 			new GenerationFlusher(
 				toleranceCalculator,
 				observedIdsTrimmer,
 				weightsConsolodator,
 				getters,
-				numParticles
+				numParticlesRequired
 			)
 
 		val inProgress = EvolvingGeneration(
 			0.1,
-			Generation(model, 10, null, 0.5),
+			Generation(10, null, 0.5),
 			null,
 			mock[WeighedParticles[T]],
 			mock[Queue[Long]]
@@ -42,6 +42,7 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 		val seqWeighed = (1 to 10).map(mock[Seq[Weighted[T]]])
 		when(getters.weighedParticlesWithoutIdTags(inProgress.weighed))
 			.thenReturn(seqWeighed)
+		when(toleranceCalculator.apply(seqWeighed, 0.1)).thenReturn(0.001)
 
 		val weightsTable = mock[Map[T, Double]]
 		when(weightsConsolodator.consolidateToWeightsTable(seqWeighed))
@@ -54,20 +55,21 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 	
 	"should" - {
 		"build inner completed generation" in new Setup {
+			val instance = getInstance(tenParticles)
 			
-			val result = getInstance(tenParticles).apply(inProgress)
-			val completedGen = result.previousGen
+			val result: EvolvingGeneration[T] = instance.apply(inProgress)
+			val completedGen: Generation[T] = result.previousGen
 			
-			assert(completedGen.model === model)
+			//assert(completedGen.model === model)
 			assert(completedGen.iteration === 11)
 			assert(completedGen.particleWeights === weightsTable)
-			assert(completedGen.tolerance === 0.5)
+			assert(completedGen.tolerance === 0.1)
 		}
 		
 		"build new evolving generation" in new Setup {
 			val result = getInstance(tenParticles).apply(inProgress)
 			
-			assert(result.currentTolerance === 0.1)
+			assert(result.currentTolerance === 0.001)
 			assert(result.dueWeighing.size === 0)
 			assert(result.weighed.size === 0)
 			assert(result.idsObserved === trimmedParticleIds)

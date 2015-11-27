@@ -7,6 +7,7 @@ import org.scalatest.FreeSpec
 import sampler.data.DistributionBuilder
 import sampler.abc.config.ABCConfig
 import sampler.abc.config.JobParameters
+import org.mockito.Matchers
 
 class ReporterTest extends FreeSpec with MockitoSugar{
 	type T = Int
@@ -15,24 +16,24 @@ class ReporterTest extends FreeSpec with MockitoSugar{
 	val tolerance = 0.001
 	
 	"Generates a report of a completed generation" in {
-		//TODO put the random inside the distribution builder?
+		//TODO output the weights table, not a sample from it?
 		val distBuilder = mock[DistributionBuilder]
-        val config = ABCConfig(
+    val config = ABCConfig(
     		JobParameters(thousandParticles,0,0), 
     		null, 
     		null
     )
 		
-		val instance = new Reporter(distBuilder, null, null)
+		val instance = new Reporter(distBuilder, null, config)
 		
 		val particleWeights = mock[Map[T, Double]]
-		when(distBuilder.fromWeightsTable(particleWeights)(any()))
+		when(distBuilder.fromWeightsTable(Matchers.eq(particleWeights))(any()))
 			.thenReturn(DistributionBuilder.continually(7))
     
 		val generation = Generation[Int](
-        null,
+        //null,
         iteration500,
-        Map(1 -> 0.5, 2 -> 0.5),
+        particleWeights,
         tolerance
     )
       

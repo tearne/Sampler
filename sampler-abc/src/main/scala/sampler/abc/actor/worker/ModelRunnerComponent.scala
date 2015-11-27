@@ -28,7 +28,7 @@ import sampler.math.Random
 import sampler.abc.Model
 import sampler.abc.Scored
 import sampler.abc.actor.Tagged
-import sampler.abc.actor.GenerateParticles
+import sampler.abc.actor.GenerateParticlesFrom
 import sampler.abc.actor.ScoredParticles
 import sampler.data.ConvergenceProtocol
 import sampler.data.MaxMetric
@@ -48,10 +48,11 @@ trait ModelRunnerComponent[P] {
 		def reset() { aborted.set(false) }
 		private def isAborted = aborted.get
 		
-		def run(job: GenerateParticles[P]): Try[ScoredParticles[P]] = Try{
+		def run(job: GenerateParticlesFrom[P]): Try[ScoredParticles[P]] = Try{
 			val paramDist: Distribution[P] =  {
-				val weightsTable = job.prevParticleWeights.asInstanceOf[Map[P, Double]]
-				DistributionBuilder.fromWeightsTable(weightsTable)
+				val rawDist = DistributionBuilder.fromWeightsTable(job.prevParticleWeights)
+				if(job.prevGenIteration == 0) rawDist
+				else rawDist.map(model.perturb)
 			}
 			
 			val maxParticleRetries = job.config.algorithm.maxParticleRetries
@@ -68,7 +69,7 @@ trait ModelRunnerComponent[P] {
 					}
 					
 					val res: Option[Scored[P]] = for{
-						params <- Some(perturb(paramDist.sample())) if prior.density(params) > 0
+						params <- Some(paramDist.sample) if prior.density(params) > 0
 						fitScores <- Some(getScores(params))
 					} yield Scored(params, fitScores)
 					

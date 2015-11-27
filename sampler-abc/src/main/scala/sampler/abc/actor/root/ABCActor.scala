@@ -48,7 +48,7 @@ import sampler.abc.actor.Report
 import sampler.math.Statistics
 import sampler.abc.core.LoggingAdapterComponent
 import sampler.abc.core.LoggingAdapterComponentImpl
-import sampler.abc.actor.GenerateParticles
+import sampler.abc.actor.GenerateParticlesFrom
 import sampler.abc.actor.algorithm.Algorithm
 import sampler.abc.actor.algorithm.EvolvingGeneration
 import sampler.abc.core.Generation
@@ -166,8 +166,9 @@ trait ABCActor[P]
 			import s._
 			
 			val evolvingGen = EvolvingGeneration.init(s.generationZero)
-			childActors.router ! Broadcast(GenerateParticles(
+			childActors.router ! Broadcast(GenerateParticlesFrom(//TODO fix duplication with 'allocateWork' below
 					evolvingGen.previousGen.particleWeights, 
+					0,	//TODO, in future, allow resuming from non zero gen? (i.e. will perturb before model run)
 					config
 			))
 			
@@ -210,7 +211,7 @@ trait ABCActor[P]
 			val updatedGen = algorithm.addWeightedParticles(weighted, stateData.generation)
 
 			log.info(
-					s"Generation ${updatedGen.currentIteration}, "+
+					s"Building Gen ${updatedGen.buildingGeneration}, "+
 					s"Particles + ${getters.getNumParticles(weighted)} = "+
 					s"${getters.getNumEvolvedParticles(updatedGen)}/${config.job.numParticles}")
 			
@@ -247,15 +248,17 @@ trait ABCActor[P]
 		case Event(_: ScoredParticles[P], _) => 	log.info("Ignore new paylod"); 		stay
 		case Event(MixNow, _) => 				log.info("Ignore mix request"); 	stay
 		case Event(FlushComplete(flushedEGeneration), data: FlushingData) =>
-			val numGenerations = config.job.numGenerations
-			log.info(
+			val numReqGenerations = config.job.numGenerations
+			val generationCompleted = flushedEGeneration.previousGen.iteration
+			
+			log.info(  //TODO new logging trait
 					"Generation {}/{} complete, next tolerance {}", 
-					flushedEGeneration.currentIteration, 
-					numGenerations, 
+					generationCompleted, 
+					numReqGenerations, 
 					flushedEGeneration.currentTolerance
 			)
 			
-			if(flushedEGeneration.currentIteration == numGenerations && config.cluster.terminateAtTargetGenerations){
+			if(generationCompleted == numReqGenerations && config.cluster.terminateAtTargetGenerations){
 				// Stop work
 				childActors.router ! Abort  // TODO superfluous?
 				reportCompletedGeneration(flushedEGeneration.previousGen)
@@ -264,8 +267,10 @@ trait ABCActor[P]
 				goto(WaitingForShutdown) using data.setGeneration(flushedEGeneration)
 			} else {
 				// Start next generation
-				childActors.router ! Broadcast(GenerateParticles(
-						flushedEGeneration.previousGen.particleWeights, 
+				//TODO fix duplication with 'allocateWork' below
+				childActors.router ! Broadcast(GenerateParticlesFrom(
+						flushedEGeneration.previousGen.particleWeights,
+						generationCompleted,		//TODO is this right? test
 						config
 				))
 				reportCompletedGeneration(flushedEGeneration.previousGen)
@@ -294,7 +299,8 @@ trait ABCActor[P]
 		} else {
 			// Tell worker to make more particles
 			val previousParticleWeights = generation.previousGen.particleWeights
-			worker ! GenerateParticles(previousParticleWeights, config)	
+			//TODO nice helper to build these messages 
+			worker ! GenerateParticlesFrom(previousParticleWeights, generation.previousGen.iteration, config)	//TODO test if currentIteration is correct number
 			stay using stateData.updateGeneration(generation)
 		}
 	}

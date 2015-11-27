@@ -11,24 +11,24 @@ class GenerationFlusher(
 		observedIdsTrimmer: ObservedIdsTrimmer,
 		weightsConsolidator: WeightsHelper,
 		getters: Getters,
-		numParticles: Int
+		numParticlesRequired: Int
 	){
 	
 	def apply[P](gen: EvolvingGeneration[P]) = {
 		val weighedParticles = gen.weighed
 		val currentTolerance = gen.currentTolerance
-		val currentIteration = gen.currentIteration
-		val model = gen.model
+		val currentGeneration = gen.buildingGeneration
+		//val model = gen.model
 		val idsObserved = gen.idsObserved
 		
 		//Strip out tags
 		val seqWeighed = getters.weighedParticlesWithoutIdTags(weighedParticles)
 		
-		assert(numParticles <= seqWeighed.size)
+		assert(numParticlesRequired <= seqWeighed.size)
 		
 		val completedGen = Generation(
-				model, 
-				currentIteration, 
+				//model, 
+				currentGeneration, 
 				weightsConsolidator.consolidateToWeightsTable(seqWeighed),
 				currentTolerance
 		)

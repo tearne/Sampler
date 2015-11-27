@@ -19,8 +19,8 @@ case class EvolvingGeneration[P](
 	idsObserved: Queue[Long]
 ){
 	def emptyWeighingBuffer = copy(dueWeighing = ScoredParticles.empty)
-	val currentIteration = previousGen.iteration + 1
-	val model = previousGen.model
+	val buildingGeneration = previousGen.iteration + 1
+	//val model = previousGen.model
 }
 
 object EvolvingGeneration {
