@@ -11,7 +11,7 @@ class Algorithm(
 		generationFlusher: GenerationFlusher,
 		particleMixer: ParticleMixer,
 		getters: Getters,
-		implicit val random: Random
+		random: Random
 	){
 	
 	def addWeightedParticles[P](
@@ -48,6 +48,6 @@ class Algorithm(
 			
 	//TODO can we simplify tagged and scored parm sets?
 	def buildMixPayload[P](gen: EvolvingGeneration[P], abcParameters: ABCConfig): Option[ScoredParticles[P]] = {
-		particleMixer.apply(gen, abcParameters)
+		particleMixer.apply(gen, abcParameters)(random)
 	}
 }

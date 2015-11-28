@@ -9,6 +9,7 @@ import sampler.abc.actor.worker.WorkerActorImpl
 import sampler.abc.config.ABCConfig
 import sampler.abc.Model
 import sampler.abc.actor.ReportingActor
+import sampler.abc.actor.FlushingActor
 
 trait ChildrenActorsComponentImpl[P] extends ChildrenActorsComponent[P]{
 	this: Actor with ABCActor[P] =>
@@ -26,10 +27,12 @@ trait ChildrenActorsComponent[P] {
 			Props(classOf[BroadcastActor], config), 
 			"broadcaster"
 		)
+		
 		val receiver = context.actorOf(
 			Props[ReceiveActor], 
 			"receiver"
 		)
+		
 		val router = context.actorOf(
 //		Props(new WorkerActorImpl[P](model)).withRouter(FromConfig()),// Akka 2.2.3
 			FromConfig.props( 			// Akka 2.3
@@ -38,11 +41,13 @@ trait ChildrenActorsComponent[P] {
 			"work-router"
 		)
 		
-		val reportingActor = context.actorOf(
-			Props(
-				classOf[ReportingActor[P]], 
-				reportAction
-			)	
+		val flusher = context.actorOf(
+			Props(classOf[FlushingActor[P]],algorithm),
+			"flusher"
+		)
+		
+		val reporter = context.actorOf(
+			Props(classOf[ReportingActor[P]], reportAction)	
 		)
 	}
 }

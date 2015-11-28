@@ -5,8 +5,7 @@ import sampler.abc.actor.ScoredParticles
 import sampler.abc.actor.Tagged
 import sampler.math.Random
 
-class ParticleMixer {    
-//	implicit val r = random
+class ParticleMixer {
 	
   def apply[P](
   		gen: EvolvingGeneration[P], 

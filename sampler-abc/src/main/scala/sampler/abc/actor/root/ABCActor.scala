@@ -63,6 +63,7 @@ import sampler.data.DistributionBuilder
 import sampler.abc.core.Reporter
 import sampler.abc.core.Reporter
 import sampler.abc.core.Reporter
+import sampler.abc.actor.FlushComplete
 
 class ABCActorImpl[P](
 		val model: Model[P],
@@ -72,23 +73,12 @@ class ABCActorImpl[P](
 		with ChildrenActorsComponentImpl[P]
 		with WorkDispatcherComponentImpl
 		with LoggingAdapterComponentImpl
+		with AlgorithmCoponentImpl
 		with StatisticsComponent {
-	val random = Random
+
 	val distributionBuilder = DistributionBuilder
 	
 	val getters = new Getters()
-	val algorithm = new Algorithm(
-			new GenerationFlusher(
-					ToleranceCalculator,
-					new ObservedIdsTrimmer(
-							config.cluster.particleMemoryGenerations, 
-							config.job.numParticles),
-					new WeightsHelper(),
-					getters,
-					config.job.numParticles),
-			new ParticleMixer(),
-			getters,
-			Random)
 	val reporter = new Reporter(
 			DistributionBuilder,
 			Random,
@@ -113,7 +103,7 @@ case class StateData[P](	// TODO change to WorkingData
 		client: ActorRef, 
 		cancellableMixing: Option[Cancellable]
 ) extends Data{
-    def getFlushingData = FlushingData(client, cancellableMixing)
+  def getFlushingData = FlushingData(client, cancellableMixing)
 	def updateGeneration(g: EvolvingGeneration[P]) = copy(generation = g)
 }
 
@@ -128,19 +118,16 @@ trait ABCActor[P]
 		extends FSM[Status, Data] 
 		with Actor 
 		with ActorLogging
+		with AlgorithmComponent
 {
 	this: ChildrenActorsComponent[P] with WorkDispatcherComponent =>
 	
 	val config: ABCConfig
 	val model: Model[P]
-	val algorithm: Algorithm
 	val reporter: Reporter	//TODO better name to help distinguish between report action and reporting actor
 	val reportAction: Option[Report[P] => Unit]
 	val getters: Getters
-	implicit val distributionBuilder: DistributionBuilder
-	implicit val random : Random
 	
-	case class FlushComplete(eGeneration: EvolvingGeneration[P])
 	case class AddComplete(generation: EvolvingGeneration[P])
 	case object MixNow
 	
@@ -174,16 +161,17 @@ trait ABCActor[P]
 			
 			// TODO this code block untested
 			val mixMS = getters.getMixRateMS(config)
-			assert(mixMS > 0l, "Mixing rate must be strictly positive")
-			val cancellableMixing = Some(
-				context.system.scheduler.schedule(
-						mixMS.milliseconds,
-						mixMS.milliseconds, 
-						self, 
-						MixNow)(
-						context.dispatcher)
-			)
-			
+			val cancellableMixing = 
+				if(mixMS > 0)
+					Some(
+						context.system.scheduler.schedule(
+								mixMS.milliseconds,
+								mixMS.milliseconds, 
+								self, 
+								MixNow)(
+								context.dispatcher)
+					)
+				else None
 			goto(Gathering) using StateData(evolvingGen, client, cancellableMixing)
 	}
 	
@@ -196,7 +184,6 @@ trait ABCActor[P]
 			val sndr = sender
 			val updatedGeneration = algorithm.filterAndQueueUnweighedParticles(scored, stateData.generation)
 			log.info("New filtered and queued ({}) => |Q| = {},  from {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
-//			import updatedGeneration._
 			sndr ! WeighJob.buildFrom(updatedGeneration)
 			log.debug("Allocate weighing of {} particles to {}", updatedGeneration.dueWeighing.size, sndr)
 			stay using stateData.copy(generation = updatedGeneration.emptyWeighingBuffer)
@@ -211,19 +198,13 @@ trait ABCActor[P]
 			val updatedGen = algorithm.addWeightedParticles(weighted, stateData.generation)
 
 			log.info(
-					s"Building Gen ${updatedGen.buildingGeneration}, "+
+					s"Working on gen ${updatedGen.buildingGeneration}, "+
 					s"Particles + ${getters.getNumParticles(weighted)} = "+
 					s"${getters.getNumEvolvedParticles(updatedGen)}/${config.job.numParticles}")
 			
 			if(algorithm.isEnoughParticles(updatedGen, config)){
 				childActors.router ! Broadcast(Abort) //TODO what if abort doesn't happen in time?
-				
-				//Flush the current generation
-				implicit val dispatcher = workDispatcher
-				Future{
-					val newEvolvingGeneration = algorithm.flushGeneration(updatedGen)
-					FlushComplete(newEvolvingGeneration)
-				}.pipeTo(self)
+				childActors.flusher ! updatedGen
 				
 				goto(Flushing) using stateData.getFlushingData
 			} else {
@@ -241,40 +222,40 @@ trait ABCActor[P]
 		case Event(rc: ReportCompleted[P], _) => 
 		  log.debug(s"Report for generation ${rc.report.generationId} completed.")
 		  stay
-		
 	}
 	
 	when(Flushing) {
 		case Event(_: ScoredParticles[P], _) => 	log.info("Ignore new paylod"); 		stay
 		case Event(MixNow, _) => 				log.info("Ignore mix request"); 	stay
-		case Event(FlushComplete(flushedEGeneration), data: FlushingData) =>
+		case Event(fc: FlushComplete[P], data: FlushingData) =>
 			val numReqGenerations = config.job.numGenerations
-			val generationCompleted = flushedEGeneration.previousGen.iteration
+			val flushedEGen = fc.eGeneration
+			val generationCompleted = flushedEGen.previousGen.iteration
 			
 			log.info(  //TODO new logging trait
 					"Generation {}/{} complete, next tolerance {}", 
 					generationCompleted, 
 					numReqGenerations, 
-					flushedEGeneration.currentTolerance
+					flushedEGen.currentTolerance
 			)
 			
 			if(generationCompleted == numReqGenerations && config.cluster.terminateAtTargetGenerations){
 				// Stop work
 				childActors.router ! Abort  // TODO superfluous?
-				reportCompletedGeneration(flushedEGeneration.previousGen)
+				reportCompletedGeneration(flushedEGen.previousGen)
 				log.info("Required generations completed and reported to requestor")
 				
-				goto(WaitingForShutdown) using data.setGeneration(flushedEGeneration)
+				goto(WaitingForShutdown) using data.setGeneration(flushedEGen)
 			} else {
 				// Start next generation
 				//TODO fix duplication with 'allocateWork' below
 				childActors.router ! Broadcast(GenerateParticlesFrom(
-						flushedEGeneration.previousGen.particleWeights,
+						flushedEGen.previousGen.particleWeights,
 						generationCompleted,		//TODO is this right? test
 						config
 				))
-				reportCompletedGeneration(flushedEGeneration.previousGen)
-				goto(Gathering) using data.setGeneration(flushedEGeneration)
+				reportCompletedGeneration(flushedEGen.previousGen)
+				goto(Gathering) using data.setGeneration(flushedEGen)
 			}
 		case Event(rc: ReportCompleted[P], _) => 
 			log.debug(s"Report for generation ${rc.report.generationId} completed.")
@@ -306,6 +287,6 @@ trait ABCActor[P]
 	}
 	
 	def reportCompletedGeneration(generation: Generation[P]){
-		childActors.reportingActor ! reporter.build(generation)
+		childActors.reporter ! reporter.build(generation)
 	}
 }
