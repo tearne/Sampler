@@ -5,6 +5,7 @@ import sampler.abc.core.WeightsHelper
 import sampler.abc.core.Generation
 import sampler.abc.actor.ScoredParticles
 import sampler.abc.actor.WeighedParticles
+import sampler.abc.core.Population
 
 class GenerationFlusher(
 		toleranceCalculator: ToleranceCalculator,
@@ -26,10 +27,9 @@ class GenerationFlusher(
 		
 		assert(numParticlesRequired <= seqWeighed.size)
 		
-		val completedGen = Generation(
-				//model, 
-				currentGeneration, 
+		val completedGen = Population(
 				weightsConsolidator.consolidateToWeightsTable(seqWeighed),
+				currentGeneration, 
 				currentTolerance
 		)
 			

@@ -49,13 +49,8 @@ trait ModelRunnerComponent[P] {
 		private def isAborted = aborted.get
 		
 		def run(job: GenerateParticlesFrom[P]): Try[ScoredParticles[P]] = Try{
-			val paramDist: Distribution[P] =  {
-				val rawDist = DistributionBuilder.fromWeightsTable(job.prevParticleWeights)
-				if(job.prevGenIteration == 0) rawDist
-				else rawDist.map(model.perturb)
-			}
-			
 			val maxParticleRetries = job.config.algorithm.maxParticleRetries
+			val proposalDist: Distribution[P] =  job.prevGen.proposalDistribution(model, random)
 			
 			@tailrec
 			def getScoredParameter(failures: Int = 0): Scored[P] = {
@@ -69,7 +64,7 @@ trait ModelRunnerComponent[P] {
 					}
 					
 					val res: Option[Scored[P]] = for{
-						params <- Some(paramDist.sample) if prior.density(params) > 0
+						params <- Some(proposalDist.sample) if prior.density(params) > 0
 						fitScores <- Some(getScores(params))
 					} yield Scored(params, fitScores)
 					

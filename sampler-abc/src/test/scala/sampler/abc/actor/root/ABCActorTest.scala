@@ -38,6 +38,7 @@ import org.scalatest.BeforeAndAfter
 import akka.actor.ActorRef
 import sampler.abc.actor.FlushComplete
 import org.scalatest.Pending
+import sampler.abc.core.Population
 
 class ABCActorTest
 		extends TestKit(ActorSystem("ABC"))
@@ -89,7 +90,8 @@ class ABCActorTest
 
 		val clientRef = TestProbe().ref
 
-		var gen1: Generation[TestParams] = Generation(1, mock[Map[TestParams, Double]], 99)
+		//TODO can just do mock[Population] now?
+		var gen1: Generation[TestParams] = Population( mock[Map[TestParams, Double]], 1, 99)
 		var eGen1: EvolvingGeneration[TestParams] = EvolvingGeneration(
 			99.9,
 			gen1,
@@ -110,7 +112,7 @@ class ABCActorTest
 			instanceRef ! Start(gen1)
 
 			// Assertions
-			routerProbe.expectMsg(Broadcast(GenerateParticlesFrom(gen1.particleWeights, 0, instanceObj.config)))
+			routerProbe.expectMsg(Broadcast(GenerateParticlesFrom(gen1, instanceObj.config)))
 			assertResult(Gathering)(instanceRef.stateName)
 			assertResult(gen1)(instanceRef.stateData match {
 				case gd: StateData[_] => gd.generation.previousGen
@@ -134,8 +136,7 @@ class ABCActorTest
 
 				// Assertions
 				workerProbe.expectMsg(GenerateParticlesFrom(
-					eGen1.previousGen.particleWeights,
-					eGen1.previousGen.iteration,
+					eGen1.previousGen,
 					instanceObj.config))
 				assertResult(Gathering)(instanceRef.stateName)
 				assertResult(state)(instanceRef.stateData match {
@@ -160,7 +161,7 @@ class ABCActorTest
 				workerProbe.expectMsg(
 					WeighJob(
 						eGen1.dueWeighing,
-						eGen1.previousGen.particleWeights,
+						eGen1.previousGen,
 						eGen1.currentTolerance))
 
 				assertResult(Gathering)(instanceRef.stateName)
@@ -190,7 +191,7 @@ class ABCActorTest
 			workerProbe.expectMsg(
 				WeighJob(
 					eGen1.dueWeighing,
-					eGen1.previousGen.particleWeights,
+					eGen1.previousGen,
 					eGen1.currentTolerance))
 
 			assertResult(Gathering)(instanceRef.stateName)
@@ -260,7 +261,7 @@ class ABCActorTest
 					workerProbe.expectMsg(
 						WeighJob(
 							eGen1.dueWeighing,
-							eGen1.previousGen.particleWeights,
+							eGen1.previousGen,
 							eGen1.currentTolerance))
 
 					val expectedState = StateData(eGen2, clientRef, None)
@@ -288,8 +289,7 @@ class ABCActorTest
 
 					// Assertion
 					workerProbe.expectMsg(GenerateParticlesFrom(
-						eGen1.previousGen.particleWeights,
-						eGen1.previousGen.iteration,
+						eGen1.previousGen,
 						config))
 
 					assertResult(Gathering)(instanceRef.stateName)
@@ -393,7 +393,10 @@ class ABCActorTest
 	}
 
 	"When Flushing a completed generation / " - {
-		"incoming particles are discarded" in new Setup {
+		
+		"incoming weighed particles are discarded" in pending
+		
+		"incoming scored particles are discarded" in new Setup {
 			val stateData = StateData(eGen1, null, None)
 
 			val scored = mock[ScoredParticles[TestParams]]
@@ -486,8 +489,7 @@ class ABCActorTest
 
 				// Assertion
 				routerProbe.expectMsg(Broadcast(GenerateParticlesFrom(
-					eGen1.previousGen.particleWeights,
-					eGen1.previousGen.iteration,
+					eGen1.previousGen,
 					instanceObj.config)))
 
 				assertResult(Gathering)(instanceRef.stateName)

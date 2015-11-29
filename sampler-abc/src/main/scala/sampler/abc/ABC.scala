@@ -33,6 +33,7 @@ import sampler.io.Logging
 import sampler.abc.actor.Start
 import scala.concurrent.duration.Duration
 import sampler.abc.core.Generation
+import sampler.abc.core.GenPrior
 
 trait ABCActors {
 	val system: ActorSystem
@@ -80,11 +81,11 @@ object ABC extends ABCActorsImpl with Logging {
 		info(s"Terminate at target generations: ${config.cluster.terminateAtTargetGenerations}")
 		info(s"Number of workers (router configured): ${ConfigFactory.load().getInt("akka.actor.deployment./root/work-router.nr-of-instances")}")
 
-		val gen0 = Generation.init(model, config)
+		//val gen0 = Generation.init(model, config)
 		val actor = entryPointActor(model, config, reporting)
-
+		
 		implicit val timeout = Timeout(config.cluster.futuresTimeoutMS, TimeUnit.MILLISECONDS)
-		val future = (actor ? Start(gen0)).mapTo[Report[P]]
+		val future = (actor ? Start(GenPrior(Double.MaxValue))).mapTo[Report[P]]
 		val result = Await.result(future, Duration.Inf).posterior
 
 		if (config.cluster.terminateAtTargetGenerations) {

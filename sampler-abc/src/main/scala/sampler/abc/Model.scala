@@ -35,10 +35,11 @@ trait Prior[A] extends Distribution[A]{
 		val drawn = draw
 		assume(density(drawn) > 0.0)
 		drawn
-	} 
+	}
 }
 
 trait Model[P] {
+	//TODO separate prior from the model?
 	val prior: Prior[P]
 	def perturb(parameters: P): P
 	def perturbDensity(a: P, b: P): Double	

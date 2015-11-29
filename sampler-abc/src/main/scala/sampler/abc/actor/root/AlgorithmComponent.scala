@@ -11,7 +11,7 @@ import sampler.math.Random
 trait AlgorithmCoponentImpl extends AlgorithmComponent {
 	this: ABCActor[_] =>
 	
-	val algorithm = new Algorithm(
+	lazy val algorithm = new Algorithm(
 			new GenerationFlusher(
 					ToleranceCalculator,
 					new ObservedIdsTrimmer(

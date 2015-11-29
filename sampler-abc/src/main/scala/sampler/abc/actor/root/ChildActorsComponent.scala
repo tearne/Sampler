@@ -14,7 +14,7 @@ import sampler.abc.actor.FlushingActor
 trait ChildrenActorsComponentImpl[P] extends ChildrenActorsComponent[P]{
 	this: Actor with ABCActor[P] =>
 	
-	val childActors = new ChildActors{}
+	lazy val childActors = new ChildActors{}
 }
 
 trait ChildrenActorsComponent[P] {
@@ -42,7 +42,7 @@ trait ChildrenActorsComponent[P] {
 		)
 		
 		val flusher = context.actorOf(
-			Props(classOf[FlushingActor[P]],algorithm),
+			Props(classOf[FlushingActor[P]], algorithm),
 			"flusher"
 		)
 		

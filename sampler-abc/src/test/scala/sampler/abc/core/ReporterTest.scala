@@ -30,10 +30,9 @@ class ReporterTest extends FreeSpec with MockitoSugar{
 		when(distBuilder.fromWeightsTable(Matchers.eq(particleWeights))(any()))
 			.thenReturn(DistributionBuilder.continually(7))
     
-		val generation = Generation[Int](
-        //null,
+		val generation = Population[Int](
+				particleWeights,
         iteration500,
-        particleWeights,
         tolerance
     )
       

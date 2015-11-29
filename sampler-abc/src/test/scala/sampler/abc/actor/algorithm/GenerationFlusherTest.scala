@@ -11,6 +11,7 @@ import sampler.abc.Weighted
 import sampler.abc.core.Generation
 import sampler.abc.Model
 import scala.collection.immutable.Queue
+import sampler.abc.core.Population
 
 class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 	type T = Int
@@ -33,7 +34,7 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 
 		val inProgress = EvolvingGeneration(
 			0.1,
-			Generation(10, null, 0.5),
+			Population(null, 10, 0.5),
 			null,
 			mock[WeighedParticles[T]],
 			mock[Queue[Long]]
@@ -58,7 +59,7 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 			val instance = getInstance(tenParticles)
 			
 			val result: EvolvingGeneration[T] = instance.apply(inProgress)
-			val completedGen: Generation[T] = result.previousGen
+			val completedGen = result.previousGen.asInstanceOf[Population[T]]
 			
 			//assert(completedGen.model === model)
 			assert(completedGen.iteration === 11)

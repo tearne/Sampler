@@ -154,8 +154,7 @@ trait ABCActor[P]
 			
 			val evolvingGen = EvolvingGeneration.init(s.generationZero)
 			childActors.router ! Broadcast(GenerateParticlesFrom(//TODO fix duplication with 'allocateWork' below
-					evolvingGen.previousGen.particleWeights, 
-					0,	//TODO, in future, allow resuming from non zero gen? (i.e. will perturb before model run)
+					evolvingGen.previousGen, 
 					config
 			))
 			
@@ -203,7 +202,7 @@ trait ABCActor[P]
 					s"${getters.getNumEvolvedParticles(updatedGen)}/${config.job.numParticles}")
 			
 			if(algorithm.isEnoughParticles(updatedGen, config)){
-				childActors.router ! Broadcast(Abort) //TODO what if abort doesn't happen in time?
+				childActors.router ! Broadcast(Abort)
 				childActors.flusher ! updatedGen
 				
 				goto(Flushing) using stateData.getFlushingData
@@ -249,9 +248,8 @@ trait ABCActor[P]
 			} else {
 				// Start next generation
 				//TODO fix duplication with 'allocateWork' below
-				childActors.router ! Broadcast(GenerateParticlesFrom(
-						flushedEGen.previousGen.particleWeights,
-						generationCompleted,		//TODO is this right? test
+				childActors.router ! Broadcast(GenerateParticlesFrom( //TODO check test coverage
+						flushedEGen.previousGen,
 						config
 				))
 				reportCompletedGeneration(flushedEGen.previousGen)
@@ -279,9 +277,7 @@ trait ABCActor[P]
 			stay using stateData.updateGeneration(algorithm.emptyWeighingBuffer(generation))	//Weigh existing particles
 		} else {
 			// Tell worker to make more particles
-			val previousParticleWeights = generation.previousGen.particleWeights
-			//TODO nice helper to build these messages 
-			worker ! GenerateParticlesFrom(previousParticleWeights, generation.previousGen.iteration, config)	//TODO test if currentIteration is correct number
+			worker ! GenerateParticlesFrom(generation.previousGen, config)
 			stay using stateData.updateGeneration(generation)
 		}
 	}
