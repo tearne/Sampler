@@ -1,4 +1,4 @@
-package sampler.abc.actor.root
+package sampler.abc.actor.main.component
 
 import akka.actor.Actor
 import scala.concurrent.ExecutionContext

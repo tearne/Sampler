@@ -15,24 +15,29 @@
  * limitations under the License.
  */
 
-package sampler.abc.actor.worker
+package sampler.abc.actor.main.component
 
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.tailrec
 import scala.util.Try
-import sampler.abc.actor.message.Job
-import sampler.data.DistributionBuilder
 import sampler.data.SerialSampler
 import sampler.io.Logging
 import sampler.math.Random
 import sampler.abc.Model
 import sampler.abc.Scored
-import sampler.abc.actor.Tagged
-import sampler.abc.actor.message.GenerateParticlesFrom
-import sampler.abc.actor.message.ScoredParticles
 import sampler.data.ConvergenceProtocol
 import sampler.data.MaxMetric
 import sampler.data.Distribution
+import sampler.abc.actor.main.ScoredParticles
+import sampler.abc.actor.sub.GenerateParticlesFrom
+import sampler.abc.actor.main.Tagged
+
+class DetectedAbortionException(message: String = null, cause: Throwable = null) 
+	extends Exception(message, cause)
+
+class MaxRetryException(message: String = null, cause: Throwable = null) 
+	extends RuntimeException(message, cause)
+
 
 trait ModelRunnerComponent[P] {
 	val model: Model[P]

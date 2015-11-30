@@ -1,4 +1,4 @@
-package sampler.abc.actor.algorithm
+package sampler.abc.actor.sub.flushing
 
 import scala.collection.immutable.Queue
 

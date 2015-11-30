@@ -1,8 +1,9 @@
-package sampler.abc.actor.algorithm
+package sampler.abc.actor.main.helper
 
 import sampler.abc.config.ABCConfig
-import sampler.abc.actor.message.WeighedParticles
 import sampler.abc.Weighted
+import sampler.abc.actor.main.WeighedParticles
+import sampler.abc.actor.main.EvolvingGeneration
 
 class Getters {
 	def getMixRateMS(config: ABCConfig): Long = config.cluster.mixRateMS

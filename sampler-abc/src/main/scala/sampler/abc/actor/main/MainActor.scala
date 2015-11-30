@@ -15,9 +15,8 @@
  * limitations under the License.
  */
 
-package sampler.abc.actor.root
+package sampler.abc.actor.main
 
-import scala.concurrent.Future
 import scala.concurrent.duration.DurationLong
 import akka.actor.Actor
 import akka.actor.ActorLogging
@@ -25,67 +24,37 @@ import akka.actor.ActorRef
 import akka.actor.Cancellable
 import akka.actor.FSM
 import akka.actor.actorRef2Scala
-import akka.pattern.pipe
 import sampler.abc.Model
-import sampler.abc.actor.message.Abort
-import sampler.abc.actor.message.Start
 import sampler.abc.config.ABCConfig
 import sampler.math.Random
 import sampler.math.Statistics
 import sampler.math.StatisticsComponent
-import sampler.abc.actor.Tagged
-import sampler.abc.Scored
-import sampler.abc.actor.message.ScoredParticles
 import akka.routing.Broadcast
-import sampler.abc.actor.message.WeighedParticles
-import sampler.abc.actor.message.WeighJob
-import scala.util.Failure
-import scala.util.Success
-import sampler.abc.actor.message.Failed
-import sampler.abc.actor.message.MixPayload
-import sampler.abc.actor.message.ReportCompleted
-import sampler.abc.actor.message.Report
 import sampler.math.Statistics
-import sampler.abc.core.LoggingAdapterComponent
-import sampler.abc.core.LoggingAdapterComponentImpl
-import sampler.abc.actor.message.GenerateParticlesFrom
-import sampler.abc.actor.algorithm.Algorithm
-import sampler.abc.actor.algorithm.EvolvingGeneration
+import sampler.abc.actor.LoggingAdapterComponentImpl
 import sampler.abc.core.Generation
-import sampler.abc.actor.algorithm.Getters
-import sampler.abc.core.WeightsHelper
-import sampler.abc.core.ToleranceCalculator
-import sampler.abc.actor.algorithm.ParticleMixer
-import sampler.abc.actor.algorithm.ObservedIdsTrimmer
-import sampler.abc.actor.algorithm.GenerationFlusher
-import sampler.abc.actor.algorithm.ObservedIdsTrimmer
+import sampler.abc.actor.main.helper.Getters
 import sampler.data.DistributionBuilder
 import sampler.abc.core.Reporter
 import sampler.abc.core.Reporter
 import sampler.abc.core.Reporter
-import sampler.abc.actor.FlushComplete
+import sampler.abc.actor.main.component.ChildActorsComponentImpl
+import sampler.abc.actor.main.component.WorkDispatcherComponent
+import sampler.abc.actor.main.component.WorkDispatcherComponentImpl
+import sampler.abc.Scored
+import sampler.abc.Weighted
+import sampler.abc.actor.sub.FlushComplete
+import sampler.abc.actor.main.component.ChildActorsComponent
+import sampler.abc.actor.sub.Report
+import sampler.abc.actor.sub.GenerateParticlesFrom
+import sampler.abc.actor.sub.WeighJob
+import sampler.abc.actor.sub.Abort
+import sampler.abc.actor.main.component.HelperComponent
+import sampler.abc.actor.main.component.HelperCoponentImpl
 
-class ABCActorImpl[P](
-		val model: Model[P],
-		val config: ABCConfig,
-		val reportAction: Option[Report[P] => Unit]
-	) extends ABCActor[P]
-		with ChildrenActorsComponentImpl[P]
-		with WorkDispatcherComponentImpl
-		with LoggingAdapterComponentImpl
-		with AlgorithmCoponentImpl
-		with StatisticsComponent {
-
-	val distributionBuilder = DistributionBuilder
-	
-	val getters = new Getters()
-	val reporter = new Reporter(
-			DistributionBuilder,
-			Random,
-			config)
-	val statistics = Statistics
-}
-
+/*
+ * States/Data
+ */
 sealed trait Status
 case object Idle extends Status
 case object Gathering extends Status
@@ -114,13 +83,34 @@ case class FlushingData(
   def setGeneration[P](g: EvolvingGeneration[P]) = StateData(g, client, cancellableMixing)
 }
 
-trait ABCActor[P]
+class MainActorImpl[P](
+		val model: Model[P],
+		val config: ABCConfig,
+		val reportAction: Option[Report[P] => Unit]
+	) extends MainActor[P]
+		with ChildActorsComponentImpl[P]
+		with WorkDispatcherComponentImpl
+		with LoggingAdapterComponentImpl
+		with HelperCoponentImpl
+		with StatisticsComponent {
+
+	val distributionBuilder = DistributionBuilder
+	
+	val getters = new Getters()
+	val reporter = new Reporter(
+			DistributionBuilder,
+			Random,
+			config)
+	val statistics = Statistics
+}
+
+trait MainActor[P]
 		extends FSM[Status, Data] 
 		with Actor 
 		with ActorLogging
-		with AlgorithmComponent
+		with HelperComponent
 {
-	this: ChildrenActorsComponent[P] with WorkDispatcherComponent =>
+	this: ChildActorsComponent[P] with WorkDispatcherComponent =>
 	
 	val config: ABCConfig
 	val model: Model[P]
@@ -129,7 +119,7 @@ trait ABCActor[P]
 	val getters: Getters
 	
 	case class AddComplete(generation: EvolvingGeneration[P])
-	case object MixNow
+
 	
 	startWith(Idle, Uninitialized)
 
@@ -181,27 +171,21 @@ trait ABCActor[P]
 			
 		case Event(scored: ScoredParticles[P], stateData: StateData[P]) =>
 			val sndr = sender
-			val updatedGeneration = algorithm.filterAndQueueUnweighedParticles(scored, stateData.generation)
+			val updatedGeneration = helper.filterAndQueueUnweighedParticles(scored, stateData.generation)
 			log.info("New filtered and queued ({}) => |Q| = {},  from {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
 			sndr ! WeighJob.buildFrom(updatedGeneration)
 			log.debug("Allocate weighing of {} particles to {}", updatedGeneration.dueWeighing.size, sndr)
 			stay using stateData.copy(generation = updatedGeneration.emptyWeighingBuffer)
 			
-		case Event(mixP: MixPayload[P], stateData: StateData[P]) =>
-			val scored = mixP.scoredParticles
-			val updatedGeneration = algorithm.filterAndQueueUnweighedParticles(scored, stateData.generation)
-			log.info("New filtered and queued ({}) => |Q| = {},  from REMOTE {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
-			stay using StateData(updatedGeneration, stateData.client, stateData.cancellableMixing)//stateData.copy(generation = updatedGeneration)
-
 		case Event(weighted: WeighedParticles[P], stateData: StateData[P]) =>
-			val updatedGen = algorithm.addWeightedParticles(weighted, stateData.generation)
+			val updatedGen = helper.addWeightedParticles(weighted, stateData.generation)
 
 			log.info(
 					s"Working on gen ${updatedGen.buildingGeneration}, "+
 					s"Particles + ${getters.getNumParticles(weighted)} = "+
 					s"${getters.getNumEvolvedParticles(updatedGen)}/${config.job.numParticles}")
 			
-			if(algorithm.isEnoughParticles(updatedGen, config)){
+			if(helper.isEnoughParticles(updatedGen, config)){
 				childActors.router ! Broadcast(Abort)
 				childActors.flusher ! updatedGen
 				
@@ -212,12 +196,19 @@ trait ABCActor[P]
 			}
 			
 		case Event(MixNow, p: StateData[P]) => 
-			val payload = algorithm.buildMixPayload(p.generation, config)
+			val payload = helper.buildMixPayload(p.generation, config)
 			payload.foreach{message => 
 				childActors.broadcaster ! MixPayload(message)}
 			
 			stay
 		
+		case Event(mixP: MixPayload[P], stateData: StateData[P]) =>
+			val scored = mixP.scoredParticles
+			val updatedGeneration = helper.filterAndQueueUnweighedParticles(scored, stateData.generation)
+			log.info("New filtered and queued ({}) => |Q| = {},  from REMOTE {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
+			stay using StateData(updatedGeneration, stateData.client, stateData.cancellableMixing)//stateData.copy(generation = updatedGeneration)
+
+			
 		case Event(rc: ReportCompleted[P], _) => 
 		  log.debug(s"Report for generation ${rc.report.generationId} completed.")
 		  stay
@@ -274,7 +265,7 @@ trait ABCActor[P]
 		if(dueWeighing.size > 0) {
 			// Tell worker to weigh particles
 			worker ! WeighJob.buildFrom(generation)
-			stay using stateData.updateGeneration(algorithm.emptyWeighingBuffer(generation))	//Weigh existing particles
+			stay using stateData.updateGeneration(helper.emptyWeighingBuffer(generation))	//Weigh existing particles
 		} else {
 			// Tell worker to make more particles
 			worker ! GenerateParticlesFrom(generation.previousGen, config)

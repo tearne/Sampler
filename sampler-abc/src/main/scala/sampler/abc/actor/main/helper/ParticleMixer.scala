@@ -1,9 +1,11 @@
-package sampler.abc.actor.algorithm
+package sampler.abc.actor.main.helper
 
 import sampler.abc.config.ABCConfig
-import sampler.abc.actor.message.ScoredParticles
-import sampler.abc.actor.Tagged
 import sampler.math.Random
+import sampler.abc.actor.main.ScoredParticles
+import sampler.abc.actor.main.Tagged
+import sampler.abc.actor.main.EvolvingGeneration
+import sampler.Implicits
 
 class ParticleMixer {
 	

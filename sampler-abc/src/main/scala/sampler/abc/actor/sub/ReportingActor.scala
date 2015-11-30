@@ -1,10 +1,11 @@
-package sampler.abc.actor
+package sampler.abc.actor.sub
 
 import akka.actor.ActorLogging
 import akka.actor.Actor
 import akka.actor.actorRef2Scala
-import sampler.abc.actor.message.ReportCompleted
-import sampler.abc.actor.message.Report
+import sampler.abc.actor.main.ReportCompleted
+
+case class Report[P](generationId: Int, tolerance: Double, posterior: Seq[P])
 
 class ReportingActor[P](action: Option[Report[P] => Unit]) extends Actor with ActorLogging {
 	def receive = {

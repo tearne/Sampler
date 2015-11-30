@@ -1,11 +1,5 @@
-package sampler.abc.actor.algorithm
+package sampler.abc.actor.main
 
-import akka.actor.ActorRef
-import sampler.abc.actor.Tagged
-import sampler.abc.Model
-import sampler.abc.config.ABCConfig
-import sampler.abc.actor.message.ScoredParticles
-import sampler.abc.actor.message.WeighedParticles
 import sampler.abc.Scored
 import sampler.abc.Weighted
 import scala.collection.immutable.Queue
@@ -20,7 +14,6 @@ case class EvolvingGeneration[P](
 ){
 	def emptyWeighingBuffer = copy(dueWeighing = ScoredParticles.empty)
 	val buildingGeneration = previousGen.iteration + 1
-	//val model = previousGen.model
 }
 
 object EvolvingGeneration {

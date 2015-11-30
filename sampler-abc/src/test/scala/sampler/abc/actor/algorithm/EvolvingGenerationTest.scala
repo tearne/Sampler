@@ -12,6 +12,7 @@ import sampler.abc.actor.message.ScoredParticles
 import sampler.abc.actor.message.WeighedParticles
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
+import sampler.abc.actor.main.EvolvingGeneration
 
 @RunWith(classOf[JUnitRunner])
 class EvolvingGenerationTest extends FreeSpec with Matchers with MockitoSugar {

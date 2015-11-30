@@ -14,6 +14,11 @@ import org.mockito.Mockito._
 import org.mockito.Matchers._
 import sampler.abc.config.ABCConfig
 import sampler.abc.config.JobParameters
+import sampler.abc.actor.main.EvolvingGeneration
+import sampler.abc.actor.sub.flushing.GenerationFlusher
+import sampler.abc.actor.main.helper.Helper
+import sampler.abc.actor.main.helper.ParticleMixer
+import sampler.abc.actor.main.helper.Getters
 
 class AlgorithmTest extends FreeSpec with Matchers with MockitoSugar {
 
@@ -22,7 +27,7 @@ class AlgorithmTest extends FreeSpec with Matchers with MockitoSugar {
 		val particleMixer = mock[ParticleMixer]
 		val getters = mock[Getters]
 		val random = mock[Random]
-		val instance = new Algorithm(
+		val instance = new Helper(
 				generationFlusher,
 				particleMixer,
 				getters,

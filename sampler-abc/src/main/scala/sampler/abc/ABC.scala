@@ -18,25 +18,22 @@
 package sampler.abc
 
 import java.util.concurrent.TimeUnit
-
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-
 import com.typesafe.config.ConfigFactory
-
 import akka.actor.ActorRef
 import akka.actor.ActorSystem
 import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout
-import sampler.abc.actor.message.Report
-import sampler.abc.actor.message.Start
-import sampler.abc.actor.root.ABCActorImpl
+import sampler.abc.actor.main.MainActorImpl
 import sampler.abc.config.ABCConfig
 import sampler.abc.core.Generation
 import sampler.abc.core.UseModelPrior
 import sampler.cluster.PortFallbackSystemFactory
 import sampler.io.Logging
+import sampler.abc.actor.sub.Report
+import sampler.abc.actor.main.Start
 
 trait ABCActors {
 	val system: ActorSystem
@@ -55,7 +52,7 @@ trait ABCActorsImpl extends ABCActors {
 		reportAction: Option[Report[P] => Unit]) = {
 
 		system.actorOf(
-			Props(classOf[ABCActorImpl[P]], model, config, reportAction),
+			Props(classOf[MainActorImpl[P]], model, config, reportAction),
 			"root")
 	}
 }

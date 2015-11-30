@@ -1,9 +1,9 @@
 package sampler.abc.core
 
 import sampler.abc.config.ABCConfig
-import sampler.abc.actor.message.Report
 import sampler.data.DistributionBuilder
 import sampler.math.Random
+import sampler.abc.actor.sub.Report
 
 class Reporter(
 		builder: DistributionBuilder, 

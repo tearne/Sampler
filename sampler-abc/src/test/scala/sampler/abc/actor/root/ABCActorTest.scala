@@ -27,18 +27,26 @@ import sampler.abc.actor.message.ReportCompleted
 import sampler.abc.actor.message.ReportCompleted
 import akka.actor.Cancellable
 import sampler.abc.actor.message.ScoredParticles
-import sampler.abc.actor.algorithm.Getters
+import sampler.abc.actor.main.helper.Getters
 import sampler.abc.core.Generation
-import sampler.abc.actor.algorithm.Algorithm
+import sampler.abc.actor.main.helper.Helper
 import sampler.abc.actor.message.GenerateParticlesFrom
-import sampler.abc.actor.algorithm.EvolvingGeneration
+import sampler.abc.actor.main.EvolvingGeneration
 import sampler.abc.core.Reporter
 import scala.collection.immutable.Queue
 import org.scalatest.BeforeAndAfter
 import akka.actor.ActorRef
-import sampler.abc.actor.FlushComplete
+import sampler.abc.actor.sub.FlushComplete
 import org.scalatest.Pending
 import sampler.abc.core.Population
+import sampler.abc.actor.main.WaitingForShutdown
+import sampler.abc.actor.main.StateData
+import sampler.abc.actor.main.Gathering
+import sampler.abc.actor.main.FlushingData
+import sampler.abc.actor.main.Flushing
+import sampler.abc.actor.main.ABCActor
+import sampler.abc.actor.main.component.ChildrenActorsComponent
+import sampler.abc.actor.main.component.WorkDispatcherComponent
 
 class ABCActorTest
 		extends TestKit(ActorSystem("ABC"))
@@ -63,7 +71,7 @@ class ABCActorTest
 			with ChildrenActorsComponent[TestParams]
 			with WorkDispatcherComponent {
 		val childActors = mock[ChildActors]
-		val algorithm = mock[Algorithm]
+		val algorithm = mock[Helper]
 		val workDispatcher = context.dispatcher
 
 		val distributionBuilder = sampler.data.DistributionBuilder

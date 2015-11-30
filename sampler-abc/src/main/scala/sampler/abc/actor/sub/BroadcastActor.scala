@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.abc.actor
+package sampler.abc.actor.sub
 
 import scala.concurrent.duration.DurationInt
 import akka.actor.Actor
@@ -38,13 +38,15 @@ import scala.concurrent.duration._
 import akka.actor.ActorSelection.toScala
 import akka.cluster.ClusterEvent.ClusterDomainEvent
 import sampler.abc.config.ABCConfig
-import scala.language.existentials
 import scala.concurrent.duration._
 import akka.cluster.ClusterEvent.ReachableMember
 import akka.cluster.ClusterEvent.UnreachableMember
 import akka.cluster.Member
 import sampler.data.DistributionBuilder
-import sampler.abc.actor.message.MixPayload
+import sampler.abc.actor.main.MixPayload
+import akka.cluster.ClusterEvent.ClusterDomainEvent
+import akka.cluster.ClusterEvent.ClusterDomainEvent
+import akka.cluster.ClusterEvent.ClusterDomainEvent
 
 class BroadcastActor(abcParams: ABCConfig) extends Actor with ActorLogging{
 	implicit val r = Random

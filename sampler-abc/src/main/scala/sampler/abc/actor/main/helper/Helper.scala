@@ -1,14 +1,12 @@
-package sampler.abc.actor.algorithm
+package sampler.abc.actor.main.helper
 
-import sampler.abc.actor.message.Report
-import sampler.abc.actor.message.ScoredParticles
-import sampler.abc.actor.message.WeighedParticles
 import sampler.math.Random
 import sampler.abc.config.ABCConfig
-import sampler.data.Distribution
+import sampler.abc.actor.main.WeighedParticles
+import sampler.abc.actor.main.ScoredParticles
+import sampler.abc.actor.main.EvolvingGeneration
 
-class Algorithm(
-		generationFlusher: GenerationFlusher,
+class Helper(
 		particleMixer: ParticleMixer,
 		getters: Getters,
 		random: Random
@@ -37,8 +35,8 @@ class Algorithm(
 		)
 	}
 		
-	def flushGeneration[P](gen: EvolvingGeneration[P]): EvolvingGeneration[P] = 
-		generationFlusher(gen)
+//	def flushGeneration[P](gen: EvolvingGeneration[P]): EvolvingGeneration[P] = 
+//		generationFlusher(gen)
 		
 	def isEnoughParticles(gen: EvolvingGeneration[_], config: ABCConfig): Boolean =
 		gen.weighed.size >= config.job.numParticles

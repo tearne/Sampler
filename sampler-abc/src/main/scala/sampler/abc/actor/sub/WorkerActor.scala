@@ -15,9 +15,8 @@
  * limitations under the License.
  */
 
-package sampler.abc.actor.worker
+package sampler.abc.actor.sub
 
-import java.rmi.UnexpectedException
 import scala.collection.parallel.CompositeThrowable
 import scala.util.Failure
 import scala.util.Success
@@ -27,23 +26,35 @@ import akka.actor.ActorLogging
 import akka.actor.ActorRef
 import akka.actor.actorRef2Scala
 import sampler.abc.Model
-import sampler.abc.actor.message.Abort
-import sampler.abc.actor.message.Aborted
-import sampler.abc.actor.Tagged
-import sampler.abc.actor.message.ScoredParticles
 import sampler.math.Random
-import sampler.abc.Scored
 import scala.concurrent.Future
-import sampler.abc.actor.message.Job
-import sampler.abc.config.ABCConfig
 import akka.actor.FSM
+import sampler.abc.actor.main.component.ModelRunnerComponent
+import sampler.abc.actor.worker.WeigherComponent
+import sampler.abc.actor.main.Failed
+import sampler.abc.actor.main.ScoredParticles
+import sampler.abc.actor.main.WeighedParticles
+import sampler.abc.core.Generation
+import sampler.abc.config.ABCConfig
+import sampler.abc.actor.main.EvolvingGeneration
 import akka.pattern.pipe
-import sampler.abc.Weighted
-import sampler.abc.actor.message.GenerateParticlesFrom
-import sampler.abc.actor.message.WeighJob
-import sampler.abc.actor.message.Failed
-import sampler.abc.actor.message.WeighedParticles
-import sampler.abc.actor.message.WorkerResult
+import sampler.abc.actor.main.component.DetectedAbortionException
+
+sealed trait Job[P]
+case class GenerateParticlesFrom[P](prevGen: Generation[P], config: ABCConfig) extends Job[P]
+
+case class WeighJob[P](scored: ScoredParticles[P], prevGen: Generation[P], tolerance: Double) extends Job[P]
+object WeighJob{
+	def buildFrom[P](eGen: EvolvingGeneration[P]) = 
+		WeighJob(
+			eGen.dueWeighing,
+			eGen.previousGen,
+			eGen.currentTolerance
+		)
+}
+
+case class Abort()
+case class Aborted()
 
 class WorkerActorImpl[P](val model: Model[P]) extends WorkerActor[P] {
 	implicit val random = Random

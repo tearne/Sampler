@@ -15,6 +15,8 @@ import sampler.abc.actor.message.WeighedParticles
 import scala.collection.immutable.Queue
 import org.scalatest.BeforeAndAfter
 import sampler.math.Random
+import sampler.abc.actor.main.EvolvingGeneration
+import sampler.abc.actor.main.helper.ParticleMixer
 
 class ParticleMixerTest extends FreeSpec with Matchers with MockitoSugar with BeforeAndAfter{
 

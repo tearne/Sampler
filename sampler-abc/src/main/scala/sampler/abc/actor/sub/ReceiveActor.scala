@@ -1,4 +1,4 @@
-package sampler.abc.actor
+package sampler.abc.actor.sub
 
 import akka.actor.Actor
 import akka.actor.ActorLogging

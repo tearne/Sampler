@@ -12,6 +12,10 @@ import sampler.abc.core.Generation
 import sampler.abc.Model
 import scala.collection.immutable.Queue
 import sampler.abc.core.Population
+import sampler.abc.actor.main.EvolvingGeneration
+import sampler.abc.actor.sub.flushing.GenerationFlusher
+import sampler.abc.actor.main.helper.Getters
+import sampler.abc.actor.sub.flushing.ObservedIdsTrimmer
 
 class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 	type T = Int
