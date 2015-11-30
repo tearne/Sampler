@@ -11,7 +11,7 @@ import com.typesafe.config.ConfigFactory
 import sampler.abc.ABC
 import sampler.abc.Model
 import sampler.abc.Prior
-import sampler.abc.actor.Report
+import sampler.abc.actor.message.Report
 import sampler.abc.config.ABCConfig
 import sampler.data.Distribution
 import sampler.data.ToEmpirical

@@ -1,8 +1,8 @@
 package sampler.abc.actor.algorithm
 
-import sampler.abc.actor.Report
-import sampler.abc.actor.ScoredParticles
-import sampler.abc.actor.WeighedParticles
+import sampler.abc.actor.message.Report
+import sampler.abc.actor.message.ScoredParticles
+import sampler.abc.actor.message.WeighedParticles
 import sampler.math.Random
 import sampler.abc.config.ABCConfig
 import sampler.data.Distribution

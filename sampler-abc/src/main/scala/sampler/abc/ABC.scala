@@ -29,8 +29,8 @@ import akka.actor.ActorSystem
 import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout
-import sampler.abc.actor.Report
-import sampler.abc.actor.Start
+import sampler.abc.actor.message.Report
+import sampler.abc.actor.message.Start
 import sampler.abc.actor.root.ABCActorImpl
 import sampler.abc.config.ABCConfig
 import sampler.abc.core.Generation
@@ -63,11 +63,15 @@ trait ABCActorsImpl extends ABCActors {
 object ABC extends ABCActorsImpl with Logging {
 	def apply[P](
 			model: Model[P],
+			config: ABCConfig): Seq[P] =
+		apply(model, config, None, UseModelPrior())
+		
+	def apply[P](
+			model: Model[P],
 			config: ABCConfig,
-			reporting: Report[P] => Unit,
-			initPop: Generation[P]): Seq[P] =
-		apply(model, config, Some(reporting), initPop)
-
+			reporter: Report[P] => Unit): Seq[P] =
+		apply(model, config, Some(reporter), UseModelPrior())
+	
 	def apply[P](
 			model: Model[P],
 			config: ABCConfig,

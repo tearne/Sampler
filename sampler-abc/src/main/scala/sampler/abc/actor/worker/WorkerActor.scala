@@ -27,23 +27,23 @@ import akka.actor.ActorLogging
 import akka.actor.ActorRef
 import akka.actor.actorRef2Scala
 import sampler.abc.Model
-import sampler.abc.actor.Abort
-import sampler.abc.actor.Aborted
+import sampler.abc.actor.message.Abort
+import sampler.abc.actor.message.Aborted
 import sampler.abc.actor.Tagged
-import sampler.abc.actor.ScoredParticles
+import sampler.abc.actor.message.ScoredParticles
 import sampler.math.Random
 import sampler.abc.Scored
 import scala.concurrent.Future
-import sampler.abc.actor.Job
+import sampler.abc.actor.message.Job
 import sampler.abc.config.ABCConfig
 import akka.actor.FSM
 import akka.pattern.pipe
 import sampler.abc.Weighted
-import sampler.abc.actor.GenerateParticlesFrom
-import sampler.abc.actor.WeighJob
-import sampler.abc.actor.Failed
-import sampler.abc.actor.WeighedParticles
-import sampler.abc.actor.WorkerResult
+import sampler.abc.actor.message.GenerateParticlesFrom
+import sampler.abc.actor.message.WeighJob
+import sampler.abc.actor.message.Failed
+import sampler.abc.actor.message.WeighedParticles
+import sampler.abc.actor.message.WorkerResult
 
 class WorkerActorImpl[P](val model: Model[P]) extends WorkerActor[P] {
 	implicit val random = Random
@@ -146,14 +146,14 @@ abstract class WorkerActor[P]
 		Future{
 			log.debug("Generating")
 			val result: Try[ScoredParticles[P]] = modelRunner.run(gJob) 
-			result match{
-				case Failure(e: DetectedAbortionException) =>
-					Aborted
-				case Failure(e: CompositeThrowable) if e.throwables.exists(_.isInstanceOf[DetectedAbortionException]) =>
-					Aborted
-				case any =>
-					any // Could be any success or failure other than the above
-			}
+			result //match{  //TODO can't we just delete all of this?
+//				case Failure(e: DetectedAbortionException) =>
+//					Aborted
+//				case Failure(e: CompositeThrowable) if e.throwables.exists(_.isInstanceOf[DetectedAbortionException]) =>
+//					Aborted
+//				case any =>
+//					any // Could be any success or failure other than the above
+//			}
 		}.pipeTo(self)
 	}
 	

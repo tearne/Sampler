@@ -1,7 +1,7 @@
 package sampler.abc.actor.algorithm
 
 import sampler.abc.config.ABCConfig
-import sampler.abc.actor.WeighedParticles
+import sampler.abc.actor.message.WeighedParticles
 import sampler.abc.Weighted
 
 class Getters {

@@ -3,8 +3,8 @@ package sampler.abc.actor.algorithm
 import sampler.abc.core.ToleranceCalculator
 import sampler.abc.core.WeightsHelper
 import sampler.abc.core.Generation
-import sampler.abc.actor.ScoredParticles
-import sampler.abc.actor.WeighedParticles
+import sampler.abc.actor.message.ScoredParticles
+import sampler.abc.actor.message.WeighedParticles
 import sampler.abc.core.Population
 
 class GenerationFlusher(

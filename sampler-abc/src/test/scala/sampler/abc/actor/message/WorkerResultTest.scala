@@ -1,7 +1,8 @@
-package sampler.abc.actor
+package sampler.abc.actor.message
 
 import org.scalatest.FreeSpec
 import org.scalatest.Matchers
+import sampler.abc.actor.Tagged
 import sampler.abc.Scored
 import sampler.abc.Weighted
 

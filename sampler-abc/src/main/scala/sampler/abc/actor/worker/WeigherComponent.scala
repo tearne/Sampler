@@ -7,8 +7,8 @@ import sampler.abc.Model
 import sampler.abc.Scored
 import sampler.abc.Weighted
 import sampler.abc.actor.Tagged
-import sampler.abc.actor.WeighedParticles
-import sampler.abc.actor.WeighJob
+import sampler.abc.actor.message.WeighedParticles
+import sampler.abc.actor.message.WeighJob
 import sampler.abc.core.Population
 import sampler.abc.core.UseModelPrior
 

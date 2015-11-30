@@ -8,8 +8,8 @@ import sampler.abc.actor.Tagged
 import sampler.abc.Scored
 import sampler.abc.core.Generation
 import scala.collection.immutable.Queue
-import sampler.abc.actor.ScoredParticles
-import sampler.abc.actor.WeighedParticles
+import sampler.abc.actor.message.ScoredParticles
+import sampler.abc.actor.message.WeighedParticles
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 

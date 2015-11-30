@@ -44,6 +44,7 @@ import akka.cluster.ClusterEvent.ReachableMember
 import akka.cluster.ClusterEvent.UnreachableMember
 import akka.cluster.Member
 import sampler.data.DistributionBuilder
+import sampler.abc.actor.message.MixPayload
 
 class BroadcastActor(abcParams: ABCConfig) extends Actor with ActorLogging{
 	implicit val r = Random

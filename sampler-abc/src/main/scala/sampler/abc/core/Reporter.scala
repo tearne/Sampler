@@ -1,7 +1,7 @@
 package sampler.abc.core
 
 import sampler.abc.config.ABCConfig
-import sampler.abc.actor.Report
+import sampler.abc.actor.message.Report
 import sampler.data.DistributionBuilder
 import sampler.math.Random
 

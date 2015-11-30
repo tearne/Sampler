@@ -1,7 +1,7 @@
 package sampler.abc.actor.algorithm
 
 import sampler.abc.config.ABCConfig
-import sampler.abc.actor.ScoredParticles
+import sampler.abc.actor.message.ScoredParticles
 import sampler.abc.actor.Tagged
 import sampler.math.Random
 

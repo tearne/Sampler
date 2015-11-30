@@ -5,7 +5,7 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatest.Matchers
 import sampler.abc.core.ToleranceCalculator
 import sampler.abc.core.WeightsHelper
-import sampler.abc.actor.WeighedParticles
+import sampler.abc.actor.message.WeighedParticles
 import org.mockito.Mockito._
 import sampler.abc.Weighted
 import sampler.abc.core.Generation

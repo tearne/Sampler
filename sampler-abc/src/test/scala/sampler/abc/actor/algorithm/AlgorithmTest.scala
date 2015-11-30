@@ -7,8 +7,8 @@ import sampler.math.Random
 import sampler.abc.actor.Tagged
 import sampler.abc.Scored
 import sampler.abc.Weighted
-import sampler.abc.actor.WeighedParticles
-import sampler.abc.actor.ScoredParticles
+import sampler.abc.actor.message.WeighedParticles
+import sampler.abc.actor.message.ScoredParticles
 import scala.collection.immutable.Queue
 import org.mockito.Mockito._
 import org.mockito.Matchers._

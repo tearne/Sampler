@@ -4,8 +4,8 @@ import akka.actor.ActorRef
 import sampler.abc.actor.Tagged
 import sampler.abc.Model
 import sampler.abc.config.ABCConfig
-import sampler.abc.actor.ScoredParticles
-import sampler.abc.actor.WeighedParticles
+import sampler.abc.actor.message.ScoredParticles
+import sampler.abc.actor.message.WeighedParticles
 import sampler.abc.Scored
 import sampler.abc.Weighted
 import scala.collection.immutable.Queue

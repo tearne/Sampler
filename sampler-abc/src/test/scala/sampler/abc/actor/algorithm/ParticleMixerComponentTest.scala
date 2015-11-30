@@ -10,8 +10,8 @@ import sampler.abc.config.ClusterParameters
 import sampler.abc.actor.Tagged
 import sampler.abc.Scored
 import sampler.abc.Weighted
-import sampler.abc.actor.ScoredParticles
-import sampler.abc.actor.WeighedParticles
+import sampler.abc.actor.message.ScoredParticles
+import sampler.abc.actor.message.WeighedParticles
 import scala.collection.immutable.Queue
 import org.scalatest.BeforeAndAfter
 import sampler.math.Random

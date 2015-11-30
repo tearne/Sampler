@@ -20,7 +20,7 @@ package sampler.abc.actor.worker
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.tailrec
 import scala.util.Try
-import sampler.abc.actor.Job
+import sampler.abc.actor.message.Job
 import sampler.data.DistributionBuilder
 import sampler.data.SerialSampler
 import sampler.io.Logging
@@ -28,8 +28,8 @@ import sampler.math.Random
 import sampler.abc.Model
 import sampler.abc.Scored
 import sampler.abc.actor.Tagged
-import sampler.abc.actor.GenerateParticlesFrom
-import sampler.abc.actor.ScoredParticles
+import sampler.abc.actor.message.GenerateParticlesFrom
+import sampler.abc.actor.message.ScoredParticles
 import sampler.data.ConvergenceProtocol
 import sampler.data.MaxMetric
 import sampler.data.Distribution
