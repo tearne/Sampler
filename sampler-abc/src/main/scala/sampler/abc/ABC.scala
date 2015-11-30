@@ -18,22 +18,25 @@
 package sampler.abc
 
 import java.util.concurrent.TimeUnit
+
 import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+
 import com.typesafe.config.ConfigFactory
+
 import akka.actor.ActorRef
 import akka.actor.ActorSystem
 import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout
 import sampler.abc.actor.Report
+import sampler.abc.actor.Start
 import sampler.abc.actor.root.ABCActorImpl
 import sampler.abc.config.ABCConfig
+import sampler.abc.core.Generation
+import sampler.abc.core.UseModelPrior
 import sampler.cluster.PortFallbackSystemFactory
 import sampler.io.Logging
-import sampler.abc.actor.Start
-import scala.concurrent.duration.Duration
-import sampler.abc.core.Generation
-import sampler.abc.core.GenPrior
 
 trait ABCActors {
 	val system: ActorSystem
@@ -59,15 +62,17 @@ trait ABCActorsImpl extends ABCActors {
 
 object ABC extends ABCActorsImpl with Logging {
 	def apply[P](
-		model: Model[P],
-		config: ABCConfig,
-		reporting: Report[P] => Unit): Seq[P] = apply(model, config, Some(reporting))
+			model: Model[P],
+			config: ABCConfig,
+			reporting: Report[P] => Unit,
+			initPop: Generation[P]): Seq[P] =
+		apply(model, config, Some(reporting), initPop)
 
 	def apply[P](
-		model: Model[P],
-		config: ABCConfig,
-		reporting: Option[Report[P] => Unit] = None): Seq[P] = {
-
+			model: Model[P],
+			config: ABCConfig,
+			reporting: Option[Report[P] => Unit] = None,
+			initialPopulation: Generation[P] = UseModelPrior()): Seq[P] = {
 		info(s"Num generations: ${config.job.numGenerations}")
 		info(s"Num particles: ${config.job.numParticles}")
 		info(s"Num replicates: ${config.job.numReplicates}")
@@ -81,12 +86,12 @@ object ABC extends ABCActorsImpl with Logging {
 		info(s"Terminate at target generations: ${config.cluster.terminateAtTargetGenerations}")
 		info(s"Number of workers (router configured): ${ConfigFactory.load().getInt("akka.actor.deployment./root/work-router.nr-of-instances")}")
 
-		//val gen0 = Generation.init(model, config)
 		val actor = entryPointActor(model, config, reporting)
-		
+
 		implicit val timeout = Timeout(config.cluster.futuresTimeoutMS, TimeUnit.MILLISECONDS)
-		val future = (actor ? Start(GenPrior(Double.MaxValue))).mapTo[Report[P]]
+		val future = (actor ? Start(UseModelPrior())).mapTo[Report[P]]
 		val result = Await.result(future, Duration.Inf).posterior
+		//TODO unlimited timeout just for the future above?
 
 		if (config.cluster.terminateAtTargetGenerations) {
 			info("Terminating actor system")

@@ -39,18 +39,10 @@ case class Start[P](generationZero: Generation[P])
 case class Report[P](generationId: Int, tolerance: Double, posterior: Seq[P])
 
 
-//case class Finished()
 case class ReportCompleted[P](report: Report[P])
 
 sealed trait Job[P]
 case class GenerateParticlesFrom[P](prevGen: Generation[P], config: ABCConfig) extends Job[P]
-//object GenerateParticles{
-//	def buildFrom[P](gen: EvolvingGeneration[P], config: ABCConfig) = 
-//		GenerateParticles(
-//			gen.previousGen.particleWeights,
-//			config
-//		)
-//}
 
 case class WeighJob[P](scored: ScoredParticles[P], prevGen: Generation[P], tolerance: Double) extends Job[P]
 object WeighJob{

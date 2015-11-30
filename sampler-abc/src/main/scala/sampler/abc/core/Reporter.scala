@@ -14,7 +14,7 @@ class Reporter(
 		val numParticles = config.job.numParticles
 		
 		val weights = gen match {
-			case _: GenPrior[P] => throw new UnsupportedOperationException
+			case _: UseModelPrior[P] => throw new UnsupportedOperationException //TODO  better
 			case pop: Population[P] => 
 				pop.particleWeights
 		}

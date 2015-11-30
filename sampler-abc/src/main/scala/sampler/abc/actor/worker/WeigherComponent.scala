@@ -9,7 +9,8 @@ import sampler.abc.Weighted
 import sampler.abc.actor.Tagged
 import sampler.abc.actor.WeighedParticles
 import sampler.abc.actor.WeighJob
-import sampler.abc.core.{GenPrior, Population}
+import sampler.abc.core.Population
+import sampler.abc.core.UseModelPrior
 
 trait WeigherComponent[P] {
 	val weigher: Weigher
@@ -29,7 +30,7 @@ trait WeigherComponent[P] {
 				val fHat = particle.repScores.filter(_ < job.tolerance).size.toDouble / particle.numReps
 				
 				val weight: Option[Double] = job.prevGen match {
-					case _: GenPrior[P] => if(fHat >0) Some(fHat) else None	
+					case _: UseModelPrior[P] => if(fHat >0) Some(fHat) else None	
 					case p: Population[P] =>
 						val numerator = fHat * model.prior.density(particle.params)
 						val denominator = p.particleWeights.map{case (params0, weight) => 
