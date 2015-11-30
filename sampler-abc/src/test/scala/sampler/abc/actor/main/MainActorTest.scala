@@ -1,4 +1,4 @@
-package sampler.abc.actor.root
+package sampler.abc.actor.main
 
 import org.mockito.Mockito.when
 import org.scalatest.BeforeAndAfterAll
@@ -11,27 +11,13 @@ import akka.testkit.TestKit
 import akka.testkit.TestProbe
 import sampler.abc.Model
 import sampler.abc.Scored
-import sampler.abc.actor.message.Failed
-import sampler.abc.actor.message.Report
-import sampler.abc.actor.message.ScoredParticles
-import sampler.abc.actor.message.Start
-import sampler.abc.actor.Tagged
-import sampler.abc.actor.message.WeighJob
 import sampler.abc.config.ABCConfig
 import sampler.abc.config.ClusterParameters
 import sampler.abc.config.JobParameters
-import sampler.abc.actor.message.MixPayload
-import sampler.abc.actor.message.WeighedParticles
-import sampler.abc.actor.message.Abort
-import sampler.abc.actor.message.ReportCompleted
-import sampler.abc.actor.message.ReportCompleted
 import akka.actor.Cancellable
-import sampler.abc.actor.message.ScoredParticles
 import sampler.abc.actor.main.helper.Getters
 import sampler.abc.core.Generation
 import sampler.abc.actor.main.helper.Helper
-import sampler.abc.actor.message.GenerateParticlesFrom
-import sampler.abc.actor.main.EvolvingGeneration
 import sampler.abc.core.Reporter
 import scala.collection.immutable.Queue
 import org.scalatest.BeforeAndAfter
@@ -39,16 +25,14 @@ import akka.actor.ActorRef
 import sampler.abc.actor.sub.FlushComplete
 import org.scalatest.Pending
 import sampler.abc.core.Population
-import sampler.abc.actor.main.WaitingForShutdown
-import sampler.abc.actor.main.StateData
-import sampler.abc.actor.main.Gathering
-import sampler.abc.actor.main.FlushingData
-import sampler.abc.actor.main.Flushing
-import sampler.abc.actor.main.ABCActor
-import sampler.abc.actor.main.component.ChildrenActorsComponent
 import sampler.abc.actor.main.component.WorkDispatcherComponent
+import sampler.abc.actor.sub.Report
+import sampler.abc.actor.sub.GenerateParticlesFrom
+import sampler.abc.actor.sub.Abort
+import sampler.abc.actor.sub.WeighJob
+import sampler.abc.actor.main.component.ChildActorsComponent
 
-class ABCActorTest
+class MainActorTest
 		extends TestKit(ActorSystem("ABC"))
 		with FreeSpecLike
 		with BeforeAndAfterAll
@@ -62,13 +46,13 @@ class ABCActorTest
 
 	case class TestParams()
 
-	class TestableABCActor(
+	class TestableMainActor(
 		val model: Model[TestParams],
 		val config: ABCConfig,
 		val reportAction: Option[Report[TestParams] => Unit],
 		override val getters: Getters)
-			extends ABCActor[TestParams]
-			with ChildrenActorsComponent[TestParams]
+			extends MainActor[TestParams]
+			with ChildActorsComponent[TestParams]
 			with WorkDispatcherComponent {
 		val childActors = mock[ChildActors]
 		val algorithm = mock[Helper]
@@ -93,7 +77,7 @@ class ABCActorTest
 		val getters = mock[Getters]
 		when(getters.getMixRateMS(config)).thenReturn(noMixing)
 
-		val instanceRef = TestFSMRef(new TestableABCActor(model, config, reportAction, getters))
+		val instanceRef = TestFSMRef(new TestableMainActor(model, config, reportAction, getters))
 		val instanceObj = instanceRef.underlyingActor
 
 		val clientRef = TestProbe().ref
@@ -363,10 +347,8 @@ class ABCActorTest
 			val stateData = StateData(eGen0, null, None)
 			instanceRef.setState(Gathering, stateData)
 
-			val mixNow = instanceObj.MixNow
-
 			// Action
-			instanceRef tell (mixNow, workerProbe.ref)
+			instanceRef tell (MixNow, workerProbe.ref)
 
 			// Assertions
 			broadcasterProbe.expectMsg(MixPayload(scoredParticles))
@@ -427,10 +409,8 @@ class ABCActorTest
 
 			instanceRef.setState(Flushing, stateData)
 
-			val mixNow = instanceObj.MixNow
-
 			// Action
-			instanceRef tell (mixNow, null)
+			instanceRef tell (MixNow, null)
 
 			// Assertion
 			assertResult(Flushing)(instanceRef.stateName)

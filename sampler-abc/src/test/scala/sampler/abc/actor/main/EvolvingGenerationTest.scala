@@ -1,18 +1,14 @@
-package sampler.abc.actor.algorithm
+package sampler.abc.actor.main
 
 import org.scalatest.FreeSpec
 import org.scalatest.Matchers
 import org.scalatest.mock.MockitoSugar
 import org.mockito.Mockito._
-import sampler.abc.actor.Tagged
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 import sampler.abc.Scored
 import sampler.abc.core.Generation
 import scala.collection.immutable.Queue
-import sampler.abc.actor.message.ScoredParticles
-import sampler.abc.actor.message.WeighedParticles
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import sampler.abc.actor.main.EvolvingGeneration
 
 @RunWith(classOf[JUnitRunner])
 class EvolvingGenerationTest extends FreeSpec with Matchers with MockitoSugar {

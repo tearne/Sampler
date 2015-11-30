@@ -10,7 +10,7 @@ import sampler.abc.Weighted
 import sampler.abc.Scored
 import sampler.math.StatisticsImpl
 
-class ToleranceComponentTest extends FreeSpec with Matchers with MockitoSugar {
+class ToleranceCalculatorTest extends FreeSpec with Matchers with MockitoSugar {
 
   "Tolerance component should" - {
     

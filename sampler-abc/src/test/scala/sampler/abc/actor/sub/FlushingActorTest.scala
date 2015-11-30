@@ -1,4 +1,4 @@
-package sampler.abc.actor
+package sampler.abc.actor.sub
 
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner

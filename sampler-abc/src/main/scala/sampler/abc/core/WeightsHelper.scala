@@ -24,24 +24,25 @@ import sampler.math.StatisticsComponent
 import sampler.abc.Model
 
 class WeightsHelper extends Logging{
-	def getWeightOption[P](
-			model: Model[P],
-			scoredParticle: Scored[P],
-			previousParamsWithWeights: Map[P, Double],
-			tolerance: Double
-	): Option[Weighted[P]] = {
-		def getWeight(particle: Scored[P]): Option[Double] = {
-			val fHat = particle.repScores.filter(_ < tolerance).size.toDouble / particle.numReps
-			val numerator = fHat * model.prior.density(particle.params)
-			val denominator = previousParamsWithWeights.map{case (params0, weight) => 
-				weight * model.perturbDensity(params0, particle.params)
-			}.sum
-			if(numerator > 0 && denominator > 0) Some(numerator / denominator)
-			else None
-		}
-		
-		getWeight(scoredParticle).map{wt => Weighted(scoredParticle, wt)}
-	}
+	//Moved to weigher component
+//	def getWeightOption[P](
+//			model: Model[P],
+//			scoredParticle: Scored[P],
+//			previousParamsWithWeights: Map[P, Double],
+//			tolerance: Double
+//	): Option[Weighted[P]] = {
+//		def getWeight(particle: Scored[P]): Option[Double] = {
+//			val fHat = particle.repScores.filter(_ < tolerance).size.toDouble / particle.numReps
+//			val numerator = fHat * model.prior.density(particle.params)
+//			val denominator = previousParamsWithWeights.map{case (params0, weight) => 
+//				weight * model.perturbDensity(params0, particle.params)
+//			}.sum
+//			if(numerator > 0 && denominator > 0) Some(numerator / denominator)
+//			else None
+//		}
+//		
+//		getWeight(scoredParticle).map{wt => Weighted(scoredParticle, wt)}
+//	}
 	
 	def consolidateToWeightsTable[P](population: Seq[Weighted[P]]): Map[P, Double] = {
 		population

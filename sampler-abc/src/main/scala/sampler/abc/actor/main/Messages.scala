@@ -7,12 +7,13 @@ import sampler.abc.actor.sub.Report
 
 case class Start[P](generationZero: Generation[P])
 case object Failed
-sealed trait WorkerResult[P]
 
 case class Tagged[T](value: T, id: Long)
 object Tagged{
 	def apply[T](value: T): Tagged[T] = Tagged(value, System.currentTimeMillis + value.hashCode())
 }
+
+sealed trait WorkerResult[P]
 
 case class ScoredParticles[P](seq: Seq[Tagged[Scored[P]]]) extends WorkerResult[P]{
   def add(toAdd: ScoredParticles[P]) = ScoredParticles(seq ++ toAdd.seq)

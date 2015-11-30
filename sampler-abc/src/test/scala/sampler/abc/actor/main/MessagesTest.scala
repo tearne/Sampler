@@ -1,10 +1,7 @@
-package sampler.abc.actor.message
+package sampler.abc.actor.main
 
 import org.scalatest.FreeSpec
 import org.scalatest.Matchers
-import sampler.abc.actor.Tagged
-import sampler.abc.Scored
-import sampler.abc.Weighted
 
 class MessagesTest extends FreeSpec with Matchers {
 
