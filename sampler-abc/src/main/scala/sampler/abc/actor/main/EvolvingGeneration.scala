@@ -3,7 +3,7 @@ package sampler.abc.actor.main
 import sampler.abc.Scored
 import sampler.abc.Weighted
 import scala.collection.immutable.Queue
-import sampler.abc.core.Generation
+import sampler.abc.Generation
 
 case class EvolvingGeneration[P](
 	currentTolerance: Double,

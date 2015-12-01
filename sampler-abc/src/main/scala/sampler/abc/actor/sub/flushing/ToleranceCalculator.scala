@@ -15,12 +15,11 @@
  * limitations under the License.
  */
 
-package sampler.abc.core
+package sampler.abc.actor.sub.flushing
 
 import sampler.abc.Weighted
 import sampler.math.StatisticsComponent
 import sampler.Implicits._
-import sampler.math.Statistics
 import sampler.math.StatisticsImpl
 import sampler.io.Logging
 

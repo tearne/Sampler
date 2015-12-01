@@ -15,22 +15,22 @@ import sampler.abc.config.ABCConfig
 import sampler.abc.config.ClusterParameters
 import sampler.abc.config.JobParameters
 import akka.actor.Cancellable
-import sampler.abc.actor.main.helper.Getters
-import sampler.abc.core.Generation
-import sampler.abc.actor.main.helper.Helper
-import sampler.abc.core.Reporter
+import sampler.abc.actor.main.component.helper.Getters
+import sampler.abc.Generation
+import sampler.abc.actor.main.component.helper.Helper
 import scala.collection.immutable.Queue
 import org.scalatest.BeforeAndAfter
 import akka.actor.ActorRef
 import sampler.abc.actor.sub.FlushComplete
 import org.scalatest.Pending
-import sampler.abc.core.Population
+import sampler.abc.Population
 import sampler.abc.actor.main.component.WorkDispatcherComponent
 import sampler.abc.actor.sub.Report
 import sampler.abc.actor.sub.GenerateParticlesFrom
 import sampler.abc.actor.sub.Abort
 import sampler.abc.actor.sub.WeighJob
 import sampler.abc.actor.main.component.ChildActorsComponent
+import sampler.abc.Reporter
 
 class MainActorTest
 		extends TestKit(ActorSystem("ABC"))
@@ -384,10 +384,25 @@ class MainActorTest
 
 	"When Flushing a completed generation / " - {
 		
-		"incoming weighed particles are discarded" in pending
+		"incoming weighed particles are discarded" in new Setup {
+			val stateData = StateData(eGen1, clientRef, None)
+			val weighed = mock[WeighedParticles[TestParams]]
+
+			instanceRef.setState(Flushing, stateData)
+			
+			// Action
+			instanceRef tell (weighed, null)
+			
+			// Assertion - no changes to state
+			assertResult(Flushing)(instanceRef.stateName)
+			assertResult(stateData)(instanceRef.stateData match {
+				case sd: StateData[_] => sd
+				case d => fail("Unexpected StateData type: " + d.getClass())
+			})
+		}
 		
 		"incoming scored particles are discarded" in new Setup {
-			val stateData = StateData(eGen1, null, None)
+			val stateData = StateData(eGen1, clientRef, None)
 
 			val scored = mock[ScoredParticles[TestParams]]
 
@@ -396,7 +411,7 @@ class MainActorTest
 			// Action
 			instanceRef tell (scored, null)
 
-			// Assertion
+			// Assertion - no changes to state
 			assertResult(Flushing)(instanceRef.stateName)
 			assertResult(stateData)(instanceRef.stateData match {
 				case sd: StateData[_] => sd

@@ -1,6 +1,6 @@
 package sampler.abc.actor.main
 
-import sampler.abc.core.Generation
+import sampler.abc.Generation
 import sampler.abc.Scored
 import sampler.abc.Weighted
 import sampler.abc.actor.sub.Report
@@ -24,6 +24,7 @@ object ScoredParticles{
 	def empty[P] = ScoredParticles(Seq.empty[Tagged[Scored[P]]])
 }
 
+//TODO do we really need taggin in the weighed particles
 final case class WeighedParticles[P](seq: Seq[Tagged[Weighted[P]]]) extends WorkerResult[P]{
   def add(toAdd: WeighedParticles[P]) = WeighedParticles(seq ++ toAdd.seq)
   def add(toAdd: Seq[Tagged[Weighted[P]]]) = WeighedParticles(seq ++ toAdd)

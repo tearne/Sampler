@@ -29,16 +29,23 @@ import sampler.abc.Model
 import sampler.math.Random
 import scala.concurrent.Future
 import akka.actor.FSM
-import sampler.abc.actor.main.component.ModelRunnerComponent
-import sampler.abc.actor.worker.WeigherComponent
+import sampler.abc.actor.sub.worker.ModelRunnerComponentImpl
+import sampler.abc.actor.sub.worker.WeigherComponentImpl
 import sampler.abc.actor.main.Failed
 import sampler.abc.actor.main.ScoredParticles
 import sampler.abc.actor.main.WeighedParticles
-import sampler.abc.core.Generation
+import sampler.abc.Generation
 import sampler.abc.config.ABCConfig
 import sampler.abc.actor.main.EvolvingGeneration
 import akka.pattern.pipe
-import sampler.abc.actor.main.component.DetectedAbortionException
+import sampler.abc.actor.sub.worker.DetectedAbortionException
+import sampler.abc.actor.sub.worker.Weigher
+import sampler.abc.actor.sub.worker.AborterComponentImpl
+import sampler.abc.actor.sub.worker.Aborter
+import sampler.abc.actor.sub.worker.WeigherComponent
+import sampler.abc.actor.sub.worker.ModelRunnerComponent
+import sampler.abc.actor.sub.worker.ModelRunnerComponent
+import sampler.abc.actor.sub.worker.AborterComponent
 
 sealed trait Job[P]
 case class GenerateParticlesFrom[P](prevGen: Generation[P], config: ABCConfig) extends Job[P]
@@ -56,11 +63,11 @@ object WeighJob{
 case class Abort()
 case class Aborted()
 
-class WorkerActorImpl[P](val model: Model[P]) extends WorkerActor[P] {
-	implicit val random = Random
-	val modelRunner = new ModelRunner{}
-	val weigher = new Weigher{}
-}
+class WorkerActorImpl[P](val model: Model[P], val random: Random) 
+		extends WorkerActor[P] 
+		with ModelRunnerComponentImpl[P]
+		with WeigherComponentImpl[P]
+		with AborterComponentImpl
 
 sealed trait State
 case object Idle extends State
@@ -72,19 +79,22 @@ case object Uninitialised extends Data
 case class Client(actorRef: ActorRef) extends Data
 case class NextJob[P](job: Job[P], client: Client) extends Data
 
-abstract class WorkerActor[P]
+trait WorkerActor[P]
 		extends Actor
 		with FSM[State, Data]
-		with ActorLogging
+		with ActorLogging {
+	this: WeigherComponent[P] 
 		with ModelRunnerComponent[P] 
-		with WeigherComponent[P] {
-
+		with ModelRunnerComponent[P] 
+		with AborterComponent =>
+	
+	//TODO why no compiler warnings here?
 	implicit val executionContext = context.system.dispatchers.lookup("sampler.work-dispatcher")
 	
 	startWith(Idle, Uninitialised)
 	
 	onTransition{
-		case AwaitingAbortConfirmation -> _ => resetForNewWork
+		case AwaitingAbortConfirmation -> _ => aborter.reset
 	}
 	
 	when(Idle){
@@ -97,10 +107,10 @@ abstract class WorkerActor[P]
 	
 	when(Working){
 		case Event(Abort, _) =>
-			abortWork
+			aborter.abort
 			goto(AwaitingAbortConfirmation) using Uninitialised
 		case Event(j: Job[P], _) => 
-			abortWork
+			aborter.abort
 			goto(AwaitingAbortConfirmation) using NextJob(j, Client(sender))
 		case Event(Success(result), Client(ref)) =>
 			ref ! result
@@ -115,7 +125,7 @@ abstract class WorkerActor[P]
 		case Event(j: Job[P], _) => 
 			stay using NextJob(j, Client(sender))
 		case Event(Abort, _) => 
-			abortWork
+			aborter.abort
 			stay using Uninitialised
 		
 		case Event(Aborted, nj: NextJob[P]) =>
@@ -133,17 +143,6 @@ abstract class WorkerActor[P]
 		case Event(msg, _) =>
 			log.error(s"Unhandled message ${msg.getClass} in state $stateName")
 			stay
-	}
-	
-	
-	def abortWork {
-		weigher.abort
-		modelRunner.abort
-	}
-	
-	def resetForNewWork {
-		weigher.reset
-		modelRunner.reset
 	}
 	
 	def startWork(job: Job[P]){
@@ -171,15 +170,15 @@ abstract class WorkerActor[P]
 	def startWeighing(wJob: WeighJob[P]) {
 		Future{
 			log.debug("Weighing")
-			val result: Try[WeighedParticles[P]] = weigher.run(wJob) 
-			result match{
-				case Failure(e: DetectedAbortionException) =>
-					Aborted
-				case Failure(e: CompositeThrowable) if e.throwables.exists(_.isInstanceOf[DetectedAbortionException]) =>
-					Aborted
-				case any =>
-					any // Could be any success or failure other than the above
-			}
+			val result: Try[WeighedParticles[P]] = weigher(wJob) 
+			result //match{   //TODO can't we just delete all of this?
+//				case Failure(e: DetectedAbortionException) =>
+//					Aborted
+//				case Failure(e: CompositeThrowable) if e.throwables.exists(_.isInstanceOf[DetectedAbortionException]) =>
+//					Aborted
+//				case any =>
+//					any // Could be any success or failure other than the above
+//			}
 		}.pipeTo(self)
 	}
 }

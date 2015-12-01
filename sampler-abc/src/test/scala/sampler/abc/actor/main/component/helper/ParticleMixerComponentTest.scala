@@ -7,16 +7,16 @@ import org.mockito.Mockito._
 import sampler.abc.config.ABCConfig
 import sampler.abc.config.ClusterParameters
 import sampler.abc.config.ClusterParameters
-import sampler.abc.actor.Tagged
 import sampler.abc.Scored
 import sampler.abc.Weighted
-import sampler.abc.actor.message.ScoredParticles
-import sampler.abc.actor.message.WeighedParticles
 import scala.collection.immutable.Queue
 import org.scalatest.BeforeAndAfter
 import sampler.math.Random
 import sampler.abc.actor.main.EvolvingGeneration
-import sampler.abc.actor.main.helper.ParticleMixer
+import sampler.abc.actor.main.component.helper.ParticleMixer
+import sampler.abc.actor.main.Tagged
+import sampler.abc.actor.main.ScoredParticles
+import sampler.abc.actor.main.WeighedParticles
 
 class ParticleMixerTest extends FreeSpec with Matchers with MockitoSugar with BeforeAndAfter{
 
@@ -27,12 +27,7 @@ class ParticleMixerTest extends FreeSpec with Matchers with MockitoSugar with Be
 	}
 	
   "ParticleMixer should" - {
-    
     val instance = new ParticleMixer()
-//    Component with StatisticsComponent {
-//      val statistics = Statistics
-//      val particleMixer = new ParticleMixer{}
-//    }
     
     val config = mock[ABCConfig]
     val clusterParameters = mock[ClusterParameters]
@@ -67,7 +62,7 @@ class ParticleMixerTest extends FreeSpec with Matchers with MockitoSugar with Be
       assert(instance.apply(eGen, config)(null) === None)
     }
     
-    "return the current weighed particles if fewer available than exceed mixing size" in {
+    "return all current weighed particles if fewer available than mixing size" in {
       val eGen = EvolvingGeneration[Int](
           0.1,
           null,
@@ -83,7 +78,7 @@ class ParticleMixerTest extends FreeSpec with Matchers with MockitoSugar with Be
       assert(result.seq.contains(scored2))
     }
     
-    "Randomly select from weighteds when more particles present than mixin size" in {
+    "Randomly select from weighteds when more particles present than mix size" in {
       val gen1 = EvolvingGeneration[Int](
           0.1,
           null,

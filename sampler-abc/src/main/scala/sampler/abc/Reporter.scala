@@ -1,4 +1,4 @@
-package sampler.abc.core
+package sampler.abc
 
 import sampler.abc.config.ABCConfig
 import sampler.data.DistributionBuilder

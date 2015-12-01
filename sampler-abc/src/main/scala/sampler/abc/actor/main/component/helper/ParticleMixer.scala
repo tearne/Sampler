@@ -1,4 +1,4 @@
-package sampler.abc.actor.main.helper
+package sampler.abc.actor.main.component.helper
 
 import sampler.abc.config.ABCConfig
 import sampler.math.Random

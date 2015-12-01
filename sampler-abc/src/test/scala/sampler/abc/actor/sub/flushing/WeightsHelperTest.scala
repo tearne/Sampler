@@ -11,6 +11,7 @@ import sampler.abc.Prior
 import org.mockito.Mockito._
 import org.mockito.Matchers.anyInt
 import sampler.abc.Weighted
+import sampler.abc.actor.sub.flushing.WeightsHelper
 
 class WeightsHelperTest extends FreeSpec with Matchers with MockitoSugar {
 

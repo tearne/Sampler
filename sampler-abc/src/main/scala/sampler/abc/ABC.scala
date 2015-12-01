@@ -28,8 +28,6 @@ import akka.pattern.ask
 import akka.util.Timeout
 import sampler.abc.actor.main.MainActorImpl
 import sampler.abc.config.ABCConfig
-import sampler.abc.core.Generation
-import sampler.abc.core.UseModelPrior
 import sampler.cluster.PortFallbackSystemFactory
 import sampler.io.Logging
 import sampler.abc.actor.sub.Report

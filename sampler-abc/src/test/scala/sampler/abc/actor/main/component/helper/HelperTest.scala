@@ -4,11 +4,8 @@ import org.scalatest.FreeSpec
 import org.scalatest.Matchers
 import org.scalatest.mock.MockitoSugar
 import sampler.math.Random
-import sampler.abc.actor.Tagged
 import sampler.abc.Scored
 import sampler.abc.Weighted
-import sampler.abc.actor.message.WeighedParticles
-import sampler.abc.actor.message.ScoredParticles
 import scala.collection.immutable.Queue
 import org.mockito.Mockito._
 import org.mockito.Matchers._
@@ -16,26 +13,27 @@ import sampler.abc.config.ABCConfig
 import sampler.abc.config.JobParameters
 import sampler.abc.actor.main.EvolvingGeneration
 import sampler.abc.actor.sub.flushing.GenerationFlusher
-import sampler.abc.actor.main.helper.Helper
-import sampler.abc.actor.main.helper.ParticleMixer
-import sampler.abc.actor.main.helper.Getters
+import sampler.abc.actor.main.component.helper.Helper
+import sampler.abc.actor.main.component.helper.ParticleMixer
+import sampler.abc.actor.main.component.helper.Getters
+import sampler.abc.actor.main.Tagged
+import sampler.abc.actor.main.WeighedParticles
+import sampler.abc.actor.main.ScoredParticles
 
-class AlgorithmTest extends FreeSpec with Matchers with MockitoSugar {
+class HelperTest extends FreeSpec with Matchers with MockitoSugar {
 
 	trait Setup {
-		val generationFlusher = mock[GenerationFlusher]
 		val particleMixer = mock[ParticleMixer]
 		val getters = mock[Getters]
 		val random = mock[Random]
 		val instance = new Helper(
-				generationFlusher,
 				particleMixer,
 				getters,
 				random
 		)
 	}
 	
-  "Algorithm component should" - {
+  "Helper should" - {
     val (id1, id2, id3, id4) = (111111, 111112, 111113, 111114)
     
     val scored1 = Tagged(Scored(1, Seq(0,5)), id1)
@@ -59,6 +57,8 @@ class AlgorithmTest extends FreeSpec with Matchers with MockitoSugar {
       val result = instance.addWeightedParticles(newWeighedSeq, gen1)
       val weighedSeq = result.weighed
       
+      // Note, we are not looking for particles consolidation  
+      //here, that comes during flushing.
       assert(weighedSeq.seq.length === 2)
       assert(weighedSeq.seq.contains(weighed1))
       assert(weighedSeq.seq.contains(weighed2))
@@ -67,8 +67,9 @@ class AlgorithmTest extends FreeSpec with Matchers with MockitoSugar {
     "Filter and queue scored particles for weighing" in new Setup {
       val scoredSeq = ScoredParticles(Seq(scored1))
       
+      val currentTolerance = 0.1
       val gen1 = EvolvingGeneration[Int](
-          0.1,
+          currentTolerance,
       		null,
           ScoredParticles(Seq()),
           WeighedParticles(Seq()),
@@ -115,14 +116,6 @@ class AlgorithmTest extends FreeSpec with Matchers with MockitoSugar {
       assert(dueWeighing.seq.contains(scored2))
     }
     
-    "Delegate flushing of completed generations" in new Setup {
-    	val eGen = mock[EvolvingGeneration[Int]]
-    	val flushedEGen = mock[EvolvingGeneration[Int]]
-    	
-    	when(generationFlusher.apply(eGen)).thenReturn(flushedEGen)
-    	assert(instance.flushGeneration(eGen) === flushedEGen)
-    }
-    
     "Determine if generation has gathered enough particles" in new Setup {
       val config1 = ABCConfig(JobParameters(2,0,0), null, null)
       val config2 = ABCConfig(JobParameters(5,0,0), null, null)
@@ -150,10 +143,11 @@ class AlgorithmTest extends FreeSpec with Matchers with MockitoSugar {
     }
     
     "Emptying weighing buffer" in new Setup {
-      val gen1 = EvolvingGeneration[Int](
+      val dueWeighing = ScoredParticles(Seq(scored1))
+    	val gen1 = EvolvingGeneration[Int](
           0.0,
       		null,
-          ScoredParticles(Seq(scored1)),
+          dueWeighing,
           null,
           null
       )

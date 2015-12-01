@@ -1,7 +1,8 @@
-package sampler.abc.actor.main.component
+package sampler.abc.actor.sub.worker
 
 import org.scalatest.FreeSpec
 
 class ModelRunnerTest extends FreeSpec {
-  "TODO" in pending
+  //TODO tests
+	"TODO" in pending
 }

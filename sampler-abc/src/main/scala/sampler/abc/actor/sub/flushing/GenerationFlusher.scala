@@ -1,14 +1,14 @@
 package sampler.abc.actor.sub.flushing
 
-import sampler.abc.core.ToleranceCalculator
-import sampler.abc.core.WeightsHelper
-import sampler.abc.core.Population
-import sampler.abc.actor.main.helper.Getters
+import sampler.abc.actor.sub.flushing.ToleranceCalculator
+import sampler.abc.actor.sub.flushing.WeightsHelper
+import sampler.abc.Population
+import sampler.abc.actor.main.component.helper.Getters
 import sampler.abc.actor.sub.flushing.ObservedIdsTrimmer
 import sampler.abc.actor.main.EvolvingGeneration
 import sampler.abc.actor.main.ScoredParticles
 import sampler.abc.actor.main.WeighedParticles
-import sampler.abc.actor.main.helper.Getters
+import sampler.abc.actor.main.component.helper.Getters
 import sampler.abc.actor.sub.flushing.ObservedIdsTrimmer
 
 class GenerationFlusher(

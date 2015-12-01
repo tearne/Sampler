@@ -1,14 +1,9 @@
-package sampler.abc.core
+package sampler.abc.actor.sub.flushing
 
 import org.scalatest.FreeSpec
 import org.scalatest.Matchers
-import sampler.math.StatisticsComponent
-import sampler.math.Statistics
 import org.scalatest.mock.MockitoSugar
-import akka.event.LoggingAdapter
-import sampler.abc.Weighted
-import sampler.abc.Scored
-import sampler.math.StatisticsImpl
+import sampler.abc.core.ToleranceCalculator
 
 class ToleranceCalculatorTest extends FreeSpec with Matchers with MockitoSugar {
 

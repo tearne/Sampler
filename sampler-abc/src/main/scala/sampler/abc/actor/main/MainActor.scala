@@ -32,12 +32,9 @@ import sampler.math.StatisticsComponent
 import akka.routing.Broadcast
 import sampler.math.Statistics
 import sampler.abc.actor.LoggingAdapterComponentImpl
-import sampler.abc.core.Generation
-import sampler.abc.actor.main.helper.Getters
+import sampler.abc.Generation
+import sampler.abc.actor.main.component.helper.Getters
 import sampler.data.DistributionBuilder
-import sampler.abc.core.Reporter
-import sampler.abc.core.Reporter
-import sampler.abc.core.Reporter
 import sampler.abc.actor.main.component.ChildActorsComponentImpl
 import sampler.abc.actor.main.component.WorkDispatcherComponent
 import sampler.abc.actor.main.component.WorkDispatcherComponentImpl
@@ -51,6 +48,7 @@ import sampler.abc.actor.sub.WeighJob
 import sampler.abc.actor.sub.Abort
 import sampler.abc.actor.main.component.HelperComponent
 import sampler.abc.actor.main.component.HelperCoponentImpl
+import sampler.abc.Reporter
 
 /*
  * States/Data

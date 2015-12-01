@@ -15,9 +15,8 @@
  * limitations under the License.
  */
 
-package sampler.abc.actor.main.component
+package sampler.abc.actor.sub.worker
 
-import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.tailrec
 import scala.util.Try
 import sampler.data.SerialSampler
@@ -32,26 +31,25 @@ import sampler.abc.actor.main.ScoredParticles
 import sampler.abc.actor.sub.GenerateParticlesFrom
 import sampler.abc.actor.main.Tagged
 
-class DetectedAbortionException(message: String = null, cause: Throwable = null) 
-	extends Exception(message, cause)
+class DetectedAbortionException() extends Exception("DetectedAbortionException")
 
 class MaxRetryException(message: String = null, cause: Throwable = null) 
 	extends RuntimeException(message, cause)
 
+trait ModelRunnerComponentImpl[P] extends ModelRunnerComponent[P] {
+	self: AborterComponent => 
+	val modelRunner = new ModelRunner {}
+}
 
 trait ModelRunnerComponent[P] {
+	self: AborterComponent => 
+		
 	val model: Model[P]
 	val modelRunner: ModelRunner
-	implicit val random: Random
+	val random: Random
 	
 	trait ModelRunner extends Logging{
 		import model._
-		
-		val aborted: AtomicBoolean = new AtomicBoolean(false)
-		
-		def abort() { aborted.set(true) }
-		def reset() { aborted.set(false) }
-		private def isAborted = aborted.get
 		
 		def run(job: GenerateParticlesFrom[P]): Try[ScoredParticles[P]] = Try{
 			val maxParticleRetries = job.config.algorithm.maxParticleRetries
@@ -59,8 +57,8 @@ trait ModelRunnerComponent[P] {
 			
 			@tailrec
 			def getScoredParameter(failures: Int = 0): Scored[P] = {
-				if(isAborted) throw new DetectedAbortionException("Abort flag was set")
-				else if(failures >= maxParticleRetries) throw new MaxRetryException(s"Aborted after $failures failed particle draws from previous population")
+				aborter.checkIfAborted()
+				if(failures >= maxParticleRetries) throw new MaxRetryException(s"Aborted after $failures failed particle draws from previous population")
 				else{
 					def getScores(params: P): IndexedSeq[Double] = {
 						val modelWithMetric = model.distanceToObservations(params)

@@ -2,10 +2,12 @@ package sampler.abc.actor.main
 
 import org.scalatest.FreeSpec
 import org.scalatest.Matchers
+import sampler.abc.Scored
+import sampler.abc.Weighted
 
 class MessagesTest extends FreeSpec with Matchers {
 
-	"ScoredParticles classes should" - {
+	"ScoredParticles should" - {
 		val p1 = Tagged(Scored(1, Seq(0.5)), 111111)
 		val p2 = Tagged(Scored(2, Seq(0.5)), 111112)
 		val p3 = Tagged(Scored(3, Seq(0.5)), 111113)
@@ -56,7 +58,7 @@ class MessagesTest extends FreeSpec with Matchers {
 		}
 	}
   
-	"WeighedParticles classes should" - {
+	"WeighedParticles should" - {
 		val p1 = Tagged(Weighted(Scored(1, Seq(0.5)), 0.5), 111111)
 		val p2 = Tagged(Weighted(Scored(2, Seq(0.5)), 0.5), 111112)
 		val p3 = Tagged(Weighted(Scored(3, Seq(0.5)), 0.5), 111113)

@@ -1,7 +1,5 @@
-package sampler.abc.core
+package sampler.abc
 
-import sampler.abc.Model
-import sampler.abc.config.ABCConfig
 import sampler.data.Distribution
 import sampler.math.Random
 import sampler.data.DistributionBuilder

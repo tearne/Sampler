@@ -1,4 +1,4 @@
-package sampler.abc.core
+package sampler.abc
 
 import org.scalatest.mock.MockitoSugar
 import org.mockito.Mockito._
@@ -8,6 +8,8 @@ import sampler.data.DistributionBuilder
 import sampler.abc.config.ABCConfig
 import sampler.abc.config.JobParameters
 import org.mockito.Matchers
+import sampler.abc.Reporter
+import sampler.abc.Population
 
 class ReporterTest extends FreeSpec with MockitoSugar{
 	type T = Int

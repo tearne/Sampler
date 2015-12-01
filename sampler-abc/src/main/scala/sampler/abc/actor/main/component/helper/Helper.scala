@@ -1,10 +1,10 @@
-package sampler.abc.actor.main.helper
+package sampler.abc.actor.main.component.helper
 
 import sampler.math.Random
 import sampler.abc.config.ABCConfig
 import sampler.abc.actor.main.WeighedParticles
-import sampler.abc.actor.main.ScoredParticles
 import sampler.abc.actor.main.EvolvingGeneration
+import sampler.abc.actor.main.ScoredParticles
 
 class Helper(
 		particleMixer: ParticleMixer,
@@ -34,9 +34,6 @@ class Helper(
 				idsObserved = observedIds ++ filtered.map(_.id)
 		)
 	}
-		
-//	def flushGeneration[P](gen: EvolvingGeneration[P]): EvolvingGeneration[P] = 
-//		generationFlusher(gen)
 		
 	def isEnoughParticles(gen: EvolvingGeneration[_], config: ABCConfig): Boolean =
 		gen.weighed.size >= config.job.numParticles
