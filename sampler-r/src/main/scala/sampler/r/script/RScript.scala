@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2012 Crown Copyright 
- *                    Animal Health and Veterinary Laboratories Agency
+ * Copyright (c) 2012-15 Crown Copyright 
+ *                       Animal and Plant Health Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,18 +35,17 @@ object RScript extends RScript{
 	 *  the Rscript shell script
 	 * 	
 	 *  @param script The R script to be executed
-	 *  @param workingDirectory The directory to where the script will be saved and run from
+	 *  @param Path to save the script to and where it will be run from
 	 */
-	def apply(script: String, workingDirectory: Path){
-		assert(Files.exists(workingDirectory), s"Working dir ${workingDirectory.toAbsolutePath()} doesn't exist")
-		assert(Files.isDirectory(workingDirectory), s"Working dir is not a directory")
+	def apply(script: String, scriptPath: Path){
+		val wd = scriptPath.getParent
+		assert(Files.exists(wd), s"Working dir ${wd.toAbsolutePath()} doesn't exist")
 		
-		val scriptPath = workingDirectory.resolve("script.r").toAbsolutePath
 		val writer = new FileWriter(scriptPath.toFile)
 		
 		val fullScript = new StringBuilder()
 		
-		fullScript.append("setwd(\""+workingDirectory.toAbsolutePath()+"\")\n")
+		fullScript.append("setwd(\""+wd.toAbsolutePath()+"\")\n")
 		fullScript.append(script + "\n")
 		
 		writer.write(fullScript.toString)
