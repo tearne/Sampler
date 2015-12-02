@@ -3,7 +3,6 @@ package sampler.abc.actor.sub
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import sampler.abc.actor.main.EvolvingGeneration
-import sampler.abc.actor.main.component.helper.Helper
 import akka.actor.actorRef2Scala
 import sampler.abc.actor.sub.flushing.GenerationFlusher
 

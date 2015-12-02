@@ -13,7 +13,7 @@ import sampler.abc.Generation
 import sampler.abc.Population
 
 class ParticleWeightCalculatorTest extends FreeSpec with MockitoSugar {
-	type T = Int
+	type T = Int  //Pretend model parameters
 	
 	trait Setup {
 		val model = mock[Model[T]]
@@ -47,22 +47,22 @@ class ParticleWeightCalculatorTest extends FreeSpec with MockitoSugar {
 				}
 			}
 			"return None if fHat is zero" in new Setup {
-				pending 
+				fail("TODO")  
 			}
 			"return None if the particle is outside the prior" in new Setup {
-				pending
+				fail("TODO") 
 			}
 			"throw exception if no previous particle could have perturbed to this one" in new Setup {
-				pending
+				fail("TODO") 
 			}
 		}
 		
 		"When using the model prior as the previous (zero) generation /" - {
 			"returns non zero 'fHat', filtering out reps which don't meet tolerance" in new Setup { 
-				pending 
+				fail("TODO") 
 			}
 			"returns zero if fHat is zero" in new Setup { 
-				pending
+				fail("TODO") 
 			}
 		}
 	}

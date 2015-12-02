@@ -17,12 +17,10 @@ import sampler.abc.config.JobParameters
 import akka.actor.Cancellable
 import sampler.abc.actor.main.component.helper.Getters
 import sampler.abc.Generation
-import sampler.abc.actor.main.component.helper.Helper
 import scala.collection.immutable.Queue
 import org.scalatest.BeforeAndAfter
 import akka.actor.ActorRef
 import sampler.abc.actor.sub.FlushComplete
-import org.scalatest.Pending
 import sampler.abc.Population
 import sampler.abc.actor.main.component.WorkDispatcherComponent
 import sampler.abc.actor.sub.Report
@@ -31,6 +29,9 @@ import sampler.abc.actor.sub.Abort
 import sampler.abc.actor.sub.WeighJob
 import sampler.abc.actor.main.component.ChildActorsComponent
 import sampler.abc.Reporter
+import sampler.abc.actor.main.component.HelperComponent
+import sampler.abc.actor.sub.flushing.GenerationFlusher
+import sampler.abc.actor.main.component.Helper
 
 class MainActorTest
 		extends TestKit(ActorSystem("ABC"))
@@ -53,10 +54,12 @@ class MainActorTest
 		override val getters: Getters)
 			extends MainActor[TestParams]
 			with ChildActorsComponent[TestParams]
-			with WorkDispatcherComponent {
+			with WorkDispatcherComponent 
+			with HelperComponent {
 		val childActors = mock[ChildActors]
-		val algorithm = mock[Helper]
+		val generationFlusher = mock[GenerationFlusher]
 		val workDispatcher = context.dispatcher
+		val helper = mock[Helper]
 
 		val distributionBuilder = sampler.data.DistributionBuilder
 		val random = sampler.math.Random
@@ -144,7 +147,7 @@ class MainActorTest
 				instanceRef.setState(Gathering, StateData(eGen1, clientRef, None))
 
 				val eGen2 = mock[EvolvingGeneration[TestParams]]
-				when(instanceObj.algorithm.emptyWeighingBuffer(eGen1)).thenReturn(eGen2)
+				when(instanceObj.helper.emptyWeighingBuffer(eGen1)).thenReturn(eGen2)
 
 				// Action
 				instanceRef tell (Failed, workerProbe.ref)
@@ -172,7 +175,7 @@ class MainActorTest
 
 			val incomingScoredParticles = ScoredParticles(Seq.empty[Tagged[Scored[TestParams]]])
 
-			when(instanceObj.algorithm.filterAndQueueUnweighedParticles(
+			when(instanceObj.helper.filterAndQueueUnweighedParticles(
 				incomingScoredParticles,
 				eGen0)).thenReturn(eGen1)
 
@@ -210,7 +213,7 @@ class MainActorTest
 			when(scored.seq).thenReturn(seq)
 			when(payload.scoredParticles).thenReturn(scored)
 
-			when(instanceObj.algorithm.filterAndQueueUnweighedParticles(scored, eGen0)).thenReturn(eGen1)
+			when(instanceObj.helper.filterAndQueueUnweighedParticles(scored, eGen0)).thenReturn(eGen1)
 
 			instanceRef.setState(Gathering, StateData(eGen0, clientRef, None))
 
@@ -241,10 +244,10 @@ class MainActorTest
 
 					when(eGen1.dueWeighing.size).thenReturn(100)
 
-					val algorithm = instanceRef.underlyingActor.algorithm
-					when(algorithm.addWeightedParticles(newlyWeighted, eGen0)).thenReturn(eGen1)
-					when(algorithm.isEnoughParticles(eGen1, config)).thenReturn(false)
-					when(algorithm.emptyWeighingBuffer(eGen1)).thenReturn(eGen2)
+					val helper = instanceRef.underlyingActor.helper
+					when(helper.addWeightedParticles(newlyWeighted, eGen0)).thenReturn(eGen1)
+					when(helper.isEnoughParticles(eGen1, config)).thenReturn(false)
+					when(helper.emptyWeighingBuffer(eGen1)).thenReturn(eGen2)
 
 					// Action
 					instanceRef tell (newlyWeighted, workerProbe.ref)
@@ -266,9 +269,9 @@ class MainActorTest
 				"instruct worker to make more particles if no weiging jobs pending" in new Setup {
 					val workerProbe = TestProbe()
 
-					val algorithm = instanceRef.underlyingActor.algorithm
-					when(algorithm.addWeightedParticles(newlyWeighted, eGen0)).thenReturn(eGen1)
-					when(algorithm.isEnoughParticles(eGen1, config)).thenReturn(false)
+					val helper = instanceRef.underlyingActor.helper
+					when(helper.addWeightedParticles(newlyWeighted, eGen0)).thenReturn(eGen1)
+					when(helper.isEnoughParticles(eGen1, config)).thenReturn(false)
 
 					when(eGen1.dueWeighing.size).thenReturn(0)
 
@@ -303,9 +306,9 @@ class MainActorTest
 				when(instanceObj.childActors.router).thenReturn(routerProbe.ref)
 				when(instanceObj.childActors.flusher).thenReturn(flusherProbe.ref)
 
-				val algorithm = instanceObj.algorithm
-				when(algorithm.addWeightedParticles(newlyWeighted, eGen1)).thenReturn(eGen2)
-				when(algorithm.isEnoughParticles(eGen2, instanceObj.config)).thenReturn(true)
+				val helper = instanceObj.helper
+				when(helper.addWeightedParticles(newlyWeighted, eGen1)).thenReturn(eGen2)
+				when(helper.isEnoughParticles(eGen2, instanceObj.config)).thenReturn(true)
 
 				instanceRef.setState(Gathering, stateData0)
 
@@ -341,7 +344,7 @@ class MainActorTest
 			val scoredParticles = ScoredParticles(Seq(Tagged(Scored(TestParams(), Seq(1.0)), 100)))
 			val mixPayload = Some(scoredParticles)
 
-			when(instanceObj.algorithm.buildMixPayload(eGen0, instanceObj.config)).thenReturn(mixPayload)
+			when(instanceObj.helper.buildMixPayload(eGen0, instanceObj.config)).thenReturn(mixPayload)
 
 			// TODO Factor out to common?
 			val stateData = StateData(eGen0, null, None)

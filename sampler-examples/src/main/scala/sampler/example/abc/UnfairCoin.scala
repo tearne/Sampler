@@ -24,7 +24,6 @@ import com.typesafe.config.ConfigFactory
 import sampler.abc.ABC
 import sampler.abc.Model
 import sampler.abc.Prior
-import sampler.abc.actor.message.Report
 import sampler.abc.config.ABCConfig
 import sampler.data.Distribution
 import sampler.math.Random
@@ -35,6 +34,7 @@ import org.apache.commons.math3.random.MersenneTwister
 import sampler.r.script.ToNamedSeq
 import sampler.r.script.QuickPlot
 import sampler.r.script.RScript
+import sampler.abc.actor.sub.Report
 
 object UnfairCoin extends App with ToNamedSeq{
 	/*

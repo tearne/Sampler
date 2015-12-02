@@ -8,8 +8,6 @@ import sampler.data.DistributionBuilder
 import sampler.abc.config.ABCConfig
 import sampler.abc.config.JobParameters
 import org.mockito.Matchers
-import sampler.abc.Reporter
-import sampler.abc.Population
 
 class ReporterTest extends FreeSpec with MockitoSugar{
 	type T = Int
@@ -18,7 +16,9 @@ class ReporterTest extends FreeSpec with MockitoSugar{
 	val tolerance = 0.001
 	
 	"Generates a report of a completed generation" in {
-		//TODO output the weights table, not a sample from it?
+		//TODO change implementation
+		fail("output the weights table, not samples from it")
+		
 		val distBuilder = mock[DistributionBuilder]
     val config = ABCConfig(
     		JobParameters(thousandParticles,0,0), 

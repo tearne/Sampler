@@ -16,10 +16,12 @@ import sampler.abc.actor.sub.flushing.WeightsHelper
 import sampler.math.Random
 
 trait ChildActorsComponentImpl[P] extends ChildActorsComponent[P]{
-	this: Actor with MainActor[P] =>
+	this: Actor 
+		with MainActor[P] 
+		with HelperComponent =>
 	
 	lazy val childActors = new ChildActors{}
-	val generationFlusher = new GenerationFlusher(
+	lazy val generationFlusher = new GenerationFlusher(
 			ToleranceCalculator,
 			new ObservedIdsTrimmer(
 					config.cluster.particleMemoryGenerations, 
@@ -31,7 +33,9 @@ trait ChildActorsComponentImpl[P] extends ChildActorsComponent[P]{
 }
 
 trait ChildActorsComponent[P] {
-	this: Actor with MainActor[P] =>
+	this: Actor 
+		with MainActor[P]
+		with HelperComponent =>
 		
 	val childActors: ChildActors
 	val generationFlusher: GenerationFlusher
@@ -57,7 +61,7 @@ trait ChildActorsComponent[P] {
 		)
 		
 		val flusher = context.actorOf(
-			Props(classOf[FlushingActor[P]], helper),
+			Props(classOf[FlushingActor[P]], generationFlusher),
 			"flusher"
 		)
 		

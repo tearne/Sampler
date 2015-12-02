@@ -1,4 +1,4 @@
-package sampler.abc.actor.algorithm
+package sampler.abc.actor.main.component
 
 import org.scalatest.FreeSpec
 import org.scalatest.Matchers
@@ -13,7 +13,6 @@ import sampler.abc.config.ABCConfig
 import sampler.abc.config.JobParameters
 import sampler.abc.actor.main.EvolvingGeneration
 import sampler.abc.actor.sub.flushing.GenerationFlusher
-import sampler.abc.actor.main.component.helper.Helper
 import sampler.abc.actor.main.component.helper.ParticleMixer
 import sampler.abc.actor.main.component.helper.Getters
 import sampler.abc.actor.main.Tagged

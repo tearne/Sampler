@@ -25,7 +25,7 @@ object ScoredParticles{
 }
 
 //TODO do we really need taggin in the weighed particles
-final case class WeighedParticles[P](seq: Seq[Tagged[Weighted[P]]]) extends WorkerResult[P]{
+case class WeighedParticles[P](seq: Seq[Tagged[Weighted[P]]]) extends WorkerResult[P]{
   def add(toAdd: WeighedParticles[P]) = WeighedParticles(seq ++ toAdd.seq)
   def add(toAdd: Seq[Tagged[Weighted[P]]]) = WeighedParticles(seq ++ toAdd)
   def size = seq.length

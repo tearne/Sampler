@@ -3,7 +3,9 @@ package sampler.abc.actor.sub.flushing
 import org.scalatest.FreeSpec
 import org.scalatest.Matchers
 import org.scalatest.mock.MockitoSugar
-import sampler.abc.core.ToleranceCalculator
+import sampler.math.StatisticsImpl
+import sampler.abc.Weighted
+import sampler.abc.Scored
 
 class ToleranceCalculatorTest extends FreeSpec with Matchers with MockitoSugar {
 

@@ -111,7 +111,7 @@ class BroadcastActor(abcParams: ABCConfig) extends Actor with ActorLogging{
   		  	state.members.filter(_.status == MemberStatus.Up).foreach(m => 
   		  		attemptWorkerHandshake(RootActorPath(m.address))
   		  	)
-		case MemberUp(member) => 			nodeUp(member)
+		case MemberUp(member) => 					nodeUp(member)
 		case ReachableMember(member) => 	nodeUp(member)
 		case MemberRemoved(member, _) => 	nodeDown(member)
 		case UnreachableMember(member) =>	nodeDown(member)

@@ -11,7 +11,6 @@ import com.typesafe.config.ConfigFactory
 import sampler.abc.ABC
 import sampler.abc.Model
 import sampler.abc.Prior
-import sampler.abc.actor.message.Report
 import sampler.abc.config.ABCConfig
 import sampler.data.Distribution
 import sampler.data.ToEmpirical
@@ -22,6 +21,7 @@ import sampler.math.Statistics
 import sampler.r.script.RScript
 import sampler.io.Logging
 import sampler.data.DistributionBuilder
+import sampler.abc.actor.sub.Report
 
 /*
  * This file contains a number of applications

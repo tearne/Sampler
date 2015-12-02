@@ -11,6 +11,7 @@ import scala.collection.immutable.Queue
 import sampler.abc.Population
 import sampler.abc.actor.main.EvolvingGeneration
 import sampler.abc.actor.main.component.helper.Getters
+import sampler.abc.actor.main.WeighedParticles
 
 class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 	type T = Int

@@ -6,13 +6,12 @@ import akka.testkit.TestKit
 import akka.actor.ActorSystem
 import org.scalatest.FreeSpecLike
 
-@RunWith(classOf[JUnitRunner])
-class FlushingActorTest extends TestKit(ActorSystem("ABC")) with FreeSpecLike{
+class FlushingActorTest extends TestKit(ActorSystem("ABC-test")) with FreeSpecLike{
 	"When asked to flush particles returns the result to the sender" in {
-		pending
+		fail("TODO")
 	}
 	
 	"Throws exception if somehow asked to do another flushing job while still working on previous" in {
-		pending
+		fail("TODO")
 	}
 }
