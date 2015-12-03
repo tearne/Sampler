@@ -11,6 +11,7 @@ import sampler.abc.Weighted
 import sampler.abc.actor.sub.WeighJob
 import sampler.abc.Generation
 import sampler.abc.Population
+import sampler.abc.UseModelPrior
 
 class ParticleWeightCalculatorTest extends FreeSpec with MockitoSugar {
 	type T = Int  //Pretend model parameters
@@ -47,10 +48,25 @@ class ParticleWeightCalculatorTest extends FreeSpec with MockitoSugar {
 				}
 			}
 			"return None if fHat is zero" in new Setup {
-				fail("TODO")  
+			  //Making tolerance zero results in an fHat of 0
+				
+				assertResult(None){
+					instance.particleWeight(
+							scoredParticle, 
+							0,
+							prevPopulation)
+				} 
 			}
 			"return None if the particle is outside the prior" in new Setup {
-				fail("TODO") 
+				//If particle is outside prior it has a density of zero
+			  when(prior.density(anyInt)).thenReturn(0)
+        assertResult(None){
+					instance.particleWeight(
+							scoredParticle, 
+							tolerance,
+							prevPopulation)
+				}
+			  
 			}
 			"throw exception if no previous particle could have perturbed to this one" in new Setup {
 				fail("TODO") 
@@ -59,9 +75,18 @@ class ParticleWeightCalculatorTest extends FreeSpec with MockitoSugar {
 		
 		"When using the model prior as the previous (zero) generation /" - {
 			"returns non zero 'fHat', filtering out reps which don't meet tolerance" in new Setup { 
-				fail("TODO") 
+			val tolerance = 0.5
+		  val prevPopulation: Generation[T] = UseModelPrior(tolerance)
+		  	  
+		  assertResult(Some(tolerance)){
+					instance.particleWeight(
+							scoredParticle, 
+							tolerance,
+							prevPopulation)
+				}
+		  
 			}
-			"returns zero if fHat is zero" in new Setup { 
+			"returns zero if fHat is zero" in new Setup {  //Should this not be None
 				fail("TODO") 
 			}
 		}
