@@ -68,16 +68,6 @@ class ParticleWeightCalculatorTest extends FreeSpec with MockitoSugar {
         }
 
       }
-      "throw exception if no previous particle could have perturbed to this one" in new Setup {
-        //val scoredParticle = Scored(1, Seq(0.4, 0.49, 0.5, 0.51)) // 2/4 under threshold
-        //val prevPopulation: Generation[T] = Population(Map(1 -> 0.2, 2 -> 0.2), 0, 0)
-        intercept[AssertionError] {
-         instance.particleWeight(
-            scoredParticle,
-            tolerance,
-            prevPopulation)
-        }
-      }
     }
 
     "When using the model prior as the previous (zero) generation /" - {

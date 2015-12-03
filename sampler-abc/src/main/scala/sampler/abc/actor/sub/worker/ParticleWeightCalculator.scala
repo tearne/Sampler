@@ -16,7 +16,6 @@ class ParticleWeightCalculator[P](model: Model[P], aborter: Aborter) {
 			case prevPop: Population[P] =>
 				val numerator = fHat * model.prior.density(particle.params)
 				val denominator = prevPop.particleWeights.map{case (prevParam, prevWeight) => 
-				  //assume(prevParam != particle.params, println ("Previous particle could have perturbed to this one"))
 					prevWeight * model.perturbDensity(prevParam, particle.params)
 				}.sum
 				if(numerator > 0 && denominator > 0) Some(numerator / denominator)
