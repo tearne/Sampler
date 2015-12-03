@@ -26,7 +26,7 @@ class ParticleWeightCalculatorTest extends FreeSpec with MockitoSugar {
   }
 
   "Weigher should /" - {
-    val tolerance = 0.5
+    val tolerance = 0.495
     val scoredParticle = Scored(1, Seq(0.4, 0.49, 0.5, 0.51)) // 2/4 under threshold
     val prevPopulation: Generation[T] = Population(Map(1 -> 0.2, 2 -> 0.8), 0, 0)
 
@@ -47,10 +47,14 @@ class ParticleWeightCalculatorTest extends FreeSpec with MockitoSugar {
             prevPopulation)
         }
       }
-      "return None if fHat is zero" in new Setup {
+      "return Some(zero) even if fHat is zero" in new Setup {
         //Making tolerance zero results in an fHat of 0
-
-        assertResult(None) {
+        val zeroTol = 0
+        //Keep the weight denominator non-zero
+        when(prior.density(anyInt)).thenReturn(0.5)
+        when(model.perturbDensity(anyInt, anyInt)).thenReturn(0.5)
+      	
+        assertResult(Some(0)) {
           instance.particleWeight(
             scoredParticle,
             0,
@@ -58,6 +62,9 @@ class ParticleWeightCalculatorTest extends FreeSpec with MockitoSugar {
         }
       }
       "return None if the particle is outside the prior" in new Setup {
+      	//Note this scenario should only happen when particles are
+      	// recieved from non-local workers via mixing.
+      	
         //If particle is outside prior it has a density of zero
         when(prior.density(anyInt)).thenReturn(0)
         assertResult(None) {
@@ -72,10 +79,9 @@ class ParticleWeightCalculatorTest extends FreeSpec with MockitoSugar {
 
     "When using the model prior as the previous (zero) generation /" - {
       "returns non zero 'fHat', filtering out reps which don't meet tolerance" in new Setup {
-        val tolerance = 0.5
         val prevPopulation: Generation[T] = UseModelPrior(tolerance)
 
-        assertResult(Some(tolerance)) {
+        assertResult(Some(0.5)) {
           instance.particleWeight(
             scoredParticle,
             tolerance,
@@ -87,7 +93,7 @@ class ParticleWeightCalculatorTest extends FreeSpec with MockitoSugar {
         val tolerance = 0
         val prevPopulation: Generation[T] = UseModelPrior(tolerance)
 
-        assertResult(Some(tolerance)) {
+        assertResult(Some(0)) {
           instance.particleWeight(
             scoredParticle,
             tolerance,

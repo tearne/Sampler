@@ -11,16 +11,21 @@ class ParticleWeightCalculator[P](model: Model[P], aborter: Aborter) {
 		aborter.checkIfAborted()
 		val fHat = particle.repScores.filter(_ < tolerance).size.toDouble / particle.numReps
 		
-		val weight: Option[Double] = prevGen match {
+		prevGen match {
 			case _: UseModelPrior[P] => Some(fHat) 	
 			case prevPop: Population[P] =>
 				val numerator = fHat * model.prior.density(particle.params)
 				val denominator = prevPop.particleWeights.map{case (prevParam, prevWeight) => 
 					prevWeight * model.perturbDensity(prevParam, particle.params)
 				}.sum
-				if(numerator > 0 && denominator > 0) Some(numerator / denominator)
-				else None
+				/*
+				 * Note, denominator should never be zero when running on one node.
+				 * But when running on multiple nodes, mixing could result in 
+				 * 'unsupported' particles being provided. These will be discarded
+				 * during weighing. 
+				 */
+				if(denominator == 0) None
+				else Some(numerator / denominator)
 		}
-		weight
 	}
 }
