@@ -19,7 +19,6 @@ class GenerationFlusher(
 		val weighedParticles = gen.weighed
 		val currentTolerance = gen.currentTolerance
 		val currentGeneration = gen.buildingGeneration
-		//val model = gen.model
 		val idsObserved = gen.idsObserved
 		
 		//Strip out tags
