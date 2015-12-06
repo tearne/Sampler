@@ -62,8 +62,8 @@ class ParticleWeightCalculatorTest extends FreeSpec with MockitoSugar {
         }
       }
       "return None if the particle is outside the prior" in new Setup {
-      	//Note this scenario should only happen when particles are
-      	// recieved from non-local workers via mixing.
+      	//This scenario should only occur when particles are
+      	// received from non-local workers via mixing.
       	
         //If particle is outside prior it has a density of zero
         when(prior.density(anyInt)).thenReturn(0)
@@ -73,7 +73,6 @@ class ParticleWeightCalculatorTest extends FreeSpec with MockitoSugar {
             tolerance,
             prevPopulation)
         }
-
       }
     }
 
@@ -89,7 +88,7 @@ class ParticleWeightCalculatorTest extends FreeSpec with MockitoSugar {
         }
 
       }
-      "returns zero if fHat is zero" in new Setup { //Should this not be None
+      "returns zero if fHat is zero" in new Setup {
         val tolerance = 0
         val prevPopulation: Generation[T] = UseModelPrior(tolerance)
 

@@ -11,7 +11,7 @@ trait AborterComponent {
 }
 
 trait Aborter {
-	val aborted: AtomicBoolean = new AtomicBoolean(false)
+	private val aborted: AtomicBoolean = new AtomicBoolean(false)
 	def abort() { aborted.set(true) }
 	def reset() { aborted.set(false) }
 	def isAborted = aborted.get
