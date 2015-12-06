@@ -19,65 +19,63 @@ package sampler.abc.actor.sub.worker
 
 import scala.annotation.tailrec
 import scala.util.Try
-import sampler.data.SerialSampler
-import sampler.io.Logging
-import sampler.math.Random
+
 import sampler.abc.Model
 import sampler.abc.Scored
-import sampler.data.ConvergenceProtocol
-import sampler.data.MaxMetric
-import sampler.data.Distribution
 import sampler.abc.actor.main.ScoredParticles
-import sampler.abc.actor.sub.GenerateParticlesFrom
 import sampler.abc.actor.main.Tagged
+import sampler.abc.actor.sub.GenerateParticlesFrom
+import sampler.data.Distribution
+import sampler.io.Logging
+import sampler.math.Random
 
 class DetectedAbortionException() extends Exception("DetectedAbortionException")
 
-class MaxRetryException(message: String = null, cause: Throwable = null) 
+class MaxRetryException(message: String = null, cause: Throwable = null)
 	extends RuntimeException(message, cause)
 
 trait ModelRunnerComponentImpl[P] extends ModelRunnerComponent[P] {
-	self: AborterComponent => 
+	self: AborterComponent =>
 	val modelRunner = new ModelRunner {}
 }
 
 trait ModelRunnerComponent[P] {
-	self: AborterComponent => 
-		
+	self: AborterComponent =>
+
 	val model: Model[P]
 	val modelRunner: ModelRunner
 	val random: Random
-	
-	trait ModelRunner extends Logging{
+
+	trait ModelRunner extends Logging {
 		import model._
-		
-		def run(job: GenerateParticlesFrom[P]): Try[ScoredParticles[P]] = Try{
+
+		def run(job: GenerateParticlesFrom[P]): Try[ScoredParticles[P]] = Try {
 			val maxParticleRetries = job.config.algorithm.maxParticleRetries
-			val proposalDist: Distribution[P] =  job.prevGen.proposalDistribution(model, random)
-			
+			val proposalDist: Distribution[P] = job.prevGen.proposalDistribution(model, random)
+
 			@tailrec
 			def getScoredParameter(failures: Int = 0): Scored[P] = {
 				aborter.checkIfAborted()
-				if(failures >= maxParticleRetries) throw new MaxRetryException(s"Aborted after $failures failed particle draws from previous population")
-				else{
+				if (failures >= maxParticleRetries) throw new MaxRetryException(s"Aborted after $failures failed particle draws from previous population")
+				else {
 					def getScores(params: P): IndexedSeq[Double] = {
 						val modelWithMetric = model.distanceToObservations(params)
 						val replicates = job.config.job.numReplicates
-						SerialSampler.apply(modelWithMetric)(new ConvergenceProtocol[Double](replicates, 0.5, 1000000) with MaxMetric).toIndexedSeq
+						(1 to replicates).map(_ => modelWithMetric.sample)
 					}
-					
-					val res: Option[Scored[P]] = for{
+
+					val res: Option[Scored[P]] = for {
 						params <- Some(proposalDist.sample) if prior.density(params) > 0
 						fitScores <- Some(getScores(params))
 					} yield Scored(params, fitScores)
-					
+
 					res match {
 						case Some(p) => p
 						case None => getScoredParameter(failures + 1)
 					}
 				}
 			}
-			
+
 			val seq = (1 to job.config.algorithm.particleChunkSize).map(i => Tagged(getScoredParameter()))
 			ScoredParticles(seq)
 		}
