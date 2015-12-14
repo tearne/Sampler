@@ -131,6 +131,8 @@ object FittingApplication extends App {
 				scale_x_continuous(limits = c(0,1), breaks = c(0,0.2,0.4,0.6,0.8,1)) +
 				ggtitle("Sequence difference fitting")
 			dev.off()
+			
+			file.copy("Posterior.latest.pdf", "Posterior.$generationId%03d.pdf", overwrite=T)
 		"""
 		RScript(rScript, Data.wd.resolve("script.r"))
 	}
