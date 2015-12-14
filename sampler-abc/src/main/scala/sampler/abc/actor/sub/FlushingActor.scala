@@ -9,7 +9,6 @@ import sampler.abc.actor.sub.flushing.GenerationFlusher
 case class FlushComplete[P](eGeneration: EvolvingGeneration[P])
 
 class FlushingActor[P](generationFlusher: GenerationFlusher) extends Actor with ActorLogging {
-	//TODO how to use work dispatcher?
 	
 	def receive = {
 		case eGen: EvolvingGeneration[P] => 
