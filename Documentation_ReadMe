@@ -59,5 +59,6 @@ Q) I have written new tests but they won't run from SBT and/or Eclipse because f
 
 R pre-requisites (for examples)
 ===============================
-
-install.packages(c("ggplot2", "reshape", "deSolve", "hexbin"), dependencies=T)
+sudo R
+Sys.setenv(http_proxy="http://10.85.4.54:8080")
+install.packages(c("ggplot2", "reshape", "deSolve", "hexbin"), dependencies=T, repos="http://cran.ma.imperial.ac.uk")
