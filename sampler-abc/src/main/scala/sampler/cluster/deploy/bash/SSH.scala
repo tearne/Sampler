@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2012 Crown Copyright 
- *                    Animal Health and Veterinary Laboratories Agency
+ * Copyright (c) 2012-15 Crown Copyright 
+ *                       Animal and Plant Health Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,11 @@
  * limitations under the License.
  */
 
-package sampler.cluster.deploy
+package sampler.cluster.deploy.bash
 
 import java.nio.file.Path
-import sampler.io.Logging
-import scala.language.postfixOps
 
-class SSH(keyFile: Path) extends Logging{
+class SSH(keyFile: Path) {
 	private val keyFileArgs = List("-i", keyFile.toString)
 	private val noHostFileArgs = List(
 			"-o", "StrictHostKeyChecking=no",
@@ -29,7 +27,7 @@ class SSH(keyFile: Path) extends Logging{
 			"-o", "LogLevel=quiet"
 	)
 	
-	def forgroundCommand(username: String, host: String, command: String): String = {
+	def foregroundCommand(username: String, host: String, command: String): String = {
 		val sshCommand = "ssh" ::
 			List("-t","-t") ::: 
 			keyFileArgs :::
