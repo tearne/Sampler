@@ -18,7 +18,6 @@
 package sampler.io
 
 import org.slf4j.LoggerFactory
-import org.slf4j.Logger
 
 trait Logging {
 	private[this] val logger = LoggerFactory.getLogger(getClass.getName)

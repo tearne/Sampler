@@ -75,7 +75,7 @@ class BroadcastActor(abcParams: ABCConfig) extends Actor with ActorLogging{
 	case class PreMixingTest(msg: MixPayload[_], when: Long  = System.currentTimeMillis()){
 		def durationSince = Duration(System.currentTimeMillis() - when, MILLISECONDS)
 	}
-	context.system.scheduler.schedule(1.second, testTimeout * 10 , self, CheckPreMixingTests)
+	context.system.scheduler.schedule(1.second, testTimeout * 2 , self, CheckPreMixingTests)
 	var preMixingTests = Map.empty[ActorRef, PreMixingTest]
 	
 	val nodes = collection.mutable.Set.empty[ActorRef]
