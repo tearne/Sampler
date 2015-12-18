@@ -27,7 +27,8 @@ case class ClusterParameters(
 		futuresTimeoutMS: Long,
 		mixPayloadSize: Int,
 		mixRateMS: Long,
-		mixResponseTimeoutMS: Long
+		mixResponseTimeoutMS: Long,
+		sizeReportingMS: Long
 )
 
 object ClusterParameters{
@@ -40,7 +41,8 @@ object ClusterParameters{
 			getDuration("futures-timeout", TimeUnit.MILLISECONDS),
 			getInt("mixing.num-particles"),
 			getDuration("mixing.rate", TimeUnit.MILLISECONDS),
-			getDuration("mixing.response-threshold", TimeUnit.MILLISECONDS)
+			getDuration("mixing.response-threshold", TimeUnit.MILLISECONDS),
+			getDuration("size-reporting", TimeUnit.MILLISECONDS) //TODO untested
 		)
 	}
 	

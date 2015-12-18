@@ -21,6 +21,7 @@ class GettersTest extends FreeSpec {
 						0,
 						0,
 						5000,
+						0,
 						0
 				)
 		)

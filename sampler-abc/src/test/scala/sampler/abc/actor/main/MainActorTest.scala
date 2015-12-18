@@ -75,7 +75,7 @@ class MainActorTest
 		val config = ABCConfig(
 			JobParameters(hundredParticles, 0, threeGenerations),
 			null,
-			ClusterParameters(terminateAtTargetGen, 0, 0l, 0, noMixing, 0l))
+			ClusterParameters(terminateAtTargetGen, 0, 0l, 0, noMixing, 0l, 0l))
 		val reportAction = None
 		val getters = mock[Getters]
 		when(getters.getMixRateMS(config)).thenReturn(noMixing)

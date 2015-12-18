@@ -34,7 +34,6 @@ import sampler.math.Random
 import akka.actor.Identify
 import akka.actor.ActorIdentity
 import com.typesafe.config.ConfigFactory
-import scala.concurrent.duration._
 import akka.actor.ActorSelection.toScala
 import akka.cluster.ClusterEvent.ClusterDomainEvent
 import sampler.abc.config.ABCConfig
@@ -44,8 +43,6 @@ import akka.cluster.ClusterEvent.UnreachableMember
 import akka.cluster.Member
 import sampler.data.DistributionBuilder
 import sampler.abc.actor.main.MixPayload
-import akka.cluster.ClusterEvent.ClusterDomainEvent
-import akka.cluster.ClusterEvent.ClusterDomainEvent
 import akka.cluster.ClusterEvent.ClusterDomainEvent
 
 class BroadcastActor(abcParams: ABCConfig) extends Actor with ActorLogging{
@@ -75,7 +72,7 @@ class BroadcastActor(abcParams: ABCConfig) extends Actor with ActorLogging{
 	case class PreMixingTest(msg: MixPayload[_], when: Long  = System.currentTimeMillis()){
 		def durationSince = Duration(System.currentTimeMillis() - when, MILLISECONDS)
 	}
-	context.system.scheduler.schedule(1.second, testTimeout * 2 , self, CheckPreMixingTests)
+	context.system.scheduler.schedule(1.seconds, testTimeout * 2 , self, CheckPreMixingTests)
 	var preMixingTests = Map.empty[ActorRef, PreMixingTest]
 	
 	val nodes = collection.mutable.Set.empty[ActorRef]
@@ -156,16 +153,23 @@ class BroadcastActor(abcParams: ABCConfig) extends Actor with ActorLogging{
 	
 	case class NumWorkers(n: Int)
 	val reportingActor = context.actorOf(Props(new Actor with ActorLogging{
-		val Tick = "timeToReport"
+	  case object Tick
 		import context.dispatcher
 		import scala.concurrent.duration._
 		
 		var numWorkers: Option[Int] = None
-		context.system.scheduler.schedule(5.second, 20.second, self, Tick)
+		context.system.scheduler.schedule(
+		    10.seconds, 
+		    Duration(abcParams.cluster.sizeReportingMS, MILLISECONDS), 
+		    self, 
+		    Tick
+		)
 		def receive = {
 			case Tick => 
 				numWorkers.foreach(n => log.info("There are {} remote nodes", n))
-			case NumWorkers(n) => numWorkers = Some(n)
+			case NumWorkers(n) => 
+			  numWorkers = Some(n)
+			  self ! Tick
 		}
 	}))
 }
