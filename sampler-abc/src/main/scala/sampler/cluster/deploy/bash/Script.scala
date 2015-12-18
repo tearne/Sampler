@@ -11,7 +11,7 @@ object Script {
   //def deleteOld(dir: String) = s"rm $dir/run*.sh && rm -r $dir/log" 
   
   def unTar(parentDir: String, tarFile: String) = {
-    s"cd $parentDir && tar xzf $tarFile"
+    s"cd $parentDir && tar xvzf $tarFile"
   }
     
   //TODO make the -Xmx above configurable from props?
@@ -30,7 +30,7 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 cd $DIR
 """+
 s"""
-jre1.8.0_65/bin/java -Xmx50g -XX:NewSize=25g \\
+jre1.8.0_65/bin/java -Xmx55g -XX:NewSize=30g \\
 -Dakka.remote.netty.tcp.hostname=$hostIP \\
 -Dakka.cluster.seed-nodes.0=akka.tcp://ABC@$seedOneIP:2552 \\
 -Dakka.cluster.seed-nodes.1=akka.tcp://ABC@$seedTwoIP:2552 \\
