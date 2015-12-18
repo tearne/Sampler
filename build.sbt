@@ -125,6 +125,11 @@ lazy val abc = project.in(file("sampler-abc"))
 			"com.typesafe.akka" %% "akka-slf4j" % "2.3.6", 
 			"com.typesafe.akka" %% "akka-testkit" % "2.3.6" % "test",
 			"org.apache.commons" % "commons-math3" % "3.2",
+			"commons-io" % "commons-io" % "2.4",
+			"org.apache.jclouds" % "jclouds-core" % "1.9.1",
+			"org.apache.jclouds.driver" % "jclouds-slf4j" % "1.9.1",
+			"org.apache.jclouds.provider" % "aws-ec2" % "1.9.1",
+			"com.jayway.jsonpath" % "json-path" % "2.0.0",
 			"com.amazonaws" % "aws-java-sdk" % "1.4.0.1"
 		)	
 	)
