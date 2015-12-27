@@ -30,7 +30,6 @@ import sampler.abc.actor.main.MainActorImpl
 import sampler.abc.config.ABCConfig
 import sampler.cluster.PortFallbackSystemFactory
 import sampler.io.Logging
-import sampler.abc.actor.sub.Report
 import sampler.abc.actor.main.Start
 
 trait ABCActors {
@@ -38,7 +37,7 @@ trait ABCActors {
 	def entryPointActor[P](
 		model: Model[P],
 		abcParams: ABCConfig,
-		reporting: Option[Report[P] => Unit]): ActorRef
+		generationHandler: Option[Population[P] => Unit]): ActorRef
 }
 
 trait ABCActorsImpl extends ABCActors {
@@ -47,10 +46,10 @@ trait ABCActorsImpl extends ABCActors {
 	def entryPointActor[P](
 		model: Model[P],
 		config: ABCConfig,
-		reportAction: Option[Report[P] => Unit]) = {
+		generationHandler: Option[Population[P] => Unit]) = {
 
 		system.actorOf(
-			Props(classOf[MainActorImpl[P]], model, config, reportAction),
+			Props(classOf[MainActorImpl[P]], model, config, generationHandler),
 			"root")
 	}
 }
@@ -58,20 +57,20 @@ trait ABCActorsImpl extends ABCActors {
 object ABC extends ABCActorsImpl with Logging {
 	def apply[P](
 			model: Model[P],
-			config: ABCConfig): Seq[P] =
-		apply(model, config, None, UseModelPrior())
+			config: ABCConfig): Population[P] =
+		apply(model, config, None, UseModelPrior[P]())
 		
 	def apply[P](
 			model: Model[P],
 			config: ABCConfig,
-			reporter: Report[P] => Unit): Seq[P] =
-		apply(model, config, Some(reporter), UseModelPrior())
+			genHandler: Population[P] => Unit): Population[P] =
+		apply(model, config, Some(genHandler), UseModelPrior())
 	
 	def apply[P](
 			model: Model[P],
 			config: ABCConfig,
-			reporting: Option[Report[P] => Unit] = None,
-			initialPopulation: Generation[P] = UseModelPrior()): Seq[P] = {
+			genHandler: Option[Population[P] => Unit] = None,
+			initialPopulation: Generation[P] = UseModelPrior()): Population[P] = {
 		info(s"Num generations: ${config.job.numGenerations}")
 		info(s"Num particles: ${config.job.numParticles}")
 		info(s"Num replicates: ${config.job.numReplicates}")
@@ -85,11 +84,11 @@ object ABC extends ABCActorsImpl with Logging {
 		info(s"Terminate at target generations: ${config.cluster.terminateAtTargetGenerations}")
 		info(s"Number of workers (router configured): ${ConfigFactory.load().getInt("akka.actor.deployment./root/work-router.nr-of-instances")}")
 
-		val actor = entryPointActor(model, config, reporting)
+		val actor = entryPointActor(model, config, genHandler)
 
 		implicit val timeout = Timeout(config.cluster.futuresTimeoutMS, TimeUnit.MILLISECONDS)
-		val future = (actor ? Start(UseModelPrior())).mapTo[Report[P]]
-		val result = Await.result(future, Duration.Inf).posterior
+		val future = (actor ? Start(UseModelPrior())).mapTo[Population[P]]
+		val result = Await.result(future, Duration.Inf)
 		//TODO unlimited timeout just for the future above?
 
 		if (config.cluster.terminateAtTargetGenerations) {

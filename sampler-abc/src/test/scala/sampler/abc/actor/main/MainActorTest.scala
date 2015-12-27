@@ -16,19 +16,16 @@ import sampler.abc.config.ClusterParameters
 import sampler.abc.config.JobParameters
 import akka.actor.Cancellable
 import sampler.abc.actor.main.component.helper.Getters
-import sampler.abc.Generation
 import scala.collection.immutable.Queue
 import org.scalatest.BeforeAndAfter
 import akka.actor.ActorRef
 import sampler.abc.actor.sub.FlushComplete
 import sampler.abc.Population
 import sampler.abc.actor.main.component.WorkDispatcherComponent
-import sampler.abc.actor.sub.Report
 import sampler.abc.actor.sub.GenerateParticlesFrom
 import sampler.abc.actor.sub.Abort
 import sampler.abc.actor.sub.WeighJob
 import sampler.abc.actor.main.component.ChildActorsComponent
-import sampler.abc.Reporter
 import sampler.abc.actor.main.component.HelperComponent
 import sampler.abc.actor.sub.flushing.GenerationFlusher
 import sampler.abc.actor.main.component.Helper
@@ -50,7 +47,7 @@ class MainActorTest
 	class TestableMainActor(
 		val model: Model[TestParams],
 		val config: ABCConfig,
-		val reportAction: Option[Report[TestParams] => Unit],
+		val reportHandler: Option[Population[TestParams] => Unit],
 		override val getters: Getters)
 			extends MainActor[TestParams]
 			with ChildActorsComponent[TestParams]
@@ -61,9 +58,8 @@ class MainActorTest
 		val workDispatcher = context.dispatcher
 		val helper = mock[Helper]
 
-		val distributionBuilder = sampler.data.DistributionBuilder
+//		val distributionBuilder = sampler.data.DistributionBuilder
 		val random = sampler.math.Random
-		val reporter = mock[Reporter]
 	}
 
 	override def afterAll {
@@ -82,11 +78,12 @@ class MainActorTest
 
 		val instanceRef = TestFSMRef(new TestableMainActor(model, config, reportAction, getters))
 		val instanceObj = instanceRef.underlyingActor
+		when(instanceObj.childActors.reporter).thenReturn(TestProbe().ref)
 
 		val clientRef = TestProbe().ref
 
 		//TODO can just do mock[Population] now?
-		var gen1: Generation[TestParams] = Population( mock[Map[TestParams, Double]], 1, 99)
+		var gen1: Population[TestParams] = Population( mock[Map[TestParams, Double]], 1, 99)
 		var eGen1: EvolvingGeneration[TestParams] = EvolvingGeneration(
 			99.9,
 			gen1,
@@ -167,7 +164,7 @@ class MainActorTest
 			}
 		}
 
-		"when new scored particles arrive work gets a weighing job back" in new Setup {
+		"when new scored particles arrive from worker it gets a weighing job back" in new Setup {
 			val workerProbe = TestProbe()
 
 			val eGen0 = mock[EvolvingGeneration[TestParams]]
@@ -312,7 +309,7 @@ class MainActorTest
 
 				instanceRef.setState(Gathering, stateData0)
 
-				val inProgressGen = mock[Generation[TestParams]]
+				val inProgressGen = mock[Population[TestParams]]
 
 				when(eGen2.previousGen).thenReturn(inProgressGen)
 
@@ -367,14 +364,10 @@ class MainActorTest
 			val eGen0 = mock[EvolvingGeneration[TestParams]]
 			val stateData = StateData(eGen0, null, None)
 
-			val report = mock[Report[TestParams]]
-			when(report.generationId).thenReturn(1)
-			val reportCompleted = ReportCompleted(report)
-
 			instanceRef.setState(Gathering, stateData)
 
 			// Action
-			instanceRef tell (reportCompleted, null)
+			instanceRef tell (ReportCompleted, null)
 
 			// Assertions
 			assertResult(Gathering)(instanceRef.stateName)
@@ -450,12 +443,9 @@ class MainActorTest
 				when(instanceObj.childActors.router).thenReturn(routerProbe.ref)
 
 				val eGen0 = mock[EvolvingGeneration[TestParams]]
-				val flushedGen = mock[Generation[TestParams]]
+				val flushedGen = mock[Population[TestParams]]
 				when(flushedGen.iteration).thenReturn(threeGenerations)
 				when(eGen0.previousGen).thenReturn(flushedGen)
-
-				val report = mock[Report[TestParams]]
-				when(instanceObj.reporter.build(flushedGen)).thenReturn(report)
 
 				instanceRef.setState(Flushing, flushingStateData)
 
@@ -464,7 +454,7 @@ class MainActorTest
 
 				// Assertion
 				routerProbe.expectMsg(Abort)
-				reporterProbe.expectMsg(report)
+				reporterProbe.expectMsg(flushedGen)
 
 				assertResult(WaitingForShutdown)(instanceRef.stateName)
 				assertResult(eGen0)(instanceRef.stateData match {
@@ -482,11 +472,6 @@ class MainActorTest
 				when(instanceObj.childActors.router).thenReturn(routerProbe.ref)
 
 				val prevWeights = Map[TestParams, Double]()
-
-				val reporter = instanceObj.reporter
-
-				val report = mock[Report[TestParams]]
-				when(reporter.build(gen1)).thenReturn(report)
 
 				instanceRef.setState(Flushing, flushingStateData)
 
@@ -511,11 +496,8 @@ class MainActorTest
 
 			instanceRef.setState(Flushing, stateData)
 
-			val report = mock[Report[TestParams]]
-			val rc = ReportCompleted(report)
-
 			// Action
-			instanceRef tell (rc, null)
+			instanceRef tell (ReportCompleted, null)
 
 			// Assertion
 			assertResult(Flushing)(instanceRef.stateName)
@@ -532,18 +514,18 @@ class MainActorTest
 			val workerProbe = TestProbe()
 
 			val eGen = mock[EvolvingGeneration[TestParams]]
-			val report = mock[Report[TestParams]]
-			val reportCompleted = ReportCompleted(report)
+			val flushedGen = mock[Population[TestParams]]
+			when(eGen.previousGen).thenReturn(flushedGen)
 
 			val stateData = StateData(eGen, clientProbe.ref, None)
 
 			instanceRef.setState(WaitingForShutdown, stateData)
 
 			// Action
-			instanceRef tell (reportCompleted, workerProbe.ref)
+			instanceRef tell (ReportCompleted, workerProbe.ref)
 
 			// Assertions
-			clientProbe.expectMsg(report)
+			clientProbe.expectMsg(flushedGen)
 
 			assertResult(WaitingForShutdown)(instanceRef.stateName)
 			assertResult(eGen)(instanceRef.stateData match {

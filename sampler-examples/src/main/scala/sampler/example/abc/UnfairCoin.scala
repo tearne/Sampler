@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2012-2015 Crown Copyright
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +33,7 @@ import org.apache.commons.math3.random.MersenneTwister
 import sampler.r.script.ToNamedSeq
 import sampler.r.script.QuickPlot
 import sampler.r.script.RScript
-import sampler.abc.actor.sub.Report
+import sampler.abc.Population
 
 object UnfairCoin extends App with ToNamedSeq{
 	/*
@@ -49,8 +48,8 @@ object UnfairCoin extends App with ToNamedSeq{
 	tempCSV.toFile().deleteOnExit
 	
 	val abcParameters = ABCConfig.fromTypesafeConfig(ConfigFactory.load(), "unfair-coin-example")
-	val abcReporting = { report: Report[CoinParams] =>
-		val lineToks = s"Gen${report.generationId}" +: report.posterior.map(_.pHeads)
+	val abcReporting = { pop: Population[CoinParams] =>
+		val lineToks = s"Gen${pop.iteration}" +: pop.particleWeights.keys.map(_.pHeads).toSeq
 		CSV.writeLine(
 				tempCSV, 
 				lineToks,
@@ -58,7 +57,7 @@ object UnfairCoin extends App with ToNamedSeq{
 		)
 	}
 	
-	val finalGeneration = ABC(CoinModel, abcParameters, abcReporting).map(_.pHeads)
+	val finalGeneration = ABC(CoinModel, abcParameters, abcReporting).particleWeights.keys.map(_.pHeads).toSeq
 	
 	// Make plot of final generation (posterior)
 	QuickPlot.writeDensity(

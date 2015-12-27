@@ -21,7 +21,7 @@ import sampler.math.Statistics
 import sampler.r.script.RScript
 import sampler.io.Logging
 import sampler.data.DistributionBuilder
-import sampler.abc.actor.sub.Report
+import sampler.abc.Population
 
 /*
  * This file contains a number of applications
@@ -96,11 +96,9 @@ object FittingApplication extends App {
 		"network-outbreak-example"
 	)
 	
-	val reporting = { report: Report[Parameters] =>
-		import report._
-		
-		val lines = Parameters.names +: posterior.map(_.toSeq)
-		val fileName = f"posterior.$generationId%03d.csv"
+	val reporting = { pop: Population[Parameters] =>
+		val lines = Parameters.names +: pop.particleWeights.keys.map(_.toSeq).toSeq
+		val fileName = f"posterior.${pop.iteration}%03d.csv"
 		CSV.writeLines(Data.wd.resolve(fileName), lines)
 		
 		val rScript = f"""
@@ -132,7 +130,7 @@ object FittingApplication extends App {
 				ggtitle("Sequence difference fitting")
 			dev.off()
 			
-			file.copy("Posterior.latest.pdf", "Posterior.$generationId%03d.pdf", overwrite=T)
+			file.copy("Posterior.latest.pdf", "Posterior.${pop.iteration}%03d.pdf", overwrite=T)
 		"""
 		RScript(rScript, Data.wd.resolve("script.r"))
 	}

@@ -26,7 +26,6 @@ import akka.actor.actorRef2Scala
 import akka.routing.Broadcast
 import sampler.abc.Generation
 import sampler.abc.Model
-import sampler.abc.Reporter
 import sampler.abc.actor.main.component.ChildActorsComponent
 import sampler.abc.actor.main.component.ChildActorsComponentImpl
 import sampler.abc.actor.main.component.HelperComponent
@@ -37,13 +36,17 @@ import sampler.abc.actor.main.component.helper.Getters
 import sampler.abc.actor.sub.Abort
 import sampler.abc.actor.sub.FlushComplete
 import sampler.abc.actor.sub.GenerateParticlesFrom
-import sampler.abc.actor.sub.Report
 import sampler.abc.actor.sub.WeighJob
 import sampler.abc.config.ABCConfig
 import sampler.data.DistributionBuilder
 import sampler.math.Random
 import sampler.math.Statistics
 import sampler.math.StatisticsComponent
+import sampler.abc.actor.sub.StatusReport
+import sampler.abc.actor.sub.NewScored
+import sampler.abc.Population
+import sampler.abc.actor.sub.FinishGen
+import sampler.abc.actor.sub.NewWeighed
 
 /*
  * States/Data
@@ -77,20 +80,12 @@ case class FlushingData(
 class MainActorImpl[P](
 	val model: Model[P],
 	val config: ABCConfig,
-	val reportAction: Option[Report[P] => Unit]) extends MainActor[P]
+	val reportHandler: Option[Population[P] => Unit]) extends MainActor[P]
 		with ChildActorsComponentImpl[P]
 		with WorkDispatcherComponentImpl
-		with HelperCoponentImpl
-		with StatisticsComponent {
-
-	val distributionBuilder = DistributionBuilder
+		with HelperCoponentImpl {
 
 	val getters = new Getters()
-	val reporter = new Reporter(
-		DistributionBuilder,
-		Random,
-		config)
-	val statistics = Statistics
 }
 
 trait MainActor[P]
@@ -100,8 +95,6 @@ trait MainActor[P]
 
 	val config: ABCConfig
 	val model: Model[P]
-	val reporter: Reporter //TODO better name to help distinguish between report action and reporting actor
-	val reportAction: Option[Report[P] => Unit]
 	val getters: Getters
 
 	case class AddComplete(generation: EvolvingGeneration[P])
@@ -155,7 +148,12 @@ trait MainActor[P]
 		case Event(scored: ScoredParticles[P], stateData: StateData[P]) =>
 			val sndr = sender
 			val updatedGeneration = helper.filterAndQueueUnweighedParticles(scored, stateData.generation)
-			log.info("New filtered and queued ({}) => |Q| = {},  from {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
+//			log.info("New filtered and queued ({}) => |Q| = {},  from {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
+			childActors.reporter ! StatusReport( //TODO untested
+					NewScored(scored.seq.size, sender, false), 
+					updatedGeneration, 
+					config
+			)
 			sndr ! WeighJob.buildFrom(updatedGeneration)
 			log.debug("Allocate weighing of {} particles to {}", updatedGeneration.dueWeighing.size, sndr)
 			stay using stateData.copy(generation = updatedGeneration.emptyWeighingBuffer)
@@ -163,11 +161,16 @@ trait MainActor[P]
 		case Event(weighted: WeighedParticles[P], stateData: StateData[P]) =>
 			val updatedGen = helper.addWeightedParticles(weighted, stateData.generation)
 
-			log.info(
-				s"Working on gen ${updatedGen.buildingGeneration}, " +
-					s"Particles + ${getters.getNumParticles(weighted)} = " +
-					s"${getters.getNumEvolvedParticles(updatedGen)}/${config.job.numParticles}")
+//			log.info(
+//				s"Working on gen ${updatedGen.buildingGeneration}, " +
+//					s"Particles + ${getters.getNumParticles(weighted)} = " +
+//					s"${getters.getNumEvolvedParticles(updatedGen)}/${config.job.numParticles}")
 
+			childActors.reporter ! StatusReport(
+				NewWeighed(getters.getNumParticles(weighted)),
+				updatedGen,
+				config
+			)
 			if (helper.isEnoughParticles(updatedGen, config)) {
 				childActors.router ! Broadcast(Abort)
 				childActors.flusher ! updatedGen
@@ -189,36 +192,38 @@ trait MainActor[P]
 		case Event(mixP: MixPayload[P], stateData: StateData[P]) =>
 			val scored = mixP.scoredParticles
 			val updatedGeneration = helper.filterAndQueueUnweighedParticles(scored, stateData.generation)
-			log.info("New filtered and queued ({}) => |Q| = {},  from REMOTE {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
+//			log.info("New filtered and queued ({}) => |Q| = {},  from REMOTE {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
+			childActors.reporter ! StatusReport(//TODO untested
+					NewScored(scored.seq.size, sender, true),
+					updatedGeneration,
+					config
+			)
 			stay using StateData(updatedGeneration, stateData.client, stateData.cancellableMixing) //stateData.copy(generation = updatedGeneration)
 
-		case Event(rc: ReportCompleted[P], _) =>
-			log.debug(s"Report for generation ${rc.report.generationId} completed.")
+		case Event(ReportCompleted, _) =>
 			stay
 	}
 
 	when(Flushing) {
 		case Event(_: ScoredParticles[P], _) =>
-			log.info("Ignore new paylod"); stay
+			stay
 		case Event(MixNow, _) =>
-			log.info("Ignore mix request"); stay
+			stay
 		case Event(fc: FlushComplete[P], data: FlushingData) =>
 			val numReqGenerations = config.job.numGenerations
 			val flushedEGen = fc.eGeneration
 			val generationCompleted = flushedEGen.previousGen.iteration
 
-			log.info(
-				"Generation {}/{} complete, next tolerance {}",
-				generationCompleted,
-				numReqGenerations,
-				flushedEGen.currentTolerance)
+			childActors.reporter ! StatusReport(
+				FinishGen(generationCompleted),
+				flushedEGen,
+				config
+			)
 
 			if (generationCompleted == numReqGenerations && config.cluster.terminateAtTargetGenerations) {
 				// Stop work
 				childActors.router ! Abort // TODO superfluous?
-				reportCompletedGeneration(flushedEGen.previousGen)
-				log.info("Required generations completed and reported to requestor")
-
+				childActors.reporter ! flushedEGen.previousGen //TODO check test coverage
 				goto(WaitingForShutdown) using data.setGeneration(flushedEGen)
 			} else {
 				// Start next generation
@@ -226,18 +231,16 @@ trait MainActor[P]
 				childActors.router ! Broadcast(GenerateParticlesFrom( //TODO check test coverage
 					flushedEGen.previousGen,
 					config))
-				reportCompletedGeneration(flushedEGen.previousGen)
+				childActors.reporter ! flushedEGen.previousGen //TODO check test coverage
 				goto(Gathering) using data.setGeneration(flushedEGen)
 			}
-		case Event(rc: ReportCompleted[P], _) =>
-			log.debug(s"Report for generation ${rc.report.generationId} completed.")
+		case Event(ReportCompleted, _) =>
 			stay
 	}
 
 	when(WaitingForShutdown) {
-		case Event(rc: ReportCompleted[P], state: StateData[P]) =>
-			log.info("Final report completed.  Informing client")
-			state.client ! rc.report
+		case Event(ReportCompleted, state: StateData[P]) =>
+			state.client ! state.generation.previousGen
 			stay
 	}
 
@@ -254,9 +257,5 @@ trait MainActor[P]
 			worker ! GenerateParticlesFrom(generation.previousGen, config)
 			stay using stateData.updateGeneration(generation)
 		}
-	}
-
-	def reportCompletedGeneration(generation: Generation[P]) {
-		childActors.reporter ! reporter.build(generation)
 	}
 }

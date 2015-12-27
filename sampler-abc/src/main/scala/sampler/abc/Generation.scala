@@ -10,7 +10,7 @@ sealed trait Generation[P]{
 	def proposalDistribution(model: Model[P], rnd: Random):Distribution[P]
 }
 
-final case class UseModelPrior[P](tolerance: Double = Double.MaxValue) extends Generation[P]{
+case class UseModelPrior[P](tolerance: Double = Double.MaxValue) extends Generation[P]{
 	val iteration = 0
 	
 	/*
@@ -19,7 +19,7 @@ final case class UseModelPrior[P](tolerance: Double = Double.MaxValue) extends G
 	 */
 	def proposalDistribution(model: Model[P], rnd: Random) = model.prior
 }
-final case class Population[P](
+case class Population[P](
 	  particleWeights: Map[P, Double],
 	  iteration: Int, 
 		tolerance: Double

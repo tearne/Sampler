@@ -14,6 +14,8 @@ import sampler.abc.actor.sub.flushing.ToleranceCalculator
 import sampler.abc.actor.sub.flushing.ObservedIdsTrimmer
 import sampler.abc.actor.sub.flushing.WeightsHelper
 import sampler.math.Random
+import sampler.abc.Generation
+import sampler.abc.Population
 
 trait ChildActorsComponentImpl[P] extends ChildActorsComponent[P]{
 	this: Actor 
@@ -40,6 +42,7 @@ trait ChildActorsComponent[P] {
 	val childActors: ChildActors
 	val generationFlusher: GenerationFlusher
 	val random: Random
+	val reportHandler: Option[Population[P] => Unit]
 
 	trait ChildActors {
 		val broadcaster = context.actorOf(
@@ -66,7 +69,7 @@ trait ChildActorsComponent[P] {
 		)
 		
 		val reporter = context.actorOf(
-			Props(classOf[ReportingActor[P]], reportAction)	
+			Props(classOf[ReportingActor[P]], reportHandler)	
 		)
 	}
 }

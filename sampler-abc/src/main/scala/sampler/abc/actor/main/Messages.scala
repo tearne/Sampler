@@ -3,7 +3,6 @@ package sampler.abc.actor.main
 import sampler.abc.Generation
 import sampler.abc.Scored
 import sampler.abc.Weighted
-import sampler.abc.actor.sub.Report
 
 case class Start[P](generationZero: Generation[P])
 case object Failed
@@ -36,4 +35,4 @@ object WeighedParticles{
 
 case object MixNow
 case class MixPayload[P](scoredParticles: ScoredParticles[P])
-case class ReportCompleted[P](report: Report[P])
+case object ReportCompleted
