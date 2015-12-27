@@ -49,21 +49,30 @@ object UnfairCoin extends App with ToNamedSeq{
 	
 	val abcParameters = ABCConfig.fromTypesafeConfig(ConfigFactory.load(), "unfair-coin-example")
 	val abcReporting = { pop: Population[CoinParams] =>
-		val lineToks = s"Gen${pop.iteration}" +: pop.particleWeights.keys.map(_.pHeads).toSeq
+		/*
+		 * Note: Here we use Population.sampleByWeight.  It will produce a more ragged
+		 * posterior, but with a known number of particles, good for transposing later.
+		 */
+		val lineToks = s"Gen${pop.iteration}" +: pop.sampleByWeight(10000, Random).map(_.pHeads).toSeq
 		CSV.writeLine(
 				tempCSV, 
 				lineToks,
 				APPEND, CREATE
 		)
 	}
-	
-	val finalGeneration = ABC(CoinModel, abcParameters, abcReporting).particleWeights.keys.map(_.pHeads).toSeq
+
+	/*
+	 * Note: Here we use Population.inflateByWeight.  It will produce a posterior
+	 *  sequence which  naturally represents the weighted particles, includes those
+	 *  with very small weight
+	 */
+	val finalGeneration = ABC(CoinModel, abcParameters, abcReporting).inflateByWeight.map(_.pHeads)
 	
 	// Make plot of final generation (posterior)
 	QuickPlot.writeDensity(
 		wd.resolve("posterior.pdf"),
 		"9.00", "3.00",
-		finalGeneration.continuous("P[Heads]")
+		finalGeneration.toSeq.continuous("P[Heads]")
 	)
 	
 	

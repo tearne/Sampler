@@ -65,7 +65,7 @@ object FlockMortality extends App {
 	)
 	
 	import sampler.Implicits._
-	val posterior = ABC(FlockMortalityModel, abcParams).particleWeights.keys.toSeq
+	val posterior = ABC(FlockMortalityModel, abcParams).inflateByWeight.toSeq
 	
 	val outData = Map(
 		"Beta" -> posterior.map(_.beta),

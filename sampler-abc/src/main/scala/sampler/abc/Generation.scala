@@ -15,7 +15,7 @@ case class UseModelPrior[P](tolerance: Double = Double.MaxValue) extends Generat
 	
 	/*
 	 *  Model & Random are args rather than in constructor so 
-	 *  this class can safely be serialised and used as massage.
+	 *  this class can safely be serialised and used as message.
 	 */
 	def proposalDistribution(model: Model[P], rnd: Random) = model.prior
 }
@@ -27,10 +27,24 @@ case class Population[P](
 	
 	/*
 	 *  Model & Random are args rather than in constructor so 
-	 *  this class can safely be serialised and used as massage.
+	 *  this class can safely be serialised and used as message.
 	 */
 	def proposalDistribution(model: Model[P], rnd: Random) = 
 		DistributionBuilder
 		.fromWeightsTable(particleWeights)(rnd)
 		.map(model.perturb)
+		
+	def inflateByWeight = {
+		val minWeight = particleWeights.values.min
+		assume(minWeight > 0)
+		val multiplier = 1 / minWeight
+		particleWeights.flatMap{case (p,w) => 
+			(1 to (multiplier * w).toInt).map(_ => p)
+		}
+	}
+	
+	def sampleByWeight(num: Int, random: Random) = {
+		val dist = DistributionBuilder.fromWeightsTable(particleWeights)(random)
+		(1 to num).map(_ => dist.sample)
+	}
 }
