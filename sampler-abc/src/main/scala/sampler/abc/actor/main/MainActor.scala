@@ -161,11 +161,6 @@ trait MainActor[P]
 		case Event(weighted: WeighedParticles[P], stateData: StateData[P]) =>
 			val updatedGen = helper.addWeightedParticles(weighted, stateData.generation)
 
-//			log.info(
-//				s"Working on gen ${updatedGen.buildingGeneration}, " +
-//					s"Particles + ${getters.getNumParticles(weighted)} = " +
-//					s"${getters.getNumEvolvedParticles(updatedGen)}/${config.job.numParticles}")
-
 			childActors.reporter ! StatusReport(
 				NewWeighed(getters.getNumParticles(weighted)),
 				updatedGen,
@@ -192,7 +187,6 @@ trait MainActor[P]
 		case Event(mixP: MixPayload[P], stateData: StateData[P]) =>
 			val scored = mixP.scoredParticles
 			val updatedGeneration = helper.filterAndQueueUnweighedParticles(scored, stateData.generation)
-//			log.info("New filtered and queued ({}) => |Q| = {},  from REMOTE {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
 			childActors.reporter ! StatusReport(//TODO untested
 					NewScored(scored.seq.size, sender, true),
 					updatedGeneration,
@@ -215,7 +209,7 @@ trait MainActor[P]
 			val generationCompleted = flushedEGen.previousGen.iteration
 
 			childActors.reporter ! StatusReport(
-				FinishGen(generationCompleted),
+				FinishGen(generationCompleted, flushedEGen.currentTolerance),
 				flushedEGen,
 				config
 			)

@@ -9,8 +9,6 @@ import sampler.abc.config.ABCConfig
 import akka.actor.ActorRef
 import sampler.abc.Generation
 
-//case class GenerationReport[P](generationId: Int, tolerance: Double, posterior: Seq[P])
-
 sealed trait StatusDelta{
 	def getTxt(): String
 }
@@ -22,8 +20,8 @@ case class NewScored(num: Int, sender: ActorRef, fromRemoteActor: Boolean) exten
 case class NewWeighed(num: Int) extends StatusDelta {
 	def getTxt = s"+$num weighed"
 }
-case class FinishGen(num: Int) extends StatusDelta {
-	def getTxt = s"Finished generation $num"
+case class FinishGen(num: Int, tol: Double) extends StatusDelta {
+	def getTxt = s"Done generation $num, new tolerance = $tol"
 }
 
 case class StatusReport[P](delta: StatusDelta, eGen: EvolvingGeneration[P], config: ABCConfig){

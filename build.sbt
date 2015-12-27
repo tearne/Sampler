@@ -1,7 +1,7 @@
 import UnidocKeys._
 
 val buildOrganization 	= "org.tearne"
-val buildVersion 	= "0.2.5"
+val buildVersion 	= "0.2.6"
 val buildScalaVersion	= "2.11.7"
 
 lazy val commonSettings = Seq(
