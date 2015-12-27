@@ -29,7 +29,7 @@ class Weigher[P](calc: ParticleWeightCalculator[P]){
 	def apply(job: WeighJob[P]): Try[WeighedParticles[P]] = Try{
 		val result = for{
 			p <- job.scored.seq
-			wt <- calc.particleWeight(p.value, job.tolerance, job.prevGen)
+			wt <- calc.particleWeight(p.value, job.tolerance, job.prevGen) if(wt) > 0
 		} yield Tagged(Weighted(p.value, wt), p.id)
 		
 		WeighedParticles(result)
