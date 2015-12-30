@@ -29,7 +29,7 @@ case class StatusReport[P](delta: StatusDelta, eGen: EvolvingGeneration[P], conf
 		val due = "|SQ|="+eGen.dueWeighing.size
 		val par = "|W|="+eGen.weighed.size+"/"+config.job.numParticles
 		val gen = s"G:${eGen.previousGen.iteration}/${config.job.numGenerations}"
-		s"($gen, $par, $due ) ${delta.getTxt}"
+		s"($gen, $par, $due) ${delta.getTxt}"
 	}
 }
 
