@@ -509,6 +509,11 @@ class MainActorTest
 	}
 
 	"When Waiting For Shutdown /" - {
+		//Duplication with tests above
+		"Ignores MixNow messages" in fail("TODO") // TODO
+		"incoming scored particles are discarded" in fail("TODO") // TODO
+		"incoming weighed particles are discarded" in fail("TODO") // TODO
+		
 		"Reports to Client when waiting for shutdown" in new Setup {
 			val clientProbe = TestProbe()
 			val workerProbe = TestProbe()
