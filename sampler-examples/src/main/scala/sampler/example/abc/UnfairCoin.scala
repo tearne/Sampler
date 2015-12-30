@@ -34,11 +34,12 @@ import sampler.r.script.ToNamedSeq
 import sampler.r.script.QuickPlot
 import sampler.r.script.RScript
 import sampler.abc.Population
-import sampler.abc.TokenWritable
+import sampler.abc.Tokenable
 import play.api.libs.json.{JsNull,Json,JsString,JsValue}
 import sampler.io.Rounding
 import org.apache.commons.io.FileUtils
 import play.api.libs.json.Writes
+import sampler.abc.Token
 
 object UnfairCoin extends App with ToNamedSeq{
 	val wd = Paths.get("results", "UnfairCoin")
@@ -46,7 +47,7 @@ object UnfairCoin extends App with ToNamedSeq{
 	
 	val abcParameters = ABCConfig.fromTypesafeConfig(ConfigFactory.load(), "unfair-coin-example")
 	val abcReporting = { pop: Population[CoinParams] =>
-		val json = Json.prettyPrint(pop.toJSON)
+		val json = Json.prettyPrint(pop.toJSON() )
 		FileUtils.write(wd.resolve(s"Gen${pop.iteration}.json").toFile, json)
 	}
 
@@ -89,9 +90,9 @@ case class CoinParams(pHeads: Double){
 	def fields = Seq(pHeads.toString)
 }
 object CoinParams{
-	implicit val writer: TokenWritable[CoinParams] = new TokenWritable[CoinParams] {
-		import Rounding._
-		def getByName(p: CoinParams) = Map("pHeads" -> p.pHeads.decimalPlaces(6))
+	implicit val writer: Tokenable[CoinParams] = new Tokenable[CoinParams] {
+		import Token._
+		def namedTokens(p: CoinParams): Map[String, Token] = Map("pHeads" ->  p.pHeads.toToken(6))
 	}
 }
 
