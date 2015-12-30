@@ -3,6 +3,9 @@ package sampler.abc
 import sampler.data.Distribution
 import sampler.math.Random
 import sampler.data.DistributionBuilder
+import play.api.libs.json.{JsNull,Json,JsString,JsValue}
+import play.api.libs.json.JsObject
+import sampler.io.Rounding
 
 sealed trait Generation[P]{
 	val iteration: Int
@@ -19,6 +22,12 @@ case class UseModelPrior[P](tolerance: Double = Double.MaxValue) extends Generat
 	 */
 	def proposalDistribution(model: Model[P], rnd: Random) = model.prior
 }
+
+//TODO this is too hacky
+trait TokenWritable[T]{
+	def getByName(data: T): Map[String, Double]
+}
+
 case class Population[P](
 	  particleWeights: Map[P, Double],
 	  iteration: Int, 
@@ -33,18 +42,22 @@ case class Population[P](
 		DistributionBuilder
 		.fromWeightsTable(particleWeights)(rnd)
 		.map(model.perturb)
-		
-	def inflateByWeight = {
-		val minWeight = particleWeights.values.min
-		assume(minWeight > 0)
-		val multiplier = 1 / minWeight
-		particleWeights.flatMap{case (p,w) => 
-			(1 to (multiplier * w).toInt).map(_ => p)
-		}
-	}
 	
 	def sampleByWeight(num: Int, random: Random) = {
 		val dist = DistributionBuilder.fromWeightsTable(particleWeights)(random)
 		(1 to num).map(_ => dist.sample)
+	}
+	
+	def toJSON(implicit writer: TokenWritable[P]) = {
+		import Rounding._
+		val rowsAsMaps = particleWeights.map{case (p, wt) => writer.getByName(p) + ("weight" -> wt.decimalPlaces(6))}
+		val names = rowsAsMaps.head.keys
+		val particlesValuesByParam = names.map{name => name -> rowsAsMaps.map(_(name))}.toMap
+		Json.obj(
+			"comment" -> "Weights are not normalised",
+			"iteration" -> iteration,
+			"tolerance" -> tolerance,
+			"particles" -> particlesValuesByParam
+		)
 	}
 }

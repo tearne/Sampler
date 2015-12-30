@@ -97,7 +97,7 @@ object FittingApplication extends App {
 	)
 	
 	val reporting = { pop: Population[Parameters] =>
-		val lines = Parameters.names +: pop.inflateByWeight.map(_.toSeq).toSeq
+		val lines = Parameters.names +: pop.sampleByWeight(100000, Random).map(_.toSeq).toSeq
 		val fileName = f"posterior.${pop.iteration}%03d.csv"
 		CSV.writeLines(Data.wd.resolve(fileName), lines)
 		

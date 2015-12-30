@@ -90,7 +90,8 @@ lazy val examples = project.in(file("sampler-examples"))
 			"org.apache.commons" % "commons-math3" % "3.2",
 			"org.json4s" %% "json4s-native" % "3.2.10",
 			"ch.qos.logback" % "logback-classic" % "1.1.1",
-			"org.apache.commons" % "commons-io" % "1.3.2"
+			"org.apache.commons" % "commons-io" % "1.3.2",
+			"com.typesafe.play" %% "play-json" % "2.4.6"
 		)	
 	)
 	.settings(
@@ -130,7 +131,8 @@ lazy val abc = project.in(file("sampler-abc"))
 			"org.apache.jclouds.driver" % "jclouds-slf4j" % "1.9.1",
 			"org.apache.jclouds.provider" % "aws-ec2" % "1.9.1",
 			"com.jayway.jsonpath" % "json-path" % "2.0.0",
-			"com.amazonaws" % "aws-java-sdk" % "1.4.0.1"
+			"com.amazonaws" % "aws-java-sdk" % "1.4.0.1",
+			"com.typesafe.play" %% "play-json" % "2.4.6"
 		)	
 	)
 	.settings(

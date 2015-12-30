@@ -34,56 +34,51 @@ import sampler.r.script.ToNamedSeq
 import sampler.r.script.QuickPlot
 import sampler.r.script.RScript
 import sampler.abc.Population
+import sampler.abc.TokenWritable
+import play.api.libs.json.{JsNull,Json,JsString,JsValue}
+import sampler.io.Rounding
+import org.apache.commons.io.FileUtils
+import play.api.libs.json.Writes
 
 object UnfairCoin extends App with ToNamedSeq{
-	/*
-	 * ABCParameters loaded from application.conf
-	 */
 	val wd = Paths.get("results", "UnfairCoin")
-//	Files.createDirectories(wd.getParent)
 	Files.createDirectories(wd)
-	
-	
-	val tempCSV = Files.createTempFile(null, null)
-	tempCSV.toFile().deleteOnExit
 	
 	val abcParameters = ABCConfig.fromTypesafeConfig(ConfigFactory.load(), "unfair-coin-example")
 	val abcReporting = { pop: Population[CoinParams] =>
-		/*
-		 * Note: Here we use Population.sampleByWeight.  It will produce a more ragged
-		 * posterior, but with a known number of particles, good for transposing later.
-		 */
-		val lineToks = s"Gen${pop.iteration}" +: pop.sampleByWeight(10000, Random).map(_.pHeads).toSeq
-		CSV.writeLine(
-				tempCSV, 
-				lineToks,
-				APPEND, CREATE
-		)
+		val json = Json.prettyPrint(pop.toJSON)
+		FileUtils.write(wd.resolve(s"Gen${pop.iteration}.json").toFile, json)
 	}
 
-	/*
-	 * Note: Here we use Population.inflateByWeight.  It will produce a posterior
-	 *  sequence which  naturally represents the weighted particles, includes those
-	 *  with very small weight
-	 */
-	val finalGeneration = ABC(CoinModel, abcParameters, abcReporting).inflateByWeight.map(_.pHeads)
+	ABC(CoinModel, abcParameters, abcReporting)
 	
-	// Make plot of final generation (posterior)
-	QuickPlot.writeDensity(
-		wd.resolve("posterior.pdf"),
-		"9.00", "3.00",
-		finalGeneration.toSeq.continuous("P[Heads]")
-	)
-	
-	
-	// Make plot showing all generations
-	CSV.transpose(tempCSV, wd.resolve("output.csv"))
-	
-	val rScript = s"""
-lapply(c("ggplot2", "reshape"), require, character.only=T)
-data = read.csv("output.csv")
+	val rScript = """
+lapply(c("ggplot2", "reshape", "jsonlite", "plyr"), require, character.only=T)
+
+loadToDataFrame = function(file) {
+	raw = fromJSON(file)
+	data.frame(Generation=factor(raw$iteration), PHeads=raw$particles$pHeads, wt=raw$particles$weight)
+}
+dataFrames = lapply(Sys.glob("Gen*.json"), loadToDataFrame)
+merged = ldply(dataFrames)
+
+sampleFromGen = function(n){
+	gen = merged[merged$Generation == n, ]
+	gen[sample(nrow(gen), replace = T, 10000, prob = gen$wt),]
+}
+sampled = rbind(sampleFromGen(1), sampleFromGen(2), sampleFromGen(3))
+
 pdf("generations.pdf", width=4.13, height=2.91) #A7 landscape paper
-ggplot(melt(data), aes(x=value, colour=variable)) + geom_density() + scale_x_continuous(limits=c(0, 1))
+ggplot(merged, aes(x=PHeads, colour=Generation)) + 
+	geom_density() + 
+	scale_x_continuous(limits=c(0, 1)) +
+	ggtitle("Ignoring particle weights")
+
+ggplot(sampled, aes(x=PHeads, colour=Generation)) + 
+	geom_density() + 
+	scale_x_continuous(limits=c(0, 1)) +
+	ggtitle("Sampling from weights")
+
 dev.off()	
 """
 	RScript(rScript, wd.resolve("script.r"))
@@ -92,6 +87,12 @@ dev.off()
 case class CoinParams(pHeads: Double){
 	def fieldNames = Seq("PHeads")
 	def fields = Seq(pHeads.toString)
+}
+object CoinParams{
+	implicit val writer: TokenWritable[CoinParams] = new TokenWritable[CoinParams] {
+		import Rounding._
+		def getByName(p: CoinParams) = Map("pHeads" -> p.pHeads.decimalPlaces(6))
+	}
 }
 
 object CoinModel extends Model[CoinParams] {
