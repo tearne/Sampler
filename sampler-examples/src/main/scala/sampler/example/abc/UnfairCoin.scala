@@ -39,7 +39,8 @@ import play.api.libs.json.{JsNull,Json,JsString,JsValue}
 import sampler.io.Rounding
 import org.apache.commons.io.FileUtils
 import play.api.libs.json.Writes
-import sampler.abc.Token
+import sampler.abc.NamedTokens
+import sampler.abc.Tokenable
 
 object UnfairCoin extends App with ToNamedSeq{
 	val wd = Paths.get("results", "UnfairCoin")
@@ -91,8 +92,7 @@ case class CoinParams(pHeads: Double){
 }
 object CoinParams{
 	implicit val writer: Tokenable[CoinParams] = new Tokenable[CoinParams] {
-		import Token._
-		def namedTokens(p: CoinParams): Map[String, Token] = Map("pHeads" ->  p.pHeads.toToken(6))
+		def namedTokens(p: CoinParams) = NamedTokens.named{"pHeads" -> BigDecimal(p.pHeads)}
 	}
 }
 
