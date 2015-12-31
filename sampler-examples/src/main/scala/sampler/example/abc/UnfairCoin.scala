@@ -41,6 +41,8 @@ import org.apache.commons.io.FileUtils
 import play.api.libs.json.Writes
 import sampler.abc.NamedTokens
 import sampler.abc.Tokenable
+import play.api.libs.json.JsNumber
+import java.math.MathContext
 
 object UnfairCoin extends App with ToNamedSeq{
 	val wd = Paths.get("results", "UnfairCoin")
@@ -91,8 +93,11 @@ case class CoinParams(pHeads: Double){
 	def fields = Seq(pHeads.toString)
 }
 object CoinParams{
-	implicit val writer: Tokenable[CoinParams] = new Tokenable[CoinParams] {
-		def namedTokens(p: CoinParams) = NamedTokens.named{"pHeads" -> BigDecimal(p.pHeads)}
+	implicit val tokener: Tokenable[CoinParams] = new Tokenable[CoinParams] {
+		val mc = new MathContext(6)
+		def namedTokens(p: CoinParams) = NamedTokens.named(
+			"pHeads" -> JsNumber(BigDecimal(p.pHeads, mc))
+		)
 	}
 }
 

@@ -8,6 +8,7 @@ import play.api.libs.json.JsObject
 import sampler.io.Rounding
 import play.api.libs.json.Writes
 import play.api.libs.json.JsNumber
+import java.math.MathContext
 
 sealed trait Generation[P]{
 	val iteration: Int
@@ -45,16 +46,13 @@ case class Population[P](
 		(1 to num).map(_ => dist.sample)
 	}
 	
-	def toJSON(weightDecimalPlaces: Int = 6)(implicit tokenable: Tokenable[P]) = {
+	def toJSON(precision: Int = 8)(implicit tokenable: Tokenable[P]) = {
+		val mc = new MathContext(precision)
 		val rowsAsMaps: Iterable[NamedTokens] = particleWeights.map{case (p, wt) => 
-			tokenable.namedTokens(p) + ("weight" ->  wt)
+			tokenable.namedTokens(p) + ("weight" ->  JsNumber(BigDecimal(wt, mc)))
 		}
 		val names = rowsAsMaps.head.toMap.keys
 		val particlesValuesByParam = names.map{name => name -> rowsAsMaps.map(_.toMap(name))}.toMap
-		
-		implicit val writes = new Writes[Iterable[NamedTokens.Token]]{
-			def writes(tokens: Iterable[NamedTokens.Token]) = Json.toJson(tokens.map(_.get))
-		}
 		
 		Json.obj(
 			"comment" -> "Weights are not normalised",
