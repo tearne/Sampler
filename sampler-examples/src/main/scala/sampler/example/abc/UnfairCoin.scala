@@ -39,7 +39,7 @@ import play.api.libs.json.{JsNull,Json,JsString,JsValue}
 import sampler.io.Rounding
 import org.apache.commons.io.FileUtils
 import play.api.libs.json.Writes
-import sampler.abc.NamedTokens
+import sampler.abc.Tokens
 import sampler.abc.Tokenable
 import play.api.libs.json.JsNumber
 import java.math.MathContext
@@ -59,20 +59,20 @@ object UnfairCoin extends App with ToNamedSeq{
 	val rScript = """
 lapply(c("ggplot2", "reshape", "jsonlite", "plyr"), require, character.only=T)
 
-loadToDataFrame = function(file) {
+load = function(file) {
 	raw = fromJSON(file)
 	data.frame(Generation=factor(raw$iteration), PHeads=raw$particles$pHeads, wt=raw$particles$weight)
 }
-dataFrames = lapply(Sys.glob("Gen*.json"), loadToDataFrame)
-merged = ldply(dataFrames)
+merged = ldply(lapply(Sys.glob("Gen*.json"), load))
 
 sampleFromGen = function(n){
-	gen = merged[merged$Generation == n, ]
+	gen = merged[merged$Generation == n,]
 	gen[sample(nrow(gen), replace = T, 10000, prob = gen$wt),]
 }
 sampled = rbind(sampleFromGen(1), sampleFromGen(2), sampleFromGen(3))
 
-pdf("generations.pdf", width=4.13, height=2.91) #A7 landscape paper
+pdf("generations.pdf", width=4.13, height=2.91)
+
 ggplot(merged, aes(x=PHeads, colour=Generation)) + 
 	geom_density() + 
 	scale_x_continuous(limits=c(0, 1)) +
@@ -88,15 +88,15 @@ dev.off()
 	RScript(rScript, wd.resolve("script.r"))
 }
 
-case class CoinParams(pHeads: Double){
+case class CoinParams(pHeads: Double) {
 	def fieldNames = Seq("PHeads")
 	def fields = Seq(pHeads.toString)
 }
-object CoinParams{
+object CoinParams {
 	implicit val tokener: Tokenable[CoinParams] = new Tokenable[CoinParams] {
 		val mc = new MathContext(6)
-		def namedTokens(p: CoinParams) = NamedTokens.named(
-			"pHeads" -> JsNumber(BigDecimal(p.pHeads, mc))
+		def getTokens(p: CoinParams) = Tokens.named(
+			"pHeads" -> BigDecimal(p.pHeads, mc)
 		)
 	}
 }

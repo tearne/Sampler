@@ -46,13 +46,13 @@ case class Population[P](
 		(1 to num).map(_ => dist.sample)
 	}
 	
-	def toJSON(precision: Int = 8)(implicit tokenable: Tokenable[P]) = {
-		val mc = new MathContext(precision)
-		val rowsAsMaps: Iterable[NamedTokens] = particleWeights.map{case (p, wt) => 
-			tokenable.namedTokens(p) + ("weight" ->  JsNumber(BigDecimal(wt, mc)))
+	def toJSON(wtPrecision: Int = 8)(implicit tokenable: Tokenable[P]) = {
+		val mc = new MathContext(wtPrecision)
+		val rows: Iterable[Tokens] = particleWeights.map{case (p, wt) => 
+			tokenable.getTokens(p) + Tokens.named("weight" ->  BigDecimal(wt, mc))
 		}
-		val names = rowsAsMaps.head.toMap.keys
-		val particlesValuesByParam = names.map{name => name -> rowsAsMaps.map(_.toMap(name))}.toMap
+		val names = rows.head.map.keys
+		val particlesValuesByParam = names.map{name => name -> rows.map(_.map(name))}.toMap
 		
 		Json.obj(
 			"comment" -> "Weights are not normalised",
