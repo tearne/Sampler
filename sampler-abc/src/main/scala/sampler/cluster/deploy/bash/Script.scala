@@ -16,7 +16,7 @@ object Script {
     
   //TODO make the -Xmx above configurable from props?
   //TODO jvm args in config
-  def startApplication(hostIP: String, mainClass: String, seedOneIP: String, seedTwoIP: String) = 
+  def startApplication(hostIP: String, vmExtraArgs: Seq[String], mainClass: String, seedOneIP: String, seedTwoIP: String) = 
 """
 #!/bin/bash
 
@@ -30,7 +30,8 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 cd $DIR
 """+
 s"""
-jre1.8.0_65/bin/java -Xmx55g -XX:NewSize=30g \\
+jre1.8.0_65/bin/java \\
+${vmExtraArgs.mkString(" ")} \\
 -Dakka.remote.netty.tcp.hostname=$hostIP \\
 -Dakka.cluster.seed-nodes.0=akka.tcp://ABC@$seedOneIP:2552 \\
 -Dakka.cluster.seed-nodes.1=akka.tcp://ABC@$seedTwoIP:2552 \\

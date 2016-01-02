@@ -11,7 +11,8 @@ import java.nio.file.Path
 object Main extends App {
 	
 	val config = {
-		val path = Paths.get(System.getProperty("user.home"), "cluster.json")
+	  val fileName = "cluster.json"
+		val path = Paths.get(System.getProperty("user.home"), fileName)
 		FileUtils.readFileToString(path.toFile)
 	}
 
@@ -46,6 +47,7 @@ object Main extends App {
   allNodes.foreach{node => 
     val runScript: String = Script.startApplication(
         ip(node), 
+        props.vmExtraArgs,
         props.applicationMain, 
         ip(seeds(0)), 
         ip(seeds(1))) 

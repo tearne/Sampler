@@ -9,7 +9,8 @@ case class Properties(
   privateKeyPath: Path,
   payloadLocal: Path,
   payloadTarget: String,
-  applicationMain: String
+  applicationMain: String,
+  vmExtraArgs: Seq[String]
 ){
   val payloadTargetParent = payloadTarget.take(payloadTarget.lastIndexOf('/'))
 }
@@ -26,11 +27,14 @@ object Properties extends App {
     assume(Files.exists(privateKeyPath), s"Private SSH key file not found: ${privateKeyPath.toAbsolutePath}")
     assume(Files.exists(payloadLocal), s"Local deploy directory does not exist: ${payloadLocal.toAbsolutePath}")
     
+    import scala.collection.JavaConversions._
+    
     Properties(
       privateKeyPath,
       payloadLocal,
       readContext.read[String]("$.payload.remote-target"),
-      readContext.read("$.application-main")
+      readContext.read("$.jvm.application-main"),
+      readContext.read[java.util.List[String]]("$.jvm.extra-args")
     )
   }
 }
