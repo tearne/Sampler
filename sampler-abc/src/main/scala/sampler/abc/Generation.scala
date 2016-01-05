@@ -9,6 +9,8 @@ import sampler.io.Rounding
 import play.api.libs.json.Writes
 import play.api.libs.json.JsNumber
 import java.math.MathContext
+import sampler.io.Tokenable
+import sampler.io.Tokens
 
 sealed trait Generation[P]{
 	val iteration: Int

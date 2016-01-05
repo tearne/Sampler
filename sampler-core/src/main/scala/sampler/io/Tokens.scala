@@ -1,14 +1,14 @@
-package sampler.abc
+package sampler.io
 
 import play.api.libs.json.JsValue
-import play.api.libs.json.JsNumber
 import play.api.libs.json.Writes
+import scala.language.implicitConversions
 
 trait Tokenable[T]{
 	def getTokens(data: T): Tokens
 }
 
-protected case class Tokens(map: Map[String, JsValue]) {
+case class Tokens(map: Map[String, JsValue]) {
 	def ++(moreTokens: (String, JsValue)*) = Tokens(map ++ moreTokens)
 	def +(anotherToken: (String, JsValue)) = Tokens(map + anotherToken)
 	def +(that: Tokens) = Tokens(map ++ that.map)

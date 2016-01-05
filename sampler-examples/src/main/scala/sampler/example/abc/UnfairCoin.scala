@@ -34,14 +34,12 @@ import sampler.r.script.ToNamedSeq
 import sampler.r.script.QuickPlot
 import sampler.r.script.RScript
 import sampler.abc.Population
-import sampler.abc.Tokenable
+import sampler.io.Tokenable
 import play.api.libs.json.{JsNull,Json,JsString,JsValue}
 import sampler.io.Rounding
 import org.apache.commons.io.FileUtils
 import play.api.libs.json.Writes
-import sampler.abc.Tokens
-import sampler.abc.Tokenable
-import play.api.libs.json.JsNumber
+import sampler.io.Tokens
 import java.math.MathContext
 
 object UnfairCoin extends App with ToNamedSeq{
@@ -61,25 +59,25 @@ lapply(c("ggplot2", "reshape", "jsonlite", "plyr"), require, character.only=T)
 
 load = function(file) {
 	raw = fromJSON(file)
-	data.frame(Generation=factor(raw$iteration), PHeads=raw$particles$pHeads, wt=raw$particles$weight)
+	data.frame(raw$particles, Generation=factor(raw$iteration))
 }
 merged = ldply(lapply(Sys.glob("Gen*.json"), load))
 
 sampleFromGen = function(n){
 	gen = merged[merged$Generation == n,]
-	gen[sample(nrow(gen), replace = T, 10000, prob = gen$wt),]
+	gen[sample(nrow(gen), replace = T, 10000, prob = gen$weight),]
 }
 sampled = rbind(sampleFromGen(1), sampleFromGen(2), sampleFromGen(3))
 
 pdf("generations.pdf", width=4.13, height=2.91)
 
-ggplot(merged, aes(x=PHeads, colour=Generation)) + 
+ggplot(merged, aes(x=pHeads, colour=Generation)) + 
 	geom_density() + 
 	scale_x_continuous(limits=c(0, 1)) +
 	ggtitle("Ignoring particle weights")
 
-ggplot(sampled, aes(x=PHeads, colour=Generation)) + 
-	geom_density() + 
+ggplot(sampled, aes(x=pHeads, colour=Generation)) + 
+	geom_density(adjust = 1.3) + 
 	scale_x_continuous(limits=c(0, 1)) +
 	ggtitle("Sampling from weights")
 
