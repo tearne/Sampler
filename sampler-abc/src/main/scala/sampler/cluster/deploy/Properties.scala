@@ -29,6 +29,9 @@ object Properties extends App {
     
     import scala.collection.JavaConversions._
     
+    val args = readContext.read[java.util.List[String]]("$.jvm.extra-args")
+    println(args)
+    
     Properties(
       privateKeyPath,
       payloadLocal,

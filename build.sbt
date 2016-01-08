@@ -132,7 +132,8 @@ lazy val abc = project.in(file("sampler-abc"))
 			"org.apache.jclouds.provider" % "aws-ec2" % "1.9.1",
 			"com.jayway.jsonpath" % "json-path" % "2.0.0",
 			"com.amazonaws" % "aws-java-sdk" % "1.4.0.1",
-			"com.typesafe.play" %% "play-json" % "2.4.6"
+			"com.typesafe.play" %% "play-json" % "2.4.6",
+                        "org.apache.jclouds.provider" % "softlayer" % "1.9.1"
 		)	
 	)
 	.settings(

@@ -47,7 +47,7 @@ class SSH(keyFile: Path) {
 			noHostFileArgs :::
 			List(
 				s"$username@$host",
-				"""sh -c 'nohup """+command+""" > /dev/null 2>&1 &'"""
+				"""/bin/bash -c 'nohup """+command+""" > /dev/null 2>&1 &'"""
 			)
 		
 		sshCommand.mkString(" ")

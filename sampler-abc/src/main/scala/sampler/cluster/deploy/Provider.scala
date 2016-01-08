@@ -41,11 +41,13 @@ case class JCloudProvider(context: ComputeServiceContext, instanceUser: String) 
       .filter(_.getStatus == Status.RUNNING)
       .map { meta =>
         val userMeta = meta.getUserMetadata
+        
         Node(
           meta.getHostname,
           Some(Util.getAssertOne(meta.getPublicAddresses.toSet)), //Return None if no IP, or Some('first one')?
           Some(Util.getAssertOne(meta.getPrivateAddresses.toSet)),
-          Some(userMeta.get(Provider.roleTagKey)))  //TODO what if we forget to tag a node?
+          //Some(userMeta.get(Provider.roleTagKey)))  //TODO what if we forget to tag a node?
+          Some(meta.getTags.head))
       }.toSet
   }
 }
@@ -117,5 +119,26 @@ object AWS {
     JCloudProvider(
       context,
       readJson.read[String]("$.provider.aws-ec2.instance-user"))
+  }
+}
+
+object SoftLayer {
+  def buildProvider(json: String): Provider = {
+    val readJson = JsonPath.parse(json)
+
+    val context = {
+      import scala.collection.JavaConversions._
+
+      ContextBuilder
+        .newBuilder("softlayer")
+        .credentials(
+          readJson.read[String]("$.provider.softlayer.api.user"),
+          readJson.read[String]("$.provider.softlayer.api.pass"))
+        .modules(Set(new SLF4JLoggingModule()))
+        .buildView(classOf[ComputeServiceContext])
+    }
+    JCloudProvider(
+      context,
+      readJson.read[String]("$.provider.softlayer.instance-user"))
   }
 }

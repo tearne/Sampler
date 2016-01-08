@@ -17,16 +17,17 @@ object Main extends App {
 	}
 
 	val props = Properties.fromJSON(config)
-			val provider: Provider = LocalProvider.buildProvider(config)
+	//val provider: Provider = LocalProvider.buildProvider(config)
 //  val provider = AWS.buildProvider(config)
 //  val provider = CloudSigma.buildProvider(config)
+	  val provider: Provider = SoftLayer.buildProvider(config)
   
   //TODO configure from json?
   // ************ IMPORTANT ***************
   // Switch between public/private when running inside/outside data centre
   // Failure to do this may result in public network charges
-  val ip = (node: Node) => node.privateIp.get
-  
+//  val ip = (node: Node) => node.privateIp.get
+  val ip = (node: Node) => node.publicIp.get
   val nodes = provider.getNodes
   
   val seeds = List(
@@ -79,11 +80,11 @@ object Main extends App {
         props.payloadTargetParent
     )).!
     
-    Process(ssh.foregroundCommand(
-        provider.instanceUser, 
-    		ip(node), 
-        Script.unTar("~/deploy", "dataIn.tar.gz")
-    )).!
+//    Process(ssh.foregroundCommand(
+//        provider.instanceUser, 
+//    		ip(node), 
+//        Script.unTar("~/deploy", "dataIn.tar.gz")
+//    )).!
 	  
     Process(ssh.scpCommand(
         provider.instanceUser, 
