@@ -8,9 +8,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 
 class AborterTest extends FreeSpec with MockitoSugar  {  
-
-
-  class testableAborter extends Aborter
   
     trait Setup {
     val instance = new Aborter {}
