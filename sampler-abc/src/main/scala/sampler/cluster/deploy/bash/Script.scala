@@ -5,7 +5,9 @@ import java.nio.file.Path
 
 object Script {
   
-  def killJava() = "killall java > killAllResult.txt 2>&1"
+ // def killJava() = "killall java > killAllResult.txt 2>&1"
+  //def killJava() = "pkill -f 'java.*TBMIFitApp'"
+  def killJava() = "pkill -f 'java.*UnfairCoin'"  
   	
   //No longer needed if rsync uses --delete option
   //def deleteOld(dir: String) = s"rm $dir/run*.sh && rm -r $dir/log" 

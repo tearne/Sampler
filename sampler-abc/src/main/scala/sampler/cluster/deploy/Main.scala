@@ -43,6 +43,7 @@ object Main extends App {
   val ssh = new SSH(props.privateKeyPath)
   val rsync = new Rsync(props.privateKeyPath)
   
+ if(props.tearDown)
   allNodes.foreach(cleanUp)
   
   allNodes.foreach{node => 
