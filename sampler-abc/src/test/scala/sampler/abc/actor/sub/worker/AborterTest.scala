@@ -7,25 +7,33 @@ import org.mockito.Matchers._
 import java.util.concurrent.atomic.AtomicBoolean
 
 
-class AborterTest extends FreeSpec with MockitoSugar  {  
+class AborterTest extends FreeSpec with MockitoSugar {  
   
-    trait Setup {
+  trait Setup {
     val instance = new Aborter {}
     val exception = new DetectedAbortionException()
   }
   
   "Aborter should /" - {
-    "when checkIfAborted is called it has been aborted then expect DetectedAbortionException" in new Setup {
-      instance.abort()
-      intercept[DetectedAbortionException]{
-        instance.checkIfAborted
-      }
-    }  
-    "when checkIfAborted is called it has been reset then expect no exception " in new Setup {
-      instance.reset()
-      assertResult(){
-        instance.checkIfAborted
-      }
+    "throw exceptions if and only if aborted" - {
+    	"checkIfAborted throws DetectedAbortionException if it has been aborted" in new Setup {
+    		instance.abort()
+    		intercept[DetectedAbortionException]{
+    			instance.checkIfAborted
+    		}
+    	}  
+    	"checkIfAborted doesn't throw exception if not aborted" in new Setup {
+    		instance.checkIfAborted
+    	}      
+    	"resetting" in {
+    		pending
+    		// abort, reset, check no exception
+    	}
+    }
+    "query abort status" - {
+      "when not aborted" in pending
+      "when aborted" in pending
+      "when reset" in pending
     }
   }
 }
