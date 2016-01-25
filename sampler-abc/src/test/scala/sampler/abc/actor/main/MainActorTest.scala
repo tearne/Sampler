@@ -21,7 +21,7 @@ import org.scalatest.BeforeAndAfter
 import akka.actor.ActorRef
 import sampler.abc.actor.sub.FlushComplete
 import sampler.abc.Population
-import sampler.abc.actor.main.component.WorkDispatcherComponent
+//import sampler.abc.actor.main.component.WorkDispatcherComponent
 import sampler.abc.actor.sub.GenerateParticlesFrom
 import sampler.abc.actor.sub.Abort
 import sampler.abc.actor.sub.WeighJob

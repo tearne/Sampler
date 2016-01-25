@@ -51,7 +51,7 @@ import sampler.abc.config.ClusterParameters
 import sampler.abc.Population
 import sampler.abc.Generation
 import akka.dispatch.MessageDispatcher
-import sampler.abc.actor.main.component.WorkDispatcherComponent
+//import sampler.abc.actor.main.component.WorkDispatcherComponent
 import com.typesafe.config.ConfigFactory
 import com.typesafe.config.Config
 
@@ -74,7 +74,7 @@ class WorkerActorTest
       extends WorkerActor[T]
       with WeigherComponentImpl[T]
       with ModelRunnerComponent[T]
-			with WorkDispatcherComponent 
+			//with WorkDispatcherComponent 
       with AborterComponent {
   //  self: AborterComponent =>
     val random = sampler.math.Random
