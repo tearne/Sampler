@@ -82,7 +82,7 @@ class MainActorImpl[P](
 	val config: ABCConfig,
 	val reportHandler: Option[Population[P] => Unit]) extends MainActor[P]
 		with ChildActorsComponentImpl[P]
-		with WorkDispatcherComponentImpl
+		//with WorkDispatcherComponentImpl
 		with HelperCoponentImpl {
 
 	val getters = new Getters()
@@ -91,7 +91,7 @@ class MainActorImpl[P](
 trait MainActor[P]
 		extends FSM[Status, Data]
 		with Actor {
-	this: ChildActorsComponent[P] with WorkDispatcherComponent with HelperComponent =>
+	this: ChildActorsComponent[P] /*with WorkDispatcherComponent */ with HelperComponent =>
 
 	val config: ABCConfig
 	val model: Model[P]
