@@ -7,7 +7,8 @@ import scala.collection.JavaConversions._
 //}
 
 //TODO does role really need to be an option?  Exception if anything other than seeOne/Two or worker?
-case class Node(hostname: String, publicIp: Option[String], privateIp: Option[String], role: Option[String])
+case class Node(hostname: String, publicIp: Option[String], privateIp: Option[String], 
+    clusterName: String, seedRole: Option[String])
 //case class Node(ip: Option[IP], role: Option[String])
 
 //In Main

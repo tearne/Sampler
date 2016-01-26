@@ -25,7 +25,7 @@ import scala.util.Try
  */
 
 trait Provider {
-  def getNodes(): Set[Node]
+  def getAllNodes(): Set[Node]
   val instanceUser: String
 }
 object Provider {
@@ -34,32 +34,46 @@ object Provider {
 
 case class JCloudProvider(context: ComputeServiceContext, instanceUser: String) extends Provider {
   val service = context.getComputeService
-  def getNodes(): Set[Node] = {
+  def getAllNodes(): Set[Node] = {
     service
       .listNodes
       .map(jCNode => service.getNodeMetadata(jCNode.getId))
       .filter(_.getStatus == Status.RUNNING)
       .map { meta =>
-        val userMeta = meta.getUserMetadata
-        
+        //val userMeta = meta.getUserMetadata
+        val tags = meta.getTags.toSet        
+        val clustername = for (tag <- tags if tag.startsWith("cluster")) yield tag.split(":")(1) 
+//        val seedRoleOption: Option[String] = tags
+//          .collect{case tag if tag.startsWith("seed") => 
+//            tag.split(":")(1) 
+//          }
+//          .headOption
+        val seedRoleOption = (for (tag <- tags if tag.startsWith("seed")) yield tag.split(":")(1)).headOption          
+                
         Node(
           meta.getHostname,
           Some(Util.getAssertOne(meta.getPublicAddresses.toSet)), //Return None if no IP, or Some('first one')?
           Some(Util.getAssertOne(meta.getPrivateAddresses.toSet)),
           //Some(userMeta.get(Provider.roleTagKey)))  //TODO what if we forget to tag a node?
-          Some(meta.getTags.head))
-      }.toSet
+          //Some(meta.getTags.head))
+          Util.getAssertOne(clustername), 
+          seedRoleOption)         
+    }.toSet
   }
 }
 
-case class LocalProvider(nodeRolesByHostname: Map[String, String], instanceUser: String) extends Provider {
-  def getNodes(): Set[Node] = {
-    nodeRolesByHostname.map { case (hostname, role) => 
+case class LocalProvider(tagsByHostname: Map[String, List[String]], instanceUser: String) extends Provider {
+  def getAllNodes() = {
+   tagsByHostname.map { case (hostname, tags) => 
+      val clusterName: String = tags.filter(_.startsWith("cluster:")).head.split(":")(1)
+      val seedRole: Option[String] = tags.filter(_.startsWith("seed")).headOption.map(_.split(":")(1))
       Node(
-          hostname,
-          None, 
-          Try(java.net.InetAddress.getByName(hostname).getHostAddress).toOption, 
-          Some(role)) 
+        hostname,
+        None, 
+        Try(java.net.InetAddress.getByName(hostname).getHostAddress).toOption, 
+        clusterName,
+        seedRole
+      )
     }.toSet
   }
 
@@ -70,11 +84,13 @@ object LocalProvider {
     import scala.collection.JavaConversions._
     import java.util.{List => JavaList}
     import java.util.{Map => JavaMap}
-    val nodes = readJson
-      .read[JavaList[JavaMap[String, String]]]("$.provider.local.nodes")
-      .map(_.toMap)
-      .map(m => m("hostname") -> m("role"))
-      .toMap
+    val nodes: Map[String, List[String]] = ???
+    //TODO fix
+//    readJson
+//      .read[JavaList[JavaMap[String, List[String]]]]("$.provider.local.nodes")
+//      .map(_.toMap)
+//      .map(m => m("hostname") -> m("tag"))
+//      .toMap
 
     LocalProvider(nodes, readJson.read[String]("$.provider.local.instance-user"))
   }
@@ -139,6 +155,7 @@ object SoftLayer {
     }
     JCloudProvider(
       context,
-      readJson.read[String]("$.provider.softlayer.instance-user"))
+      readJson.read[String]("$.provider.softlayer.instance-user")
+      )
   }
 }
