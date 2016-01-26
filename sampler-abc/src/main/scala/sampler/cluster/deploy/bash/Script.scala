@@ -7,7 +7,9 @@ object Script {
   
  // def killJava() = "killall java > killAllResult.txt 2>&1"
   //def killJava() = "pkill -f 'java.*TBMIFitApp'"
-  def killJava() = "pkill -f 'java.*UnfairCoin'"  
+  def killJava(mainClass: String) = "pkill -f 'java.*"+mainClass.split(".").tail+"'"  
+  
+  def checkJavaRunning(mainClass: String) = "jps | grep "+mainClass.split(".").tail+"'" //assumes jdk installed which it should be
   	
   //No longer needed if rsync uses --delete option
   //def deleteOld(dir: String) = s"rm $dir/run*.sh && rm -r $dir/log" 
