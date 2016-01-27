@@ -51,14 +51,11 @@ class MainActorTest
 		override val getters: Getters)
 			extends MainActor[TestParams]
 			with ChildActorsComponent[TestParams]
-//			with WorkDispatcherComponent 
 			with HelperComponent {
 		val childActors = mock[ChildActors]
 		val generationFlusher = mock[GenerationFlusher]
-//		val workDispatcher = context.dispatcher
 		val helper = mock[Helper]
 
-//		val distributionBuilder = sampler.data.DistributionBuilder
 		val random = sampler.math.Random
 	}
 
