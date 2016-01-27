@@ -65,7 +65,7 @@ object Main extends App {
       // ************ IMPORTANT ***************
       // Switch between public/private when running inside/outside data centre
       // Failure to do this may result in public network charges
-      //  val ip = (node: Node) => node.privateIp.get
+      val ipPrivate = (node: Node) => node.privateIp.get
       val ip = (node: Node) => node.publicIp.get
       //val nodes = provider.getNodes
 
@@ -84,18 +84,20 @@ object Main extends App {
       val rsync = new Rsync(props.privateKeyPath)
 
       if (configuration.tearDown || configuration.redeploy) { // just kill everything
+        println("Tearing down running instances on this cluster")
         allNodes.foreach(cleanUp)
       }
 
       if (!configuration.tearDown) { // redeploy everything - unless augmenting and in that case run if no model already running
+        println("Starting deployment")
         allNodes.filter { node => !isRunningABC(node) }
           .foreach { node =>
             val runScript: String = Script.startApplication(
-              ip(node),
+              ipPrivate(node),
               props.vmExtraArgs,
               props.applicationMain,
-              ip(seeds(0)),
-              ip(seeds(1)))
+              ipPrivate(seeds(0)),
+              ipPrivate(seeds(1)))
             val runScriptPath = Util.writeToTempFile(runScript, "run", ".sh")
 
             upload(node, props, runScriptPath)
