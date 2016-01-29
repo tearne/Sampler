@@ -56,7 +56,7 @@ case class JCloudProvider(context: ComputeServiceContext, instanceUser: String) 
           Some(Util.getAssertOne(meta.getPrivateAddresses.toSet)),
           //Some(userMeta.get(Provider.roleTagKey)))  //TODO what if we forget to tag a node?
           //Some(meta.getTags.head))
-          Util.getAssertOne(clustername), 
+          Util.getAssertOne(clustername), //TODO falls over if there is a node without tags!
           seedRoleOption)         
     }.toSet
   }
