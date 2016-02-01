@@ -376,16 +376,16 @@ class MainActorTest
 	}
 
 	"When Flushing a completed generation / " - {
-		
+
 		"incoming weighed particles are discarded" in new Setup {
 			val stateData = StateData(eGen1, clientRef, None)
 			val weighed = mock[WeighedParticles[TestParams]]
 
 			instanceRef.setState(Flushing, stateData)
-			
+
 			// Action
 			instanceRef tell (weighed, null)
-			
+
 			// Assertion - no changes to state
 			assertResult(Flushing)(instanceRef.stateName)
 			assertResult(stateData)(instanceRef.stateData match {
@@ -393,7 +393,7 @@ class MainActorTest
 				case d => fail("Unexpected StateData type: " + d.getClass())
 			})
 		}
-		
+
 		"incoming scored particles are discarded" in new Setup {
 			val stateData = StateData(eGen1, clientRef, None)
 
@@ -510,7 +510,7 @@ class MainActorTest
 		"Ignores MixNow messages" in fail("TODO") // TODO
 		"incoming scored particles are discarded" in fail("TODO") // TODO
 		"incoming weighed particles are discarded" in fail("TODO") // TODO
-		
+
 		"Reports to Client when waiting for shutdown" in new Setup {
 			val clientProbe = TestProbe()
 			val workerProbe = TestProbe()

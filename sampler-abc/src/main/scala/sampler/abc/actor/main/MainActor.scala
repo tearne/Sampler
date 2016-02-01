@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-15 Crown Copyright 
+ * Copyright (c) 2012-15 Crown Copyright
  *                       Animal and Plant Health Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -149,8 +149,8 @@ trait MainActor[P]
 			val updatedGeneration = helper.filterAndQueueUnweighedParticles(scored, stateData.generation)
 //			log.info("New filtered and queued ({}) => |Q| = {},  from {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
 			childActors.reporter ! StatusReport( //TODO untested
-					NewScored(scored.seq.size, sender, false), 
-					updatedGeneration, 
+					NewScored(scored.seq.size, sender, false),
+					updatedGeneration,
 					config
 			)
 			sndr ! WeighJob.buildFrom(updatedGeneration)
