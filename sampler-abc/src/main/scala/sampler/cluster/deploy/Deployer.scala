@@ -7,11 +7,11 @@ import sampler.cluster.deploy.bash.{Rsync, SSH, Script}
 import scala.sys.process._
 import scopt.Read
 
-trait Deployer {
-  def apply(args: Array[String], provider: Provider): Unit = {
+object Deployer {
+  def apply(args: Array[String], providerBuilder: String => Provider): Unit = {
     parser
       .parse(args, Job(null, "", null))
-      .foreach{job => run(job, provider)}
+      .foreach{job => run(job, providerBuilder)}
   }
 
   trait Operation
@@ -31,9 +31,9 @@ trait Deployer {
   }
 
   case class Job(
-      configFile: File,
-      clusterTag: String,
-      operation: Operation
+    configFile: File,
+    clusterTag: String,
+    operation: Operation
   )
 
   val parser = new scopt.OptionParser[Job]("scopt") {
@@ -52,10 +52,10 @@ trait Deployer {
     } text ("message")
   }
 
-  def run(job: Job, provider: Provider): Unit = {
+  def run(job: Job, providerBuilder: String => Provider): Unit = {
     val config = FileUtils.readFileToString(job.configFile)
     val props = Properties.fromJSON(config)
-    //val provider: Provider = SoftLayer.buildProvider(config)
+    val provider: Provider = providerBuilder(config)
 
     val ip = (node: Node) => node.publicIp.get
     val nodes = provider.getAllNodes.filter(_.clusterName == job.clusterTag)

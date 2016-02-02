@@ -21,6 +21,10 @@ object Provider {
     (JsPath \ "tags").read[Array[String]]
   }.apply(NodeInfo.apply _)
 
+  
+  /*
+   * See examples project for example of building JCloud providers
+   */
   def buildJCloudProvider(context: ComputeServiceContext, instanceUser: String): Provider =
     JCloudProvider(context, instanceUser)
 
@@ -55,9 +59,9 @@ case class JCloudProvider(context: ComputeServiceContext, instanceUser: String) 
 
         Node(
           meta.getHostname,
-          Some(Util.getAssertOne(meta.getPublicAddresses.toSet)), //Return None if no IP, or Some('first one')?
-          Some(Util.getAssertOne(meta.getPrivateAddresses.toSet)),
-          clusternameOpt, //TODO falls over if there is a node without tags!
+          meta.getPublicAddresses.headOption,
+          meta.getPrivateAddresses.headOption,
+          clusternameOpt,
           seedRoleOpt)
     }.toSet
   }

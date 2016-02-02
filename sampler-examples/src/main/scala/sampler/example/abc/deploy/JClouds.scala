@@ -3,16 +3,19 @@ package sampler.example.abc.deploy
 import sampler.cluster.deploy.Provider
 import play.api.libs.json._
 import org.jclouds.ContextBuilder
+import org.jclouds.logging.slf4j.config.SLF4JLoggingModule
+import org.jclouds.compute.ComputeServiceContext
+import sampler.cluster.deploy.JCloudProvider
 
 /*
  * Behind a proxy use:
- * -Djclouds.proxy-host=10.85.4.54 -Djclouds.proxy-port=8080  -Djclouds.proxy-for-sockets=false
+ * -Djclouds.proxy-host=[IP] -Djclouds.proxy-port=[port]  -Djclouds.proxy-for-sockets=false
  *
  * or
  *
  * val overrides = new Properties()
- * overrides.setProperty(Constants.PROPERTY_PROXY_HOST, "10.85.4.54")
- * overrides.setProperty(Constants.PROPERTY_PROXY_PORT, "8080")
+ * overrides.setProperty(Constants.PROPERTY_PROXY_HOST, "[IP]")
+ * overrides.setProperty(Constants.PROPERTY_PROXY_PORT, "[Port]")
  * overrides.setProperty(Constants.PROPERTY_PROXY_FOR_SOCKETS, "false")
  *
  * and in the contextBuilder add
@@ -20,37 +23,12 @@ import org.jclouds.ContextBuilder
  *
  */
 
-object CloudSigma {
-  def buildProvider(jsonStr: String): Provider = {
-    // val readJson = JsonPath.parse(json)
-    val json = Json.parse(jsonStr)
-
-
-    lazy val context = {
-      // import scala.collection.JavaConversions._
-      ContextBuilder
-        .newBuilder("cloudsigma2")
-        .credentials(
-          (json \ "provider" \ "cloud-sigma" \ "api.user").as[String],
-          (json \ "provider" \ "cloud-sigma" \ "api.pass").as[String])
-        .modules(Set(new SLF4JLoggingModule()))
-        .buildView(classOf[ComputeServiceContext])
-    }
-
-    Provider.buildJCloudProvider(
-      context,
-      (json \ "provider" \ "cloud-sigma" \ "instance-user").as[String]
-    )
-  }
-}
-
 object AWS {
   def buildProvider(jsonStr: String): Provider = {
-    // val readJson = JsonPath.parse(json)
     val json = Json.parse(jsonStr)
 
     val context = {
-      // import scala.collection.JavaConversions._
+      import scala.collection.JavaConversions._
 
       ContextBuilder
         .newBuilder("aws-ec2")
@@ -60,15 +38,16 @@ object AWS {
         .modules(Set(new SLF4JLoggingModule()))
         .buildView(classOf[ComputeServiceContext])
     }
-    JCloudProvider(
+    Provider.buildJCloudProvider(
       context,
-      readJson.read[String]("$.provider.aws-ec2.instance-user"))
+      (json \ "provider" \ "aws-ec2" \ "instance-user").as[String]
+    )
   }
 }
 
 object SoftLayer {
-  def buildProvider(json: String): Provider = {
-    val readJson = JsonPath.parse(json)
+  def buildProvider(jsonStr: String): Provider = {
+    val json = Json.parse(jsonStr)
 
     val context = {
       import scala.collection.JavaConversions._
@@ -76,14 +55,14 @@ object SoftLayer {
       ContextBuilder
         .newBuilder("softlayer")
         .credentials(
-          readJson.read[String]("$.provider.softlayer.api.user"),
-          readJson.read[String]("$.provider.softlayer.api.pass"))
+          (json \ "provider" \ "softlayer" \ "api" \ "user").as[String],
+          (json \ "provider" \ "softlayer" \ "api" \ "pass").as[String])
         .modules(Set(new SLF4JLoggingModule()))
         .buildView(classOf[ComputeServiceContext])
     }
-    JCloudProvider(
+    Provider.buildJCloudProvider(
       context,
-      readJson.read[String]("$.provider.softlayer.instance-user")
-      )
+      (json \ "provider" \ "softlayer" \ "instance-user").as[String]
+    )
   }
 }

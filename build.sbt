@@ -1,7 +1,7 @@
 import UnidocKeys._
 
-val buildOrganization 	= "org.tearne"
-val buildVersion 	= "0.2.6"
+val buildOrganization = "org.tearne"
+val buildVersion = "0.2.7"
 val buildScalaVersion	= "2.11.7"
 
 lazy val commonSettings = Seq(
@@ -93,8 +93,7 @@ lazy val examples = project.in(file("sampler-examples"))
       "ch.qos.logback" % "logback-classic" % "1.1.1",
       "org.apache.commons" % "commons-io" % "1.3.2",
       "org.apache.jclouds.provider" % "aws-ec2" % "1.9.1",
-			"org.apache.jclouds.provider" % "softlayer" % "1.9.1",
-      "org.apache.jclouds" % "jclouds-core" % "1.9.1"
+      "org.apache.jclouds.provider" % "softlayer" % "1.9.1"
     )
   )
   .settings(
@@ -130,7 +129,8 @@ lazy val abc = project.in(file("sampler-abc"))
       "com.typesafe.akka" %% "akka-testkit" % "2.3.6" % "test",
       "org.apache.commons" % "commons-math3" % "3.2",
       "commons-io" % "commons-io" % "2.4",
-      "org.apache.jclouds" % "jclouds-core" % "1.9.1",
+      "org.apache.jclouds" % "jclouds-core" % "1.9.2",
+      "org.apache.jclouds" % "jclouds-compute" % "1.9.2",
       "org.apache.jclouds.driver" % "jclouds-slf4j" % "1.9.1",
       "com.typesafe.play" %% "play-json" % "2.4.6",
       "com.github.scopt" %% "scopt" % "3.3.0"
