@@ -59,8 +59,7 @@ case class JCloudProvider(context: ComputeServiceContext, instanceUser: String) 
 
         Node(
           meta.getHostname,
-          meta.getPublicAddresses.headOption,
-          meta.getPrivateAddresses.headOption,
+          meta.getPrivateAddresses.head,
           clusternameOpt,
           seedRoleOpt)
     }.toSet
@@ -79,8 +78,7 @@ case class LocalProvider(tagsByHostname: Map[String, Set[String]], instanceUser:
 
       Node(
         hostname,
-        None,
-        Try(java.net.InetAddress.getByName(hostname).getHostAddress).toOption,
+        java.net.InetAddress.getByName(hostname).getHostAddress,
         clusterNameOpt,
         roleOpt
       )

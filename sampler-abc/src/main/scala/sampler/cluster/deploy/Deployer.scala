@@ -57,7 +57,6 @@ object Deployer {
     val props = Properties.fromJSON(config)
     val provider: Provider = providerBuilder(config)
 
-    val ip = (node: Node) => node.publicIp.get
     val nodes = provider.getAllNodes.filter(_.clusterName == job.clusterTag)
     println(s"Found ${nodes.size} nodes: ")
     nodes.map("  " + _.toString).foreach(println)
@@ -84,7 +83,7 @@ object Deployer {
       nodes.foreach{node =>
         Process(ssh.foregroundCommand(
           provider.instanceUser,
-          ip(node),
+          node.ip,
           Script.killJava(props.applicationMain)
         )).!
 
@@ -101,7 +100,7 @@ object Deployer {
       def isRunningABC(node: Node): Boolean = {
         val process = Process(ssh.foregroundCommand(
           provider.instanceUser,
-          ip(node),
+          node.ip,
           Script.checkJavaRunning(props.applicationMain))).!
         if (process == 0) true else false //Assuming exit code of 0 means model is running
       }
@@ -109,23 +108,23 @@ object Deployer {
       def upload(node: Node, props: Properties, runScriptPath: Path): Unit =  {
         Process(rsync(
           provider.instanceUser,
-          ip(node),
+          node.ip,
           props.payloadLocal,
           props.payloadTargetParent)).!
 
         Process(ssh.foregroundCommand(
           provider.instanceUser,
-          ip(node),
+          node.ip,
           Script.unTar("~/deploy", "dataIn.tar.gz"))).!
 
         Process(ssh.foregroundCommand(
           provider.instanceUser,
-          ip(node),
+          node.ip,
           Script.unTar("~/deploy", "jdk-8u71-linux-x64.tar.gz"))).!
 
         Process(ssh.scpCommand(
           provider.instanceUser,
-          ip(node),
+          node.ip,
           runScriptPath,
           props.payloadTarget)).!
       }
@@ -134,7 +133,7 @@ object Deployer {
         //TODO logging.  Otherwise commands can silently fail
         val cmd = ssh.backgroundCommand(
           provider.instanceUser,
-          ip(node),
+          node.ip,
           s"${props.payloadTarget}/$runScriptName")
         println(cmd)
         Process(cmd).!
@@ -144,11 +143,11 @@ object Deployer {
         .filter{!isRunningABC(_)}
         .foreach { node =>
           val runScript: String = Script.startApplication(
-            ip(node),
+            node.ip,
             props.vmExtraArgs,
             props.applicationMain,
-            ip(seeds(0)),
-            ip(seeds(1)))
+            seeds(0).ip,
+            seeds(1).ip)
           val runScriptPath = Util.writeToTempFile(runScript, "run", ".sh")
 
           upload(node, props, runScriptPath)
