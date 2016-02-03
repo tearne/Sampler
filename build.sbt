@@ -1,5 +1,3 @@
-import UnidocKeys._
-
 val buildOrganization = "org.tearne"
 val buildVersion = "0.2.7"
 val buildScalaVersion	= "2.11.7"
@@ -51,11 +49,6 @@ lazy val packageSettings = Seq(
 lazy val root = project.in(file("."))
   .aggregate(core, examples, abc, arrr, spike)
   .settings(commonSettings: _*)
-  .settings(unidocSettings: _*)
-  .settings(
-    name := "sampler",
-    unidocProjectFilter in (ScalaUnidoc, unidoc) := inAnyProject -- inProjects(spike) -- inProjects(examples)
-  )
 
 lazy val core = project.in(file("sampler-core"))
   .settings(commonSettings: _*)
@@ -68,7 +61,6 @@ lazy val core = project.in(file("sampler-core"))
 lazy val arrr = (project in file("sampler-r"))
   .dependsOn(core)
   .settings(commonSettings: _*)
-  .settings(unidocSettings: _*)
   .settings(packageSettings: _*)
   .settings(
     libraryDependencies ++= Seq(
