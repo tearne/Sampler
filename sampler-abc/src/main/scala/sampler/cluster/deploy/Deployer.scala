@@ -36,20 +36,18 @@ object Deployer {
     operation: Operation
   )
 
-  val parser = new scopt.OptionParser[Job]("scopt") {
-    head("scopt", "3.x")
-
+  val parser = new scopt.OptionParser[Job]("Deployer") {
     opt[File]('c', "config") required() valueName("<file>") action{ (x, c) =>
       c.copy(configFile = x)
-    } text ("cluster properties file is required")
+    } text ("Cluster properties file ")
 
-    opt[String]('n', "nodes") action { (x, c) =>
+    opt[String]('n', "nodes") required() action { (x, c) =>
       c.copy(clusterTag = x)
-    } text ("cluster is name of cluster instance")
+    } text ("Name of the cluster.  E.g. 'myCluster' if instances have been tagged with \"cluster:myCluster\".")
 
     opt[Operation]('o', "operation") required() valueName("<task>") action{ (x,c) =>
       c.copy(operation = x)
-    } text ("message")
+    } text ("Cluster operation to perform")
   }
 
   def run(job: Job, providerBuilder: String => Provider): Unit = {
