@@ -20,8 +20,10 @@ object Deployer {
   case object Redeploy extends Operation
 
   object Operation{
+    val values = Vector(Augment, Destroy, Redeploy)
+    
     def fromString(str: String): Option[Operation] = {
-      Vector(Augment, Destroy, Redeploy).find(_.toString == str)
+      values.find(_.toString == str)
     }
 
     implicit val operationRead: Read[Operation] =
@@ -41,7 +43,7 @@ object Deployer {
       c.copy(configFile = x)
     } text ("Cluster properties file ")
 
-    opt[String]('n', "nodes") required() action { (x, c) =>
+    opt[String]('n', "name") required() valueName("<clusterName>") action { (x, c) =>
       c.copy(clusterTag = x)
     } text ("Name of the cluster.  E.g. 'myCluster' if instances have been tagged with \"cluster:myCluster\".")
 
@@ -109,16 +111,6 @@ object Deployer {
           node.ip,
           props.payloadLocal,
           props.payloadTargetParent)).!
-
-        Process(ssh.foregroundCommand(
-          provider.instanceUser,
-          node.ip,
-          Script.unTar("~/deploy", "dataIn.tar.gz"))).!
-
-        Process(ssh.foregroundCommand(
-          provider.instanceUser,
-          node.ip,
-          Script.unTar("~/deploy", "jdk-8u71-linux-x64.tar.gz"))).!
 
         Process(ssh.scpCommand(
           provider.instanceUser,
