@@ -17,6 +17,7 @@
 
 package sampler.abc.actor.sub
 
+import scala.language.existentials
 import scala.concurrent.duration.DurationInt
 import akka.actor.Actor
 import akka.actor.ActorLogging
