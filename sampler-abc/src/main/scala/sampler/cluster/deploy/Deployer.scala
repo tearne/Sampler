@@ -6,11 +6,17 @@ import org.apache.commons.io.FileUtils
 import sampler.cluster.deploy.bash.{Rsync, SSH, Script}
 import scala.sys.process._
 import scopt.Read
+import org.slf4j.LoggerFactory
 
 object Deployer {
+  val log = LoggerFactory.getLogger(getClass.getName)
+  val processLog = ProcessLogger{line => 
+    log.info(line)
+  }
+  
   def apply(args: Array[String], providerBuilder: String => Provider): Unit = {
     parser
-      .parse(args, Job(null, "", null))
+      .parse(args, Job(null, "", Augment))
       .foreach{job => run(job, providerBuilder)}
   }
 
@@ -23,7 +29,7 @@ object Deployer {
     val values = Vector(Augment, Destroy, Redeploy)
     
     def fromString(str: String): Option[Operation] = {
-      values.find(_.toString == str)
+      values.find(_.toString.toLowerCase == str.toLowerCase)
     }
 
     implicit val operationRead: Read[Operation] =
@@ -35,7 +41,7 @@ object Deployer {
   case class Job(
     configFile: File,
     clusterTag: String,
-    operation: Operation
+    operation: Operation = Augment
   )
 
   val parser = new scopt.OptionParser[Job]("Deployer") {
@@ -47,23 +53,31 @@ object Deployer {
       c.copy(clusterTag = x)
     } text ("Name of the cluster.  E.g. 'myCluster' if instances have been tagged with \"cluster:myCluster\".")
 
-    opt[Operation]('o', "operation") required() valueName("<task>") action{ (x,c) =>
+    opt[Operation]('o', "operation") valueName("<operation>") action{ (x,c) =>
       c.copy(operation = x)
     } text ("Cluster operation to perform")
   }
-
+  
+  def process(cmd: String): Int = process(List(cmd))
+	def process(cmds: List[String]): Int = Process(cmds).!(processLog)
+  
   def run(job: Job, providerBuilder: String => Provider): Unit = {
+    log.info(job.toString)
     val config = FileUtils.readFileToString(job.configFile)
     val props = Properties.fromJSON(config)
+    log.info(props.toString)
     val provider: Provider = providerBuilder(config)
 
-    val nodes = provider.getAllNodes.filter(_.clusterName == job.clusterTag)
-    println(s"Found ${nodes.size} nodes: ")
-    nodes.map("  " + _.toString).foreach(println)
+    val allNodes = provider.getAllNodes
+    val nodes = allNodes.filter(_.clusterNameOpt == Some(job.clusterTag))
+    log.info(s"Cluster has ${nodes.size} nodes (out of ${allNodes.size} instances): ")
+    nodes.map("  " + _.toString).foreach(log.info)
+    
+    assume(nodes.size > 0, s"Found 0 nodes in cluster ${job.clusterTag} (${allNodes.size} nodes overall)")
 
     val seeds = List(
-      Util.getAssertOne(nodes.filter(_.seedRole == Some("seed1"))),
-      Util.getAssertOne(nodes.filter(_.seedRole == Some("seed2")))
+      Util.getAssertOne(nodes.filter(_.seedRoleOpt == Some("seed1"))),
+      Util.getAssertOne(nodes.filter(_.seedRoleOpt == Some("seed2")))
     )
 
     val ssh = new SSH(props.privateKeyPath)
@@ -81,67 +95,64 @@ object Deployer {
 
     def tearDown(nodes: Set[Node]): Unit = {
       nodes.foreach{node =>
-        Process(ssh.foregroundCommand(
+        process(ssh.foregroundCommand(
           provider.instanceUser,
           node.ip,
           Script.killJava(props.applicationMain)
-        )).!
-
-        //TODO not needed if rsync deletes?
-//        Process(ssh.foregroundCommand(
-//            provider.instanceUser,
-//            ip(node),
-//            Script.deleteOld(props.payloadTarget)
-//        )).!
+        ))
       }
     }
 
     def deploy(nodes: Set[Node]): Unit = {
       def isRunningABC(node: Node): Boolean = {
-        val process = Process(ssh.foregroundCommand(
+        val cmd = ssh.foregroundCommand(
           provider.instanceUser,
           node.ip,
-          Script.checkJavaRunning(props.applicationMain))).!
-        if (process == 0) true else false //Assuming exit code of 0 means model is running
+          Script.checkJavaRunning(props.applicationMain))
+        log.info(cmd)
+        val exitCode = process(cmd)
+        log.info("-----DONE")
+        exitCode == 0 //Assuming exit code of 0 means model is running
       }
 
       def upload(node: Node, props: Properties, runScriptPath: Path): Unit =  {
-        Process(rsync(
+        process(rsync(
           provider.instanceUser,
           node.ip,
           props.payloadLocal,
-          props.payloadTargetParent)).!
+          props.payloadTargetParent))
 
-        Process(ssh.scpCommand(
+        process(ssh.scpCommand(
           provider.instanceUser,
           node.ip,
           runScriptPath,
-          props.payloadTarget)).!
+          props.payloadTarget))
       }
 
       def execute(node: Node, props: Properties, runScriptName: String): Unit = {
-        //TODO logging.  Otherwise commands can silently fail
+        //TODO logging.  Otherwise commands can silently fail?
         val cmd = ssh.backgroundCommand(
           provider.instanceUser,
           node.ip,
           s"${props.payloadTarget}/$runScriptName")
-        println(cmd)
-        Process(cmd).!
+        process(cmd)
       }
 
       nodes
-        .filter{!isRunningABC(_)}
         .foreach { node =>
-          val runScript: String = Script.startApplication(
-            node.ip,
-            props.vmExtraArgs,
-            props.applicationMain,
-            seeds(0).ip,
-            seeds(1).ip)
-          val runScriptPath = Util.writeToTempFile(runScript, "run", ".sh")
-
-          upload(node, props, runScriptPath)
-          execute(node, props, runScriptPath.getFileName.toString)
+          log.info("Working on "+node)
+          if(!isRunningABC(node)){
+            val runScript: String = Script.startApplication(
+              node.ip,
+              props.vmExtraArgs,
+              props.applicationMain,
+              seeds(0).ip,
+              seeds(1).ip)
+            val runScriptPath = Util.writeToTempFile(runScript, "run", ".sh")
+  
+            upload(node, props, runScriptPath)
+            execute(node, props, runScriptPath.getFileName.toString)
+          }
         }
     }
   }

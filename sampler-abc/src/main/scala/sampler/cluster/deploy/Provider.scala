@@ -56,7 +56,7 @@ case class JCloudProvider(context: ComputeServiceContext, instanceUser: String) 
         val seedRoleOpt = tags
           .collect{case tag if tag.startsWith("seed:") => tag.split(":")(1)}
           .headOption
-
+          
         Node(
           meta.getHostname,
           meta.getPrivateAddresses.head,

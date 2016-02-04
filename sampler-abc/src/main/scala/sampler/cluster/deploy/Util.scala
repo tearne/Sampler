@@ -8,7 +8,7 @@ import scala.collection.JavaConversions
 
 object Util {
   def getAssertOne[T](set: Set[T]) = {
-    assert(set.size == 1)
+    assume(set.size == 1, s"Expected one item but got: $set")
     set.head
   }
   
