@@ -5,6 +5,7 @@ val buildScalaVersion	= "2.11.7"
 lazy val commonSettings = Seq(
   organization := buildOrganization,
   version		 := buildVersion,
+  licenses 	 += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
   scalaVersion := buildScalaVersion,
   scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature"),
 //	scalacOptions ++= Seq("-encoding", "UTF-8", "-Xlint", "-deprecation", "-unchecked", "-feature")
