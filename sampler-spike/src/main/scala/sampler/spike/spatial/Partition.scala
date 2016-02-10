@@ -6,8 +6,8 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import sampler.r.script.RScript
 
-object TestApp extends App {
-	import Stuff._
+object PartitionApp extends App {
+	import Helpers._
 	implicit val r = Random
 	val fileOut = Paths.get("results", "points.csv")
 	
@@ -39,7 +39,7 @@ object TestApp extends App {
 	RScript.apply(rScript, fileOut.getParent.resolve("script.r"))
 }
 
-object Stuff{
+object Helpers{
 	type Group[T] = Set[(T,T)]
 	implicit val r = Random
 	
@@ -94,11 +94,6 @@ object Stuff{
 	
 	object Partition {	
 		def apply[T](group: Group[T])(splitter: Group[T] => Option[Set[Group[T]]]): Set[Group[T]] = {
-//			for{
-//				subgroup <- splitter(group)
-//				
-//			}
-			
 			
 			splitter(group).map{subgroups =>
 				subgroups.flatMap{subgroup => 
