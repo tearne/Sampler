@@ -58,8 +58,14 @@ object Deployer {
     } text ("Cluster operation to perform")
   }
   
-  def process(cmd: String): Int = process(List(cmd))
-	def process(cmds: List[String]): Int = Process(cmds).!(processLog)
+  def process(cmd: String): Int = {
+    log.info("About to run: "+cmd)
+    Process(cmd).!(processLog)
+  }
+	def process(cmds: Seq[String]): Int = {
+	  log.info("About to run: "+cmds)
+	  Process(cmds).!(processLog)
+	}
   
   def run(job: Job, providerBuilder: String => Provider): Unit = {
     log.info(job.toString)
@@ -109,7 +115,6 @@ object Deployer {
           provider.instanceUser,
           node.ip,
           Script.checkJavaRunning(props.applicationMain))
-        log.info(cmd)
         val exitCode = process(cmd)
         log.info("-----DONE")
         exitCode == 0 //Assuming exit code of 0 means model is running
