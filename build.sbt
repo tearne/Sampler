@@ -103,7 +103,8 @@ lazy val spike = project.in(file("sampler-spike"))
       "rengine" % "rengine" % "2015-01-20" from "http://rforge.net/Rserve/files/REngine.jar",
       "rserveengine" % "rserveengine" % "2015-01-20" from "http://rforge.net/Rserve/files/RserveEngine.jar",
       "ch.qos.logback" % "logback-classic" % "1.1.1",
-      "org.freemarker" % "freemarker" % "2.3.21"
+      "org.freemarker" % "freemarker" % "2.3.21",
+      "org.typelevel" %% "cats" % "0.4.1"
     )
   )
   .settings(
