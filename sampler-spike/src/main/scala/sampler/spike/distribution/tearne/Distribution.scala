@@ -6,28 +6,37 @@ import sampler.math.{Random, Partition, AliasTable}
 import scala.annotation.tailrec
 import scala.collection.{GenSeq, GenMap}
 
-sealed trait Distribution[A]{
-  def sample(implicit r: Random): A
-  
-  def flatMap[B](f: A => Distribution[B]) = FlatMap(this, f)
-  def map[B](f: A => B) = FlatMap(this, (a: A) => Pure(f(a)))
-  def until(predicate: IndexedSeq[A] => Boolean) = Until(this, predicate)
-  def filter(predicate: A => Boolean) = Filter(this, predicate)
-  def combine[B, C](that: Distribution[B])(op: (A, B) => C) = Combine(this, that, op)
+//TODO Applicative
+
+trait Samplable[F[_]]{
+  def sample[A](fa: F[A])(implicit r: Random): A
+}
+object Samplable{
+  def apply[F[_]](implicit s: Samplable[F]): Samplable[F] = s
 }
 
-final case class Pure[A](value: A) extends Distribution[A] {
+sealed trait Empirical[A]{
+  def sample(implicit r: Random): A
+  def flatMap[B](f: A => Empirical[B]) = FlatMap(this, f)
+  def map[B](f: A => B) = FlatMap(this, (a: A) => Pure(f(a)))
+  
+  def until(predicate: IndexedSeq[A] => Boolean) = Until(this, predicate)
+  def filter(predicate: A => Boolean) = Filter(this, predicate)
+  def combine[B, C](that: Empirical[B])(op: (A, B) => C) = Combine(this, that, op)
+}
+
+final case class Pure[A](value: A) extends Empirical[A] {
   def sample(implicit r: Random) = value
 }
 
-final case class FlatMap[A,B](d: Distribution[A], f: A => Distribution[B]) extends Distribution[B]{
+final case class FlatMap[A,B](d: Empirical[A], f: A => Empirical[B]) extends Empirical[B]{
   def sample(implicit r: Random) = f(d.sample).sample
 }
 
 final case class Until[A](
-    d: Distribution[A], 
+    d: Empirical[A], 
     predicate: IndexedSeq[A] => Boolean
-    ) extends Distribution[IndexedSeq[A]] {
+    ) extends Empirical[IndexedSeq[A]] {
   def sample(implicit r: Random) = {
 		@tailrec
 		def append(previous: IndexedSeq[A]): IndexedSeq[A] = {
@@ -39,9 +48,9 @@ final case class Until[A](
 }
 
 final case class Filter[A](
-    d: Distribution[A], 
+    d: Empirical[A], 
     predicate: A => Boolean
-    ) extends Distribution[A] {
+    ) extends Empirical[A] {
   def sample(implicit r: Random) = {
 		@tailrec
 		def tryAgain: A = {
@@ -55,14 +64,14 @@ final case class Filter[A](
 }
 
 final case class Combine[A,B,C](
-    dA: Distribution[A], 
-    dB: Distribution[B], 
+    dA: Empirical[A], 
+    dB: Empirical[B], 
     f: (A,B) => C
-    ) extends Distribution[C] {
+    ) extends Empirical[C] {
   def sample(implicit r: Random) = f(dA.sample, dB.sample)
 }
 
-final case class TableDist[A](weightsByItem: Map[A, Double]) extends Distribution[A]{
+final case class TableDist[A](weightsByItem: Map[A, Double]) extends Empirical[A]{
   val (items, weights) = weightsByItem.toIndexedSeq.unzip
   assume(weights.find(_ <= 0).isEmpty, "Found negative weights when building distribution.")
   val probPartition = Partition.fromWeights(weights)
@@ -70,27 +79,27 @@ final case class TableDist[A](weightsByItem: Map[A, Double]) extends Distributio
   def sample(implicit r: Random) = items(aliasTable.next(r))
 }
 
-final case class SeqDist[A](items: IndexedSeq[A]) extends Distribution[A]{
+final case class SeqDist[A](items: IndexedSeq[A]) extends Empirical[A]{
   val size = items.size
   def sample(implicit r: Random) = items(r.nextInt(size))
 }
 
-object Distribution {
-  //TODO monad instance
+object Empirical {
+  implicit val empiricalInstances = new Samplable[Empirical] with Monad[Empirical]{
+    override def pure[A](a: A): Empirical[A] = Pure(a)
+    override def flatMap[A,B](e: Empirical[A])(f: A => Empirical[B]): Empirical[B] = e.flatMap(f)
+    override def sample[A](e: Empirical[A])(implicit r: Random) = e.sample
+  }
+}
 
-  object ImplicitClasses {
-    implicit class SeqOps[A](genSeq: GenSeq[A]) {
-  		val indSeq = genSeq.toIndexedSeq
-  		def toSeqDist = SeqDist[A](indSeq)
-  		def toTableDist = TableDist[A](
-  			indSeq.groupBy(identity).map{case (k,v) => k -> v.size.toDouble}
-  		)
-  	}
-  	
-  	implicit class MapOps[A](table: GenMap[A,Double]) {
-  		def toTableDist = TableDist[A](table.seq.toMap)
-  	}
-  }  
+object EmpiricalSyntax {
+  implicit class SeqOps[A](genSeq: GenSeq[A]) {
+		def empirical = SeqDist[A](genSeq.toIndexedSeq)
+	}
+	
+	implicit class MapOps[A](table: GenMap[A,Double]) {
+		def empirical = TableDist[A](table.seq.toMap)
+	}
 }
 
 object Discussion extends App {
@@ -101,9 +110,9 @@ object Discussion extends App {
   )
   val observations = Seq("Milk", "Dark", "Dark", "Milk", "Milk")
   
-  import Distribution.ImplicitClasses._
-  val chocDist: Distribution[String] = observations.toSeqDist
-  val animalDist: Distribution[String] = table.toTableDist
+  import EmpiricalSyntax._
+  val chocDist = observations.empirical
+  val animalDist = table.empirical
   
   implicit val r = Random
   val fourMilkDist = chocDist
