@@ -8,35 +8,28 @@ import scala.collection.{GenSeq, GenMap}
 
 //TODO Applicative
 
-trait Samplable[F[_]]{
-  def sample[A](fa: F[A])(implicit r: Random): A
-}
-object Samplable{
-  def apply[F[_]](implicit s: Samplable[F]): Samplable[F] = s
-}
-
-sealed trait Empirical[A]{
+sealed trait Distribution[A]{
   def sample(implicit r: Random): A
-  def flatMap[B](f: A => Empirical[B]) = FlatMap(this, f)
+  def flatMap[B](f: A => Distribution[B]) = FlatMap(this, f)
   def map[B](f: A => B) = FlatMap(this, (a: A) => Pure(f(a)))
   
   def until(predicate: IndexedSeq[A] => Boolean) = Until(this, predicate)
   def filter(predicate: A => Boolean) = Filter(this, predicate)
-  def combine[B, C](that: Empirical[B])(op: (A, B) => C) = Combine(this, that, op)
+  def combine[B, C](that: Distribution[B])(op: (A, B) => C) = Combine(this, that, op)
 }
 
-final case class Pure[A](value: A) extends Empirical[A] {
+final case class Pure[A](value: A) extends Distribution[A] {
   def sample(implicit r: Random) = value
 }
 
-final case class FlatMap[A,B](d: Empirical[A], f: A => Empirical[B]) extends Empirical[B]{
+final case class FlatMap[A,B](d: Distribution[A], f: A => Distribution[B]) extends Distribution[B]{
   def sample(implicit r: Random) = f(d.sample).sample
 }
 
 final case class Until[A](
-    d: Empirical[A], 
+    d: Distribution[A], 
     predicate: IndexedSeq[A] => Boolean
-    ) extends Empirical[IndexedSeq[A]] {
+    ) extends Distribution[IndexedSeq[A]] {
   def sample(implicit r: Random) = {
 		@tailrec
 		def append(previous: IndexedSeq[A]): IndexedSeq[A] = {
@@ -48,9 +41,9 @@ final case class Until[A](
 }
 
 final case class Filter[A](
-    d: Empirical[A], 
+    d: Distribution[A], 
     predicate: A => Boolean
-    ) extends Empirical[A] {
+    ) extends Distribution[A] {
   def sample(implicit r: Random) = {
 		@tailrec
 		def tryAgain: A = {
@@ -64,30 +57,40 @@ final case class Filter[A](
 }
 
 final case class Combine[A,B,C](
-    dA: Empirical[A], 
-    dB: Empirical[B], 
+    dA: Distribution[A], 
+    dB: Distribution[B], 
     f: (A,B) => C
-    ) extends Empirical[C] {
+    ) extends Distribution[C] {
   def sample(implicit r: Random) = f(dA.sample, dB.sample)
 }
 
-final case class TableDist[A](weightsByItem: Map[A, Double]) extends Empirical[A]{
+final case class EmpiricalTable[A](weightsByItem: Map[A, Double]) extends Distribution[A]{
   val (items, weights) = weightsByItem.toIndexedSeq.unzip
-  assume(weights.find(_ <= 0).isEmpty, "Found negative weights when building distribution.")
+  assume(weights.find(_ <= 0).isEmpty, "Found negative weights.")
   val probPartition = Partition.fromWeights(weights)
   val aliasTable = new AliasTable(probPartition)
   def sample(implicit r: Random) = items(aliasTable.next(r))
 }
 
-final case class SeqDist[A](items: IndexedSeq[A]) extends Empirical[A]{
+final case class EmpiricalSeq[A](items: IndexedSeq[A]) extends Distribution[A]{
   val size = items.size
   def sample(implicit r: Random) = items(r.nextInt(size))
 }
 
-object Empirical {
-  implicit val empiricalInstances = new Samplable[Empirical] with Monad[Empirical]{
-    override def pure[A](a: A): Empirical[A] = Pure(a)
-    override def flatMap[A,B](e: Empirical[A])(f: A => Empirical[B]): Empirical[B] = e.flatMap(f)
-    override def sample[A](e: Empirical[A])(implicit r: Random) = e.sample
+final case class Explicit[A](f: Random => A) extends Distribution[A]{
+   def sample(implicit r: Random) = f(r)
+}
+
+object Distribution extends LowPriorityImplicits{
+  def exponential(rate: Double) = {(r: Random) => 
+    - math.log(r.nextDouble) / rate
+  }.distribution
+}
+
+trait LowPriorityImplicits {
+  implicit val instances = new Samplable[Distribution] with Monad[Distribution]{
+    override def pure[A](a: A): Distribution[A] = Pure(a)
+    override def flatMap[A,B](e: Distribution[A])(f: A => Distribution[B]): Distribution[B] = e.flatMap(f)
+    override def sample[A](e: Distribution[A])(implicit r: Random) = e.sample
   }
 }

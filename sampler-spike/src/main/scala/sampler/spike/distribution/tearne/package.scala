@@ -1,5 +1,5 @@
 package sampler.spike.distribution
 
-import sampler.spike.distribution.tearne.EmpiricalImplicits
+import sampler.spike.distribution.tearne.DistributionImplicits
 
-package object tearne extends EmpiricalImplicits
+package object tearne extends DistributionImplicits
