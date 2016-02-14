@@ -91,38 +91,3 @@ object Empirical {
     override def sample[A](e: Empirical[A])(implicit r: Random) = e.sample
   }
 }
-
-object EmpiricalSyntax {
-  implicit class SeqOps[A](genSeq: GenSeq[A]) {
-		def empirical = SeqDist[A](genSeq.toIndexedSeq)
-	}
-	
-	implicit class MapOps[A](table: GenMap[A,Double]) {
-		def empirical = TableDist[A](table.seq.toMap)
-	}
-}
-
-object Discussion extends App {
-  val table: Map[String, Double] = Map(
-    "Pig" -> 10,
-    "Duck" -> 20,
-    "Cow" -> 30
-  )
-  val observations = Seq("Milk", "Dark", "Dark", "Milk", "Milk")
-  
-  import EmpiricalSyntax._
-  val chocDist = observations.empirical
-  val animalDist = table.empirical
-  
-  implicit val r = Random
-  val fourMilkDist = chocDist
-    .until(soFar =>
-      soFar.size > 4 &&
-      !soFar.takeRight(4).exists(_ != "Milk")
-    )
-    
-  fourMilkDist
-    .until(_.size == 10)
-    .sample
-    .foreach(println)
-}
