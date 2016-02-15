@@ -5,14 +5,14 @@ import sampler.math.Random
 
 trait DistributionImplicits {
   implicit class SeqOps[A](genSeq: GenSeq[A]) {
-		def distribution = EmpiricalSeq[A](genSeq.toIndexedSeq)
+		def distribution = Distribution.fromSequence(genSeq.toIndexedSeq)
 	}
 	
 	implicit class MapOps[A](table: GenMap[A,Double]) {
-		def distribution = EmpiricalTable[A](table.seq.toMap)
+		def distribution = Distribution.fromTable(table.seq.toMap)
 	}
 	
 	implicit class FunctionOps[A](f: Random => A) {
-	  def distribution = Explicit[A](f)
+	  def distribution = Distribution.fromFunction[A](f)
 	}
 }

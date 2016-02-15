@@ -8,7 +8,7 @@ import scala.collection.{GenSeq, GenMap}
 
 //TODO Applicative
 
-sealed trait Distribution[A]{
+sealed trait Distribution[A] {
   def sample(implicit r: Random): A
   def flatMap[B](f: A => Distribution[B]) = FlatMap(this, f)
   def map[B](f: A => B) = FlatMap(this, (a: A) => Pure(f(a)))
@@ -56,7 +56,7 @@ final case class Filter[A](
 	}
 }
 
-final case class Combine[A,B,C](
+final case class Combine[A,B,C] (
     dA: Distribution[A], 
     dB: Distribution[B], 
     f: (A,B) => C
@@ -64,7 +64,7 @@ final case class Combine[A,B,C](
   def sample(implicit r: Random) = f(dA.sample, dB.sample)
 }
 
-final case class EmpiricalTable[A](weightsByItem: Map[A, Double]) extends Distribution[A]{
+final case class EmpiricalTable[A](weightsByItem: Map[A, Double]) extends Distribution[A] {
   val (items, weights) = weightsByItem.toIndexedSeq.unzip
   assume(weights.find(_ <= 0).isEmpty, "Found negative weights.")
   val probPartition = Partition.fromWeights(weights)
@@ -72,23 +72,32 @@ final case class EmpiricalTable[A](weightsByItem: Map[A, Double]) extends Distri
   def sample(implicit r: Random) = items(aliasTable.next(r))
 }
 
-final case class EmpiricalSeq[A](items: IndexedSeq[A]) extends Distribution[A]{
+final case class EmpiricalSeq[A](items: IndexedSeq[A]) extends Distribution[A] {
   val size = items.size
   def sample(implicit r: Random) = items(r.nextInt(size))
 }
 
-final case class Explicit[A](f: Random => A) extends Distribution[A]{
+final case class Function[A](f: Random => A) extends Distribution[A] {
    def sample(implicit r: Random) = f(r)
 }
 
-object Distribution extends LowPriorityImplicits{
-  def exponential(rate: Double) = {(r: Random) => 
+object Distribution extends LowPriorityImplicits {
+  def fromTable[A](weightsByItem: Map[A, Double]) = 
+    EmpiricalTable(weightsByItem: Map[A, Double])
+  
+  def fromSequence[A](items: IndexedSeq[A]) = 
+    EmpiricalSeq(items)
+  
+  def fromFunction[A](f: Random => A) = 
+    Function(f)
+  
+  def exponential(rate: Double) = fromFunction{(r: Random) => 
     - math.log(r.nextDouble) / rate
-  }.distribution
+  }
 }
 
 trait LowPriorityImplicits {
-  implicit val instances = new Samplable[Distribution] with Monad[Distribution]{
+  implicit val instances = new Samplable[Distribution] with Monad[Distribution] {
     override def pure[A](a: A): Distribution[A] = Pure(a)
     override def flatMap[A,B](e: Distribution[A])(f: A => Distribution[B]): Distribution[B] = e.flatMap(f)
     override def sample[A](e: Distribution[A])(implicit r: Random) = e.sample
