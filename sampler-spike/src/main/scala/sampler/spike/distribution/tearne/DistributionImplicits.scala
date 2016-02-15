@@ -13,6 +13,6 @@ trait DistributionImplicits {
 	}
 	
 	implicit class FunctionOps[A](f: Random => A) {
-	  def distribution = Distribution.fromFunction[A](f)
+	  def distribution = Distribution.build(f)
 	}
 }
