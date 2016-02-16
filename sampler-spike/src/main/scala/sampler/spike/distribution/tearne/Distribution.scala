@@ -60,7 +60,7 @@ trait LowPriorityImplicits {
     
     override def flatMap[A,B](e: Distribution[A])(f: A => Distribution[B]): Distribution[B] 
       = FlatMap(e, f)
-    
+      
     override def sample[A](e: Distribution[A])(implicit r: Random) 
       = e.sample
     

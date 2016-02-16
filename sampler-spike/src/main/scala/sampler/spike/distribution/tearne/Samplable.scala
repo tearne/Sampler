@@ -2,7 +2,7 @@ package sampler.spike.distribution.tearne
 
 import sampler.math.Random
 import scala.language.higherKinds
-import cats.Monad
+import cats.{Monad, Applicative}
 import scala.annotation.tailrec
 
 trait Samplable[T[_]] extends Monad[T]{

@@ -52,3 +52,43 @@ object ChocolateSequence extends App {
     .sample
     .foreach(println)
 }
+
+object Expiress extends App {
+  val starter: Distribution[String] = Seq(
+      "Garlic bread", 
+      "Dough balls", 
+      "Bruschetta")
+    .distribution
+    
+  val main: Distribution[String] = Seq(
+      "Rustichella",
+      "American",
+      "Padana")
+    .distribution
+  
+  val pud: Distribution[String] = Seq(
+      "Fudge cake",
+      "Ice cream",
+      "Hot chocolate")
+    .distribution
+    
+  implicit val r = Random
+  
+  val res = Samplable[Distribution].map3(
+    starter,
+    main,
+    pud
+  )("I'd like "+_ +", "+ _ +" and "+ _)
+    .until(_.size == 3)
+    .sample
+    
+  res.foreach(println)
+
+  //TODO tie fighter not working
+//  import cats._
+//  import cats.syntax.all._
+//  import cats.syntax.cartesian._
+//  (starter |@| mainCourse |@| pud).map(_ + _ + _)
+//    .sample
+//    .foreach(println)
+}
