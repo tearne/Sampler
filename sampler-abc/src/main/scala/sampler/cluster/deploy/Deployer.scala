@@ -10,13 +10,11 @@ import org.slf4j.LoggerFactory
 
 object Deployer {
   val log = LoggerFactory.getLogger(getClass.getName)
-  val processLog = ProcessLogger { line =>
-    log.info(line)
-  }
+  val processLog = ProcessLogger(log.debug, log.error)
 
   def apply(args: Array[String], providerBuilder: String => Provider): Unit = {
     parser
-      .parse(args, Job(null, "", Augment))
+      .parse(args, Job(null, "", Operation.default))
       .foreach { job => run(job, providerBuilder) }
   }
 
@@ -60,11 +58,11 @@ object Deployer {
   }
 
   def process(cmd: String): Int = {
-    log.info("About to run: " + cmd)
+    log.debug("About to run: " + cmd)
     Process(cmd).!(processLog)
   }
   def process(cmds: Seq[String]): Int = {
-    log.info("About to run: " + cmds)
+    log.debug("About to run: " + cmds)
     Process(cmds).!(processLog)
   }
 
@@ -75,9 +73,10 @@ object Deployer {
     log.info(props.toString)
     val provider: Provider = providerBuilder(config)
 
+    log.info("Requesting instance data...")
     val allNodes = provider.getAllNodes
     val nodes = allNodes.filter(_.clusterNameOpt == Some(job.clusterTag))
-    log.info(s"Cluster has ${nodes.size} nodes (out of ${allNodes.size} instances): ")
+    log.info(s"... cluster has ${nodes.size} nodes (out of ${allNodes.size} instances total): ")
     nodes.map("  " + _.toString).foreach(log.info)
 
     assume(nodes.size > 0, s"Found 0 nodes in cluster ${job.clusterTag} (${allNodes.size} nodes overall)")
@@ -102,9 +101,10 @@ object Deployer {
     }
 
     def listIdle(nodes: Set[Node]): Unit = {
-      val report = nodes.map{ node =>
-        if (isRunningABC(node)) "(*) Busy: $node"
-        else "( ) Idle: $node"
+      log.info("Requesting idle/busy status for cluster ...")
+      val report = nodes.par.map{ node =>
+        if (isRunningABC(node)) s" (*) Busy: $node"
+        else s" ( ) Idle: $node"
       }.toIndexedSeq.sorted
       report.foreach(log.info)
     }
@@ -134,7 +134,6 @@ object Deployer {
       }
 
       def execute(node: Node, props: Properties, runScriptName: String): Unit = {
-        //TODO logging.  Otherwise commands can silently fail?
         val cmd = ssh.backgroundCommand(
           provider.instanceUser,
           node.ip,
