@@ -27,6 +27,7 @@ object Deployer {
   case object ListIdle extends Operation
 
   object Operation {
+    val default = ListIdle
     val values = Vector(Augment, Destroy, Redeploy, ListIdle)
 
     def fromString(str: String): Option[Operation] = {
@@ -42,7 +43,7 @@ object Deployer {
   case class Job(
     configFile: File,
     clusterTag: String,
-    operation: Operation = Augment)
+    operation: Operation = Operation.default)
 
   val parser = new scopt.OptionParser[Job]("Deployer") {
     opt[File]('c', "config") required () valueName ("<file>") action { (x, c) =>
@@ -55,7 +56,7 @@ object Deployer {
 
     opt[Operation]('o', "operation") valueName ("<operation>") action { (x, c) =>
       c.copy(operation = x)
-    } text ("Cluster operation to perform")
+    } text ("Cluster operation to perform.")
   }
 
   def process(cmd: String): Int = {
@@ -101,21 +102,11 @@ object Deployer {
     }
 
     def listIdle(nodes: Set[Node]): Unit = {
-      //Note isrunning used in deploy also - abstract out or refactor?
-      def isRunningABC(node: Node): Boolean = {
-        val cmd = ssh.foregroundCommand(
-          provider.instanceUser,
-          node.ip,
-          Script.checkJavaRunning(props.applicationMain))
-        val exitCode = process(cmd)
-        exitCode == 0 //Assuming exit code of 0 means model is running
-      }
-      nodes
-        .foreach { node =>
-          if (!isRunningABC(node)) {
-            println(node)
-          }
-        }
+      val report = nodes.map{ node =>
+        if (isRunningABC(node)) "(*) Busy: $node"
+        else "( ) Idle: $node"
+      }.toIndexedSeq.sorted
+      report.foreach(log.info)
     }
 
     def tearDown(nodes: Set[Node]): Unit = {
@@ -128,16 +119,6 @@ object Deployer {
     }
 
     def deploy(nodes: Set[Node]): Unit = {
-      def isRunningABC(node: Node): Boolean = {
-        val cmd = ssh.foregroundCommand(
-          provider.instanceUser,
-          node.ip,
-          Script.checkJavaRunning(props.applicationMain))
-        val exitCode = process(cmd)
-        log.info("-----DONE")
-        exitCode == 0 //Assuming exit code of 0 means model is running
-      }
-
       def upload(node: Node, props: Properties, runScriptPath: Path): Unit = {
         process(rsync(
           provider.instanceUser,
@@ -177,6 +158,15 @@ object Deployer {
             execute(node, props, runScriptPath.getFileName.toString)
           }
         }
+    }
+    
+    def isRunningABC(node: Node): Boolean = {
+      val cmd = ssh.foregroundCommand(
+        provider.instanceUser,
+        node.ip,
+        Script.checkJavaRunning(props.applicationMain))
+      val exitCode = process(cmd)
+      exitCode == 0 //Assuming exit code of 0 means model is running
     }
   }
 }
