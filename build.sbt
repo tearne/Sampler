@@ -28,7 +28,7 @@ lazy val commonSettings = Seq(
     "org.scalaz" %% "scalaz-core" % "7.1.0",
     "com.novocode" % "junit-interface" % "0.11" % "test",
     "org.spire-math" %% "spire" % "0.11.0",
-    "com.typesafe.play" %% "play-json" % "2.4.6"
+    "com.typesafe.play" %% "play-json" % "2.4.6"    
   )
 )
 
