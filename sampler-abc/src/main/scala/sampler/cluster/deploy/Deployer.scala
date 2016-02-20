@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory
 
 object Deployer {
   val log = LoggerFactory.getLogger(getClass.getName)
-  val processLog = ProcessLogger(log.debug, log.error)
+  val processLog = ProcessLogger(log.debug, log.warn)
 
   def apply(args: Array[String], providerBuilder: String => Provider): Unit = {
     parser
@@ -111,6 +111,7 @@ object Deployer {
 
     def tearDown(nodes: Set[Node]): Unit = {
       nodes.foreach { node =>
+        log.info("Tearing down: "+node)
         process(ssh.foregroundCommand(
           provider.instanceUser,
           node.ip,
@@ -143,7 +144,7 @@ object Deployer {
 
       nodes
         .foreach { node =>
-          log.info("Working on " + node)
+          log.info("Examining " + node)
           if (!isRunningABC(node)) {
             val runScript: String = Script.startApplication(
               node.ip,
@@ -153,7 +154,9 @@ object Deployer {
               seeds(1).ip)
             val runScriptPath = Util.writeToTempFile(runScript, "run", ".sh")
 
+            log.info(" Upload...")
             upload(node, props, runScriptPath)
+            log.info(" Start application...")
             execute(node, props, runScriptPath.getFileName.toString)
           }
         }
