@@ -63,11 +63,13 @@ class MessagesTest extends FreeSpec with Matchers {
 		val p2 = Tagged(Weighted(Scored(2, Seq(0.5)), 0.5), 111112)
 		val p3 = Tagged(Weighted(Scored(3, Seq(0.5)), 0.5), 111113)
 		val p4 = Tagged(Weighted(Scored(4, Seq(0.5)), 0.5), 111114)
+		val numRejected1 = 5
+    val numRejected2 = 2
+		
+		val weighedParticles = WeighedParticles(Seq(p1, p2), numRejected1)
     
-		val weighedParticles = WeighedParticles(Seq(p1, p2))
-    
-		"be able to add particles from another case class to the sequence" in {
-			val toAdd = WeighedParticles(Seq(p3, p4))
+		"add particles from another instance" in {
+			val toAdd = WeighedParticles(Seq(p3, p4), numRejected2)
     	
 			val combined = weighedParticles.add(toAdd)
     	
@@ -76,26 +78,23 @@ class MessagesTest extends FreeSpec with Matchers {
 			assert(combined.seq.contains(p2))
 			assert(combined.seq.contains(p3))
 			assert(combined.seq.contains(p4))
-		}
-    
-		"be able to add a raw sequence of weighed particles to the sequence" in {
-			val toAdd = Seq(p3, p4)
-			
-			val combined = weighedParticles.add(toAdd)
-			
-			assert(combined.seq.length === 4)
-			assert(combined.seq.contains(p1))
-			assert(combined.seq.contains(p2))
-			assert(combined.seq.contains(p3))
-			assert(combined.seq.contains(p4))
+			assert(combined.numRejected === numRejected1 + numRejected2)
 		}
     
 		"return the size of the sequence" in {
-			val instance1 = WeighedParticles(Seq(p1, p2))
-			val instance2 = WeighedParticles(Seq(p1, p2, p3, p4))
+			val instance1 = WeighedParticles(Seq(p1, p2), numRejected1)
+			val instance2 = WeighedParticles(Seq(p1, p2, p3, p4), numRejected1)
 
 			assert(instance1.size === 2)
 			assert(instance2.size === 4)
+		}
+		
+		"calculate the acceptance rate" in {
+		  val instance1 = WeighedParticles(Seq(p1, p2), numRejected1)
+			val instance2 = WeighedParticles(Seq(p1, p2, p3, p4), numRejected2)
+
+			assert(instance1.acceptanceRatio === 2.0 / (2 + numRejected1))
+			assert(instance2.acceptanceRatio === 4.0 / (4 + numRejected2))
 		}
 	}
 }

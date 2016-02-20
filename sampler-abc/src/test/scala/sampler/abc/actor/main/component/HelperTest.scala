@@ -41,9 +41,12 @@ class HelperTest extends FreeSpec with Matchers with MockitoSugar {
     val weighed1 = Tagged(Weighted(Scored(3, Seq(0.25)), 0.25), id3)
     val weighed2 = Tagged(Weighted(Scored(4, Seq(0.25)), 0.25), id4)
     
+    val numRejected1 = 5
+    val numRejected2 = 2
+    
     "Add incoming weighted particles to a generation" in new Setup {
-      val initialSeq = WeighedParticles(Seq(weighed1))
-      val newWeighedSeq = WeighedParticles(Seq(weighed2))
+      val initialSeq = WeighedParticles(Seq(weighed1), numRejected1)
+      val newWeighedSeq = WeighedParticles(Seq(weighed2), numRejected2)
       
       val gen1 = EvolvingGeneration[Int](
           0.1,
@@ -56,11 +59,9 @@ class HelperTest extends FreeSpec with Matchers with MockitoSugar {
       val result = instance.addWeightedParticles(newWeighedSeq, gen1)
       val weighedSeq = result.weighed
       
-      // Note, we are not looking for particles consolidation  
-      //here, that comes during flushing.
-      assert(weighedSeq.seq.length === 2)
-      assert(weighedSeq.seq.contains(weighed1))
-      assert(weighedSeq.seq.contains(weighed2))
+      // Note, we are not looking for particles consolidation,  
+      // that comes during flushing.
+      assert(weighedSeq === initialSeq.add(newWeighedSeq))
     }
     
     "Filter and queue scored particles for weighing" in new Setup {
@@ -70,8 +71,8 @@ class HelperTest extends FreeSpec with Matchers with MockitoSugar {
       val gen1 = EvolvingGeneration[Int](
           currentTolerance,
       		null,
-          ScoredParticles(Seq()),
-          WeighedParticles(Seq()),
+          ScoredParticles.empty,
+          WeighedParticles.empty,
           Queue()
       )
       
@@ -95,7 +96,7 @@ class HelperTest extends FreeSpec with Matchers with MockitoSugar {
           0.1,
       		null,
           initialDues,
-          WeighedParticles(Seq()),
+          WeighedParticles.empty,
           initialObs
       )
       
@@ -125,13 +126,15 @@ class HelperTest extends FreeSpec with Matchers with MockitoSugar {
           0.0,
           null,
           null,
-          WeighedParticles(Seq(
-            weighed1,
-            weighed2,
-            Tagged(Weighted(Scored(5, Seq(0.5)), 0.5), 111115),
-            Tagged(Weighted(Scored(6, Seq(0.5)), 0.5), 111116),
-            Tagged(Weighted(Scored(7, Seq(0.5)), 0.5), 111117)
-          )),
+          WeighedParticles(
+              Seq(
+                weighed1,
+                weighed2,
+                Tagged(Weighted(Scored(5, Seq(0.5)), 0.5), 111115),
+                Tagged(Weighted(Scored(6, Seq(0.5)), 0.5), 111116),
+                Tagged(Weighted(Scored(7, Seq(0.5)), 0.5), 111117)
+              ),
+              numRejected1),
           null
       )
       
@@ -156,13 +159,18 @@ class HelperTest extends FreeSpec with Matchers with MockitoSugar {
       assert(nextGen.dueWeighing.seq.isEmpty)
     }
     
-    "Delegates building a mix payload to separate component" in new Setup {
+    "Delegates building a mix payload" in new Setup {
       val mixinResponse = Some(ScoredParticles(Seq(scored1, scored2)))
       
       val gen1 = mock[EvolvingGeneration[Int]]
       val config = mock[ABCConfig]
       
-      when(particleMixer.apply(gen1, config)(any[Random])).thenReturn(mixinResponse)
+      when(particleMixer.apply(
+          org.mockito.Matchers.eq(gen1), 
+          org.mockito.Matchers.eq(config)
+      )(
+          any[Random]
+      )).thenReturn(mixinResponse)
       
       assert(instance.buildMixPayload(gen1, config) === mixinResponse)
     }

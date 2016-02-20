@@ -38,8 +38,9 @@ class WeigherTest extends FreeSpec with MockitoSugar {
   }
 
   "Weigher should" - {
-    val tolerance = 0.495
+    val tolerance = 10.05
     val prevPopulation: Generation[T] = Population(Map(1 -> 0.2, 2 -> 0.8), 0, 0)
+    val irrelevant = 0
 
     "Use PartielWeightCalc to weigh each scored particle" in new Setup {
 
@@ -47,7 +48,7 @@ class WeigherTest extends FreeSpec with MockitoSugar {
       val scoredParticles = ScoredParticles(scoredTaggedParticles)
 
       val weightedParticleSeq = List(weightedParticle1, weightedParticle2, weightedParticle3).toSeq
-      val weightedParticles = Success(WeighedParticles(weightedParticleSeq))
+      val weightedParticles = Success(WeighedParticles(weightedParticleSeq, irrelevant))
 
       when(calculator.particleWeight(scored1, tolerance, prevPopulation)).thenReturn(Some(0.3))
       when(calculator.particleWeight(scored2, tolerance, prevPopulation)).thenReturn(Some(0.4))
@@ -61,10 +62,12 @@ class WeigherTest extends FreeSpec with MockitoSugar {
     }
 
     "Preserve the tag present within each scored particle" in new Setup {
-
       val taggedScoredParticle = Tagged(scored1, 1)
       val scoredParticles = ScoredParticles(List(taggedScoredParticle).toSeq)
-      val weightedParticles = Success(WeighedParticles(List(Tagged(Weighted(scored1, 0.3), 1)).toSeq))
+      val weightedParticles = Success(WeighedParticles(
+          List(Tagged(Weighted(scored1, 0.3), 1)).toSeq, 
+          irrelevant
+      ))
 
       when(calculator.particleWeight(scored1, tolerance, prevPopulation)).thenReturn(Some(0.3))
 
@@ -76,21 +79,27 @@ class WeigherTest extends FreeSpec with MockitoSugar {
 
     }
 
-    "Particles that fail to weigh are filtered out" in new Setup { //Can happen if denominator is 0 which gives None in calculator
+    "Particles that fail weighing are filtered out and counted" in new Setup { 
+      /*
+       * Can happen if
+       *  - calculated weight is None (e.g. remote particle not supported by current generation)
+       *  - none of the reps for a particle met require tolerance, leading to weight of zero
+       */
+      //Can happen if denominator is 0 which gives None in calculator
       when(calculator.particleWeight(scored1, tolerance, prevPopulation)).thenReturn(None)
       when(calculator.particleWeight(scored2, tolerance, prevPopulation)).thenReturn(Some(0.4))
       when(calculator.particleWeight(scored3, tolerance, prevPopulation)).thenReturn(Some(0.5))
       val scoredTaggedParticles = List(taggedScoredParticle1, taggedScoredParticle2, taggedScoredParticle3).toSeq
       val scoredParticles = ScoredParticles(scoredTaggedParticles)
       val weightedParticleSeq = List(weightedParticle2, weightedParticle3).toSeq
-      val weightedParticles = Success(WeighedParticles(weightedParticleSeq))
+      val oneRejected = 1
+      val expected = Success(WeighedParticles(weightedParticleSeq, oneRejected))
       
       val weighJob = new WeighJob(scoredParticles, prevPopulation, tolerance)
 
-      assertResult(weightedParticles) {
+      assertResult(expected) {
         instance.apply(weighJob)
       }
-
     }
     "Catch exceptions from PWCalc in returned Try" in new Setup {
       val exception = new RuntimeException()
@@ -110,6 +119,7 @@ class WeigherTest extends FreeSpec with MockitoSugar {
       
     }
     
-     "Not return anything that gets a weight of zero" in fail("TODO") // weighting returns an option so how can it be zero
+    "Not return anything that gets a weight of zero" in fail("TODO")
+    "Not return anything that fails weighing" in fail("TODO")
   }
 }

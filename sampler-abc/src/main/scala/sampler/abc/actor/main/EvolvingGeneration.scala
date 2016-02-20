@@ -13,7 +13,7 @@ case class EvolvingGeneration[P](
 	idsObserved: Queue[Long]
 ){
 	def emptyWeighingBuffer = copy(dueWeighing = ScoredParticles.empty)
-	val buildingGeneration = previousGen.iteration + 1
+	lazy val buildingGeneration = previousGen.iteration + 1
 }
 
 object EvolvingGeneration {
@@ -21,8 +21,8 @@ object EvolvingGeneration {
 		EvolvingGeneration(
 			Double.MaxValue,
 			completed,
-			ScoredParticles(Seq.empty[Tagged[Scored[P]]]),
-			WeighedParticles(Seq.empty[Tagged[Weighted[P]]]),
+			ScoredParticles.empty,
+			WeighedParticles.empty,
 			Queue.empty[Long]
 		)
 	}

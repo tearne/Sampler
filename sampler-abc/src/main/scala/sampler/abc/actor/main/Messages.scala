@@ -23,13 +23,14 @@ object ScoredParticles{
 	def empty[P] = ScoredParticles(Seq.empty[Tagged[Scored[P]]])
 }
 
-case class WeighedParticles[P](seq: Seq[Tagged[Weighted[P]]]) extends WorkerResult[P]{
-  def add(toAdd: WeighedParticles[P]) = WeighedParticles(seq ++ toAdd.seq)
-  def add(toAdd: Seq[Tagged[Weighted[P]]]) = WeighedParticles(seq ++ toAdd)
-  def size = seq.length
+case class WeighedParticles[P](seq: Seq[Tagged[Weighted[P]]], numRejected: Int) extends WorkerResult[P]{
+  def add(toAdd: WeighedParticles[P]) = WeighedParticles(seq ++ toAdd.seq, numRejected + toAdd.numRejected)
+//  def add(toAdd: Seq[Tagged[Weighted[P]]], numRejected: Int) = WeighedParticles(seq ++ toAdd, numRejected)
+  lazy val size = seq.length
+  def acceptanceRatio = size.toDouble / (size + numRejected)
 }
 object WeighedParticles{
-	def empty[P] = WeighedParticles(Seq.empty[Tagged[Weighted[P]]])
+	def empty[P] = WeighedParticles(Seq.empty[Tagged[Weighted[P]]], 0)
 }
 
 case object MixNow

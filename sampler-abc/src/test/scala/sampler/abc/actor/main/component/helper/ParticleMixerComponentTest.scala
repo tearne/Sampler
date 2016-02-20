@@ -20,12 +20,6 @@ import sampler.abc.actor.main.WeighedParticles
 
 class ParticleMixerTest extends FreeSpec with Matchers with MockitoSugar with BeforeAndAfter{
 
-	implicit var r: Random = mock[Random]
-	
-	def before{
-		r = mock[Random]
-	}
-	
   "ParticleMixer should" - {
     val instance = new ParticleMixer()
     
@@ -39,23 +33,30 @@ class ParticleMixerTest extends FreeSpec with Matchers with MockitoSugar with Be
     
     val (id1, id2, id3, id4) = (111111, 111112, 111113, 111114)
     
-    val scored1 = Tagged(Scored(1, Seq(0.25)), id1)
-    val scored2 = Tagged(Scored(2, Seq(0.25)), id2)
-    val scored3 = Tagged(Scored(3, Seq(0.25)), id3)
-    val scored4 = Tagged(Scored(4, Seq(0.25)), id4)
+    val scored1 = Scored(1, Seq(1,1,1,1))
+    val scored2 = Scored(2, Seq(2,2,2,2))
+    val scored3 = Scored(3, Seq(3,3,3,3))
+    val scored4 = Scored(4, Seq(4,4,4,4))
     
-    val weighed1 = Tagged(Weighted(Scored(1, Seq(0.25)), 0.25), id1)
-    val weighed2 = Tagged(Weighted(Scored(2, Seq(0.25)), 0.25), id2)
-    val weighed3 = Tagged(Weighted(Scored(3, Seq(0.25)), 0.25), id3)
-    val weighed4 = Tagged(Weighted(Scored(4, Seq(0.25)), 0.25), id4)
+    val tagged1 = Tagged(scored1, id1)
+    val tagged2 = Tagged(scored2, id2)
+    val tagged3 = Tagged(scored3, id3)
+    val tagged4 = Tagged(scored4, id4)
+    
+    val weighed1 = Tagged(Weighted(scored1, 0.25), id1)
+    val weighed2 = Tagged(Weighted(scored2, 0.25), id2)
+    val weighed3 = Tagged(Weighted(scored3, 0.25), id3)
+    val weighed4 = Tagged(Weighted(scored4, 0.25), id4)
+    
+    val irrelevant = 1
     
     "return None when no weighed particles present in generation" in {
     	//TODO why not just return an empty seq?
       val eGen = EvolvingGeneration[Int](
           0.1,
           null,
-          ScoredParticles(Seq()),
-          WeighedParticles(Seq()),
+          ScoredParticles.empty,
+          WeighedParticles.empty,
           Queue()
         )
         
@@ -67,44 +68,47 @@ class ParticleMixerTest extends FreeSpec with Matchers with MockitoSugar with Be
           0.1,
           null,
           ScoredParticles(Seq()),
-          WeighedParticles(Seq(weighed1, weighed2)),
+          WeighedParticles(Seq(weighed1, weighed2), irrelevant),
           Queue()
       )
         
-      val result = instance.apply(eGen, config).get
+      val result = instance.apply(eGen, config)(null).get
       
       assert(result.seq.size === 2)
-      assert(result.seq.contains(scored1))
-      assert(result.seq.contains(scored2))
+      assert(result.seq.contains(tagged1))
+      assert(result.seq.contains(tagged2))
     }
     
-    "Randomly select from weighteds when more particles present than mix size" in {
+    "randomly select from weighted particles when more present than required" in {
       val gen1 = EvolvingGeneration[Int](
           0.1,
           null,
           ScoredParticles(Seq()),
-          WeighedParticles(Seq(weighed1, weighed2, weighed3, weighed4)),
+          WeighedParticles(Seq(weighed1, weighed2, weighed3, weighed4), irrelevant),
           Queue()
         )
       
-      val iterations = 1000
+        println(gen1)
+      val iterations = 10
         
       //TODO something clever with mock random or distriubtion builder?
-      def buildSamples(acc: Seq[Tagged[Scored[Int]]], count:Int = 0, reps: Int = 1000): Seq[Tagged[Scored[Int]]] = {
+      def buildSamples(acc: Seq[Tagged[Scored[Int]]], count:Int = 0, reps: Int = iterations): Seq[Tagged[Scored[Int]]] = {
         if(count >= reps) acc
-        else buildSamples(acc ++ instance.apply(gen1, config).get.seq, count+1)
+        else buildSamples(acc ++ instance.apply(gen1, config)(Random).get.seq, count+1)
       }
       
-      val accum = buildSamples(Seq.empty[Tagged[Scored[Int]]])
-      
-      val grouped = accum.groupBy(identity).map{case(a, b) => a -> b.size}
+      val accum = buildSamples(Seq.empty)
+      val grouped = accum.groupBy(identity).mapValues(_.size)
       
       assertResult(payloadSize*iterations)(accum.size)
+      println(grouped)
       
-      grouped.getOrElse(scored1, 0) should be(500 +- 50)
-      grouped.getOrElse(scored2, 0) should be(500 +- 50)
-      grouped.getOrElse(scored3, 0) should be(500 +- 50)
-      grouped.getOrElse(scored4, 0) should be(500 +- 50)
+      val expected = payloadSize * iterations / 4
+      val tol = payloadSize * iterations / 10
+      grouped.getOrElse(tagged1, 0) should be(expected +- tol)
+      grouped.getOrElse(tagged2, 0) should be(expected +- tol)
+      grouped.getOrElse(tagged3, 0) should be(expected +- tol)
+      grouped.getOrElse(tagged4, 0) should be(expected +- tol)
     }
   }
 }

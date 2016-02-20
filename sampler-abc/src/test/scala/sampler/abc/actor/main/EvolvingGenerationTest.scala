@@ -21,8 +21,8 @@ class EvolvingGenerationTest extends FreeSpec with Matchers with MockitoSugar {
 			val expected = EvolvingGeneration(
 					Double.MaxValue,
 					previousGen,
-					ScoredParticles(Seq.empty[Tagged[Scored[T]]]),
-					WeighedParticles(Seq.empty[Tagged[Weighted[T]]]),
+					ScoredParticles.empty,
+					WeighedParticles.empty,
 					Queue.empty[Long]
 			)
 			assert(result === expected)
@@ -31,7 +31,7 @@ class EvolvingGenerationTest extends FreeSpec with Matchers with MockitoSugar {
 		"Emptying the weighing buffer" in {
 	    val scored1 = Tagged(Scored(1, Seq(0.5)), 111111)
 	    val scored2 = Tagged(Scored(2, Seq(0.5)), 111112)
-	    val weighed1 = Tagged(WeighedParticles(Seq(null, null)))
+	    val weighed1 = Tagged(WeighedParticles.empty)
 	  
 	    val prevGen = mock[Generation[T]]
 	    val idsObserved = mock[Queue[Long]]

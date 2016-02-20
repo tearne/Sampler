@@ -32,6 +32,8 @@ class Weigher[P](calc: ParticleWeightCalculator[P]){
 			wt <- calc.particleWeight(p.value, job.tolerance, job.prevGen) if(wt) > 0
 		} yield Tagged(Weighted(p.value, wt), p.id)
 		
-		WeighedParticles(result)
+		val numRejected = job.scored.size - result.size
+		
+		WeighedParticles(result, numRejected)
 	}
 }
