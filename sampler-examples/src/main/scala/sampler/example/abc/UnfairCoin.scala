@@ -38,19 +38,16 @@ import sampler.io.Tokenable
 import play.api.libs.json.{JsNull,Json,JsString,JsValue}
 import sampler.io.Rounding
 import org.apache.commons.io.FileUtils
-import play.api.libs.json.Writes
 import sampler.io.Tokens
 import java.math.MathContext
+import sampler.abc.StandardReport
 
 object UnfairCoin extends App with ToNamedSeq{
 	val wd = Paths.get("results", "UnfairCoin")
 	Files.createDirectories(wd)
 	
 	val abcParameters = ABCConfig.fromTypesafeConfig(ConfigFactory.load(), "unfair-coin-example")
-	val abcReporting = { pop: Population[CoinParams] =>
-		val json = Json.prettyPrint(pop.toJSON() )
-		FileUtils.write(wd.resolve(s"Gen${pop.iteration}.json").toFile, json)
-	}
+	val abcReporting = StandardReport[CoinParams](wd)
 
 	ABC(CoinModel, abcParameters, abcReporting)
 	
@@ -59,25 +56,41 @@ lapply(c("ggplot2", "reshape", "jsonlite", "plyr"), require, character.only=T)
 
 load = function(file) {
 	raw = fromJSON(file)
-	data.frame(raw$particles, Generation=factor(raw$iteration))
+	data.frame(
+	  raw$particles, 
+	  Generation=factor(raw$generation), 
+	  ToleranceFactor = factor(raw$tolerance), 
+	  AcceptanceRatio = raw$`acceptance-ratio`)
 }
 merged = ldply(lapply(Sys.glob("Gen*.json"), load))
 
+meta = unique(merged[,c("Generation", "ToleranceFactor", "AcceptanceRatio")])
+meta$Tolerance = as.numeric(levels(meta$ToleranceFactor))
+meta = subset(meta, select = c(-ToleranceFactor))
+
+isFinite = function(x) { !is.infinite(x) }
+
 sampleFromGen = function(n){
 	gen = merged[merged$Generation == n,]
-	gen[sample(nrow(gen), replace = T, 10000, prob = gen$weight),]
+	gen[sample(nrow(gen), replace = T, 1000, prob = gen$weight),]
 }
 sampled = rbind(sampleFromGen(1), sampleFromGen(2), sampleFromGen(3))
 
 pdf("generations.pdf", width=4.13, height=2.91)
 
+ggplot(melt(meta), aes(x=Generation, y=value, fill=isFinite(value))) +
+	geom_bar(stat="identity") +
+  facet_grid(variable ~ ., scales="free")
+
 ggplot(merged, aes(x=pHeads, colour=Generation)) + 
 	geom_density() + 
+	scale_colour_hue(h=c(-270, 0)) +
 	scale_x_continuous(limits=c(0, 1)) +
 	ggtitle("Ignoring particle weights")
 
 ggplot(sampled, aes(x=pHeads, colour=Generation)) + 
 	geom_density(adjust = 1.3) + 
+	scale_colour_hue(h=c(-270, 0)) +
 	scale_x_continuous(limits=c(0, 1)) +
 	ggtitle("Sampling from weights")
 
