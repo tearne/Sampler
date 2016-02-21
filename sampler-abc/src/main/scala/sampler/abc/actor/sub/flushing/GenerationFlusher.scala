@@ -29,7 +29,8 @@ class GenerationFlusher(
 		val completedGen = Population(
 				weightsConsolidator.consolidateToWeightsTable(seqWeighed),
 				currentGeneration, 
-				currentTolerance
+				currentTolerance,
+				weighedParticles.acceptanceRatio
 		)
 			
 		EvolvingGeneration(

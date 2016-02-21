@@ -110,12 +110,12 @@ class WorkerActorTest
 //    | }
 //    """.stripMargin)
       
-    val instanceRef = TestFSMRef(new TestableWorkerActor(config))
-    val instanceObj = instanceRef.underlyingActor
-
-    val clientRef = TestProbe().ref
-    var gen1: Generation[TestParams] = Population(mock[Map[TestParams, Double]], 1, 99)
-    val prevPopulation: Generation[T] = Population(Map(1 -> 0.2, 2 -> 0.8), 0, 0)
+//    val instanceRef = TestFSMRef(new TestableWorkerActor(config))
+//    val instanceObj = instanceRef.underlyingActor
+//
+//    val clientRef = TestProbe().ref
+//    var gen1: Generation[TestParams] = Population(mock[Map[TestParams, Double]], 1, 99, 0.0)
+//    val prevPopulation: Generation[T] = Population(Map(1 -> 0.2, 2 -> 0.8), 0, 0, 0.0)
     
     //val executionContext = mock[MessageDispatcher]
     //val executionContext = context.system.dispatchers.lookup("sampler.work-dispatcher")
@@ -126,12 +126,14 @@ class WorkerActorTest
     //"start in Idle state with uninitialised data" in fail("TODO")
     "when Idle" - {
       "start generating job" in new Setup {
+        fail("TODO")
+        
        // val routerProbe = TestProbe()
 
-        instanceRef ! GenerateParticlesFrom[T](prevPopulation, abcConfig)
-
-        // Assertions
-        assertResult(Working)(instanceRef.stateName)
+//        instanceRef ! GenerateParticlesFrom[T](prevPopulation, abcConfig)
+//
+//        // Assertions
+//        assertResult(Working)(instanceRef.stateName)
 
       }
 //      "start weighing job" in new Setup {

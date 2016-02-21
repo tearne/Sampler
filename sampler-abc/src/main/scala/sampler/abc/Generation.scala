@@ -31,7 +31,8 @@ case class UseModelPrior[P](tolerance: Double = Double.MaxValue) extends Generat
 case class Population[P](
 	  particleWeights: Map[P, Double],
 	  iteration: Int, 
-		tolerance: Double
+		tolerance: Double,
+		acceptanceRatio: Double
 ) extends Generation[P]{
 	
 	/*

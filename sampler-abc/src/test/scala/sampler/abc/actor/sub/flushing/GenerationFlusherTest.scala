@@ -32,11 +32,13 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 				numParticlesRequired
 			)
 
+		val weighedParticles = mock[WeighedParticles[T]]
+		when(weighedParticles.acceptanceRatio).thenReturn(0.75)
 		val inProgress = EvolvingGeneration(
 			0.1,
-			Population(null, 10, 0.5),
+			Population(null, 10, 0.5, 0.75),
 			null,
-			mock[WeighedParticles[T]],
+			weighedParticles,
 			mock[Queue[Long]]
 		)
 		
@@ -65,6 +67,7 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 			assert(completedGen.iteration === 11)
 			assert(completedGen.particleWeights === weightsTable)
 			assert(completedGen.tolerance === 0.1)
+			assert(completedGen.acceptanceRatio === 0.75)
 		}
 		
 		"build new evolving generation" in new Setup {
@@ -73,6 +76,7 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 			assert(result.currentTolerance === 0.001)
 			assert(result.dueWeighing.size === 0)
 			assert(result.weighed.size === 0)
+			assert(result.weighed.numRejected === 0)
 			assert(result.idsObserved === trimmedParticleIds)
 		}
 		
@@ -82,5 +86,7 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 				val result = getInstance(elevenParticles).apply(inProgress)
 			}
 		}
+		
+		"carry over any overflow particles as scored for the next generation" in fail("TODO")
 	}
 }

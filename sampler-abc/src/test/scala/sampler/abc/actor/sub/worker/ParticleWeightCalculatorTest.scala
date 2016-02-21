@@ -28,7 +28,7 @@ class ParticleWeightCalculatorTest extends FreeSpec with MockitoSugar {
   "Weigher should /" - {
     val tolerance = 0.495
     val scoredParticle = Scored(1, Seq(0.4, 0.49, 0.5, 0.51)) // 2/4 under threshold
-    val prevPopulation: Generation[T] = Population(Map(1 -> 0.2, 2 -> 0.8), 0, 0)
+    val prevPopulation: Generation[T] = Population(Map(1 -> 0.2, 2 -> 0.8), 0, 0, 0.0)
 
     "when using a Population as the previous generation /" - {
       "return result, filtering out reps which don't meet tolerance" in new Setup {

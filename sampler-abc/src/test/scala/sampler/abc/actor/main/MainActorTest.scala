@@ -21,7 +21,6 @@ import org.scalatest.BeforeAndAfter
 import akka.actor.ActorRef
 import sampler.abc.actor.sub.FlushComplete
 import sampler.abc.Population
-//import sampler.abc.actor.main.component.WorkDispatcherComponent
 import sampler.abc.actor.sub.GenerateParticlesFrom
 import sampler.abc.actor.sub.Abort
 import sampler.abc.actor.sub.WeighJob
@@ -29,6 +28,8 @@ import sampler.abc.actor.main.component.ChildActorsComponent
 import sampler.abc.actor.main.component.HelperComponent
 import sampler.abc.actor.sub.flushing.GenerationFlusher
 import sampler.abc.actor.main.component.Helper
+import sampler.abc.actor.sub.StatusReport
+import sampler.abc.actor.sub.FinishGen
 
 class MainActorTest
 		extends TestKit(ActorSystem("ABC"))
@@ -80,7 +81,7 @@ class MainActorTest
 		val clientRef = TestProbe().ref
 
 		//TODO can just do mock[Population] now?
-		var gen1: Population[TestParams] = Population( mock[Map[TestParams, Double]], 1, 99)
+		var gen1: Population[TestParams] = mock[Population[TestParams]]//Population( mock[Map[TestParams, Double]], 1, 99)
 		var eGen1: EvolvingGeneration[TestParams] = EvolvingGeneration(
 			99.9,
 			gen1,
@@ -182,6 +183,8 @@ class MainActorTest
 					eGen1.dueWeighing,
 					eGen1.previousGen,
 					eGen1.currentTolerance))
+					
+			fail("TODO expectMsg sent to reporting actor ")
 
 			assertResult(Gathering)(instanceRef.stateName)
 			val expectedState = StateData(
@@ -215,6 +218,8 @@ class MainActorTest
 			instanceRef ! payload
 
 			// Assert
+			fail("TODO expectMsg sent to reporting actor ")
+			
 			assertResult(Gathering)(instanceRef.stateName)
 			val expectedState = StateData(eGen1, clientRef, None)
 			assertResult(expectedState)(instanceRef.stateData match {
@@ -228,7 +233,7 @@ class MainActorTest
 
 			val eGen0 = mock[EvolvingGeneration[TestParams]]
 			val eGen2 = mock[EvolvingGeneration[TestParams]]
-
+			
 			"if generation in progress is incomplete / " - {
 				"if weighing jobs pending then send to worker" in new Setup {
 					val workerProbe = TestProbe()
@@ -252,6 +257,8 @@ class MainActorTest
 							eGen1.dueWeighing,
 							eGen1.previousGen,
 							eGen1.currentTolerance))
+							
+					fail("TODO expectMsg sent to reporting actor ")
 
 					val expectedState = StateData(eGen2, clientRef, None)
 					assertResult(expectedState)(instanceRef.stateData match {
@@ -280,6 +287,8 @@ class MainActorTest
 					workerProbe.expectMsg(GenerateParticlesFrom(
 						eGen1.previousGen,
 						config))
+						
+				  fail("TODO expectMsg sent to reporting actor ")
 
 					assertResult(Gathering)(instanceRef.stateName)
 					val expectedState = StateData(eGen1, clientRef, None)
@@ -316,6 +325,8 @@ class MainActorTest
 				// Expectations
 				routerProbe.expectMsg(Broadcast(Abort))
 				flusherProbe.expectMsg(eGen2)
+				
+				fail("TODO expectMsg sent to reporting actor ")
 
 				assertResult(Flushing)(instanceRef.stateName)
 				val resultState = instanceRef.stateData match {
@@ -451,7 +462,13 @@ class MainActorTest
 
 				// Assertion
 				routerProbe.expectMsg(Abort)
-				reporterProbe.expectMsg(flushedGen)
+				reporterProbe.expectMsg(
+				  StatusReport(
+				    FinishGen(threeGenerations, flushedGen.tolerance),
+				    eGen0,
+				    config
+				  )
+				)
 
 				assertResult(WaitingForShutdown)(instanceRef.stateName)
 				assertResult(eGen0)(instanceRef.stateData match {

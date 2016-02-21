@@ -14,8 +14,10 @@ import scala.util.Try
 import sampler.abc.actor.main.ScoredParticles
 import sampler.abc.Prior
 import org.mockito.Mockito.when
+import org.mockito.Matchers._
 import sampler.abc.Scored
 import scala.util.Success
+import scala.util.Failure
 
 
 class ModelRunnerTest extends FreeSpec with MockitoSugar {
@@ -40,7 +42,7 @@ class ModelRunnerTest extends FreeSpec with MockitoSugar {
 	}
 
   trait Setup {
-    val prevPopulation: Generation[T] = Population(Map(1 -> 0.2, 2 -> 0.8), 0, 0)
+    val prevPopulation: Generation[T] = Population(Map(1 -> 0.2, 2 -> 0.8), 0, 0, 0.0)
     val config1 = ABCConfig(
       JobParameters(hundredParticles, 0, threeGenerations),
       AlgorithmParameters(maxParticleRetries,particleChunkSize),
@@ -48,18 +50,11 @@ class ModelRunnerTest extends FreeSpec with MockitoSugar {
       
     val instance1 = new TestableModelRunner(config1)
     val job1 = GenerateParticlesFrom[T](prevPopulation, config1)
-    
-    // Second config,instance and job is where maxParticleRetries is 0 to trigger exception
-    val config2 = ABCConfig(
-      JobParameters(hundredParticles, 0, threeGenerations),
-      AlgorithmParameters(0,particleChunkSize),
-      ClusterParameters(terminateAtTargetGen, 0, 0l, 0, noMixing, 0l, 0l))
-    val instance2 = new TestableModelRunner(config2)
-    val job2 = GenerateParticlesFrom[T](prevPopulation, config2)
   }
      
   "ModelRunner should / " - {
 		"Return scored parameters when given proper proposal distribution" in new Setup {
+		  fail("TODO")
 		  val expected = Success(Scored(1, Seq(0.4, 0.49, 0.5, 0.51))) // 2/4 under threshold
 		  assertResult(expected) {
 		    val result: Try[ScoredParticles[T]] = instance1.modelRunner.run(job1)
@@ -67,16 +62,31 @@ class ModelRunnerTest extends FreeSpec with MockitoSugar {
       }
 	 	}
 		"Return no scored parameters if prior density of param is 0" in new Setup {
-		val prior = mock[Prior[T]]
-		//when(prior.density(T)).thenReturn(0)
-		  assertResult() {
-		    val result: Try[ScoredParticles[T]] = instance1.modelRunner.run(job1)
+  		val zeroPrior = mock[Prior[T]]
+  		when(zeroPrior.density(anyObject[T])).thenReturn(0, 0, 0.5)  //Two cases of zero prior before success
+  		when(instance1.model.prior).thenReturn(zeroPrior)
+  	
+  		fail("TODO")
+  	
+		  assertResult(0) {
+		    instance1.modelRunner
+		      .run(job1)
+		      .get
+		      .size
       }
 	 	}
 		"Throw exception when max number of retries reached" in new Setup {
-      intercept[MaxRetryException]{
-        instance2.modelRunner.run(job2)
-      }
+      val zeroParticleRetries = 0
+		  val config2 = ABCConfig(
+          JobParameters(hundredParticles, 0, threeGenerations),
+          AlgorithmParameters(zeroParticleRetries,particleChunkSize),
+          ClusterParameters(terminateAtTargetGen, 0, 0l, 0, noMixing, 0l, 0l))
+      val instance2 = new TestableModelRunner(config2)
+      val job2 = GenerateParticlesFrom[T](prevPopulation, config2)
+		  
+      val result = instance2.modelRunner.run(job2)
+      assert(result.isFailure)
+      intercept[MaxRetryException](result.get)
 	 	}
 	}
   

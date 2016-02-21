@@ -39,7 +39,7 @@ class WeigherTest extends FreeSpec with MockitoSugar {
 
   "Weigher should" - {
     val tolerance = 10.05
-    val prevPopulation: Generation[T] = Population(Map(1 -> 0.2, 2 -> 0.8), 0, 0)
+    val prevPopulation: Generation[T] = Population(Map(1 -> 0.2, 2 -> 0.8), 0, 0, 0.0)
     val irrelevant = 0
 
     "Use PartielWeightCalc to weigh each scored particle" in new Setup {
