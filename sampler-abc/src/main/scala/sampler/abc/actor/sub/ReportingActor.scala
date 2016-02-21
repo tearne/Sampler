@@ -11,32 +11,32 @@ import sampler.abc.Population
 import java.math.MathContext
 
 sealed trait StatusDelta{
-	def getTxt(): String
+	def getMsg(): String
 }
 case class NewScored(num: Int, sender: ActorRef, fromRemoteActor: Boolean) extends StatusDelta{
-	def getTxt = {
+	def getMsg = {
 		s"+$num scored from${if(fromRemoteActor) " remote " else " "}$sender"
 	}
 }
 case class NewWeighed(num: Int) extends StatusDelta {
-	def getTxt = s"+$num weighed"
+	def getMsg = s"+$num weighed"
 }
 case class FinishGen(num: Int, tol: Double) extends StatusDelta {
-	def getTxt = s"Done generation $num, acceptance = ,new tolerance = $tol"
+	def getMsg = s"Done generation $num, new tolerance = $tol"
 }
 
 case class StatusReport[P](delta: StatusDelta, eGen: EvolvingGeneration[P], config: ABCConfig){
 	def getTxt = {
 		val due = "|SQ|="+eGen.dueWeighing.size
-		val acc = "WAc="+StatusReport.twoSigFig(eGen.weighed.acceptanceRatio)
+		val acc = s"Acc=${StatusReport.percentage(eGen.weighed.acceptanceRatio)}%"
 		val par = "|W|="+eGen.weighed.size+"/"+config.job.numParticles
 		val gen = s"G:${eGen.previousGen.iteration}/${config.job.numGenerations}"
-		s"($gen, $acc, $par, $due) ${delta.getTxt}"
+		s"($gen, $acc, $par, $due) ${delta.getMsg}"
 	}
 }
 object StatusReport{
   val mc = new MathContext(2)
-  def twoSigFig(d: Double) = BigDecimal(d, mc).doubleValue
+  def percentage(d: Double) = BigDecimal(d*100, mc).intValue
 }
 
 class ReportingActor[P](handler: Option[Population[P] => Unit]) extends Actor with ActorLogging {
