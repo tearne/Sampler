@@ -27,7 +27,7 @@ case class WeighedParticles[P](seq: Seq[Tagged[Weighted[P]]], numRejected: Int) 
   def add(toAdd: WeighedParticles[P]) = WeighedParticles(seq ++ toAdd.seq, numRejected + toAdd.numRejected)
 //  def add(toAdd: Seq[Tagged[Weighted[P]]], numRejected: Int) = WeighedParticles(seq ++ toAdd, numRejected)
   lazy val size = seq.length
-  def acceptanceRatio = size.toDouble / (size + numRejected)
+  def acceptanceRatio = if(size == 0) 0 else size.toDouble / (size + numRejected)
 }
 object WeighedParticles{
 	def empty[P] = WeighedParticles(Seq.empty[Tagged[Weighted[P]]], 0)

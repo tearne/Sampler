@@ -7,7 +7,8 @@ import sampler.abc.actor.main.ReportCompleted
 import sampler.abc.actor.main.EvolvingGeneration
 import sampler.abc.config.ABCConfig
 import akka.actor.ActorRef
-import sampler.abc.Generation
+import sampler.abc.Population
+import java.math.MathContext
 
 sealed trait StatusDelta{
 	def getTxt(): String
@@ -21,21 +22,26 @@ case class NewWeighed(num: Int) extends StatusDelta {
 	def getTxt = s"+$num weighed"
 }
 case class FinishGen(num: Int, tol: Double) extends StatusDelta {
-	def getTxt = s"Done generation $num, new tolerance = $tol"
+	def getTxt = s"Done generation $num, acceptance = ,new tolerance = $tol"
 }
 
 case class StatusReport[P](delta: StatusDelta, eGen: EvolvingGeneration[P], config: ABCConfig){
 	def getTxt = {
 		val due = "|SQ|="+eGen.dueWeighing.size
+		val acc = "WAc="+StatusReport.twoSigFig(eGen.weighed.acceptanceRatio)
 		val par = "|W|="+eGen.weighed.size+"/"+config.job.numParticles
 		val gen = s"G:${eGen.previousGen.iteration}/${config.job.numGenerations}"
-		s"($gen, $par, $due) ${delta.getTxt}"
+		s"($gen, $acc, $par, $due) ${delta.getTxt}"
 	}
 }
+object StatusReport{
+  val mc = new MathContext(2)
+  def twoSigFig(d: Double) = BigDecimal(d, mc).doubleValue
+}
 
-class ReportingActor[P](handler: Option[Generation[P] => Unit]) extends Actor with ActorLogging {
+class ReportingActor[P](handler: Option[Population[P] => Unit]) extends Actor with ActorLogging {
 	def receive = {
-		case gen: Generation[P] =>
+		case gen: Population[P] =>
 			handler.foreach(_.apply(gen))
 			sender ! ReportCompleted
 		case status: StatusReport[P] => 

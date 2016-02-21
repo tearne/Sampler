@@ -96,5 +96,10 @@ class MessagesTest extends FreeSpec with Matchers {
 			assert(instance1.acceptanceRatio === 2.0 / (2 + numRejected1))
 			assert(instance2.acceptanceRatio === 4.0 / (4 + numRejected2))
 		}
+		
+		"not give acceptance ratio of NaN" in {
+		  assertResult(0)(WeighedParticles(Seq.empty, 0).acceptanceRatio)
+		  assertResult(1)(WeighedParticles(Seq(p1,p2), 0).acceptanceRatio)
+		}
 	}
 }

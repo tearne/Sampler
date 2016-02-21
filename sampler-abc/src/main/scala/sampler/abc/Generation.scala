@@ -11,6 +11,9 @@ import play.api.libs.json.JsNumber
 import java.math.MathContext
 import sampler.io.Tokenable
 import sampler.io.Tokens
+import java.util.Calendar
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 sealed trait Generation[P]{
 	val iteration: Int
@@ -58,8 +61,12 @@ case class Population[P](
 		val particlesValuesByParam = names.map{name => name -> rows.map(_.map(name))}.toMap
 		
 		Json.obj(
-			"comment" -> "Weights are not normalised",
-			"iteration" -> iteration,
+		  "meta" -> Map(
+				  "comment" -> "Weights are not normalised",
+				  "created" -> LocalDateTime.now.toString        
+		  ),
+			"generation" -> iteration,
+			"acceptance-ratio" -> acceptanceRatio,
 			"tolerance" -> tolerance,
 			"particles" -> particlesValuesByParam
 		)
