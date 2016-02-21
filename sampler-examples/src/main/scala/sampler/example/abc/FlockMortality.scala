@@ -53,12 +53,6 @@ object FlockMortality extends App {
 	Files.createDirectories(wd)
 	implicit val modelRandom = FlockMortalityModel.modelRandom 
 	
-//	val numParticles = 100
-//	val numReplicates = 1
-//	val numGenerations = 16
-//	val	particleRetries = 1000
-//	val	particleChunkSize = 50
-	
 	val abcParams = ABCConfig.fromTypesafeConfig(
 		ConfigFactory.load,
 		"flock-mortality-example"
