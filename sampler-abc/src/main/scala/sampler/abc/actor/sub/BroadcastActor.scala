@@ -98,76 +98,74 @@ class BroadcastActor(abcParams: ABCConfig) extends Actor with ActorLogging{
 	}
 	
 	def nodeDown(member: Member){
-		log.warning(s"Node DOWN: $member")
+		log.warning(s"Node REMOVED: $member")
 		val down = nodes.filter(_.path.address == member.address)
 		nodes --= down
-	  	reportingActor ! NumWorkers(nodes.size)
+	  reportingActor ! NumWorkers(nodes.size)
 	}
 	
 	def receive = {
-		case state: CurrentClusterState => 
-  		  	state.members.filter(_.status == MemberStatus.Up).foreach(m => 
-  		  		attemptWorkerHandshake(RootActorPath(m.address))
-  		  	)
-		case MemberUp(member) => 					nodeUp(member)
-		case ReachableMember(member) => 	nodeUp(member)
-		case MemberRemoved(member, _) => 	nodeDown(member)
-		case UnreachableMember(member) =>	nodeDown(member)
-  		case ActorIdentity(None, Some(actorRef)) =>
-  			// A handshake response
-  			val remoteNode = actorRef
-  			nodes += remoteNode
-  			log.debug(s"Actor handshake identity from ${actorRef.path.address}")
-  			reportingActor ! NumWorkers(nodes.size)
-  			log.info("Handshake complete: {}",remoteNode)
-  		case ActorIdentity(_: Long, Some(who)) =>
-  			// A response to a pre-message test
-  			if(preMixingTests.contains(who)){
-  				val test = preMixingTests(who)
-  				val responseTime = test.durationSince
-  				val expired = responseTime > testTimeout
-  				if(!expired){
-  					log.debug("Pre-mix passed after {}, sent data to {}", responseTime, who)
-	  				who ! test.msg
-  				}
-  				else log.warning("Pre-mix FAILED: {}>{} ms for {}", responseTime, testTimeout, who)
-  			}
-  			preMixingTests = preMixingTests - who
-  		case CheckPreMixingTests =>
-  			//Drop pending messages where the responsiveness test failed
-  			preMixingTests = preMixingTests.filter{case (recipient, test) =>
-  				val responseTime = test.durationSince
-  				val expired = responseTime > testTimeout
-  				if(expired) log.warning("Pre-mix FAILED: {}>{} ms for {}", responseTime, testTimeout, recipient)
-  				!expired
-  			}
-  		case msg: MixPayload[_] =>
-  			if(!nodes.isEmpty){
-	  			val recipient = DistributionBuilder.uniform(nodes.toIndexedSeq).sample 
-	  			if(!preMixingTests.contains(recipient)){
-		  			val test = PreMixingTest(msg)
-		  			preMixingTests = preMixingTests + (recipient -> test)
-		  			recipient ! Identify(test.when)
-	  			}
-  			}
+    case state: CurrentClusterState => 
+      state.members.filter(_.status == MemberStatus.Up).foreach(m => 
+        attemptWorkerHandshake(RootActorPath(m.address))
+      )
+    case MemberUp(member) => 					nodeUp(member)
+    case ReachableMember(member) => 	nodeUp(member)
+    case MemberRemoved(member, _) => 	nodeDown(member)
+    case UnreachableMember(member) =>	log.warning("Unreachable member: "+member)
+    case ActorIdentity(None, Some(actorRef)) => // A handshake response
+      val remoteNode = actorRef
+      nodes += remoteNode
+      log.debug(s"Actor handshake identity from ${actorRef.path.address}")
+      reportingActor ! NumWorkers(nodes.size)
+      log.info("Handshake complete: {}",remoteNode)
+    case ActorIdentity(_: Long, Some(who)) => // A response to a pre-message test
+      if(preMixingTests.contains(who)){
+      	val test = preMixingTests(who)
+      	val responseTime = test.durationSince
+      	val expired = responseTime > testTimeout
+      	if(!expired){
+      		log.debug("Pre-mix passed after {}, sent data to {}", responseTime, who)
+      		who ! test.msg
+      	}
+      	else log.warning("Pre-mix FAILED: {}>{} ms for {}", responseTime, testTimeout, who)
+      }
+      preMixingTests = preMixingTests - who
+    case CheckPreMixingTests =>
+      //Drop pending messages where the responsiveness test failed
+      preMixingTests = preMixingTests.filter{case (recipient, test) =>
+      	val responseTime = test.durationSince
+      	val expired = responseTime > testTimeout
+      	if(expired) log.warning("Pre-mix FAILED: {}>{} ms for {}", responseTime, testTimeout, recipient)
+      	!expired
+      }
+    case msg: MixPayload[_] =>
+      if(!nodes.isEmpty){
+        val recipient = DistributionBuilder.uniform(nodes.toIndexedSeq).sample 
+        if(!preMixingTests.contains(recipient)){
+          val test = PreMixingTest(msg)
+          preMixingTests = preMixingTests + (recipient -> test)
+          recipient ! Identify(test.when)
+      	}
+      }
 	}
 	
-	case class NumWorkers(n: Int)
-	val reportingActor = context.actorOf(Props(new Actor with ActorLogging{
+  case class NumWorkers(n: Int)
+  val reportingActor = context.actorOf(Props(new Actor with ActorLogging{
 	  case object Tick
 		import context.dispatcher
 		import scala.concurrent.duration._
 		
 		var numWorkers: Option[Int] = None
 		context.system.scheduler.schedule(
-		    10.seconds, 
-		    Duration(abcParams.cluster.sizeReportingMS, MILLISECONDS), 
-		    self, 
-		    Tick
+      10.seconds, 
+      Duration(abcParams.cluster.sizeReportingMS, MILLISECONDS), 
+      self, 
+      Tick
 		)
 		def receive = {
 			case Tick => 
-				numWorkers.foreach(n => log.info("There are {} remote nodes", n))
+				numWorkers.foreach(n => log.info("There are {} nodes in the cluster", (n+1)))
 			case NumWorkers(n) => 
 			  numWorkers = Some(n)
 			  self ! Tick
