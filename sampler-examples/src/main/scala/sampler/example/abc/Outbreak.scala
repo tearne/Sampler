@@ -11,7 +11,7 @@ import com.typesafe.config.ConfigFactory
 import sampler.abc.ABC
 import sampler.abc.Model
 import sampler.abc.Prior
-import sampler.abc.config.ABCConfig
+import sampler.abc.ABCConfig
 import sampler.data.Distribution
 import sampler.data.ToEmpirical
 import sampler.data.ToSamplable
@@ -91,9 +91,8 @@ object FittingApplication extends App {
 	import Data._
 	val model = new ABCModel(loadProportionOfTrueOutbreakData(proportionOfCasesObserved))
 
-	val params = ABCConfig.fromTypesafeConfig(
-		ConfigFactory.load,
-		"network-outbreak-example"
+	val params = ABCConfig(
+		ConfigFactory.load.getConfig("network-outbreak-example")
 	)
 	
 	val reporting = { pop: Population[Parameters] =>

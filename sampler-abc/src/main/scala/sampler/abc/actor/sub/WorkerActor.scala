@@ -17,35 +17,30 @@
 
 package sampler.abc.actor.sub
 
-import scala.collection.parallel.CompositeThrowable
+import scala.concurrent.Future
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
-import akka.actor.actorRef2Scala
-import sampler.abc.Model
-import sampler.math.Random
-import scala.concurrent.Future
 import akka.actor.FSM
-import sampler.abc.actor.sub.worker.ModelRunnerComponentImpl
-import sampler.abc.actor.sub.worker.WeigherComponentImpl
+import akka.actor.actorRef2Scala
+import akka.pattern.pipe
+import sampler.abc.ABCConfig
+import sampler.abc.Generation
+import sampler.abc.Model
+import sampler.abc.actor.main.EvolvingGeneration
 import sampler.abc.actor.main.Failed
 import sampler.abc.actor.main.ScoredParticles
 import sampler.abc.actor.main.WeighedParticles
-import sampler.abc.Generation
-import sampler.abc.config.ABCConfig
-import sampler.abc.actor.main.EvolvingGeneration
-import akka.pattern.pipe
-import sampler.abc.actor.sub.worker.DetectedAbortionException
-import sampler.abc.actor.sub.worker.Weigher
-import sampler.abc.actor.sub.worker.AborterComponentImpl
-import sampler.abc.actor.sub.worker.Aborter
-import sampler.abc.actor.sub.worker.WeigherComponent
-import sampler.abc.actor.sub.worker.ModelRunnerComponent
-import sampler.abc.actor.sub.worker.ModelRunnerComponent
 import sampler.abc.actor.sub.worker.AborterComponent
+import sampler.abc.actor.sub.worker.AborterComponentImpl
+import sampler.abc.actor.sub.worker.ModelRunnerComponent
+import sampler.abc.actor.sub.worker.ModelRunnerComponentImpl
+import sampler.abc.actor.sub.worker.WeigherComponent
+import sampler.abc.actor.sub.worker.WeigherComponentImpl
+import sampler.math.Random
 
 sealed trait Job[P]
 case class GenerateParticlesFrom[P](prevGen: Generation[P], config: ABCConfig) extends Job[P]
@@ -84,7 +79,6 @@ trait WorkerActor[P]
 		with FSM[State, Data]
 		with ActorLogging {
 	this: WeigherComponent[P] 
-		with ModelRunnerComponent[P] 
 		with ModelRunnerComponent[P] 
 		with AborterComponent =>
 	

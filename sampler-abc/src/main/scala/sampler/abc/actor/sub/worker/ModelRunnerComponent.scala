@@ -50,7 +50,9 @@ trait ModelRunnerComponent[P] {
 		import model._
 
 		def run(job: GenerateParticlesFrom[P]): Try[ScoredParticles[P]] = Try {
-			val maxParticleRetries = job.config.algorithm.maxParticleRetries
+			val maxParticleRetries = job.config.maxParticleRetries
+			val numReplicates = job.config.numReplicates
+			val particleChunkSize = job.config.particleChunkSize
 			val proposalDist: Distribution[P] = job.prevGen.proposalDistribution(model, random)
 
 			@tailrec
@@ -60,8 +62,7 @@ trait ModelRunnerComponent[P] {
 				else {
 					def getScores(params: P): IndexedSeq[Double] = {
 						val modelWithMetric = model.distanceToObservations(params)
-						val replicates = job.config.job.numReplicates
-						(1 to replicates).map(_ => modelWithMetric.sample)
+						(1 to numReplicates).map(_ => modelWithMetric.sample)
 					}
 
 					val res: Option[Scored[P]] = for {
@@ -76,7 +77,7 @@ trait ModelRunnerComponent[P] {
 				}
 			}
 
-			val seq = (1 to job.config.algorithm.particleChunkSize).map(i => Tagged(getScoredParameter()))
+			val seq = (1 to particleChunkSize).map(i => Tagged(getScoredParameter()))
 			ScoredParticles(seq)
 		}
 	}

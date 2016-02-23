@@ -36,7 +36,7 @@ import sampler.Implicits.RichIndexedSeq
 import sampler.abc.ABC
 import sampler.abc.Model
 import sampler.abc.Prior
-import sampler.abc.config.ABCConfig
+import sampler.abc.ABCConfig
 import sampler.data.Distribution
 import sampler.io.CSV
 import sampler.math.Random
@@ -53,9 +53,8 @@ object FlockMortality extends App {
 	Files.createDirectories(wd)
 	implicit val modelRandom = FlockMortalityModel.modelRandom 
 	
-	val abcParams = ABCConfig.fromTypesafeConfig(
-		ConfigFactory.load,
-		"flock-mortality-example"
+	val abcParams = ABCConfig(
+		ConfigFactory.load.getConfig("flock-mortality-example")
 	)
 	
 	import sampler.Implicits._

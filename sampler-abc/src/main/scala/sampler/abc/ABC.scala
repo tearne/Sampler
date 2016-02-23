@@ -17,7 +17,7 @@
 
 package sampler.abc
 
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeUnit.MILLISECONDS
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import com.typesafe.config.ConfigFactory
@@ -27,7 +27,6 @@ import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout
 import sampler.abc.actor.main.MainActorImpl
-import sampler.abc.config.ABCConfig
 import sampler.cluster.PortFallbackSystemFactory
 import sampler.io.Logging
 import sampler.abc.actor.main.Start
@@ -36,7 +35,7 @@ trait ABCActors {
 	val system: ActorSystem
 	def entryPointActor[P](
 		model: Model[P],
-		abcParams: ABCConfig,
+		config: ABCConfig,
 		generationHandler: Option[Population[P] => Unit]): ActorRef
 }
 
@@ -71,27 +70,16 @@ object ABC extends ABCActorsImpl with Logging {
 			config: ABCConfig,
 			genHandler: Option[Population[P] => Unit] = None,
 			initialPopulation: Generation[P] = UseModelPrior()): Population[P] = {
-		info(s"Num generations: ${config.job.numGenerations}")
-		info(s"Num particles: ${config.job.numParticles}")
-		info(s"Num replicates: ${config.job.numReplicates}")
-		info(s"Max particle retrys: ${config.algorithm.maxParticleRetries}")
-		info(s"Particle chunk size: ${config.algorithm.particleChunkSize}")
-		info(s"Mix rate ${config.cluster.mixRateMS} MS")
-		info(s"Mix payload: ${config.cluster.mixPayloadSize}")
-		info(s"Mix response threshold ${config.cluster.mixResponseTimeoutMS} MS")
-		info(s"Futures timeout ${config.cluster.futuresTimeoutMS} MS")
-		info(s"Particle memory generations: ${config.cluster.particleMemoryGenerations}")
-		info(s"Terminate at target generations: ${config.cluster.terminateAtTargetGenerations}")
-		info(s"Number of workers (router configured): ${ConfigFactory.load().getInt("akka.actor.deployment./root/work-router.nr-of-instances")}")
+		info("Running with config: "+config.render)
 
 		val actor = entryPointActor(model, config, genHandler)
 
-		implicit val timeout = Timeout(config.cluster.futuresTimeoutMS, TimeUnit.MILLISECONDS)
+		implicit val timeout = Timeout(config.futuresTimeoutMS, MILLISECONDS)
 		val future = (actor ? Start(UseModelPrior())).mapTo[Population[P]]
 		val result = Await.result(future, Duration.Inf)
 		//TODO unlimited timeout just for the future above?
 
-		if (config.cluster.terminateAtTargetGenerations) {
+		if (config.terminateAtTargetGen) {
 			info("Terminating actor system")
 			system.shutdown
 		}

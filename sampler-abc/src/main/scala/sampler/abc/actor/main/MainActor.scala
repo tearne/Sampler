@@ -30,14 +30,11 @@ import sampler.abc.actor.main.component.ChildActorsComponent
 import sampler.abc.actor.main.component.ChildActorsComponentImpl
 import sampler.abc.actor.main.component.HelperComponent
 import sampler.abc.actor.main.component.HelperCoponentImpl
-//import sampler.abc.actor.main.component.WorkDispatcherComponent
-//import sampler.abc.actor.main.component.WorkDispatcherComponentImpl
 import sampler.abc.actor.main.component.helper.Getters
 import sampler.abc.actor.sub.Abort
 import sampler.abc.actor.sub.FlushComplete
 import sampler.abc.actor.sub.GenerateParticlesFrom
 import sampler.abc.actor.sub.WeighJob
-import sampler.abc.config.ABCConfig
 import sampler.data.DistributionBuilder
 import sampler.math.Random
 import sampler.math.Statistics
@@ -47,6 +44,7 @@ import sampler.abc.actor.sub.NewScored
 import sampler.abc.Population
 import sampler.abc.actor.sub.FinishGen
 import sampler.abc.actor.sub.NewWeighed
+import sampler.abc.ABCConfig
 
 /*
  * States/Data
@@ -125,7 +123,7 @@ trait MainActor[P]
 				config))
 
 			// TODO this block currently untested
-			val mixMS = getters.getMixRateMS(config)
+			val mixMS = config.mixRateMS
 			val cancellableMixing =
 				if (mixMS > 0)
 					Some(
@@ -147,7 +145,6 @@ trait MainActor[P]
 		case Event(scored: ScoredParticles[P], stateData: StateData[P]) =>
 			val sndr = sender
 			val updatedGeneration = helper.filterAndQueueUnweighedParticles(scored, stateData.generation)
-//			log.info("New filtered and queued ({}) => |Q| = {},  from {}", scored.seq.size, updatedGeneration.dueWeighing.size, sender)
 			childActors.reporter ! StatusReport( //TODO untested
 					NewScored(scored.seq.size, sender, false),
 					updatedGeneration,
@@ -191,7 +188,7 @@ trait MainActor[P]
 					updatedGeneration,
 					config
 			)
-			stay using StateData(updatedGeneration, stateData.client, stateData.cancellableMixing) //stateData.copy(generation = updatedGeneration)
+			stay using StateData(updatedGeneration, stateData.client, stateData.cancellableMixing)
 
 		case Event(ReportCompleted, _) =>
 			stay
@@ -203,7 +200,6 @@ trait MainActor[P]
 		case Event(MixNow, _) =>
 			stay
 		case Event(fc: FlushComplete[P], data: FlushingData) =>
-			val numReqGenerations = config.job.numGenerations
 			val flushedEGen = fc.eGeneration
 			val generationCompleted = flushedEGen.previousGen.iteration
 
@@ -213,7 +209,7 @@ trait MainActor[P]
 				config
 			)
 
-			if (generationCompleted == numReqGenerations && config.cluster.terminateAtTargetGenerations) {
+			if (generationCompleted == config.numGenerations && config.terminateAtTargetGen) {
 				// Stop work
 				childActors.router ! Abort // TODO superfluous?
 				childActors.reporter ! flushedEGen.previousGen //TODO check test coverage

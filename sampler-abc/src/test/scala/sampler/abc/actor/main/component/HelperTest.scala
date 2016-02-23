@@ -9,8 +9,6 @@ import sampler.abc.Weighted
 import scala.collection.immutable.Queue
 import org.mockito.Mockito._
 import org.mockito.Matchers._
-import sampler.abc.config.ABCConfig
-import sampler.abc.config.JobParameters
 import sampler.abc.actor.main.EvolvingGeneration
 import sampler.abc.actor.sub.flushing.GenerationFlusher
 import sampler.abc.actor.main.component.helper.ParticleMixer
@@ -18,17 +16,16 @@ import sampler.abc.actor.main.component.helper.Getters
 import sampler.abc.actor.main.Tagged
 import sampler.abc.actor.main.WeighedParticles
 import sampler.abc.actor.main.ScoredParticles
+import sampler.abc.ABCConfig
 
 class HelperTest extends FreeSpec with Matchers with MockitoSugar {
 
 	trait Setup {
 		val particleMixer = mock[ParticleMixer]
-		val getters = mock[Getters]
-		val random = mock[Random]
 		val instance = new Helper(
 				particleMixer,
-				getters,
-				random
+				mock[Getters],
+				mock[Random]
 		)
 	}
 	
@@ -117,10 +114,10 @@ class HelperTest extends FreeSpec with Matchers with MockitoSugar {
     }
     
     "Determine if generation has gathered enough particles" in new Setup {
-      val config1 = ABCConfig(JobParameters(2,0,0), null, null)
-      val config2 = ABCConfig(JobParameters(5,0,0), null, null)
-      val config3 = ABCConfig(JobParameters(6,0,0), null, null)
-      val config4 = ABCConfig(JobParameters(1000,0,0), null, null)
+      val config1 = new ABCConfig(null){ override lazy val numParticles = 2 }
+      val config2 = new ABCConfig(null){ override lazy val numParticles = 5 }
+      val config3 = new ABCConfig(null){ override lazy val numParticles = 6 }
+      val config4 = new ABCConfig(null){ override lazy val numParticles = 1000 }
       
       val gen1 = EvolvingGeneration[Int](
           0.0,

@@ -15,38 +15,36 @@
 
 package sampler.example.abc
 
+import java.math.MathContext
 import java.nio.file.Files
 import java.nio.file.Paths
-import java.nio.file.StandardOpenOption.{APPEND,CREATE}
+
+import scala.BigDecimal
+
 import org.apache.commons.math3.distribution.NormalDistribution
+import org.apache.commons.math3.random.MersenneTwister
+import org.apache.commons.math3.random.SynchronizedRandomGenerator
+
 import com.typesafe.config.ConfigFactory
+
 import sampler.abc.ABC
+import sampler.abc.ABCConfig
 import sampler.abc.Model
 import sampler.abc.Prior
-import sampler.abc.config.ABCConfig
-import sampler.data.Distribution
-import sampler.math.Random
-import sampler.io.CSV
-import sampler.io.CSV
-import org.apache.commons.math3.random.SynchronizedRandomGenerator
-import org.apache.commons.math3.random.MersenneTwister
-import sampler.r.script.ToNamedSeq
-import sampler.r.script.QuickPlot
-import sampler.r.script.RScript
-import sampler.abc.Population
-import sampler.io.Tokenable
-import play.api.libs.json.{JsNull,Json,JsString,JsValue}
-import sampler.io.Rounding
-import org.apache.commons.io.FileUtils
-import sampler.io.Tokens
-import java.math.MathContext
 import sampler.abc.StandardReport
+import sampler.data.Distribution
+import sampler.io.Tokenable
+import sampler.io.Tokens
+import sampler.io.Tokens.tokener
+import sampler.math.Random
+import sampler.r.script.RScript
+import sampler.r.script.ToNamedSeq
 
 object UnfairCoin extends App with ToNamedSeq{
 	val wd = Paths.get("results", "UnfairCoin")
 	Files.createDirectories(wd)
 	
-	val abcParameters = ABCConfig.fromTypesafeConfig(ConfigFactory.load(), "unfair-coin-example")
+	val abcParameters = ABCConfig(ConfigFactory.load.getConfig("unfair-coin-example"))
 	val abcReporting = StandardReport[CoinParams](wd)
 
 	ABC(CoinModel, abcParameters, abcReporting)

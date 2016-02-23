@@ -23,14 +23,15 @@ trait ChildActorsComponentImpl[P] extends ChildActorsComponent[P]{
 		with HelperComponent =>
 	
 	lazy val childActors = new ChildActors{}
+	lazy val numParticles = config.numParticles
 	lazy val generationFlusher = new GenerationFlusher(
 			ToleranceCalculator,
 			new ObservedIdsTrimmer(
-					config.cluster.particleMemoryGenerations, 
-					config.job.numParticles),
+					config.memoryGenerations, 
+					numParticles),
 			new WeightsHelper(),
 			getters,
-			config.job.numParticles)
+			numParticles)
 	val random = Random
 }
 

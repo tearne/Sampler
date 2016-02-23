@@ -7,11 +7,12 @@ import sampler.abc.actor.sub.flushing.WeightsHelper
 import sampler.math.Random
 import sampler.abc.actor.main.MainActor
 import sampler.abc.actor.main.component.helper.ParticleMixer
-import sampler.abc.config.ABCConfig
 import sampler.abc.actor.main.EvolvingGeneration
 import sampler.abc.actor.main.ScoredParticles
 import sampler.abc.actor.main.WeighedParticles
 import sampler.abc.actor.main.component.helper.Getters
+import sampler.abc.ABCConfig
+import sampler.abc.ABCConfig
 
 trait HelperCoponentImpl extends HelperComponent {
 	this: MainActor[_] =>
@@ -56,13 +57,13 @@ class Helper(
 	}
 		
 	def isEnoughParticles(gen: EvolvingGeneration[_], config: ABCConfig): Boolean =
-		gen.weighed.size >= config.job.numParticles
+		gen.weighed.size >= config.numParticles
 	
 	def emptyWeighingBuffer[P](gen: EvolvingGeneration[P]): EvolvingGeneration[P] = 
 		gen.copy(dueWeighing = ScoredParticles.empty)
 			
 	//TODO can we simplify tagged and scored parm sets?
-	def buildMixPayload[P](gen: EvolvingGeneration[P], abcParameters: ABCConfig): Option[ScoredParticles[P]] = {
-		particleMixer.apply(gen, abcParameters)(random)
+	def buildMixPayload[P](gen: EvolvingGeneration[P], config: ABCConfig): Option[ScoredParticles[P]] = {
+		particleMixer.apply(gen, config)(random)
 	}
 }

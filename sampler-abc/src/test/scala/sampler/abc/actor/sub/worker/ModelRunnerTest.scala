@@ -5,11 +5,7 @@ import org.scalatest.mock.MockitoSugar
 import sampler.abc.Model
 import sampler.abc.Generation
 import sampler.abc.Population
-import sampler.abc.config.ABCConfig
 import sampler.abc.actor.sub.GenerateParticlesFrom
-import sampler.abc.config.JobParameters
-import sampler.abc.config.ClusterParameters
-import sampler.abc.config.AlgorithmParameters
 import scala.util.Try
 import sampler.abc.actor.main.ScoredParticles
 import sampler.abc.Prior
@@ -18,15 +14,13 @@ import org.mockito.Matchers._
 import sampler.abc.Scored
 import scala.util.Success
 import scala.util.Failure
+import sampler.abc.ABCConfig
 
 
 class ModelRunnerTest extends FreeSpec with MockitoSugar {
   type T = Int //Pretend model parameters
-  val noMixing = 0l
-  val hundredParticles = 100
-  val threeGenerations = 3
-  val isFinal = true
-  val terminateAtTargetGen = true //TODO false
+//  val isFinal = true
+  val willTerminateAtTargetGen = true //TODO false
   val maxParticleRetries = 3
   val particleChunkSize = 1
   
@@ -43,13 +37,16 @@ class ModelRunnerTest extends FreeSpec with MockitoSugar {
 
   trait Setup {
     val prevPopulation: Generation[T] = Population(Map(1 -> 0.2, 2 -> 0.8), 0, 0, 0.0)
-    val config1 = ABCConfig(
-      JobParameters(hundredParticles, 0, threeGenerations),
-      AlgorithmParameters(maxParticleRetries,particleChunkSize),
-      ClusterParameters(terminateAtTargetGen, 0, 0l, 0, noMixing, 0l, 0l))
+    
+    val config = new ABCConfig(null){
+      override lazy val numParticles = 100
+      override lazy val numGenerations = 3
+      override lazy val terminateAtTargetGen = true
+      override lazy val mixRateMS = 0l
+    }
       
-    val instance1 = new TestableModelRunner(config1)
-    val job1 = GenerateParticlesFrom[T](prevPopulation, config1)
+    val instance1 = new TestableModelRunner(config)
+    val job1 = GenerateParticlesFrom[T](prevPopulation, config)
   }
      
   "ModelRunner should / " - {
@@ -76,11 +73,14 @@ class ModelRunnerTest extends FreeSpec with MockitoSugar {
       }
 	 	}
 		"Throw exception when max number of retries reached" in new Setup {
-      val zeroParticleRetries = 0
-		  val config2 = ABCConfig(
-          JobParameters(hundredParticles, 0, threeGenerations),
-          AlgorithmParameters(zeroParticleRetries,particleChunkSize),
-          ClusterParameters(terminateAtTargetGen, 0, 0l, 0, noMixing, 0l, 0l))
+      val config2 = new ABCConfig(null){
+        override lazy val numParticles = 100
+        override lazy val numGenerations = 3
+        override lazy val terminateAtTargetGen = true
+        override lazy val mixRateMS = 0l
+        override lazy val maxParticleRetries = 0
+      }
+        
       val instance2 = new TestableModelRunner(config2)
       val job2 = GenerateParticlesFrom[T](prevPopulation, config2)
 		  

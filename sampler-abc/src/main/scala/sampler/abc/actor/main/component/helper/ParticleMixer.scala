@@ -1,22 +1,22 @@
 package sampler.abc.actor.main.component.helper
 
-import sampler.abc.config.ABCConfig
 import sampler.math.Random
 import sampler.abc.actor.main.ScoredParticles
 import sampler.abc.actor.main.Tagged
 import sampler.abc.actor.main.EvolvingGeneration
 import sampler.Implicits
+import sampler.abc.ABCConfig
 
 class ParticleMixer {
 	
   def apply[P](
   		gen: EvolvingGeneration[P], 
-  		abcParameters: ABCConfig
+  		config: ABCConfig
   	)(
   		implicit random: Random): Option[ScoredParticles[P]] = {
     val weightedParticles = gen.weighed
 		
-    val mixingSize = abcParameters.cluster.mixPayloadSize
+    val mixingSize: Int = config.mixPayloadSize
 	
     if(weightedParticles.size > mixingSize) {
       val oneOfEachParticle = 

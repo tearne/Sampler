@@ -1,35 +1,29 @@
-package sampler.abc.actor.algorithm
+package sampler.abc.actor.main.component.helper
 
+import scala.collection.immutable.Queue
+
+import org.scalatest.BeforeAndAfter
 import org.scalatest.FreeSpec
 import org.scalatest.Matchers
 import org.scalatest.mock.MockitoSugar
-import org.mockito.Mockito._
-import sampler.abc.config.ABCConfig
-import sampler.abc.config.ClusterParameters
-import sampler.abc.config.ClusterParameters
+
+import sampler.abc.ABCConfig
 import sampler.abc.Scored
 import sampler.abc.Weighted
-import scala.collection.immutable.Queue
-import org.scalatest.BeforeAndAfter
-import sampler.math.Random
 import sampler.abc.actor.main.EvolvingGeneration
-import sampler.abc.actor.main.component.helper.ParticleMixer
-import sampler.abc.actor.main.Tagged
 import sampler.abc.actor.main.ScoredParticles
+import sampler.abc.actor.main.Tagged
 import sampler.abc.actor.main.WeighedParticles
+import sampler.math.Random
 
 class ParticleMixerTest extends FreeSpec with Matchers with MockitoSugar with BeforeAndAfter{
 
   "ParticleMixer should" - {
     val instance = new ParticleMixer()
     
-    val config = mock[ABCConfig]
-    val clusterParameters = mock[ClusterParameters]
-    
-    val payloadSize = 2
-    
-    when(clusterParameters.mixPayloadSize).thenReturn(payloadSize)
-    when(config.cluster).thenReturn(clusterParameters)
+    val config = new ABCConfig(null){
+      override lazy val mixPayloadSize = 2
+    }
     
     val (id1, id2, id3, id4) = (111111, 111112, 111113, 111114)
     
@@ -100,11 +94,11 @@ class ParticleMixerTest extends FreeSpec with Matchers with MockitoSugar with Be
       val accum = buildSamples(Seq.empty)
       val grouped = accum.groupBy(identity).mapValues(_.size)
       
-      assertResult(payloadSize*iterations)(accum.size)
+      assertResult(config.mixPayloadSize * iterations)(accum.size)
       println(grouped)
       
-      val expected = payloadSize * iterations / 4
-      val tol = payloadSize * iterations / 10
+      val expected = config.mixPayloadSize * iterations / 4
+      val tol = config.mixPayloadSize * iterations / 10
       grouped.getOrElse(tagged1, 0) should be(expected +- tol)
       grouped.getOrElse(tagged2, 0) should be(expected +- tol)
       grouped.getOrElse(tagged3, 0) should be(expected +- tol)

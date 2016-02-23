@@ -5,10 +5,10 @@ import akka.actor.Actor
 import akka.actor.actorRef2Scala
 import sampler.abc.actor.main.ReportCompleted
 import sampler.abc.actor.main.EvolvingGeneration
-import sampler.abc.config.ABCConfig
 import akka.actor.ActorRef
 import sampler.abc.Population
 import java.math.MathContext
+import sampler.abc.ABCConfig
 
 sealed trait StatusDelta{
 	def getMsg(): String
@@ -29,8 +29,8 @@ case class StatusReport[P](delta: StatusDelta, eGen: EvolvingGeneration[P], conf
 	def getTxt = {
 		val due = "|SQ|="+eGen.dueWeighing.size
 		val acc = s"Acc=${StatusReport.percentage(eGen.weighed.acceptanceRatio)}%"
-		val par = "|W|="+eGen.weighed.size+"/"+config.job.numParticles
-		val gen = s"G:${eGen.previousGen.iteration}/${config.job.numGenerations}"
+		val par = "|W|="+eGen.weighed.size+"/"+config.numParticles
+		val gen = s"G:${eGen.previousGen.iteration}/${config.numGenerations}"
 		s"($gen, $acc, $par, $due) ${delta.getMsg}"
 	}
 }

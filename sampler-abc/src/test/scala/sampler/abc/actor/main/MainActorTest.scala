@@ -11,9 +11,6 @@ import akka.testkit.TestKit
 import akka.testkit.TestProbe
 import sampler.abc.Model
 import sampler.abc.Scored
-import sampler.abc.config.ABCConfig
-import sampler.abc.config.ClusterParameters
-import sampler.abc.config.JobParameters
 import akka.actor.Cancellable
 import sampler.abc.actor.main.component.helper.Getters
 import scala.collection.immutable.Queue
@@ -30,6 +27,7 @@ import sampler.abc.actor.sub.flushing.GenerationFlusher
 import sampler.abc.actor.main.component.Helper
 import sampler.abc.actor.sub.StatusReport
 import sampler.abc.actor.sub.FinishGen
+import sampler.abc.ABCConfig
 
 class MainActorTest
 		extends TestKit(ActorSystem("ABC"))
@@ -37,11 +35,7 @@ class MainActorTest
 		with BeforeAndAfterAll
 		with MockitoSugar {
 
-	val noMixing = 0l
-	val hundredParticles = 100
-	val threeGenerations = 3
 	val isFinal = true
-	val terminateAtTargetGen = true //TODO false
 
 	case class TestParams()
 
@@ -66,13 +60,14 @@ class MainActorTest
 
 	trait Setup {
 		val model = mock[Model[TestParams]]
-		val config = ABCConfig(
-			JobParameters(hundredParticles, 0, threeGenerations),
-			null,
-			ClusterParameters(terminateAtTargetGen, 0, 0l, 0, noMixing, 0l, 0l))
+		val config = new ABCConfig(null){
+		  override lazy val numParticles = 100
+		  override lazy val numGenerations = 3
+		  override lazy val terminateAtTargetGen = true  //TODO false
+		  override lazy val mixRateMS = 0l
+		}
 		val reportAction = None
 		val getters = mock[Getters]
-		when(getters.getMixRateMS(config)).thenReturn(noMixing)
 
 		val instanceRef = TestFSMRef(new TestableMainActor(model, config, reportAction, getters))
 		val instanceObj = instanceRef.underlyingActor
@@ -452,7 +447,7 @@ class MainActorTest
 
 				val eGen0 = mock[EvolvingGeneration[TestParams]]
 				val flushedGen = mock[Population[TestParams]]
-				when(flushedGen.iteration).thenReturn(threeGenerations)
+				when(flushedGen.iteration).thenReturn(config.numGenerations)
 				when(eGen0.previousGen).thenReturn(flushedGen)
 
 				instanceRef.setState(Flushing, flushingStateData)
@@ -464,7 +459,7 @@ class MainActorTest
 				routerProbe.expectMsg(Abort)
 				reporterProbe.expectMsg(
 				  StatusReport(
-				    FinishGen(threeGenerations, flushedGen.tolerance),
+				    FinishGen(config.numGenerations, flushedGen.tolerance),
 				    eGen0,
 				    config
 				  )

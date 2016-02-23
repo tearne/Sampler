@@ -3,33 +3,6 @@ package sampler.abc.actor.sub
 import org.scalatest.FreeSpecLike
 import akka.testkit.TestKit
 import akka.actor.ActorSystem
-
-//class WorkerActorTest extends TestKit(ActorSystem("ABC-test")) with FreeSpecLike{
-//  "Worker actor should" - {
-//  	"start in Idle state with uninitialised data" in fail("TODO")
-//  	"when Idle" - {
-//  		"start generating job" in fail("TODO")
-//  		"start weighing job" in fail("TODO")
-//  		"accept Abort message even though not busy" in fail("TODO")
-//  	}
-//  	"when Working" - {
-//  		"abort whatever it was working on" in fail("TODO")
-//  		"accept new job by aborting the current one and queuing the next"  in fail("TODO")
-//  		"report success and return to Idle" in fail("TODO")
-//  		"report failure and return to idle" in fail("TODO")
-//  	}
-//  	"when waiting for abort confirmation" - {
-//  		"accept new job by setting it as next in queue" in fail("TODO")
-//  		"accept redundant abort message" in fail("TODO") //Or better to thro exception?  Probably not, but at least log warning?
-//  		"regard a results of aborted job as abort confirmation" in fail("TODO")
-//  		"on abort confirmation" - {
-//  			"start next job if known" in fail("TODO")
-//  			"go to idle if next job not known" in fail("TODO")
-//  		}
-//  	}
-//  }
-//}
-
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.FreeSpecLike
 import org.scalatest.mock.MockitoSugar
@@ -39,32 +12,25 @@ import akka.testkit.TestFSMRef
 import akka.testkit.TestKit
 import akka.testkit.TestProbe
 import sampler.abc.Model
-import sampler.abc.config.ABCConfig
 import sampler.abc.actor.sub.worker.AborterComponent
 import sampler.abc.Prior
 import sampler.abc.actor.sub.worker.Aborter
 import org.mockito.Mockito.when
 import sampler.abc.actor.sub.worker.ModelRunnerComponent
 import sampler.abc.actor.sub.worker.WeigherComponentImpl
-import sampler.abc.config.JobParameters
-import sampler.abc.config.ClusterParameters
 import sampler.abc.Population
 import sampler.abc.Generation
 import akka.dispatch.MessageDispatcher
-//import sampler.abc.actor.main.component.WorkDispatcherComponent
 import com.typesafe.config.ConfigFactory
 import com.typesafe.config.Config
+import sampler.abc.ABCConfig
 
 class WorkerActorTest
     extends TestKit(ActorSystem("ABC"))
     with FreeSpecLike
     with MockitoSugar {
   type T = Int //Pretend model parameters
-  val noMixing = 0l
-  val hundredParticles = 100
-  val threeGenerations = 3
-  val isFinal = true
-  val terminateAtTargetGen = true //TODO false
+  val terminateTrue = true 
 
   case class TestParams()
 
@@ -88,10 +54,12 @@ class WorkerActorTest
   }
 
   trait Setup {
-    val abcConfig = ABCConfig(
-      JobParameters(hundredParticles, 0, threeGenerations),
-      null,
-      ClusterParameters(terminateAtTargetGen, 0, 0l, 0, noMixing, 0l, 0l))
+    val abcConfig = new ABCConfig(null){
+      override lazy val numParticles = 100
+      override lazy val numGenerations = 3
+      override lazy val terminateAtTargetGen = true //TODO false
+      override lazy val mixRateMS = 0l
+    }
       
      val config = ConfigFactory.load("~/Sampler/sampler-abc/src/test/resources/application.conf")
            
