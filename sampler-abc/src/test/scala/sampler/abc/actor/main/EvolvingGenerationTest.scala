@@ -10,17 +10,50 @@ import sampler.abc.Scored
 import sampler.abc.Generation
 import scala.collection.immutable.Queue
 import sampler.abc.Weighted
+import sampler.abc.Model
+import sampler.abc.Prior
+import sampler.abc.UseModelPrior
+import sampler.abc.Population
 
 class EvolvingGenerationTest extends FreeSpec with Matchers with MockitoSugar {
 	type T = Int
 	
 	"EvolvingGeneration should" - {
-		"Initialise" in {
-			val previousGen = mock[Generation[T]]
-			val result = EvolvingGeneration.init(previousGen)
+		"Initialise with model prior and tolerance infinity" in {
+		  val gen0 = UseModelPrior[T]()
+			val result = EvolvingGeneration.buildFrom(gen0)
+
 			val expected = EvolvingGeneration(
 					Double.MaxValue,
-					previousGen,
+					gen0,
+					ScoredParticles.empty,
+					WeighedParticles.empty,
+					Queue.empty[Long]
+			)
+			assert(result === expected)
+		}
+		
+		"Initialise with model prior and specific tolerance" in {
+		  val gen0 = UseModelPrior[T](9.9999999)
+			val result = EvolvingGeneration.buildFrom(gen0)
+
+			val expected = EvolvingGeneration(
+					9.9999999,
+					gen0,
+					ScoredParticles.empty,
+					WeighedParticles.empty,
+					Queue.empty[Long]
+			)
+			assert(result === expected)
+		}
+		
+		"Initialise with a previous population and use same tolerance" in {
+		  val genN = Population[T](null, 0, 9.999, 0.0)
+		  val result = EvolvingGeneration.buildFrom(genN)
+		  
+		  val expected = EvolvingGeneration(
+					genN.tolerance,
+					genN,
 					ScoredParticles.empty,
 					WeighedParticles.empty,
 					Queue.empty[Long]

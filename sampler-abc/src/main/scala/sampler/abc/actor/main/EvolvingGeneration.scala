@@ -4,6 +4,8 @@ import sampler.abc.Scored
 import sampler.abc.Weighted
 import scala.collection.immutable.Queue
 import sampler.abc.Generation
+import sampler.abc.UseModelPrior
+import sampler.abc.Population
 
 case class EvolvingGeneration[P](
 	currentTolerance: Double,
@@ -17,13 +19,24 @@ case class EvolvingGeneration[P](
 }
 
 object EvolvingGeneration {
-	def init[P](completed: Generation[P]): EvolvingGeneration[P] = {
-		EvolvingGeneration(
-			Double.MaxValue,
-			completed,
-			ScoredParticles.empty,
-			WeighedParticles.empty,
-			Queue.empty[Long]
-		)
-	}
+  def buildFrom[T](completed: Generation[T]): EvolvingGeneration[T] = {
+    completed match {
+      case UseModelPrior(tol) =>
+        EvolvingGeneration(
+    			tol,
+    			completed,
+    			ScoredParticles.empty,
+    			WeighedParticles.empty,
+    			Queue.empty[Long]
+    		)
+      case pop: Population[T] => 
+        EvolvingGeneration(
+    			pop.tolerance,    //TODO should save what the next tolerance would have been in Population?
+    			pop,
+    			ScoredParticles.empty,
+    			WeighedParticles.empty,
+    			Queue.empty[Long]
+    		)
+    }
+  }
 }

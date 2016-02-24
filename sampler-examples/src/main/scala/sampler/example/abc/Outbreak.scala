@@ -22,6 +22,11 @@ import sampler.r.script.RScript
 import sampler.io.Logging
 import sampler.data.DistributionBuilder
 import sampler.abc.Population
+import sampler.io.Tokenable
+import java.math.MathContext
+import sampler.io.Tokens
+import org.apache.commons.io.FileUtils
+import play.api.libs.json.Json
 
 /*
  * This file contains a number of applications
@@ -96,14 +101,17 @@ object FittingApplication extends App {
 	)
 	
 	val reporting = { pop: Population[Parameters] =>
-		val lines = Parameters.names +: pop.sampleByWeight(100000, Random).map(_.toSeq).toSeq
-		val fileName = f"posterior.${pop.iteration}%03d.csv"
-		CSV.writeLines(Data.wd.resolve(fileName), lines)
+		val fileName = f"posterior.${pop.iteration}%03d.json"
+		FileUtils.writeStringToFile(Data.wd.resolve(fileName).toFile(), Json.prettyPrint(pop.toJSON()))		
 		
 		val rScript = f"""
-			lapply(c("ggplot2", "reshape"), require, character.only=T)
+			lapply(c("ggplot2", "reshape", "jsonlite"), require, character.only=T)
 			
-			posterior = read.csv("$fileName")
+			posterior = as.data.frame(fromJSON("$fileName")$$particles)
+			sampledPosterior = subset(
+			  posterior[sample(nrow(posterior), replace = T, 100000, prob = posterior$$weight),],
+			  select = -weight
+			)
 
 			stats = function(values, name){
                 table = c(
@@ -113,7 +121,7 @@ object FittingApplication extends App {
                 df = data.frame(variable = names(table), param = name, value = as.vector(table))
                 df
             }
-            statsDF = rbind(stats(posterior$$Local, "Local"), stats(posterior$$Company, "Company"))
+      statsDF = rbind(stats(sampledPosterior$$Local, "Local"), stats(sampledPosterior$$Company, "Company"))
 			
 			truth = data.frame(value = c(
 				${Truth.parameters.spreadRates.local.rate},
@@ -121,7 +129,7 @@ object FittingApplication extends App {
 			), variable = c("Local", "Company"))
 			
 			pdf("Posterior.latest.pdf", width=8.26, height=2.91)
-			ggplot(melt(posterior), aes(x = value, linetype = variable)) + 
+			ggplot(melt(sampledPosterior), aes(x = value, linetype = variable)) + 
 				geom_density() +
 				geom_vline(data = statsDF, aes(xintercept = value, linetype = param, colour = variable), show_guide = TRUE) +
 				geom_vline(data = truth, aes(xintercept = value, linetype = variable)) +
@@ -469,6 +477,14 @@ case class Parameters(spreadRates: SpreadRates){
 	)
 }
 object Parameters{
+  implicit val tokenableInstance: Tokenable[Parameters] = new Tokenable[Parameters]{
+	  val mc = new MathContext(6)
+    def getTokens(p: Parameters) = Tokens.named(
+      "Company" ->   BigDecimal(p.spreadRates.company.rate, mc),
+      "Local" ->    BigDecimal(p.spreadRates.local.rate, mc)
+		)
+  }
+  
 	val prior = new Prior[Parameters]{
 		def density(p: Parameters) = {
 			import p._

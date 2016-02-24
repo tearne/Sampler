@@ -14,6 +14,7 @@ import sampler.io.Tokens
 import java.util.Calendar
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import play.api.libs.json.JsArray
 
 sealed trait Generation[P]{
 	val iteration: Int
@@ -47,11 +48,6 @@ case class Population[P](
 		.fromWeightsTable(particleWeights)(rnd)
 		.map(model.perturb)
 	
-	def sampleByWeight(num: Int, random: Random) = {
-		val dist = DistributionBuilder.fromWeightsTable(particleWeights)(random)
-		(1 to num).map(_ => dist.sample)
-	}
-	
 	def toJSON(wtPrecision: Int = 8)(implicit tokenable: Tokenable[P]) = {
 		val mc = new MathContext(wtPrecision)
 		val rows: Iterable[Tokens] = particleWeights.map{case (p, wt) => 
@@ -71,4 +67,41 @@ case class Population[P](
 			"particles" -> particlesValuesByParam
 		)
 	}
+}
+
+object Population{
+  def fromJson[T](jsonStr: String, tokenParser: Map[String, JsValue] => T): Population[T] = {
+    val json = Json.parse(jsonStr)
+    
+    val iteration = (json \ "generation").as[Int]
+    val acceptance = (json \ "acceptance-ratio").as[Double]
+    val tolerance = (json \ "tolerance").as[Double]
+    
+    val weightsByParticle = {
+      val particleArrays = (json \ "particles")
+        .as[JsObject]
+        .fields
+        .toMap
+        
+      val weights = particleArrays("weight").as[Seq[Double]]
+      val paramTokens = (particleArrays - "weight")
+        .mapValues(_.as[IndexedSeq[JsValue]])
+      
+      val numParams = paramTokens.head._2.size
+      val paramTokenSets = 
+        for(i <- 0 until numParams)
+        yield paramTokens.map{case (name, valueIndexedSeq) => name -> valueIndexedSeq(i)}
+      
+      val particles = paramTokenSets.map(tokenParser)
+      
+      particles.zip(weights).toMap
+    }
+    
+    Population(
+      weightsByParticle,
+      iteration,
+      tolerance,
+      acceptance
+    )
+  }
 }

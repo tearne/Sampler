@@ -117,7 +117,7 @@ trait MainActor[P]
 			val client = sender
 			import s._
 
-			val evolvingGen = EvolvingGeneration.init(s.generationZero)
+			val evolvingGen = EvolvingGeneration.buildFrom(s.initGeneration)
 			childActors.router ! Broadcast(GenerateParticlesFrom( //TODO fix duplication with 'allocateWork' below
 				evolvingGen.previousGen,
 				config))
@@ -209,7 +209,7 @@ trait MainActor[P]
 				config
 			)
 
-			if (generationCompleted == config.numGenerations && config.terminateAtTargetGen) {
+			if (generationCompleted >= config.numGenerations && config.terminateAtTargetGen) {
 				// Stop work
 				childActors.router ! Abort // TODO superfluous?
 				childActors.reporter ! flushedEGen.previousGen //TODO check test coverage

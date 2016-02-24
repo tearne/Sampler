@@ -65,17 +65,36 @@ object ABC extends ABCActorsImpl with Logging {
 			genHandler: Population[P] => Unit): Population[P] =
 		apply(model, config, Some(genHandler), UseModelPrior())
 	
+  def resumeByRepeatingTolerance[P](
+	    model: Model[P],
+			config: ABCConfig,
+			population: Population[P]
+		): Population[P] = {
+	  apply(model, config, None, population)
+	}
+		
+	def resumeByRepeatingTolerance[P](
+	    model: Model[P],
+			config: ABCConfig,
+			population: Population[P],
+			genHandler: Population[P] => Unit
+		): Population[P] = {
+	  apply(model, config, Some(genHandler), population)
+	}
+		
 	def apply[P](
 			model: Model[P],
 			config: ABCConfig,
-			genHandler: Option[Population[P] => Unit] = None,
-			initialPopulation: Generation[P] = UseModelPrior()): Population[P] = {
-		info("Running with config: "+config.render)
+			genHandler: Option[Population[P] => Unit],
+			initialPopulation: Generation[P]): Population[P] = {
+		info("      Job config: "+config.renderJob)
+		info("Algorithm config: "+config.renderAlgorithm)
+		info("  Cluster config: "+config.renderCluster)
 
 		val actor = entryPointActor(model, config, genHandler)
 
 		implicit val timeout = Timeout(config.futuresTimeoutMS, MILLISECONDS)
-		val future = (actor ? Start(UseModelPrior())).mapTo[Population[P]]
+		val future = (actor ? Start(initialPopulation)).mapTo[Population[P]]
 		val result = Await.result(future, Duration.Inf)
 		//TODO unlimited timeout just for the future above?
 

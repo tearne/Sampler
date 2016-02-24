@@ -57,8 +57,10 @@ Q) I have written new tests but they won't run from SBT and/or Eclipse because f
 	3) Go to build settings and ensure the output directory for resources is relative to 
 		'target/scala2-10/test-classes', rather than 'default'.
 
-R pre-requisites (for examples)
+R pre-requisites (for example)
 ===============================
 sudo R
-Sys.setenv(http_proxy="http://10.85.4.54:8080")
-install.packages(c("ggplot2", "reshape", "deSolve", "hexbin", "jsonlite", "plyr"), dependencies=T, repos="http://cran.ma.imperial.ac.uk")
+proxy = "http://host:port"
+Sys.setenv(http_proxy=proxy)
+Sys.setenv(https_proxy=proxy)
+install.packages(c("ggplot2", "reshape", "deSolve", "jsonlite", "plyr", "GGally"), dependencies=T, repos="http://cran.ma.imperial.ac.uk")

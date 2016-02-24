@@ -5,12 +5,14 @@ import scala.concurrent.duration.MILLISECONDS
 import com.typesafe.config.ConfigRenderOptions
 
 case class ABCConfig(config: Config) {
-  def render: String = config.root.render(ConfigRenderOptions.defaults.setOriginComments(false))
+  lazy val job = config.getConfig("abc.job")
+  lazy val algorithm = config.getConfig("abc.algorithm")
+  lazy val cluster = config.getConfig("abc.cluster")
   
-  val job = config.getConfig("abc.job")
-  val algorithm = config.getConfig("abc.algorithm")
-  val cluster = config.getConfig("abc.cluster")
-  
+  def renderJob(): String = job.root.render(ConfigRenderOptions.concise.setOriginComments(false))
+  def renderAlgorithm(): String = algorithm.root.render(ConfigRenderOptions.concise.setOriginComments(false))
+  def renderCluster(): String = cluster.root.render(ConfigRenderOptions.concise.setOriginComments(false))
+
   //TODO Do these need to be lazy for the tests to work?
   lazy val numReplicates =  job.getInt("replicates")
   lazy val numParticles =   job.getInt("particles")

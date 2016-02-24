@@ -18,15 +18,11 @@ package sampler.example.abc
 import java.math.MathContext
 import java.nio.file.Files
 import java.nio.file.Paths
-
 import scala.BigDecimal
-
 import org.apache.commons.math3.distribution.NormalDistribution
 import org.apache.commons.math3.random.MersenneTwister
 import org.apache.commons.math3.random.SynchronizedRandomGenerator
-
 import com.typesafe.config.ConfigFactory
-
 import sampler.abc.ABC
 import sampler.abc.ABCConfig
 import sampler.abc.Model
@@ -39,62 +35,98 @@ import sampler.io.Tokens.tokener
 import sampler.math.Random
 import sampler.r.script.RScript
 import sampler.r.script.ToNamedSeq
+import play.api.libs.json.JsValue
+import sampler.abc.Population
+import org.apache.commons.io.FileUtils
+import play.api.libs.json.Json
 
-object UnfairCoin extends App with ToNamedSeq{
-	val wd = Paths.get("results", "UnfairCoin")
+object UnfairCoin extends UnfairCoinCommon with App {
+	ABC(CoinModel, abcConfig, abcReporting)
+	plot()
+}
+
+object ResumeUnfairCoin extends UnfairCoinCommon with App {
+  val prevGenJson = """
+{
+  "generation" : 4,
+  "tolerance" : 2,
+  "acceptance-ratio" : 0.25,
+  "particles" : {
+    "pHeads" : [ 0.1, 0.2, 0.3 ],
+    "weight" : [ 1, 1, 1 ]
+  }
+}  
+  """
+  FileUtils.writeStringToFile(wd.resolve("Gen4.json").toFile, prevGenJson)
+  def parser(toks: Map[String, JsValue]) = CoinParams(toks("pHeads").as[Double])
+  val prevGeneration = Population.fromJson(prevGenJson, parser _)
+  
+  val sixGenConfig = ABCConfig(ConfigFactory
+    .parseString("unfair-coin-example.abc.job.generations = 6")
+    .withFallback(ConfigFactory.load)
+    .getConfig("unfair-coin-example"))
+  
+  ABC.resumeByRepeatingTolerance(CoinModel, sixGenConfig, prevGeneration, abcReporting)
+  plot()
+}
+
+trait UnfairCoinCommon {
+  val wd = Paths.get("results", "UnfairCoin")
 	Files.createDirectories(wd)
 	
-	val abcParameters = ABCConfig(ConfigFactory.load.getConfig("unfair-coin-example"))
+	val abcConfig = ABCConfig(ConfigFactory.load.getConfig("unfair-coin-example"))
 	val abcReporting = StandardReport[CoinParams](wd)
-
-	ABC(CoinModel, abcParameters, abcReporting)
 	
-	val rScript = """
-lapply(c("ggplot2", "reshape", "jsonlite", "plyr"), require, character.only=T)
-
-load = function(file) {
-	raw = fromJSON(file)
-	data.frame(
-	  raw$particles, 
-	  Generation=factor(raw$generation), 
-	  ToleranceFactor = factor(raw$tolerance), 
-	  AcceptanceRatio = raw$`acceptance-ratio`)
-}
-merged = ldply(lapply(Sys.glob("Gen*.json"), load))
-
-meta = unique(merged[,c("Generation", "ToleranceFactor", "AcceptanceRatio")])
-meta$Tolerance = as.numeric(levels(meta$ToleranceFactor))
-meta = subset(meta, select = c(-ToleranceFactor))
-
-isFinite = function(x) { !is.infinite(x) }
-
-sampleFromGen = function(n){
-	gen = merged[merged$Generation == n,]
-	gen[sample(nrow(gen), replace = T, 1000, prob = gen$weight),]
-}
-sampled = rbind(sampleFromGen(1), sampleFromGen(2), sampleFromGen(3))
-
-pdf("generations.pdf", width=4.13, height=2.91)
-
-ggplot(melt(meta), aes(x=Generation, y=value, fill=isFinite(value))) +
-	geom_bar(stat="identity") +
-  facet_grid(variable ~ ., scales="free")
-
-ggplot(merged, aes(x=pHeads, colour=Generation)) + 
-	geom_density() + 
-	scale_colour_hue(h=c(-270, 0)) +
-	scale_x_continuous(limits=c(0, 1)) +
-	ggtitle("Ignoring particle weights")
-
-ggplot(sampled, aes(x=pHeads, colour=Generation)) + 
-	geom_density(adjust = 1.3) + 
-	scale_colour_hue(h=c(-270, 0)) +
-	scale_x_continuous(limits=c(0, 1)) +
-	ggtitle("Sampling from weights")
-
-dev.off()	
-"""
-	RScript(rScript, wd.resolve("script.r"))
+	def plot(){
+    val rScript = """
+      lapply(c("ggplot2", "reshape", "jsonlite", "plyr"), require, character.only=T)
+      
+      load = function(file) {
+      	raw = fromJSON(file)
+      	data.frame(
+      	  raw$particles, 
+      	  Generation=factor(raw$generation), 
+      	  ToleranceFactor = factor(raw$tolerance), 
+      	  AcceptanceRatio = raw$`acceptance-ratio`)
+      }
+      merged = ldply(lapply(Sys.glob("Gen*.json"), load))
+      
+      meta = unique(merged[,c("Generation", "ToleranceFactor", "AcceptanceRatio")])
+      meta$Tolerance = as.numeric(levels(meta$ToleranceFactor)[meta$ToleranceFactor])
+      meta = subset(meta, select = c(-ToleranceFactor))
+      
+      isFinite = function(x) { !is.infinite(x) }
+      
+      sampleFromGen = function(n){
+      	gen = merged[merged$Generation == n,]
+      	gen[sample(nrow(gen), replace = T, 1000, prob = gen$weight),]
+      }
+      
+      sampled = ldply(meta$Generation, sampleFromGen)
+      
+      pdf("generations.pdf", width=4.13, height=2.91)
+      
+      ggplot(melt(meta), aes(x=Generation, y=value, fill=isFinite(value))) +
+      	geom_bar(stat="identity") +
+        facet_grid(variable ~ ., scales="free")
+      
+      ggplot(merged, aes(x=pHeads, colour=Generation)) + 
+      	geom_density() + 
+      	scale_colour_hue(h=c(-270, 0)) +
+      	scale_x_continuous(limits=c(0, 1)) +
+      	ggtitle("Ignoring particle weights")
+      
+      ggplot(sampled, aes(x=pHeads, colour=Generation)) + 
+      	geom_density(adjust = 1.3) + 
+      	scale_colour_hue(h=c(-270, 0)) +
+      	scale_x_continuous(limits=c(0, 1)) +
+      	ggtitle("Sampling from weights")
+      
+      dev.off()	
+    """
+	  
+    RScript(rScript, wd.resolve("script.r"))
+  }
 }
 
 case class CoinParams(pHeads: Double) {

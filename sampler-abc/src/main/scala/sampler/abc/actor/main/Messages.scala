@@ -4,7 +4,7 @@ import sampler.abc.Generation
 import sampler.abc.Scored
 import sampler.abc.Weighted
 
-case class Start[P](generationZero: Generation[P])
+case class Start[P](initGeneration: Generation[P])
 case object Failed
 
 case class Tagged[T](value: T, id: Long)
