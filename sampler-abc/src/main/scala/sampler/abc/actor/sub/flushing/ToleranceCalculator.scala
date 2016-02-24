@@ -27,14 +27,14 @@ import sampler.math.Statistics
 
 trait ToleranceCalculator extends StatisticsComponent with Logging {
 	def apply[P](weighedParameters: Seq[Weighted[P]], config: ABCConfig, currentTolerance: Double): Double = {
-		val medianMeanScore = statistics.quantile(weighedParameters.map { _.meanRepScore }.toEmpiricalSeq, config.toleranceDescentPercentile)
-		if (medianMeanScore == 0) {
-			warn("Median of mean scores from last generation evaluated to 0. Will use old tolerance again.")
+		val percentileMeanScore = statistics.quantile(weighedParameters.map { _.meanRepScore }.toEmpiricalSeq, config.toleranceDescentPercentile)
+		if (percentileMeanScore == 0) {
+			warn("New tolerance evaluated to 0. Will use old tolerance again.")
 			currentTolerance
-		} else if (medianMeanScore > currentTolerance) {
-			warn("Median of mean scores from last generation greater than old tolerance. Will use old tolerance again.")
+		} else if (percentileMeanScore > currentTolerance) {
+			warn("New tolerance is greater than old tolerance. Will use old tolerance again.")
 			currentTolerance
-		} else medianMeanScore
+		} else percentileMeanScore
 	}
 }
 
