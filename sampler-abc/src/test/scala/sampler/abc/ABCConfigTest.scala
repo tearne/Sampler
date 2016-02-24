@@ -15,6 +15,7 @@ class ABCConfigTest extends FreeSpec {
 			algorithm {
 				particle-retries = 100
 				particle-chunk-size = 200
+				tolerance-descent-percentile = 0.7
 			}
 			cluster {
 				particle-memory-generations = 2
@@ -42,6 +43,7 @@ class ABCConfigTest extends FreeSpec {
 		"Algorithm parameters" in {
 			assertResult(100)(instance.maxParticleRetries)
 			assertResult(200)(instance.particleChunkSize)
+			assertResult(0.7)(instance.toleranceDescentPercentile)
 		}
 		"Job parameters" in {
 			assertResult(1000)(instance.numReplicates)

@@ -22,10 +22,12 @@ import sampler.math.StatisticsComponent
 import sampler.Implicits._
 import sampler.math.StatisticsImpl
 import sampler.io.Logging
+import sampler.abc.ABCConfig
+import sampler.math.Statistics
 
 trait ToleranceCalculator extends StatisticsComponent with Logging {
-	def apply[P](weighedParameters: Seq[Weighted[P]], currentTolerance: Double): Double = {
-		val medianMeanScore = statistics.quantile(weighedParameters.map { _.meanRepScore }.toEmpiricalSeq, 0.5)
+	def apply[P](weighedParameters: Seq[Weighted[P]], config: ABCConfig, currentTolerance: Double): Double = {
+		val medianMeanScore = statistics.quantile(weighedParameters.map { _.meanRepScore }.toEmpiricalSeq, config.toleranceDescentPercentile)
 		if (medianMeanScore == 0) {
 			warn("Median of mean scores from last generation evaluated to 0. Will use old tolerance again.")
 			currentTolerance

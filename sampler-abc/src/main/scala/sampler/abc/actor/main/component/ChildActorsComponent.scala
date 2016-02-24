@@ -31,7 +31,7 @@ trait ChildActorsComponentImpl[P] extends ChildActorsComponent[P]{
 					numParticles),
 			new WeightsHelper(),
 			getters,
-			numParticles)
+			config)
 	val random = Random
 }
 

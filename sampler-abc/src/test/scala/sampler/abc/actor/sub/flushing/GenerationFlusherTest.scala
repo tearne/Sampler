@@ -12,6 +12,7 @@ import sampler.abc.Population
 import sampler.abc.actor.main.EvolvingGeneration
 import sampler.abc.actor.main.component.helper.Getters
 import sampler.abc.actor.main.WeighedParticles
+import sampler.abc.ABCConfig
 
 class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 	type T = Int
@@ -19,18 +20,25 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 	val tenParticles = 10
 	
 	trait Setup {
+	  val numParticlesReqd: Int
 		val toleranceCalculator = mock[ToleranceCalculator]
 		val observedIdsTrimmer = mock[ObservedIdsTrimmer]
 		val weightsConsolodator = mock[WeightsHelper]
 		val getters = mock[Getters]
-		def getInstance(numParticlesRequired: Int): GenerationFlusher = 
-			new GenerationFlusher(
+		val config = new ABCConfig(null){
+		  override lazy val numParticles = numParticlesReqd
+	  }
+		
+		val instance: GenerationFlusher = {
+		  
+		  new GenerationFlusher(
 				toleranceCalculator,
 				observedIdsTrimmer,
 				weightsConsolodator,
 				getters,
-				numParticlesRequired
+				config
 			)
+		}
 
 		val weighedParticles = mock[WeighedParticles[T]]
 		when(weighedParticles.acceptanceRatio).thenReturn(0.75)
@@ -45,7 +53,7 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 		val seqWeighed = (1 to 10).map(mock[Seq[Weighted[T]]])
 		when(getters.weighedParticlesWithoutIdTags(inProgress.weighed))
 			.thenReturn(seqWeighed)
-		when(toleranceCalculator.apply(seqWeighed, 0.1)).thenReturn(0.001)
+		when(toleranceCalculator.apply(seqWeighed, config, 0.1)).thenReturn(0.001)
 
 		val weightsTable = mock[Map[T, Double]]
 		when(weightsConsolodator.consolidateToWeightsTable(seqWeighed))
@@ -58,7 +66,7 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 	
 	"should" - {
 		"build inner completed generation" in new Setup {
-			val instance = getInstance(tenParticles)
+			val numParticlesReqd = 10
 			
 			val result: EvolvingGeneration[T] = instance.apply(inProgress)
 			val completedGen = result.previousGen.asInstanceOf[Population[T]]
@@ -71,7 +79,8 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 		}
 		
 		"build new evolving generation" in new Setup {
-			val result = getInstance(tenParticles).apply(inProgress)
+		  val numParticlesReqd = 10
+			val result = instance.apply(inProgress)
 			
 			assert(result.currentTolerance === 0.001)
 			assert(result.dueWeighing.size === 0)
@@ -81,9 +90,9 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 		}
 		
 		"throw exception if insufficient particles" in new Setup {
-			val elevenParticles = 11
+			val numParticlesReqd = 11
 			intercept[AssertionError]{
-				val result = getInstance(elevenParticles).apply(inProgress)
+				val result = instance.apply(inProgress)
 			}
 		}
 		
