@@ -48,15 +48,16 @@ object Equals extends App {
    */
   case class Box[A](label: String, item: A)
   object Box{
-    // TODO create Eq type class instance for Box here
+    // TODO create Eq type class instance here for Box here
   }
+ 
   
-  // These should pass
+  // These should pass when uncommented
 //  assert(Box("Food", "Chocolate") =!= Box("Food", "Cake"), "Chocolate is different to cake")
 //  assert(Box("TS", TimeStamped(1)) === Box("TS", TimeStamped(1)), "Timestamps in boxes are 'equivalent'")
   
   //This shouldn't compile
-//  Container("One", 1) =!= Container("One", "1")
+//  Box("One", 1) =!= Box("One", "1")
   
   
   

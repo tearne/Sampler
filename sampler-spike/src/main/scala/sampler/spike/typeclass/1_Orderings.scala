@@ -1,6 +1,6 @@
 package sampler.spike.typeclass
 
-object One_Ordering extends App {
+object Orderings extends App {
    
    /*
     *  We can sort list of Ints and Strings
@@ -57,14 +57,14 @@ object One_Ordering extends App {
    final case class Thing(thing: String)  extends Item
 
    /*
-    *  Challenge 
+    *  Challenge:
     *  Complete the customOrdering so that the code below prints out 
     *  List(Coffee, Coffee, Thing(A), Thing(B), Thing(C))
     */
-   implicit val customOrdering: Ordering[Item] = {
-     ???
-   }
+   implicit val customOrdering: Ordering[Item] = ???
    
    val items = List[Item](Coffee, Thing("C"), Coffee, Thing("A"), Thing("B"))
-//   println(items.sorted)  // Uncomment me
+   println(items.sorted)  // Uncomment me
+   
+   println("cat" < "dog")
 }
