@@ -6,10 +6,10 @@ import play.api.libs.json.Json
 import sampler.io.Tokenable
 
 object StandardReport {
-  def apply[Params: Tokenable](wd: Path): Population[Params] => Unit = {
+  def apply[Params: Tokenable](wd: Path, prefix: String = "Gen"): Population[Params] => Unit = {
     pop: Population[Params] => {
   		val json = Json.prettyPrint(pop.toJSON())
-  		FileUtils.write(wd.resolve(s"Gen${pop.iteration}.json").toFile, json)
+  		FileUtils.write(wd.resolve(f"$prefix${pop.iteration}%03d.json").toFile, json)
     }
 	}
 }
