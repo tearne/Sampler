@@ -7,7 +7,8 @@ object Script {
   
   def killJava(mainClass: String) = {
     val className = mainClass.split('.').last
-    s"pkill -f 'java.*$className'"
+    val packageName = mainClass.split('.').head
+    s"pkill -f 'java.*$packageName'"
   }
   
   def checkJavaRunning(mainClass: String) = {
