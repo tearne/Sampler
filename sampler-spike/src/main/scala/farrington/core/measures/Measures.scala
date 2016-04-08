@@ -1,6 +1,9 @@
 package farrington.core.measures
 
 import farrington.core.result.FarringtonResult
+import java.nio.file.Path
+import java.nio.charset.Charset
+import java.nio.file.Files
 
 case class Measures(
     POD: Boolean,
@@ -125,6 +128,18 @@ case object Measures {
     val ttcd = timeToConsecutiveDetection(data, tStart, tEnd)
     val potd = proportionDetected(data, tStart, tEnd)
     Measures(alert, consecutive, fpr, fprCon, ppv, ppvCon, ttd, ttcd, potd)    
+  }
+  
+  // Write times to detection to CSV file for APHA
+  def writeTTD(ttdHist: List[(Int, Int)], path: Path, csvName: String) = {
+    val writer = Files.newBufferedWriter(path.resolve(csvName), Charset.defaultCharset())
+    writer.write("time, count")
+    writer.newLine
+    for (i <- 0 until ttdHist.length) {
+      writer.write(s"${ttdHist(i)._1.toString}, ${ttdHist(i)._2.toString}")
+      writer.newLine
+    }
+    writer.close
   }
   
 }

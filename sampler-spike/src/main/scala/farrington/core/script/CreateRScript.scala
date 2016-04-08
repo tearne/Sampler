@@ -72,6 +72,24 @@ object CreateRScript {
 
   }
   
+  def plotTTD(csvName: String, pdfName: String) = {
+    s"""        
+      data = read.csv("$csvName")            
+      cmin = 0
+      cmax = max(APHA[["count"]], FarNew[["count"]], Stl[["count"]])      
+      pdf("$pdfName", width=4.13, height=2.91) #A7 landscape paper
+      
+      barplot(data[["count"]],
+            names.arg = as.character(data[["time"]]),
+            ylim = c(cmin, cmax),
+            main = "Time to detection",
+            xlab = "Time to detect outbreak (months)",
+            ylab = "No. of counts")
+      
+      dev.off()
+      """
+  }
+  
   def plotTwo(yLabel: String, csvName: String, pdfName: String) = {
     s"""
         
