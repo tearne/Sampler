@@ -1,5 +1,9 @@
 package farrington.core.measures
 
+import java.nio.file.Files
+import java.nio.charset.Charset
+import scala.reflect.io.Path
+
 case class AverageMeasures(
     POD: Double,
     POCD: Double,
@@ -41,7 +45,7 @@ case object AverageMeasures{
     
   }
   
-  def print(avgMeasures: AverageMeasures) = {
+  def print(avgMeasures: AverageMeasures): Unit = {
     import avgMeasures._
     println("Probability of any detection = " + POD)  
     println("Probability of consecutive detection = " + POCD)    
@@ -52,6 +56,10 @@ case object AverageMeasures{
     println("Time to detection = " + TTD)    
     println("Time to detection (consecutive) = " + TTCD) 
     println("Proportion of outbreak times detected = " + POTD)
+  }
+  
+  def toString(avgMeasures: AverageMeasures): String = {
+    s"${avgMeasures.POD},${avgMeasures.POCD},${avgMeasures.FPR},${avgMeasures.FPRCon},${avgMeasures.PPV},${avgMeasures.PPVCon},${avgMeasures.TTD},${avgMeasures.TTCD},${avgMeasures.POTD}"
   }
   
 }

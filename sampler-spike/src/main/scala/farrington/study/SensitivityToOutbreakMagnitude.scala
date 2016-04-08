@@ -20,7 +20,7 @@ object SensitivityToOutbreakMagnitude extends App {
   // User-defined parameters
   
   // Number of sets of data to simulate
-  val nSimulations = 150
+  val nSimulations = 50
   
   // Number of months for which to simulate data:
   val nData = 462
@@ -57,33 +57,27 @@ object SensitivityToOutbreakMagnitude extends App {
   val nk = magnitude.length
 
   RServeHelper.ensureRunning()
-  val stats = (0 until nSimulations).par.map{ i =>
+  val stats = (0 until nk).par.map{ i =>
   //val stats = (0 until nSimulations).map{i =>
     println(i)
     
-    // Simulate two sets of baseline data and combine to create full set
-    val data = (0 until nk).map{j => 
-      SimulateOutbreakData.run(nData, endYear,outbreakShape, outbreakLength, endPreOutbreak, endOutbreak, magnitude(j))
-    }
+    val results = (0 until nSimulations).par.map{ j => 
+      val data = SimulateOutbreakData.run(nData, endYear,outbreakShape, outbreakLength, endPreOutbreak, endOutbreak, magnitude(i))
+      val EDS_result = EDS.run(data, endBaseline, mode)
+      Measures.allMeasures(EDS_result, data.start, data.end)
+    }.toIndexedSeq
+    AverageMeasures.calculate(results, nSimulations)
     
-    // Run EDS for each data set
-    val EDS_result = (0 until nk).map(i => EDS.run(data(i), endBaseline, mode))
-    
-    // Calculate measures
-    Measures.allMeasures(EDS_result(i), data(i).start, data(i).end)    
-    
-  }  
+  }.toIndexedSeq 
   RServeHelper.shutdown
-  
-  val avgMeasures = AverageMeasures.calculate(stats.toIndexedSeq, nSimulations)
-  AverageMeasures.print(avgMeasures)
-  
+  println(stats)
+
   //=======================
   // Output and plot
   
-//  plotTwo(resultsDir, "Probability of detection", "POD.csv", "POD.r", "POD.pdf", magnitude, POD, POCD)
-//  plotTwo(resultsDir, "False positive rate", "FPR.csv", "FPR.r", "FPR.pdf", magnitude, FPR, FPRCon)
-//  plotTwo(resultsDir, "Positive predictive value", "PPV.csv", "PPV.r", "PPV.pdf", magnitude, PPV, PPVCon)
+  plotTwo(resultsDir, "Probability of detection", "POD.csv", "POD.r", "POD.pdf", magnitude, stats.map(_.POD), stats.map(_.POCD))
+  plotTwo(resultsDir, "False positive rate", "FPR.csv", "FPR.r", "FPR.pdf", magnitude, stats.map(_.FPR), stats.map(_.FPRCon))
+  plotTwo(resultsDir, "Positive predictive value", "PPV.csv", "PPV.r", "PPV.pdf", magnitude, stats.map(_.PPV), stats.map(_.PPVCon))
   
   def plotTwo(
       resultsDir: Path,
