@@ -130,6 +130,19 @@ case object Measures {
     Measures(alert, consecutive, fpr, fprCon, ppv, ppvCon, ttd, ttcd, potd)    
   }
   
+  def print(measures: Measures): Unit = {
+    import measures._
+    println("Probability of any detection = " + POD)  
+    println("Probability of consecutive detection = " + POCD)    
+    println("False positive rate = " + FPR)    
+    println("False positive rate (consecutive) = " + FPRCon)    
+    println("Positive prediction value = " + PPV)    
+    println("Positive prediction value (consecutive) = " + PPVCon)
+    println("Time to detection = " + TTD)    
+    println("Time to detection (consecutive) = " + TTCD) 
+    println("Proportion of outbreak times detected = " + POTD)
+  }
+  
   // Write times to detection to CSV file for APHA
   def writeTTD(ttdHist: List[(Int, Int)], path: Path, csvName: String) = {
     val writer = Files.newBufferedWriter(path.resolve(csvName), Charset.defaultCharset())

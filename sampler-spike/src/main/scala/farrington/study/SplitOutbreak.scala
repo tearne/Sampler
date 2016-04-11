@@ -1,12 +1,19 @@
-package sampler.spike.farrington_old
+package farrington.study
 
-import java.nio.file.Paths
-import sampler.r.rserve.RServeHelper
-import java.nio.file.Files
-import java.nio.charset.Charset
 import sampler.r.process.ScriptRunner
+import java.nio.charset.Charset
+import java.nio.file.Files
+import farrington.core.algorithm.EDS
+import sampler.r.rserve.RServeHelper
+import farrington.core.simulate.SimulateOutbreakData
+import farrington.core.simulate.BaselineData
+import farrington.core.simulate.OutbreakData
+import java.nio.file.Paths
+import java.nio.file.Paths
+import farrington.core.measures.Measures
+import farrington.core.measures.AverageMeasures
 
-object EDS_splitData extends App {
+object SplitOutbreak {
   
   //=======================
   // User-defined parameters
@@ -43,8 +50,8 @@ object EDS_splitData extends App {
   // Simulate outbreak data
   
   // Simulate two sets of baseline data and combine to create full set
-  val dataBaseline1 = GenerateData.runBaseline(nData, endYear)
-  val dataBaseline2 = GenerateData.runBaseline(nData, endYear)
+  val dataBaseline1 = SimulateOutbreakData.runBaseline(nData, endYear)
+  val dataBaseline2 = SimulateOutbreakData.runBaseline(nData, endYear)
   val year = dataBaseline1.year
   val month = dataBaseline1.month
   val mean1 = dataBaseline1.mean
@@ -54,30 +61,30 @@ object EDS_splitData extends App {
   val baselineFull = baseline1.zip(baseline2).map(i => i._1 + i._2)
   
   val meanFull = (0 until mean1.length).map(i => mean1(i) + mean2(i))
-  val dataBaselineFull = BaselineResult(year, month, baselineFull, meanFull)
+  val dataBaselineFull = BaselineData(year, month, baselineFull, meanFull)
   
   // Simulate an outbreak using the full set of baseline data
-  val data = GenerateData.addOutbreak(
+  val data = SimulateOutbreakData.addOutbreak(
     dataBaselineFull, outbreakShape, outbreakLength, endPreOutbreak, endOutbreak, magnitude
   )
   
   // Split the outbreak and add to the two smaller sets of baseline data:
-  val (outbreak1, outbreak2) = GenerateData.splitOutbreak(data.hist, data.start)
-  val data1 = GenerationResult(
+  val (outbreak1, outbreak2) = SimulateOutbreakData.splitOutbreak(data.hist, data.start)
+  val data1 = OutbreakData(
       year,
       month,
       baseline1,
-      GenerateData.addList(baseline1, outbreak1),
+      SimulateOutbreakData.addList(baseline1, outbreak1),
       outbreak1.map{ case (key, value) => (key - data.start + 1, value) },
       data.start,
       data.end,
       data.min,
       data.max)
-  val data2 = GenerationResult(
+  val data2 = OutbreakData(
       year,
       month,
       baseline2,
-      GenerateData.addList(baseline2, outbreak2),
+      SimulateOutbreakData.addList(baseline2, outbreak2),
       outbreak2.map{ case (key, value) => (key - data.start + 1, value) },
       data.start,
       data.end,
@@ -91,80 +98,9 @@ object EDS_splitData extends App {
   val dataSplit2 = EDS.run(data2, endBaseline)
   RServeHelper.shutdown
   
-  // Probability of detection
-  val detectedFull = EDS.detected(dataFull, data.start, data.end)    
-  val detectedSplit1 = EDS.detected(dataSplit1, data.start, data.end)    
-  val detectedSplit2 = EDS.detected(dataSplit2, data.start, data.end)
-  
-  val POD = IndexedSeq(detectedFull, detectedSplit1, detectedSplit2)
-  
-  // Probability of consecutive detection
-  val consecutiveFull = EDS.detectedConsecutive(dataFull, data.start, data.end)    
-  val consecutiveSplit1 = EDS.detectedConsecutive(dataSplit1, data.start, data.end)    
-  val consecutiveSplit2 = EDS.detectedConsecutive(dataSplit2, data.start, data.end)
-  
-  val POCD = IndexedSeq(consecutiveFull, consecutiveSplit1, consecutiveSplit2)
-  
-  // False Positive Rate
-  val fprFull = EDS.falsePositiveRate(dataFull, data.start, data.end)
-  val fprSplit1 = EDS.falsePositiveRate(dataSplit1, data.start, data.end)
-  val fprSplit2 = EDS.falsePositiveRate(dataSplit2, data.start, data.end)
-  
-  val FPR = IndexedSeq(fprFull, fprSplit1, fprSplit2)
-  
-  // False Positive Rate (consecutive)
-  val fprFullCon = EDS.fprConsecutive(dataFull, data.start, data.end)
-  val fprSplit1Con = EDS.fprConsecutive(dataSplit1, data.start, data.end)
-  val fprSplit2Con = EDS.fprConsecutive(dataSplit2, data.start, data.end)
-  
-  val FPRCon = IndexedSeq(fprFullCon, fprSplit1Con, fprSplit2Con)
-  
-  // Positive predictive value
-  val ppvFull = EDS.positivePredictive(dataFull, data.start, data.end)
-  val ppvSplit1 = EDS.positivePredictive(dataFull, data.start, data.end)
-  val ppvSplit2 = EDS.positivePredictive(dataFull, data.start, data.end)
-  
-  val PPV = IndexedSeq(ppvFull, ppvSplit1, ppvSplit2)
-  
-  // Positive predictive value
-  val ppvFullCon = EDS.ppvConsecutive(dataFull, data.start, data.end)
-  val ppvSplit1Con = EDS.ppvConsecutive(dataFull, data.start, data.end)
-  val ppvSplit2Con = EDS.ppvConsecutive(dataFull, data.start, data.end)
-  
-  val PPVCon = IndexedSeq(ppvFullCon, ppvSplit1Con, ppvSplit2Con)
-  
-  // Time To Detection
-  val timesFull = EDS.timeToDetection(dataFull, data.start, data.end)
-  val tFull = if (timesFull.length == 0) -1 else timesFull(0)
-  
-  val timesSplit1 = EDS.timeToDetection(dataSplit1, data.start, data.end)
-  val tSplit1 = if (timesSplit1.length == 0) -1 else timesSplit1(0)
-  
-  val timesSplit2 = EDS.timeToDetection(dataSplit2, data.start, data.end)
-  val tSplit2 = if (timesSplit2.length == 0) -1 else timesSplit2(0)
-  
-  val TTD = IndexedSeq(tFull, tSplit1, tSplit2)
-  
-  // Time To Consecutive Detection
-  val timesFullCon = EDS.timeToConsecutiveDetection(dataFull, data.start, data.end)
-  val tFullCon = if (timesFullCon.length == 0) -1 else timesFullCon(0)
-  
-  val timesSplit1Con = EDS.timeToConsecutiveDetection(dataSplit1, data.start, data.end)
-  val tSplit1Con = if (timesSplit1Con.length == 0) -1 else timesSplit1Con(0)
-  
-  val timesSplit2Con = EDS.timeToConsecutiveDetection(dataSplit2, data.start, data.end)
-  val tSplit2Con = if (timesSplit2Con.length == 0) -1 else timesSplit2Con(0)
-  
-  val TTCD = IndexedSeq(tFullCon, tSplit1Con, tSplit2Con)
-   
-  // Proportion of Outbreak Times Detected
-  val potdFull = EDS.proportionDetected(dataFull, data.start, data.end)    
-  val potdSplit1 = EDS.proportionDetected(dataSplit1, data.start, data.end)    
-  val potdSplit2 = EDS.proportionDetected(dataSplit2, data.start, data.end)
-  
-  val POTD = IndexedSeq(potdFull, potdSplit1, potdSplit2)
-  
-  MeasureData(POD, POCD, FPR, FPRCon, PPV, PPVCon, TTD, TTCD, POTD)
+  val measuresFull = Measures.allMeasures(dataFull, data.start, data.end)
+  val measuresSplit1 = Measures.allMeasures(dataSplit1, data1.start, data1.end)
+  val measuresSplit2 = Measures.allMeasures(dataSplit2, data2.start, data2.end)
   
   //=======================
   // Print relevant information to console:
@@ -182,11 +118,14 @@ object EDS_splitData extends App {
   println("Outbreak counts (split 1) " + data1.hist)
   println("Outbreak counts (split 2) " + data2.hist)
   
-  println("Outbreak detected = " + POD)
-  println("Outbreak detected consecutively = " + POCD)
-  println("False positive rate = " + FPR)
-  println("Time to detection = " + TTD)
-  println("Proportion of outbreak times detected = " + POTD)
+  println("Full data: ")
+  Measures.print(measuresFull)
+  
+  println("Split 1 data: ")
+  Measures.print(measuresSplit1)
+  
+  println("Split 2 data: ")
+  Measures.print(measuresSplit2)
   
   //=======================
   // Visualisation

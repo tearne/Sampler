@@ -74,6 +74,8 @@ object CompareEDS extends App {
   }.toIndexedSeq
   RServeHelper.shutdown
   
+  //TODO Check why second R connection refuses
+  
   RServeHelper.ensureRunning()
   val measures_farNew = (0 until nSimulations).par.map{ i =>
     println(i)    
@@ -124,9 +126,18 @@ object CompareEDS extends App {
   // Output and plot: Time to detection
   
   // Create histogram data for time to detection in form of List(time, count)
-  val TTD_APHA = measures_apha.map(_.TTD.head).groupBy{ x => x }.mapValues(_.size).toList.sorted
-  val TTD_FarNew = measures_farNew.map(_.TTD.head).groupBy{ x => x }.mapValues(_.size).toList.sorted
-  val TTD_Stl = measures_stl.map(_.TTD.head).groupBy{ x => x }.mapValues(_.size).toList.sorted
+  val TTD_APHA =
+    measures_apha
+      .map{i => if (i.TTD.length == 0) -1 else i.TTD.head}
+      .groupBy{ x => x }.mapValues(_.size).toList.sorted
+  val TTD_FarNew = 
+    measures_farNew
+      .map(i => if (i.TTD.length == 0) -1 else i.TTD.head)
+      .groupBy{ x => x }.mapValues(_.size).toList.sorted
+  val TTD_Stl =
+    measures_stl
+      .map(i => if (i.TTD.length == 0) -1 else i.TTD.head)
+      .groupBy{ x => x }.mapValues(_.size).toList.sorted
   
   // Write times to detection to CSV file for each mode
   Measures.writeTTD(TTD_APHA, resultsDir, csv_APHA)
