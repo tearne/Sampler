@@ -1,4 +1,4 @@
-package sampler.spike.farrington_old
+package farrington_old
 
 // Authors: Oliver Tearne, Robin Simons, Teedah Saratoon
 // Last edit: 16/03/2015

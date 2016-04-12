@@ -1,4 +1,4 @@
-package sampler.spike.farrington_old
+package farrington_old
 
 import java.nio.charset.Charset
 import java.nio.file.Files

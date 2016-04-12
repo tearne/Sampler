@@ -1,4 +1,4 @@
-package sampler.spike.farrington_old
+package farrington_old
 
 import scala.annotation.tailrec
 import org.apache.commons.math3.distribution.PoissonDistribution

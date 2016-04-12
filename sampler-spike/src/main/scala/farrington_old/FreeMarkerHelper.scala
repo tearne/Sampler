@@ -1,4 +1,4 @@
-package sampler.spike.farrington_old
+package farrington_old
 
 import freemarker.template.Configuration
 import java.nio.file.Paths
