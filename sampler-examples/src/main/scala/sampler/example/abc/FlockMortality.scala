@@ -36,102 +36,53 @@ import sampler.Implicits.RichIndexedSeq
 import sampler.abc.ABC
 import sampler.abc.Model
 import sampler.abc.Prior
-import sampler.abc.config.ABCConfig
+import sampler.abc.ABCConfig
 import sampler.data.Distribution
 import sampler.io.CSV
 import sampler.math.Random
 import sampler.math.Statistics.quantile
-import sampler.r.process.ScriptRunner
+import sampler.r.script.RScript
 import sampler.math.Statistics
+import sampler.data.DistributionBuilder
+import sampler.io.Tokenable
+import sampler.io.Tokens
+import java.math.MathContext
+import play.api.libs.json.Json
 
 object FlockMortality extends App {
 	import FlockMortalityModel._
-	import Statistics._
 	
 	val wd = Paths.get("results").resolve("FlockMortality")
 	Files.createDirectories(wd)
 	implicit val modelRandom = FlockMortalityModel.modelRandom 
 	
-//	val numParticles = 100
-//	val numReplicates = 1
-//	val numGenerations = 16
-//	val	particleRetries = 1000
-//	val	particleChunkSize = 50
+	val abcConfig = ABCConfig(ConfigFactory.load.getConfig("flock-mortality-example"))
+	val posterior = ABC(FlockMortalityModel, abcConfig)
 	
-	val abcParams = ABCConfig.fromTypesafeConfig(
-		ConfigFactory.load,
-		"flock-mortality-example"
-	)
-	
-	val posterior = ABC(FlockMortalityModel, abcParams)
-	
-	val outData = Map(
-		"Beta" -> posterior.map(_.beta),
-		"Eta" -> posterior.map(_.eta),
-		"Gamma" -> posterior.map(_.gamma),
-		"Sigma" -> posterior.map(_.sigma),
-		"Sigma2" -> posterior.map(_.sigma2)
-	)
-	
-	val posteriors = outData.mapValues(_.toEmpiricalSeq)
-	
-	def toJsonArray(values: Seq[Double]): String = {
-		val sb = StringBuilder.newBuilder
-		sb.append('[')
-		sb.append(values.head)
-		values.tail.foreach{v => 
-			sb.append(',')
-			sb.append(v)
-		}
-		sb.append(']')
-		sb.toString
-	}
-	
-	val json = s"""
-var data = {
-	"Beta" : ${toJsonArray(outData("Beta"))},
-	"Eta" : ${toJsonArray(outData("Eta"))},
-	"Gamma" : ${toJsonArray(outData("Gamma"))},
-	"Sigma" : ${toJsonArray(outData("Sigma"))},
-	"Sigma2" : ${toJsonArray(outData("Sigma2"))}
-}
-		
-		
-"""
-	val jsWriter = Files.newBufferedWriter(
-		wd.resolve("data.js.txt"), 
-		Charset.defaultCharset()
-	)
-	jsWriter.write(json)
-	jsWriter.close()
-	
-	
-	val csvName = "results.csv"
+	val writer = Files.newBufferedWriter(wd.resolve("posterior.json"), Charset.defaultCharset())
+	writer.write(Json.prettyPrint(posterior.toJSON()))
+	writer.close()
 	
 	CSV.writeLines(
 			wd.resolve("obseravtions.csv"), 
 			Seq("Eggs", "Dead") +: observed.dailyEggs.zip(observed.dailyEggs).map(_.productIterator.toSeq) 
 	)
-	
-	CSV.writeLines(
-			wd.resolve(csvName),
-			Parameters.header +: posterior.map(_.toSeq)
-	)
-	
+
 	//Get median fit data
-	val medBeta = quantile(posterior.map(_.beta).toEmpiricalSeq, 0.5)
-	val medEta = quantile(posterior.map(_.eta).toEmpiricalSeq, 0.5)
-	val medGamma = quantile(posterior.map(_.gamma).toEmpiricalSeq, 0.5)
-	val medDelta = quantile(posterior.map(_.delta).toEmpiricalSeq, 0.5)
-	val medSigma = quantile(posterior.map(_.sigma).toEmpiricalSeq, 0.5)
-	val medSigma2 = quantile(posterior.map(_.sigma2).toEmpiricalSeq, 0.5)
-	val medOffset = quantile(posterior.map(_.offset).map(_.toDouble).toEmpiricalTable, 0.5).toInt
+	val posteriorSamplable = DistributionBuilder.fromWeightsTable(posterior.particleWeights)
+	val bunchOfSamples = (1 to 100000).map(_ => posteriorSamplable.sample)
+	val medBeta = quantile(bunchOfSamples.map(_.beta).toEmpiricalSeq, 0.5)
+	val medEta = quantile(bunchOfSamples.map(_.eta).toEmpiricalSeq, 0.5)
+	val medGamma = quantile(bunchOfSamples.map(_.gamma).toEmpiricalSeq, 0.5)
+	val medDelta = quantile(bunchOfSamples.map(_.delta).toEmpiricalSeq, 0.5)
+	val medSigma = quantile(bunchOfSamples.map(_.sigma).toEmpiricalSeq, 0.5)
+	val medSigma2 = quantile(bunchOfSamples.map(_.sigma2).toEmpiricalSeq, 0.5)
+	val medOffset = quantile(bunchOfSamples.map(_.offset).map(_.toDouble).toEmpiricalTable, 0.5).toInt
 	
 	val medianParams = FlockMortalityParams(medBeta, medEta, medGamma, medDelta, medSigma, medSigma2, medOffset)
 	val fitted = modelDistribution(medianParams).sample
 	
 	val days = 0 until observed.dailyDead.size
-	println(days)
 	val cumulativeObsDead = observed.dailyDead.scanLeft(0){case (a,v)=> a + v.toInt}.tail
 	
 	case class Fitted(day: Int, fitEggs: Double, fitDead: Double, obsEggs: Int, obsDead: Int){
@@ -155,17 +106,19 @@ var data = {
 	)
 	
 	val rScript = 
-s"""
-lapply(c("ggplot2", "reshape", "deSolve"), require, character.only=T)
+"""
+lapply(c("ggplot2", "reshape", "jsonlite"), require, character.only=T)
 
-posterior = read.csv("$csvName")
+posterior = as.data.frame(fromJSON("posterior.json")$particles)
 observations = read.csv("obseravtions.csv")
 fitted = read.csv("fitted.csv")
 
+sampledPosterior = posterior[sample(nrow(posterior), replace = T, 1000, prob = posterior$weight),]
+
 pdf("density.pdf", width=4.13, height=2.91) #A7 landscape paper
-ggplot(melt(posterior[,colnames(posterior) != "Offset"]), aes(x=value, colour=variable)) + geom_density()
-ggplot(melt(posterior[,"Offset"]), aes(x=factor(value))) + 
-	geom_histogram() +
+ggplot(melt(subset(sampledPosterior, select = c(-offset, -weight))), aes(x=value, colour=variable)) + geom_density()
+ggplot(melt(sampledPosterior[,"offset"]), aes(x=factor(value))) + 
+	geom_bar() +
 	scale_x_discrete("Offset (days)")
 ggplot(fitted, aes(x=Day)) + 
 		geom_line(aes(y=FitEggs)) +
@@ -179,8 +132,7 @@ ggplot(fitted, aes(x=Day)) +
 dev.off()
 """
 
-	ScriptRunner.apply(rScript, wd.resolve("script.r"))
-	
+	RScript(rScript, wd.resolve("script.r"))
 }
 
 case class FlockMortalityParams(
@@ -193,6 +145,20 @@ case class FlockMortalityParams(
 			offset: Int
 ){
 	def toSeq = Seq(beta, eta, gamma, delta, sigma, sigma2, offset) 
+}
+object FlockMortalityParams{
+  implicit val tokenableInstance: Tokenable[FlockMortalityParams] = new Tokenable[FlockMortalityParams]{
+	  val mc = new MathContext(6)
+    def getTokens(p: FlockMortalityParams) = Tokens.named(
+      "beta" ->   BigDecimal(p.beta, mc),
+      "eta" ->    BigDecimal(p.eta, mc),
+      "gamma" ->  BigDecimal(p.gamma, mc),
+      "delta" ->  BigDecimal(p.delta, mc),
+      "sigma" ->  BigDecimal(p.sigma, mc),
+      "sigma2" -> BigDecimal(p.sigma2, mc),
+      "offset" -> BigDecimal(p.offset, mc)
+		)
+  }
 }
 
 object FlockMortalityModel extends Model[FlockMortalityParams] {
@@ -259,7 +225,7 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 			normal.density(at)
 		}
 	}
-	val threeDie = Distribution.uniform(IndexedSeq(-1,0,1))(random)
+	val threeDie = DistributionBuilder.uniform(IndexedSeq(-1,0,1))(random)
 	private def threeDensity(v: Int) = if(v <= 1 || v >= -1) 1.0 / 3 else 0
 	
 	def perturb(p: FlockMortalityParams) = {
@@ -385,7 +351,7 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 		}
 		
 		//Deterministic model will always return the same answer
-		Distribution.continually(solve)
+		DistributionBuilder.continually(solve)
 	}
 }
 

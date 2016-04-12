@@ -18,6 +18,7 @@
 package sampler
 
 import sampler.data.{ToEmpirical, ToSamplable}
+import sampler.io.Rounding
 
 /** Implicit conversions allowing Empirical and Samplable objects to be created from standard collections 
  *  Examples of usage can be found in [[sampler.data.ToEmpirical]], [[sampler.data.ToSamplable]]
@@ -26,3 +27,4 @@ import sampler.data.{ToEmpirical, ToSamplable}
 object Implicits 
 	extends ToEmpirical
 	with ToSamplable
+	with Rounding

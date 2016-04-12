@@ -17,85 +17,92 @@
 
 package sampler.abc
 
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeUnit.MILLISECONDS
 import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 import com.typesafe.config.ConfigFactory
 import akka.actor.ActorRef
 import akka.actor.ActorSystem
 import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout
-import sampler.abc.actor.Report
-import sampler.abc.actor.root.ABCActorImpl
-import sampler.abc.algorithm.Generation
-import sampler.abc.config.ABCConfig
+import sampler.abc.actor.main.MainActorImpl
 import sampler.cluster.PortFallbackSystemFactory
 import sampler.io.Logging
-import sampler.abc.actor.Start
-import scala.concurrent.duration.Duration
+import sampler.abc.actor.main.Start
 
 trait ABCActors {
 	val system: ActorSystem
 	def entryPointActor[P](
-			model: Model[P], 
-			abcParams: ABCConfig, 
-			reporting: Option[Report[P] => Unit]
-	): ActorRef 
+		model: Model[P],
+		config: ABCConfig,
+		generationHandler: Option[Population[P] => Unit]): ActorRef
 }
 
-trait ABCActorsImpl extends ABCActors{
+trait ABCActorsImpl extends ABCActors {
 	val system = PortFallbackSystemFactory("ABC")
-	
+
 	def entryPointActor[P](
-			model: Model[P], 
-			config: ABCConfig, 
-			reportAction: Option[Report[P] => Unit]) = {
-		
+		model: Model[P],
+		config: ABCConfig,
+		generationHandler: Option[Population[P] => Unit]) = {
+
 		system.actorOf(
-				Props(classOf[ABCActorImpl[P]], model, config, reportAction), 
-				"root"
-		)
+			Props(classOf[MainActorImpl[P]], model, config, generationHandler),
+			"root")
 	}
 }
 
 object ABC extends ABCActorsImpl with Logging {
 	def apply[P](
-			model: Model[P], 
-			config: ABCConfig, 
-			reporting: Report[P] => Unit
-	): Seq[P] = apply(model, config, Some(reporting))
-	
+			model: Model[P],
+			config: ABCConfig): Population[P] =
+		apply(model, config, None, UseModelPrior[P]())
+		
 	def apply[P](
-			model: Model[P], 
-			config: ABCConfig, 
-			reporting: Option[Report[P] => Unit] = None
-	): Seq[P] = {
+			model: Model[P],
+			config: ABCConfig,
+			genHandler: Population[P] => Unit): Population[P] =
+		apply(model, config, Some(genHandler), UseModelPrior())
+	
+  def resumeByRepeatingTolerance[P](
+	    model: Model[P],
+			config: ABCConfig,
+			population: Population[P]
+		): Population[P] = {
+	  apply(model, config, None, population)
+	}
 		
-		log.info("Num generations: {}",config.job.numGenerations)
-		log.info("Num particles: {}",config.job.numParticles)
-		log.info("Num replicates: {}",config.job.numReplicates)
-		log.info("Max particle retrys: {}",config.algorithm.maxParticleRetries)
-		log.info("Particle chunk size: {}",config.algorithm.particleChunkSize)
-		log.info("Mix rate {} MS",config.cluster.mixRateMS)
-		log.info("Mix payload: {}",config.cluster.mixPayloadSize)
-		log.info("Mix response threshold {} MS",config.cluster.mixResponseTimeoutMS)
-		log.info("Futures timeout {} MS",config.cluster.futuresTimeoutMS)
-		log.info("Particle memory generations: {}",config.cluster.particleMemoryGenerations)
-		log.info("Terminate at target generations: {}",config.cluster.terminateAtTargetGenerations)
-		log.info("Number of workers (router configured): {}", ConfigFactory.load().getInt("akka.actor.deployment./root/work-router.nr-of-instances"))
+	def resumeByRepeatingTolerance[P](
+	    model: Model[P],
+			config: ABCConfig,
+			population: Population[P],
+			genHandler: Population[P] => Unit
+		): Population[P] = {
+	  apply(model, config, Some(genHandler), population)
+	}
 		
-		val initState = Generation.init(model, config)
-		val actor = entryPointActor(model, config, reporting)
-		
-		implicit val timeout = Timeout(config.cluster.futuresTimeoutMS, TimeUnit.MILLISECONDS)
-		val future = (actor ? Start(initState)).mapTo[Report[P]]
-		val result = Await.result(future, Duration.Inf).posterior
-		
-		if(config.cluster.terminateAtTargetGenerations){
-			log.info("Terminating actor system")
+	def apply[P](
+			model: Model[P],
+			config: ABCConfig,
+			genHandler: Option[Population[P] => Unit],
+			initialPopulation: Generation[P]): Population[P] = {
+		info("      Job config: "+config.renderJob)
+		info("Algorithm config: "+config.renderAlgorithm)
+		info("  Cluster config: "+config.renderCluster)
+
+		val actor = entryPointActor(model, config, genHandler)
+
+		implicit val timeout = Timeout(config.futuresTimeoutMS, MILLISECONDS)
+		val future = (actor ? Start(initialPopulation)).mapTo[Population[P]]
+		val result = Await.result(future, Duration.Inf)
+		//TODO unlimited timeout just for the future above?
+
+		if (config.terminateAtTargetGen) {
+			info("Terminating actor system")
 			system.shutdown
 		}
-		
+
 		result
 	}
 }

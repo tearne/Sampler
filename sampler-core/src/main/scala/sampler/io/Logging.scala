@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2012-13 Crown Copyright 
- *                       Animal Health and Veterinary Laboratories Agency
+ * Copyright (c) 2012-15 Crown Copyright 
+ *                       Animal and Plant Health Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,12 @@ package sampler.io
 
 import org.slf4j.LoggerFactory
 
-trait Logging{
-	lazy val log = LoggerFactory.getLogger(getClass)
+trait Logging {
+	private[this] val logger = LoggerFactory.getLogger(getClass.getName)
+
+	def trace(msg: => String) { if (logger.isTraceEnabled) logger.trace(msg) }
+	def debug(msg: => String) { if (logger.isDebugEnabled) logger.debug(msg) }
+	def info(msg: => String) { if (logger.isInfoEnabled) logger.info(msg) }
+	def warn(msg: => String) { if (logger.isWarnEnabled) logger.warn(msg) }
+	def error(msg: => String) { if (logger.isErrorEnabled) logger.error(msg) }
 }

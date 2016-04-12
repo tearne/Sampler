@@ -19,21 +19,22 @@ package sampler.math
 
 import sampler.data.Empirical
 
-trait StatisticsComponentImpl{
+//TODO confirm whether to delete
+trait StatisticsImpl{
 	val statistics = new Statistics{}
 }
 
-
+//TODO confirm whether to delete
 trait StatisticsComponent{
 	val statistics: Statistics
 }
 
 trait Statistics{
 	
-  /** Returns the proportion (0-1 range) of items in Empirical which are greater than or equal to supplied value
+	 /** The proportion (0-1 range) of items in the Empirical which are greater than or equal to supplied value (inclusive)
    *  
    *  @param itemInclusive The value of interest, return value is inclusive of this value
-   *  @return a new Probability giving the right tail
+   *  @return Probability representing the proportion of items in the right tail
    *  */
 	def rightTail[A](e: Empirical[A], itemInclusive: A)(implicit o: Ordering[A]): Double = {
 		import e._
@@ -42,6 +43,14 @@ trait Statistics{
 		}
 		value
 	}
+	
+	//TODO test this
+	 /** The proportion (0-1 range) of items in the Empirical which are less than or equal to supplied value (inclusive)
+   *  
+   *  @param itemInclusive The value of interest, return value is inclusive of this value
+   *  @return Probability representing the proportion of items in the left tail
+   *  */
+	def leftTail[A](e: Empirical[A], itemInclusive: A)(implicit o: Ordering[A]) = rightTail(e, itemInclusive)(o.reverse)
 	
 	/** Takes a sequence of probabilities and returns the associated quantile values from an Empirical
 	 *  

@@ -4,7 +4,7 @@ import sampler.Implicits._
 import org.scalatest.Matchers
 import org.scalatest.FreeSpec
 
-class StasisticComponentTest extends FreeSpec with StatisticsComponent with Matchers {
+class StasisticComponentTest extends FreeSpec with Matchers {
 
   implicit val r = Random
   val tolerance = 1e-8

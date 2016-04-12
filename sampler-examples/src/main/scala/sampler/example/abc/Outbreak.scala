@@ -11,16 +11,22 @@ import com.typesafe.config.ConfigFactory
 import sampler.abc.ABC
 import sampler.abc.Model
 import sampler.abc.Prior
-import sampler.abc.actor.Report
-import sampler.abc.config.ABCConfig
+import sampler.abc.ABCConfig
 import sampler.data.Distribution
 import sampler.data.ToEmpirical
 import sampler.data.ToSamplable
 import sampler.io.CSV
 import sampler.math.Random
 import sampler.math.Statistics
-import sampler.r.process.ScriptRunner
+import sampler.r.script.RScript
 import sampler.io.Logging
+import sampler.data.DistributionBuilder
+import sampler.abc.Population
+import sampler.io.Tokenable
+import java.math.MathContext
+import sampler.io.Tokens
+import org.apache.commons.io.FileUtils
+import play.api.libs.json.Json
 
 /*
  * This file contains a number of applications
@@ -58,7 +64,7 @@ object Data extends ToSamplable with Logging {
 			observedFarms.contains(fidA) && observedFarms.contains(fidB)
 		})
 	
-		log.info(s"${fullMatrix.infectedFarms.size} true infections, ${observedPartialMatrix.infectedFarms.size} are used as observed")
+		info(s"${fullMatrix.infectedFarms.size} true infections, ${observedPartialMatrix.infectedFarms.size} are used as observed")
 		observedPartialMatrix
 	}
 }
@@ -77,9 +83,9 @@ object ObservedDataGenerator extends App with Logging {
 			SizeStopCondition(20),
 			true
 	)	
-	log.info("Generated outbreak size: "+fullOutbreak.size)
+	info("Generated outbreak size: "+fullOutbreak.size)
 	val companyInfections = fullOutbreak.infectionMap.collect{case (id, Infection(_,_,Some(Source(_,CompanyTransmission)))) => id}
-	log.info(s"${companyInfections.size} company Infections: $companyInfections")
+	info(s"${companyInfections.size} company Infections: $companyInfections")
 	
 	Files.createDirectories(Data.wd)
 	val header = Seq("FarmA", "FarmB", "Diff")
@@ -90,22 +96,22 @@ object FittingApplication extends App {
 	import Data._
 	val model = new ABCModel(loadProportionOfTrueOutbreakData(proportionOfCasesObserved))
 
-	val params = ABCConfig.fromTypesafeConfig(
-		ConfigFactory.load,
-		"network-outbreak-example"
+	val params = ABCConfig(
+		ConfigFactory.load.getConfig("network-outbreak-example")
 	)
 	
-	val reporting = { report: Report[Parameters] =>
-		import report._
-		
-		val lines = Parameters.names +: posterior.map(_.toSeq)
-		val fileName = f"posterior.$generationId%03d.csv"
-		CSV.writeLines(Data.wd.resolve(fileName), lines)
+	val reporting = { pop: Population[Parameters] =>
+		val fileName = f"posterior.${pop.iteration}%03d.json"
+		FileUtils.writeStringToFile(Data.wd.resolve(fileName).toFile(), Json.prettyPrint(pop.toJSON()))		
 		
 		val rScript = f"""
-			lapply(c("ggplot2", "reshape"), require, character.only=T)
+			lapply(c("ggplot2", "reshape", "jsonlite"), require, character.only=T)
 			
-			posterior = read.csv("$fileName")
+			posterior = as.data.frame(fromJSON("$fileName")$$particles)
+			sampledPosterior = subset(
+			  posterior[sample(nrow(posterior), replace = T, 100000, prob = posterior$$weight),],
+			  select = -weight
+			)
 
 			stats = function(values, name){
                 table = c(
@@ -115,7 +121,7 @@ object FittingApplication extends App {
                 df = data.frame(variable = names(table), param = name, value = as.vector(table))
                 df
             }
-            statsDF = rbind(stats(posterior$$Local, "Local"), stats(posterior$$Company, "Company"))
+      statsDF = rbind(stats(sampledPosterior$$Local, "Local"), stats(sampledPosterior$$Company, "Company"))
 			
 			truth = data.frame(value = c(
 				${Truth.parameters.spreadRates.local.rate},
@@ -123,15 +129,17 @@ object FittingApplication extends App {
 			), variable = c("Local", "Company"))
 			
 			pdf("Posterior.latest.pdf", width=8.26, height=2.91)
-			ggplot(melt(posterior), aes(x = value, linetype = variable)) + 
+			ggplot(melt(sampledPosterior), aes(x = value, linetype = variable)) + 
 				geom_density() +
 				geom_vline(data = statsDF, aes(xintercept = value, linetype = param, colour = variable), show_guide = TRUE) +
 				geom_vline(data = truth, aes(xintercept = value, linetype = variable)) +
 				scale_x_continuous(limits = c(0,1), breaks = c(0,0.2,0.4,0.6,0.8,1)) +
 				ggtitle("Sequence difference fitting")
 			dev.off()
+			
+			file.copy("Posterior.latest.pdf", "Posterior.${pop.iteration}%03d.pdf", overwrite=T)
 		"""
-		ScriptRunner.apply(rScript, Data.wd.resolve("script.r"))
+		RScript(rScript, Data.wd.resolve("script.r"))
 	}
 		
 	ABC(model, params, reporting)
@@ -186,7 +194,7 @@ object MetricTest extends App {
 			scale_colour_discrete("Company\nparameter")
 		dev.off()
 	"""
-	ScriptRunner.apply(rScript, wd.resolve("script.r"))
+	RScript.apply(rScript, wd.resolve("script.r"))
 }
 
 class ABCModel(observed: DifferenceMatrix) 
@@ -239,7 +247,7 @@ case class ModelWithSequenceMetric(observed: DifferenceMatrix) extends ToSamplab
 	}
 	fitList.foreach(println)
 	
-	def scoreDistribution(params: Parameters) = Distribution[Double]{
+	def scoreDistribution(params: Parameters) = DistributionBuilder[Double]{
 		val scores = fitList.toSeq.map{case ToFit(root, mechanism, obsDiff) =>
 			val directDestinations: Set[Int] = directDestByMech(root)
 				.collect{case (dest, `mechanism`) => dest}
@@ -325,7 +333,7 @@ object OutbreakModel extends Logging{
 			 		
 			 		if(logging){
 			 			(newCompanyInfections ++ newLocalInfections).foreach{case (newId,newInf) =>
-			 				log.info(s"Infection ($iFid)---->($newId), sequence delta = ${Sequence.differenceCount(infection.original , newInf.original)}")
+			 				info(s"Infection ($iFid)---->($newId), sequence delta = ${Sequence.differenceCount(infection.original , newInf.original)}")
 			 			}
 			 		} 
 			 		
@@ -337,7 +345,7 @@ object OutbreakModel extends Logging{
 		}
 		
 		@tailrec def iterate(current: Outbreak, tick: Int): Outbreak = {
-			if(logging) log.info(s"Now on tick $tick")
+			if(logging) info(s"Now on tick $tick")
 			if(stop(current, tick)) current
 			else {
 				val updated = addNewInfections(Outbreak.updateCurrentMutations(current))
@@ -444,7 +452,7 @@ case class Sequence(basesInReverseOrder: IndexedSeq[Int] = IndexedSeq.empty){
 }
 object Sequence{
 	implicit val r = Random
-	val randomBase = Distribution.uniform((1 to 4).toSeq)
+	val randomBase = DistributionBuilder.uniform((1 to 4).toSeq)
 
 	def mutate(s: Sequence) = Sequence(randomBase.sample +: s.basesInReverseOrder)
 		
@@ -469,6 +477,14 @@ case class Parameters(spreadRates: SpreadRates){
 	)
 }
 object Parameters{
+  implicit val tokenableInstance: Tokenable[Parameters] = new Tokenable[Parameters]{
+	  val mc = new MathContext(6)
+    def getTokens(p: Parameters) = Tokens.named(
+      "Company" ->   BigDecimal(p.spreadRates.company.rate, mc),
+      "Local" ->    BigDecimal(p.spreadRates.local.rate, mc)
+		)
+  }
+  
 	val prior = new Prior[Parameters]{
 		def density(p: Parameters) = {
 			import p._
