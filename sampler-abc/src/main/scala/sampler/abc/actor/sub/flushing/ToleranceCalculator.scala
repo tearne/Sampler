@@ -17,17 +17,17 @@
 
 package sampler.abc.actor.sub.flushing
 
-import sampler.abc.Weighted
 import sampler.math.StatisticsComponent
 import sampler.Implicits._
 import sampler.math.StatisticsImpl
 import sampler.io.Logging
 import sampler.abc.ABCConfig
 import sampler.math.Statistics
+import sampler.abc.actor.main.Weighted
 
 trait ToleranceCalculator extends StatisticsComponent with Logging {
-	def apply[P](weighedParameters: Seq[Weighted[P]], config: ABCConfig, currentTolerance: Double): Double = {
-		val percentileMeanScore = statistics.quantile(weighedParameters.map { _.meanRepScore }.toEmpiricalSeq, config.toleranceDescentPercentile)
+	def apply[P](weighted: Seq[Weighted[P]], config: ABCConfig, currentTolerance: Double): Double = {
+		val percentileMeanScore = statistics.quantile(weighted.map { _.meanScore }.toEmpiricalSeq, config.toleranceDescentPercentile)
 		if (percentileMeanScore == 0) {
 			warn("New tolerance evaluated to 0. Will use old tolerance again.")
 			currentTolerance

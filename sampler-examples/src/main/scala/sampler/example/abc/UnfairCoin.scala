@@ -51,13 +51,30 @@ object ResumeUnfairCoin extends UnfairCoinCommon with App {
   "generation" : 4,
   "tolerance" : 2,
   "acceptance-ratio" : 0.25,
-  "particles" : {
-    "pHeads" : [ 0.1, 0.2, 0.3 ],
-    "weight" : [ 1, 1, 1 ]
-  }
+  "particle-summary": {
+    "pHeads": [0.1, 0.2, 0.3],
+    "weight": [1,1,1]
+  },
+  "particle-details" : [
+    {
+      "Comment": " p=ParameterSet, s=RepScores, w=Weight",
+      "p": {"pHeads": 0.1},
+      "s": [1,1,1],
+      "w": 1
+    },{
+      "p": {"pHeads": 0.2},
+      "s": [1,1,1],
+      "w": 1
+      
+    },{
+      "p": {"pHeads": 0.3},
+      "s": [1,1,1],
+      "w": 1
+    }
+  ]
 }  
   """
-  FileUtils.writeStringToFile(wd.resolve("Gen4.json").toFile, prevGenJson)
+  FileUtils.writeStringToFile(wd.resolve("Gen004.json").toFile, prevGenJson)
   def parser(toks: Map[String, JsValue]) = CoinParams(toks("pHeads").as[Double])
   val prevGeneration = Population.fromJson(prevGenJson, parser _)
   
@@ -84,10 +101,11 @@ trait UnfairCoinCommon {
       load = function(file) {
       	raw = fromJSON(file)
       	data.frame(
-      	  raw$particles, 
+      	  raw$`particle-summary`, 
       	  Generation=factor(raw$generation), 
       	  ToleranceFactor = factor(raw$tolerance), 
-      	  AcceptanceRatio = raw$`acceptance-ratio`)
+      	  AcceptanceRatio = raw$`acceptance-ratio`
+      	)
       }
       merged = ldply(lapply(Sys.glob("Gen*.json"), load))
       

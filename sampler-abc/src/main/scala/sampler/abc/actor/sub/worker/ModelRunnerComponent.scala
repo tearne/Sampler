@@ -19,15 +19,13 @@ package sampler.abc.actor.sub.worker
 
 import scala.annotation.tailrec
 import scala.util.Try
-
-import sampler.abc.Model
-import sampler.abc.Scored
 import sampler.abc.actor.main.ScoredParticles
-import sampler.abc.actor.main.Tagged
 import sampler.abc.actor.sub.GenerateParticlesFrom
 import sampler.data.Distribution
 import sampler.io.Logging
 import sampler.math.Random
+import sampler.abc.actor.main.Scored
+import sampler.abc.Model
 
 class DetectedAbortionException() extends Exception("DetectedAbortionException")
 
@@ -77,7 +75,7 @@ trait ModelRunnerComponent[P] {
 				}
 			}
 
-			val seq = (1 to particleChunkSize).map(i => Tagged(getScoredParameter()))
+			val seq = (1 to particleChunkSize).map(i => getScoredParameter())
 			ScoredParticles(seq)
 		}
 	}

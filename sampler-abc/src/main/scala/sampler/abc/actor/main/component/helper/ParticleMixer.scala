@@ -2,10 +2,10 @@ package sampler.abc.actor.main.component.helper
 
 import sampler.math.Random
 import sampler.abc.actor.main.ScoredParticles
-import sampler.abc.actor.main.Tagged
 import sampler.abc.actor.main.EvolvingGeneration
 import sampler.Implicits
 import sampler.abc.ABCConfig
+import sampler.abc.actor.main.Weighted
 
 class ParticleMixer {
 	
@@ -20,8 +20,8 @@ class ParticleMixer {
 	
     if(weightedParticles.size > mixingSize) {
       val oneOfEachParticle = 
-      	weightedParticles.seq.map{case Tagged(weighted, uid) =>
-          	Tagged(weighted.scored, uid) -> 1
+      	weightedParticles.seq.map{case Weighted(scored, _) =>
+          	scored -> 1
         	}
         	.toMap
 
@@ -34,9 +34,7 @@ class ParticleMixer {
     } else if(weightedParticles.size > 0){
       val res = weightedParticles
       .seq
-      .map{case Tagged(weighted, uid) =>
-        Tagged(weighted.scored, uid)
-      }
+      .map(_.scored)
 			
       Some(ScoredParticles(res))
     } else None
