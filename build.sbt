@@ -1,5 +1,5 @@
 val buildOrganization = "org.tearne"
-val buildVersion = "0.2.9"
+val buildVersion = "0.2.10"
 val buildScalaVersion	= "2.11.7"
 
 lazy val commonSettings = Seq(

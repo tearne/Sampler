@@ -12,8 +12,10 @@ object Script {
   }
   
   def checkJavaRunning(mainClass: String) = {
-    val className = mainClass.split('.').last
-    s"jps | grep $className"
+    //TODO better testing (emergency change)
+    //val className = mainClass.split('.').last
+    //s"jps | grep $className"
+    "pgrep java"
   }
   	
   def unTar(parentDir: String, tarFile: String) = {
