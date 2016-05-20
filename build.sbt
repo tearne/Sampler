@@ -1,5 +1,5 @@
 val buildOrganization = "org.tearne"
-val buildVersion = "0.2.10"
+val buildVersion = "0.2.11"
 val buildScalaVersion	= "2.11.7"
 
 lazy val commonSettings = Seq(
@@ -127,7 +127,8 @@ lazy val abc = project.in(file("sampler-abc"))
       "org.apache.jclouds" % "jclouds-compute" % "1.9.2",
       "org.apache.jclouds.driver" % "jclouds-slf4j" % "1.9.1",
       "com.typesafe.play" %% "play-json" % "2.4.6",
-      "com.github.scopt" %% "scopt" % "3.3.0"
+      "com.github.scopt" %% "scopt" % "3.3.0",
+      "apha" % "tbmi" % "0.0.8"
     )
   )
   .settings(
