@@ -26,14 +26,14 @@ class AborterTest extends FreeSpec with MockitoSugar {
     		instance.checkIfAborted
     	}      
     	"resetting" in {
-    		pending
+    		fail("TODO")
     		// abort, reset, check no exception
     	}
     }
     "query abort status" - {
-      "when not aborted" in pending
-      "when aborted" in pending
-      "when reset" in pending
+      "when not aborted" in fail("TODO")
+      "when aborted" in fail("TODO")
+      "when reset" in fail("TODO")
     }
   }
 }

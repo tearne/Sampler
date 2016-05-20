@@ -1,5 +1,7 @@
 package sampler.abc.actor.sub.flushing
 
-class ObservedIdsTrimmerTest {
-  
+import org.scalatest.FreeSpec
+
+class ObservedIdsTrimmerTest extends FreeSpec{
+  "todo" in {fail("TODO")}
 }

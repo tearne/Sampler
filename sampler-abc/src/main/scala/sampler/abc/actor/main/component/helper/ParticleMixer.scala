@@ -5,7 +5,7 @@ import sampler.abc.actor.main.ScoredParticles
 import sampler.abc.actor.main.EvolvingGeneration
 import sampler.Implicits
 import sampler.abc.ABCConfig
-import sampler.abc.actor.main.Weighted
+import sampler.abc.Weighted
 
 class ParticleMixer {
 	

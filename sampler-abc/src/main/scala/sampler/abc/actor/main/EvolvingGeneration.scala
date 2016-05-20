@@ -1,7 +1,5 @@
 package sampler.abc.actor.main
 
-//import sampler.abc.Scored
-//import sampler.abc.Weighted
 import scala.collection.immutable.Queue
 import sampler.abc.Generation
 import sampler.abc.UseModelPrior
