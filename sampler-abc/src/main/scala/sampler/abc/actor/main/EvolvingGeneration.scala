@@ -4,6 +4,7 @@ import scala.collection.immutable.Queue
 import sampler.abc.Generation
 import sampler.abc.UseModelPrior
 import sampler.abc.Population
+import sampler.abc.Weighted
 
 case class EvolvingGeneration[P](
 	currentTolerance: Double,
@@ -12,8 +13,13 @@ case class EvolvingGeneration[P](
 	weighed: WeighedParticles[P],
 	idsObserved: Queue[Long]
 ){
-	def emptyWeighingBuffer = copy(dueWeighing = ScoredParticles.empty)
+	def emptyWeighingBuffer() = copy(dueWeighing = ScoredParticles.empty)
 	lazy val buildingGeneration = previousGen.iteration + 1
+	def mixingPool(): Seq[Weighted[P]] = 
+	  weighed.seq ++ (previousGen match{
+  	  case UseModelPrior(_) => Nil
+  	  case pop: Population[P] => pop.weightedParticles
+  	})
 }
 
 object EvolvingGeneration {

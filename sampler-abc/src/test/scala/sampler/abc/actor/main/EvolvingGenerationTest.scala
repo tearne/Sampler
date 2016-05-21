@@ -14,11 +14,41 @@ import sampler.abc.Model
 import sampler.abc.Prior
 import sampler.abc.UseModelPrior
 import sampler.abc.Population
+import sampler.abc.UseModelPrior
 
 class EvolvingGenerationTest extends FreeSpec with Matchers with MockitoSugar {
 	type T = Int
 	
 	"EvolvingGeneration should" - {
+	  "Combine current and a previous generations particles in mix pool" in {
+	    val currentParticles = (1 to 3).map(_ => mock[Weighted[Int]]).toSeq
+	    val previousParticles = (1 to 3).map(_ => mock[Weighted[Int]]).toSeq
+	    
+	    val instance = EvolvingGeneration(
+	        0,
+	        Population(previousParticles, 0, 0, 0),
+	        null,
+	        WeighedParticles(currentParticles, 0),
+	        null
+	      )
+	    
+	    assert(instance.mixingPool === currentParticles ++ previousParticles)
+	  }
+	  
+	  "Only use current particles for mix pool if previous gen was a prior" in {
+	    val currentParticles = (1 to 3).map(_ => mock[Weighted[Int]]).toSeq
+	    
+	    val instance = EvolvingGeneration(
+	        0,
+	        UseModelPrior(0),
+	        null,
+	        WeighedParticles(currentParticles, 0),
+	        null
+	      )
+	    
+	    assert(instance.mixingPool === currentParticles)
+	  }
+	  
 		"Initialise with model prior and tolerance infinity" in {
 		  val gen0 = UseModelPrior[T]()
 			val result = EvolvingGeneration.buildFrom(gen0)

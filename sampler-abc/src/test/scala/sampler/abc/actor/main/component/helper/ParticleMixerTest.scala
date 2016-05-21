@@ -15,7 +15,9 @@ import sampler.abc.actor.main.ScoredParticles
 import sampler.abc.actor.main.WeighedParticles
 import sampler.math.Random
 
-class ParticleMixerTest extends FreeSpec with Matchers with MockitoSugar with BeforeAndAfter{
+import org.mockito.Mockito._
+
+class ParticleMixerTest extends FreeSpec with Matchers with MockitoSugar with BeforeAndAfter {
 
   "ParticleMixer should" - {
     val instance = new ParticleMixer()
@@ -39,50 +41,30 @@ class ParticleMixerTest extends FreeSpec with Matchers with MockitoSugar with Be
     val irrelevant = 1
     
     "return None when no weighed particles present in generation" in {
-    	//TODO why not just return an empty seq?
-      val eGen = EvolvingGeneration[Int](
-          0.1,
-          null,
-          ScoredParticles.empty,
-          WeighedParticles.empty,
-          Queue()
-        )
-        
-      assert(instance.apply(eGen, config)(null) === None)
+      val eGen = mock[EvolvingGeneration[Int]]
+      when(eGen.mixingPool).thenReturn(Seq.empty[Weighted[Int]])  
+      
+      val result = instance.apply(eGen, config)(null)
+      assert(result === None)
     }
     
-    "return all current weighed particles if fewer available than mixing size" in {
-      val eGen = EvolvingGeneration[Int](
-          0.1,
-          null,
-          ScoredParticles(Seq()),
-          WeighedParticles(Seq(weighed1, weighed2), irrelevant),
-          Queue()
-      )
+    "return all current weighed particles if fewer available than mixing size" in {      
+      val eGen = mock[EvolvingGeneration[Int]]
+      when(eGen.mixingPool).thenReturn(Seq(weighed1, weighed2))  
         
       val result = instance.apply(eGen, config)(null).get
-      
-      assert(result.seq.size === 2)
-      assert(result.seq.contains(scored1))
-      assert(result.seq.contains(scored2))
+      assert(result.seq == Seq(scored1, scored2))
     }
     
     "randomly select from weighted particles when more present than required" in {
-      val gen1 = EvolvingGeneration[Int](
-          0.1,
-          null,
-          ScoredParticles(Seq()),
-          WeighedParticles(Seq(weighed1, weighed2, weighed3, weighed4), irrelevant),
-          Queue()
-        )
-      
-        println(gen1)
+      val eGen = mock[EvolvingGeneration[Int]]
+      when(eGen.mixingPool).thenReturn(Seq(weighed1, weighed2, weighed3, weighed4))  
       val iterations = 10
         
       //TODO something clever with mock random or distriubtion builder?
       def buildSamples(acc: Seq[Scored[Int]], count:Int = 0, reps: Int = iterations): Seq[Scored[Int]] = {
         if(count >= reps) acc
-        else buildSamples(acc ++ instance.apply(gen1, config)(Random).get.seq, count+1)
+        else buildSamples(acc ++ instance.apply(eGen, config)(Random).get.seq, count+1)
       }
       
       val accum = buildSamples(Seq.empty)
