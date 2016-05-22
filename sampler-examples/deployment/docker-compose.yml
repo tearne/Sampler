@@ -1,0 +1,14 @@
+version: '2'
+
+services:
+  seed:
+    build: 
+      context: .
+    image: abc-example
+    hostname: "akkaseed"
+    command: "./localApplicationTest.sh -Dakka.remote.netty.tcp.hostname=akkaseed -Dakka.cluster.seed-nodes.0=akka.tcp://ABC@akkaseed:2552"
+
+  node:
+    image: abc-example
+    links: ["seed:akkaseed"]
+    command: "./localApplicationTest.sh -Dakka.cluster.seed-nodes.0=akka.tcp://ABC@akkaseed:2552"

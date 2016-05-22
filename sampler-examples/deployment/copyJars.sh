@@ -1,5 +1,5 @@
-PROJ_DIR=~/ENVIRONMENT/Sampler
-TARGET_DIR=$PROJ_DIR/sampler-examples/deploy/lib
+PROJ_DIR=~/ENV/code/Sampler
+TARGET_DIR=$PROJ_DIR/sampler-examples/deployment/payload/lib
 
 mkdir -p $TARGET_DIR
 
