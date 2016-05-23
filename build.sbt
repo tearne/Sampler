@@ -2,6 +2,9 @@ val buildOrganization = "org.tearne"
 val buildVersion = "0.2.9"
 val buildScalaVersion	= "2.11.7"
 
+val logbackClassic = "ch.qos.logback" % "logback-classic" % "1.1.1"
+val commonsIO = "commons-io" % "commons-io" % "2.4"
+
 lazy val commonSettings = Seq(
   organization := buildOrganization,
   version		 := buildVersion,
@@ -53,7 +56,6 @@ lazy val root = project.in(file("."))
 
 lazy val core = project.in(file("sampler-core"))
   .settings(commonSettings: _*)
-  //.settings(assySettings: _*)
   .settings(packageSettings: _*)
   .settings(
     name := "sampler-core"
@@ -67,7 +69,7 @@ lazy val arrr = (project in file("sampler-r"))
     libraryDependencies ++= Seq(
       "rengine" % "rengine" % "2015-01-20" from "http://rforge.net/Rserve/files/REngine.jar",
       "rserveengine" % "rserveengine" % "2015-01-20" from "http://rforge.net/Rserve/files/RserveEngine.jar",
-      "ch.qos.logback" % "logback-classic" % "1.1.1"
+      logbackClassic
     )
   )
   .settings(
@@ -77,21 +79,22 @@ lazy val arrr = (project in file("sampler-r"))
 lazy val examples = project.in(file("sampler-examples"))
   .dependsOn(core, abc, arrr)
   .settings(commonSettings: _*)
-  //.settings(assySettings: _*)
   .settings(packageSettings: _*)
   .settings(
     libraryDependencies ++= Seq(
       "org.apache.commons" % "commons-math3" % "3.2",
       "org.json4s" %% "json4s-native" % "3.2.10",
-      "ch.qos.logback" % "logback-classic" % "1.1.1",
-      "org.apache.commons" % "commons-io" % "1.3.2",
+      logbackClassic,
+      commonsIO,
       "org.apache.jclouds.provider" % "aws-ec2" % "1.9.1",
       "org.apache.jclouds.provider" % "softlayer" % "1.9.1"
     )
   )
   .settings(
-    name := "sampler-examples"
+    name := "sampler-examples",
+    mainClass in Compile := Some("sampler.example.abc.UnfairCoin")
   )
+  .enablePlugins(JavaAppPackaging)
 
 lazy val spike = project.in(file("sampler-spike"))
   .dependsOn(core, arrr)
@@ -102,7 +105,7 @@ lazy val spike = project.in(file("sampler-spike"))
       "org.json4s" %% "json4s-native" % "3.2.11",
       "rengine" % "rengine" % "2015-01-20" from "http://rforge.net/Rserve/files/REngine.jar",
       "rserveengine" % "rserveengine" % "2015-01-20" from "http://rforge.net/Rserve/files/RserveEngine.jar",
-      "ch.qos.logback" % "logback-classic" % "1.1.1",
+      logbackClassic,
       "org.freemarker" % "freemarker" % "2.3.21",
       "org.typelevel" %% "cats" % "0.4.1"
     )
@@ -122,7 +125,7 @@ lazy val abc = project.in(file("sampler-abc"))
       "com.typesafe.akka" %% "akka-slf4j" % "2.3.6",
       "com.typesafe.akka" %% "akka-testkit" % "2.3.6" % "test",
       "org.apache.commons" % "commons-math3" % "3.2",
-      "commons-io" % "commons-io" % "2.4",
+      commonsIO,
       "org.apache.jclouds" % "jclouds-core" % "1.9.2",
       "org.apache.jclouds" % "jclouds-compute" % "1.9.2",
       "org.apache.jclouds.driver" % "jclouds-slf4j" % "1.9.1",
