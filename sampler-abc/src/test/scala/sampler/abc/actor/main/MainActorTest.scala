@@ -86,10 +86,13 @@ class MainActorTest
 	}
 
 	"When Idle / " - {
-		"Start msg sends Broadcast to generate particles" in new Setup {
+		"Start msg initialises EGen and sends Broadcast to generate particles" in new Setup {
 			val routerProbe = TestProbe()
 
-			when(instanceObj.childActors.router).thenReturn(routerProbe.ref)
+			when(instanceObj.childActors.router)
+			  .thenReturn(routerProbe.ref)
+			when(instanceObj.helper.initialiseEvolvingGeneration(gen1, config))
+			  .thenReturn(eGen1)
 
 			val particleWeights = Map[TestParams, Double]()
 
@@ -99,8 +102,8 @@ class MainActorTest
 			// Assertions
 			routerProbe.expectMsg(Broadcast(GenerateParticlesFrom(gen1, instanceObj.config)))
 			assertResult(Gathering)(instanceRef.stateName)
-			assertResult(gen1)(instanceRef.stateData match {
-				case gd: StateData[_] => gd.generation.previousGen
+			assertResult(eGen1)(instanceRef.stateData match {
+				case gd: StateData[_] => gd.generation
 				case d => fail("Unexpected StateData type: " + d.getClass())
 			})
 		}
@@ -341,7 +344,7 @@ class MainActorTest
 
 			val eGen0 = mock[EvolvingGeneration[TestParams]]
 
-			val scoredParticles = ScoredParticles(Seq(Scored(TestParams(), Seq(1.0), 100)))
+			val scoredParticles = ScoredParticles(Seq(Scored(TestParams(), Seq(1.0))))
 			val mixPayload = Some(scoredParticles)
 
 			when(instanceObj.helper.buildMixPayload(eGen0, instanceObj.config)).thenReturn(mixPayload)

@@ -16,6 +16,9 @@ import sampler.abc.actor.main.component.helper.Getters
 import sampler.abc.actor.main.WeighedParticles
 import sampler.abc.actor.main.ScoredParticles
 import sampler.abc.ABCConfig
+import sampler.abc.actor.sub.flushing.ToleranceCalculator
+import sampler.abc.UseModelPrior
+import sampler.abc.Population
 
 class HelperTest extends FreeSpec with Matchers with MockitoSugar {
 
@@ -23,6 +26,7 @@ class HelperTest extends FreeSpec with Matchers with MockitoSugar {
 		val particleMixer = mock[ParticleMixer]
 		val instance = new Helper(
 				particleMixer,
+				mock[ToleranceCalculator],
 				mock[Getters],
 				mock[Random]
 		)
@@ -31,14 +35,49 @@ class HelperTest extends FreeSpec with Matchers with MockitoSugar {
   "Helper should" - {
     val (id1, id2, id3, id4) = (111111, 111112, 111113, 111114)
     
-    val scored1 = Scored(1, Seq(0,5), id1)
-    val scored2 = Scored(2, Seq(0.5), id2)
+    val scored1 = Scored(1, Seq(0,5), Some(id1))
+    val scored2 = Scored(2, Seq(0.5), Some(id2))
     
-    val weighed1 = Weighted(Scored(3, Seq(0.25), id3), 0.25)
-    val weighed2 = Weighted(Scored(4, Seq(0.25), id4), 0.25)
+    val weighed1 = Weighted(Scored(3, Seq(0.25), Some(id3)), 0.25)
+    val weighed2 = Weighted(Scored(4, Seq(0.25), Some(id4)), 0.25)
     
     val numRejected1 = 5
     val numRejected2 = 2
+    
+    "Build EvolvingGen from model prior" in new Setup {
+      val tolerance = 0.8
+      val useModelPrior = UseModelPrior[Int](tolerance)
+      
+      val result = instance.initialiseEvolvingGeneration(useModelPrior, null)
+      val expected = EvolvingGeneration(
+					tolerance,
+					useModelPrior,
+					ScoredParticles.empty,
+					WeighedParticles.empty,
+					Queue.empty[Long]
+			)
+
+			assert(expected === result)
+    }
+    
+    "Build EvolvingGen from a previous generation" in new Setup {
+      val (oldTol, newTol) = (0.8, 0.75)
+ 		  val config = mock[ABCConfig]
+      val seqWeighted = mock[Seq[Weighted[Float]]]
+      val pop = Population(seqWeighted, 0, oldTol, 0)
+      when(instance.toleranceCalculator.apply(seqWeighted, config, oldTol)).thenReturn(newTol)
+      
+      val result = instance.initialiseEvolvingGeneration(pop, config)
+      val expected = EvolvingGeneration(
+					newTol,
+					pop,
+					ScoredParticles.empty,
+					WeighedParticles.empty,
+					Queue.empty[Long]
+			)
+          
+      assert(expected === result)
+    }
     
     "Add incoming weighted particles to a generation" in new Setup {
       val initialSeq = WeighedParticles(Seq(weighed1), numRejected1)
@@ -84,20 +123,19 @@ class HelperTest extends FreeSpec with Matchers with MockitoSugar {
       assert(dueWeighing.seq.contains(scored1))
     }
     
-    "Filter and queues scored particles with some IDs already presente" in new Setup {
-      val initialObs: Queue[Long] = Queue(id1)
-      val initialDues = ScoredParticles(Seq(scored1))
+    "Filter and queue scored particles with some IDs already present" in new Setup {
+      val idsAlreadyObserved: Queue[Long] = Queue(id1)
+      val initialDueWeighing = ScoredParticles(Seq(scored1))
       
       val gen1 = EvolvingGeneration[Int](
           0.1,
       		null,
-          initialDues,
+          initialDueWeighing,
           WeighedParticles.empty,
-          initialObs
+          idsAlreadyObserved
       )
       
       val scoredSeq = ScoredParticles(Seq(scored1, scored2))
-      
       val nextGen = instance.filterAndQueueUnweighedParticles(scoredSeq, gen1)
       
       val observedIds = nextGen.idsObserved
@@ -126,9 +164,9 @@ class HelperTest extends FreeSpec with Matchers with MockitoSugar {
               Seq(
                 weighed1,
                 weighed2,
-                Weighted(Scored(5, Seq(0.5), 111115), 0.5),
-                Weighted(Scored(6, Seq(0.5), 111116), 0.5),
-                Weighted(Scored(7, Seq(0.5), 111117), 0.5)
+                Weighted(Scored(5, Seq(0.5), Some(111115)), 0.5),
+                Weighted(Scored(6, Seq(0.5), Some(111116)), 0.5),
+                Weighted(Scored(7, Seq(0.5), Some(111117)), 0.5)
               ),
               numRejected1),
           null

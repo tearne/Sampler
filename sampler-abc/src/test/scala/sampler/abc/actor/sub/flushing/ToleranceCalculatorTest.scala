@@ -11,7 +11,6 @@ import sampler.abc.ABCConfig
 class ToleranceCalculatorTest extends FreeSpec with Matchers with MockitoSugar {
 
   "Tolerance component should" - {
-    
   	//TODO use mock statistics?
     val instance = new ToleranceCalculator with StatisticsImpl
     

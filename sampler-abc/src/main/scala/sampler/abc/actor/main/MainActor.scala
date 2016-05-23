@@ -117,11 +117,17 @@ trait MainActor[P]
 			val client = sender
 			import s._
 
-			val evolvingGen = EvolvingGeneration.buildFrom(s.initGeneration)
+			val evolvingGen = helper.initialiseEvolvingGeneration(s.initGeneration, config)
+		  childActors.reporter ! StatusReport(
+				FinishGen(evolvingGen.previousGen.iteration, evolvingGen.currentTolerance),
+				evolvingGen,
+				config
+			)
+			
 			childActors.router ! Broadcast(GenerateParticlesFrom( //TODO fix duplication with 'allocateWork' below
 				evolvingGen.previousGen,
 				config))
-
+				
 			// TODO this block currently untested
 			val mixMS = config.mixRateMS
 			val cancellableMixing =

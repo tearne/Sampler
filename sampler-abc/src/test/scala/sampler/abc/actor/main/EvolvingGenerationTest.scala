@@ -15,6 +15,8 @@ import sampler.abc.Prior
 import sampler.abc.UseModelPrior
 import sampler.abc.Population
 import sampler.abc.UseModelPrior
+import sampler.abc.actor.sub.flushing.ToleranceCalculator
+import sampler.abc.ABCConfig
 
 class EvolvingGenerationTest extends FreeSpec with Matchers with MockitoSugar {
 	type T = Int
@@ -48,52 +50,10 @@ class EvolvingGenerationTest extends FreeSpec with Matchers with MockitoSugar {
 	    
 	    assert(instance.mixingPool === currentParticles)
 	  }
-	  
-		"Initialise with model prior and tolerance infinity" in {
-		  val gen0 = UseModelPrior[T]()
-			val result = EvolvingGeneration.buildFrom(gen0)
-
-			val expected = EvolvingGeneration(
-					Double.MaxValue,
-					gen0,
-					ScoredParticles.empty,
-					WeighedParticles.empty,
-					Queue.empty[Long]
-			)
-			assert(result === expected)
-		}
-		
-		"Initialise with model prior and specific tolerance" in {
-		  val gen0 = UseModelPrior[T](9.9999999)
-			val result = EvolvingGeneration.buildFrom(gen0)
-
-			val expected = EvolvingGeneration(
-					9.9999999,
-					gen0,
-					ScoredParticles.empty,
-					WeighedParticles.empty,
-					Queue.empty[Long]
-			)
-			assert(result === expected)
-		}
-		
-		"Initialise with a previous population and use same tolerance" in {
-		  val genN = Population[T](null, 0, 9.999, 0.0)
-		  val result = EvolvingGeneration.buildFrom(genN)
-		  
-		  val expected = EvolvingGeneration(
-					genN.tolerance,
-					genN,
-					ScoredParticles.empty,
-					WeighedParticles.empty,
-					Queue.empty[Long]
-			)
-			assert(result === expected)
-		}
 		
 		"Emptying the weighing buffer" in {
-	    val scored1 = Scored(1, Seq(0.5), 111111)
-	    val scored2 = Scored(2, Seq(0.5), 111112)
+	    val scored1 = Scored(1, Seq(0.5))
+	    val scored2 = Scored(2, Seq(0.5))
 	    val weighed1 = WeighedParticles.empty
 	  
 	    val prevGen = mock[Generation[T]]

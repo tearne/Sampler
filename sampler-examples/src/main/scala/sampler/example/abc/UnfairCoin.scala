@@ -59,13 +59,12 @@ object ResumeUnfairCoin extends UnfairCoinCommon with App {
     {
       "Comment": " p=ParameterSet, s=RepScores, w=Weight",
       "p": {"pHeads": 0.1},
-      "s": [1,1,1],
+      "s": [1,5,1],
       "w": 1
     },{
       "p": {"pHeads": 0.2},
-      "s": [1,1,1],
+      "s": [1,2,2],
       "w": 1
-      
     },{
       "p": {"pHeads": 0.3},
       "s": [1,1,1],

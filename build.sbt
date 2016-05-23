@@ -1,5 +1,5 @@
 val buildOrganization = "org.tearne"
-val buildVersion = "0.2.14"
+val buildVersion = "0.2.16"
 val buildScalaVersion	= "2.11.8"
 
 val logbackClassic = "ch.qos.logback" % "logback-classic" % "1.1.1"

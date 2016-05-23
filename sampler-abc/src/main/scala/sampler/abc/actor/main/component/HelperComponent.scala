@@ -3,7 +3,6 @@ package sampler.abc.actor.main.component
 import sampler.abc.actor.sub.flushing.GenerationFlusher
 import sampler.abc.actor.sub.flushing.ToleranceCalculator
 import sampler.abc.actor.sub.flushing.ObservedIdsTrimmer
-//import sampler.abc.actor.sub.flushing.WeightsHelper
 import sampler.math.Random
 import sampler.abc.actor.main.MainActor
 import sampler.abc.actor.main.component.helper.ParticleMixer
@@ -13,12 +12,18 @@ import sampler.abc.actor.main.WeighedParticles
 import sampler.abc.actor.main.component.helper.Getters
 import sampler.abc.ABCConfig
 import sampler.abc.ABCConfig
+import sampler.abc.Scored
+import sampler.abc.Generation
+import sampler.abc.UseModelPrior
+import sampler.abc.Population
+import scala.collection.immutable.Queue
 
 trait HelperCoponentImpl extends HelperComponent {
 	this: MainActor[_] =>
 	
 	lazy val helper = new Helper(
 			new ParticleMixer(),
+			ToleranceCalculator,
 			getters,
 			Random)
 }
@@ -29,10 +34,33 @@ trait HelperComponent {
 
 class Helper(
 		particleMixer: ParticleMixer,
+		val toleranceCalculator: ToleranceCalculator,
 		getters: Getters,
 		random: Random
 	){
 	
+  //TODO test me
+  def initialiseEvolvingGeneration[P](gen: Generation[P], config: ABCConfig): EvolvingGeneration[P] = {
+    gen match {
+      case prior: UseModelPrior[P] => 
+        EvolvingGeneration(
+    			prior.tolerance,
+    			prior,
+    			ScoredParticles.empty,
+    			WeighedParticles.empty,
+    			Queue.empty[Long]
+    		)
+      case pop: Population[P] => 
+        EvolvingGeneration(
+    			toleranceCalculator(pop.weightedParticles, config, pop.tolerance),
+    			pop,
+    			ScoredParticles.empty,
+    			WeighedParticles.empty,
+    			Queue.empty[Long]
+    		)
+    }
+  }
+  
 	def addWeightedParticles[P](
 			incoming: WeighedParticles[P],
 			eGen: EvolvingGeneration[P]
@@ -48,11 +76,14 @@ class Helper(
 		val observedIds = gen.idsObserved
 		val particlesDueWeighting = gen.dueWeighing
 		
-		val filtered = taggedAndScoredParamSets.seq.filter(tagged => !observedIds.contains(tagged.id))
-		
+		val filtered = taggedAndScoredParamSets.seq.collect{
+		  case s@Scored(_,_,Some(id)) if !observedIds.contains(id) => s
+		}
+		val newIds = filtered.collect{case Scored(_,_,Some(id)) => id}
+
 		gen.copy(
 				dueWeighing = particlesDueWeighting.add(filtered),
-				idsObserved = observedIds ++ filtered.map(_.id)
+				idsObserved = observedIds ++ newIds
 		)
 	}
 		

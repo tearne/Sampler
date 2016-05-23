@@ -96,7 +96,7 @@ object Population{
         val scores = (json \ "s").as[Seq[Double]]
         val weight = (json \ "w").as[Double]
         Weighted(
-          Scored(params, scores, 0),  //TODO better dummy ID
+          Scored(params, scores, None), //'None' because we don't want these to mix
           weight
         )
       }

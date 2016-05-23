@@ -78,22 +78,19 @@ class BroadcastActor(config: ABCConfig) extends Actor with ActorLogging{
 	val nodes = collection.mutable.Set.empty[ActorRef]
 	val recipientPath = Seq("user", "root", "receiver")
 	
-	def attemptWorkerHandshake(root: RootActorPath){
-		val path = root / recipientPath
-		log.debug("Attempting handshake with potential node: {}", path)
-		context.actorSelection(path) ! Identify(None)
+	def doNodeHandshake(root: RootActorPath){
+	  if(root.address != selfAddress && !nodes.exists(ref => ref.path.root == root)){ 
+	  	val path = root / recipientPath
+		  log.debug("Attempting handshake with potential node: {}", path)
+		  context.actorSelection(path) ! Identify(None)
+	  } else {
+	 		log.debug(s"NOT requesting handshake with self/known node: ${root.address}")
+	  }
 	}
 	
 	def nodeUp(member: Member){
 		val rootPath = RootActorPath(member.address)
-	  	if(member.address != selfAddress &&
-	  		!nodes.exists(ref => ref.path.root == rootPath)
-	  	){ 
-	  		log.debug(s"Requesting handshake with ${member.address}")
-	  		attemptWorkerHandshake(rootPath)
-	  	} else {
-	  		log.debug(s"NOT requesting handshake with self/known node: ${member.address}")
-	  	}
+	  doNodeHandshake(rootPath)
 	}
 	
 	def nodeDown(member: Member){
@@ -106,7 +103,7 @@ class BroadcastActor(config: ABCConfig) extends Actor with ActorLogging{
 	def receive = {
     case state: CurrentClusterState => 
       state.members.filter(_.status == MemberStatus.Up).foreach(m => 
-        attemptWorkerHandshake(RootActorPath(m.address))
+        doNodeHandshake(RootActorPath(m.address))
       )
     case MemberUp(member) => 					nodeUp(member)
     case ReachableMember(member) => 	nodeUp(member)
@@ -164,7 +161,7 @@ class BroadcastActor(config: ABCConfig) extends Actor with ActorLogging{
 		)
 		def receive = {
 			case Tick => 
-				numWorkers.foreach(n => log.info("There are {} nodes in the cluster", (n+1)))
+				numWorkers.foreach(n => log.info("There are {} nodes in the cluster", n+1))
 			case NumWorkers(n) => 
 			  numWorkers = Some(n)
 			  self ! Tick

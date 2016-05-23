@@ -22,7 +22,7 @@ case class NewWeighed(num: Int) extends StatusDelta {
 	def getMsg = s"+$num weighed"
 }
 case class FinishGen(num: Int, tol: Double) extends StatusDelta {
-	def getMsg = s"Done generation $num, new tolerance = $tol"
+	def getMsg = s"Generation $num complete, next tolerance = $tol"
 }
 
 case class StatusReport[P](delta: StatusDelta, eGen: EvolvingGeneration[P], config: ABCConfig){

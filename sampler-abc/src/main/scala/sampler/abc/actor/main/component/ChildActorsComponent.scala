@@ -25,11 +25,10 @@ trait ChildActorsComponentImpl[P] extends ChildActorsComponent[P]{
 	lazy val childActors = new ChildActors{}
 	lazy val numParticles = config.numParticles
 	lazy val generationFlusher = new GenerationFlusher(
-			ToleranceCalculator,
+			helper.toleranceCalculator,
 			new ObservedIdsTrimmer(
 					config.memoryGenerations, 
 					numParticles),
-//			new WeightsHelper(),
 			getters,
 			config)
 	val random = Random
@@ -57,8 +56,7 @@ trait ChildActorsComponent[P] {
 		)
 		
 		val router = context.actorOf(
-//		Props(new WorkerActorImpl[P](model)).withRouter(FromConfig()),// Akka 2.2.3
-			FromConfig.props( 			// Akka 2.3
+			FromConfig.props(
 					Props(new WorkerActorImpl[P](model, random))
 			),
 			"work-router"

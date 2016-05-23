@@ -5,6 +5,8 @@ import sampler.abc.Generation
 import sampler.abc.UseModelPrior
 import sampler.abc.Population
 import sampler.abc.Weighted
+import sampler.abc.actor.sub.flushing.ToleranceCalculator
+import sampler.abc.ABCConfig
 
 case class EvolvingGeneration[P](
 	currentTolerance: Double,
@@ -20,27 +22,4 @@ case class EvolvingGeneration[P](
   	  case UseModelPrior(_) => Nil
   	  case pop: Population[P] => pop.weightedParticles
   	})
-}
-
-object EvolvingGeneration {
-  def buildFrom[T](completed: Generation[T]): EvolvingGeneration[T] = {
-    completed match {
-      case UseModelPrior(tol) =>
-        EvolvingGeneration(
-    			tol,
-    			completed,
-    			ScoredParticles.empty,
-    			WeighedParticles.empty,
-    			Queue.empty[Long]
-    		)
-      case pop: Population[T] => 
-        EvolvingGeneration(
-    			pop.tolerance,    //TODO should save what the next tolerance would have been in Population?
-    			pop,
-    			ScoredParticles.empty,
-    			WeighedParticles.empty,
-    			Queue.empty[Long]
-    		)
-    }
-  }
 }

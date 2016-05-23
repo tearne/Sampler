@@ -57,12 +57,11 @@ class PopulationTest extends FreeSpec with Matchers {
           map("c-int").as[Int]
         )
       
-      val id = 0
       val expected = Population[TestParams](
         Seq(
-            Weighted(Scored(TestParams("hay", 0.3, 6), Seq(1,11,111), id), 1.1), 
-            Weighted(Scored(TestParams("bee", 0.4, 7), Seq(2,22,222), id), 2.2), 
-            Weighted(Scored(TestParams("sea", 0.5, 8), Seq(3,33,333), id), 3.3)
+            Weighted(Scored(TestParams("hay", 0.3, 6), Seq(1,11,111), None), 1.1), 
+            Weighted(Scored(TestParams("bee", 0.4, 7), Seq(2,22,222), None), 2.2), 
+            Weighted(Scored(TestParams("sea", 0.5, 8), Seq(3,33,333), None), 3.3)
         ),
 	      3, 
 		    0.975,

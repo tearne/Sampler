@@ -26,12 +26,10 @@ class ParticleMixerTest extends FreeSpec with Matchers with MockitoSugar with Be
       override lazy val mixPayloadSize = 2
     }
     
-    val (id1, id2, id3, id4) = (111111, 111112, 111113, 111114)
-    
-    val scored1 = Scored(1, Seq(1,1,1,1), id1)
-    val scored2 = Scored(2, Seq(2,2,2,2), id2)
-    val scored3 = Scored(3, Seq(3,3,3,3), id3)
-    val scored4 = Scored(4, Seq(4,4,4,4), id4)
+    val scored1 = Scored(1, Seq(1,1,1,1))
+    val scored2 = Scored(2, Seq(2,2,2,2))
+    val scored3 = Scored(3, Seq(3,3,3,3))
+    val scored4 = Scored(4, Seq(4,4,4,4))
     
     val weighed1 = Weighted(scored1, 0.25)
     val weighed2 = Weighted(scored2, 0.25)
@@ -74,7 +72,7 @@ class ParticleMixerTest extends FreeSpec with Matchers with MockitoSugar with Be
       println(grouped)
       
       val expected = config.mixPayloadSize * iterations / 4
-      val tol = config.mixPayloadSize * iterations / 10
+      val tol = config.mixPayloadSize * iterations / 9
       grouped.getOrElse(scored1, 0) should be(expected +- tol)
       grouped.getOrElse(scored2, 0) should be(expected +- tol)
       grouped.getOrElse(scored3, 0) should be(expected +- tol)

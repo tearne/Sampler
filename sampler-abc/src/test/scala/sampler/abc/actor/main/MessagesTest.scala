@@ -8,10 +8,10 @@ import sampler.abc.Weighted
 class MessagesTest extends FreeSpec with Matchers {
 
 	"ScoredParticles messages should" - {
-		val p1 = Scored(1, Seq(0.5), 111111)
-		val p2 = Scored(2, Seq(0.5), 111112)
-		val p3 = Scored(3, Seq(0.5), 111113)
-		val p4 = Scored(4, Seq(0.5), 111114)
+		val p1 = Scored(1, Seq(0.5))
+		val p2 = Scored(2, Seq(0.5))
+		val p3 = Scored(3, Seq(0.5))
+		val p4 = Scored(4, Seq(0.5))
     
 		val scoredParticles = ScoredParticles(Seq(p1, p2))
 		
