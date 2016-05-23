@@ -19,14 +19,15 @@ package sampler.abc
 
 import sampler.data.Distribution
 
-case class Scored[+A](params: A, repScores: Seq[Double]){
-	def numReps = repScores.size.toDouble
-}
-case class Weighted[+A](scored: Scored[A], weight: Double){
-	def params = scored.params
-	def repScores = scored.repScores
-	def meanRepScore = repScores.sum.toDouble / repScores.size
-}
+//TODO put particle stuff back in here
+//case class Scored[+A](params: A, repScores: Seq[Double]){
+//	def numReps = repScores.size.toDouble
+//}
+//case class Weighted[+A](scored: Scored[A], weight: Double){
+//	def params = scored.params
+//	def repScores = scored.repScores
+//	def meanRepScore = repScores.sum.toDouble / repScores.size
+//}
 
 trait Model[P] {
 	val prior: Prior[P]

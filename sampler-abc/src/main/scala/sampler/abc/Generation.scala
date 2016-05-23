@@ -3,8 +3,7 @@ package sampler.abc
 import sampler.data.Distribution
 import sampler.math.Random
 import sampler.data.DistributionBuilder
-import play.api.libs.json.{JsNull,Json,JsString,JsValue}
-import play.api.libs.json.JsObject
+import play.api.libs.json._
 import sampler.io.Rounding
 import play.api.libs.json.Writes
 import play.api.libs.json.JsNumber
@@ -14,7 +13,8 @@ import sampler.io.Tokens
 import java.util.Calendar
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import play.api.libs.json.JsArray
+import sampler.abc.actor.main.Weighted
+import sampler.abc.actor.main.Scored
 
 sealed trait Generation[P]{
 	val iteration: Int
@@ -33,38 +33,52 @@ case class UseModelPrior[P](tolerance: Double = Double.MaxValue) extends Generat
 }
 
 case class Population[P](
-	  particleWeights: Map[P, Double],
+	  weightedParticles: Seq[Weighted[P]],
 	  iteration: Int, 
 		tolerance: Double,
 		acceptanceRatio: Double
 ) extends Generation[P]{
 	
+  lazy val consolidatedWeightsTable: Map[P, Double] = {
+    weightedParticles
+		  .groupBy(_.scored.params)
+		  .map{case (k,v) => (k, v.map(_.weight).sum)}
+  }
+  
 	/*
 	 *  Model & Random are args rather than in constructor so 
 	 *  this class can safely be serialised and used as message.
 	 */
 	def proposalDistribution(model: Model[P], rnd: Random) = 
 		DistributionBuilder
-		.fromWeightsTable(particleWeights)(rnd)
+		.fromWeightsTable(consolidatedWeightsTable)(rnd)
 		.map(model.perturb)
 	
 	def toJSON(wtPrecision: Int = 8)(implicit tokenable: Tokenable[P]) = {
 		val mc = new MathContext(wtPrecision)
-		val rows: Iterable[Tokens] = particleWeights.map{case (p, wt) => 
+		val rows: Iterable[Tokens] = consolidatedWeightsTable.map{case (p, wt) => 
 			tokenable.getTokens(p) + Tokens.named("weight" ->  BigDecimal(wt, mc))
 		}
 		val names = rows.head.map.keys
 		val particlesValuesByParam = names.map{name => name -> rows.map(_.map(name))}.toMap
+		val details: Seq[Map[String, JsValue]] = weightedParticles.map{wp =>
+		  Map(
+		    "s" -> JsArray(wp.scored.scores.map(d => JsNumber(d))),
+		    "w" -> JsNumber(wp.weight),
+		    "p" -> JsObject(tokenable.getTokens(wp.scored.params).map)
+		  )
+		}
 		
 		Json.obj(
 		  "meta" -> Map(
 				  "comment" -> "Weights are not normalised",
 				  "created" -> LocalDateTime.now.toString        
 		  ),
-			"generation" -> iteration,
-			"acceptance-ratio" -> acceptanceRatio,
-			"tolerance" -> tolerance,
-			"particles" -> particlesValuesByParam
+	    "generation" -> iteration,
+  		"acceptance-ratio" -> acceptanceRatio,
+  		"tolerance" -> tolerance,
+  		"particle-summary" -> particlesValuesByParam,
+		  "particle-details" -> details
 		)
 	}
 }
@@ -77,28 +91,22 @@ object Population{
     val acceptance = (json \ "acceptance-ratio").as[Double]
     val tolerance = (json \ "tolerance").as[Double]
     
-    val weightsByParticle = {
-      val particleArrays = (json \ "particles")
-        .as[JsObject]
-        .fields
-        .toMap
-        
-      val weights = particleArrays("weight").as[Seq[Double]]
-      val paramTokens = (particleArrays - "weight")
-        .mapValues(_.as[IndexedSeq[JsValue]])
-      
-      val numParams = paramTokens.head._2.size
-      val paramTokenSets = 
-        for(i <- 0 until numParams)
-        yield paramTokens.map{case (name, valueIndexedSeq) => name -> valueIndexedSeq(i)}
-      
-      val particles = paramTokenSets.map(tokenParser)
-      
-      particles.zip(weights).toMap
+    val weightedParticles = {
+      val posteriorDetails = (json  \ "particle-details").as[Seq[JsValue]]
+      def particleParser(json: JsValue): Weighted[T] = {
+    	  val params = tokenParser((json \ "p").as[Map[String, JsValue]])
+        val scores = (json \ "s").as[Seq[Double]]
+        val weight = (json \ "w").as[Double]
+        Weighted(
+          Scored(params, scores, 0),  //TODO better dummy ID
+          weight
+        )
+      }
+      posteriorDetails.map(jsBlock => particleParser(jsBlock))
     }
     
     Population(
-      weightsByParticle,
+      weightedParticles,
       iteration,
       tolerance,
       acceptance

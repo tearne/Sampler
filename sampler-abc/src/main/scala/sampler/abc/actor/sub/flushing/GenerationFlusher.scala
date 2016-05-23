@@ -11,7 +11,7 @@ import sampler.abc.ABCConfig
 class GenerationFlusher(
 		toleranceCalculator: ToleranceCalculator,
 		observedIdsTrimmer: ObservedIdsTrimmer,
-		weightsConsolidator: WeightsHelper,
+//		weightsConsolidator: WeightsHelper,
 		getters: Getters,
 		config: ABCConfig
 	){
@@ -23,19 +23,19 @@ class GenerationFlusher(
 		val idsObserved = gen.idsObserved
 		
 		//Strip out tags
-		val seqWeighed = getters.weighedParticlesWithoutIdTags(weighedParticles)
+		//val seqWeighed = getters.weighedParticlesWithoutIdTags(weighedParticles)
 		
-		assert(config.numParticles <= seqWeighed.size)
+		assert(config.numParticles <= weighedParticles.size)
 		
 		val completedGen = Population(
-				weightsConsolidator.consolidateToWeightsTable(seqWeighed),
-				currentGeneration, 
+				weighedParticles.seq,
+				currentGeneration,
 				currentTolerance,
 				weighedParticles.acceptanceRatio
 		)
 			
 		EvolvingGeneration(
-			toleranceCalculator(seqWeighed, config, currentTolerance),
+			toleranceCalculator(weighedParticles.seq, config, currentTolerance),
 			completedGen,
 			ScoredParticles.empty,
 			WeighedParticles.empty,

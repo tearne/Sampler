@@ -12,7 +12,7 @@ import sampler.abc.actor.main.MainActor
 import sampler.abc.actor.sub.flushing.GenerationFlusher
 import sampler.abc.actor.sub.flushing.ToleranceCalculator
 import sampler.abc.actor.sub.flushing.ObservedIdsTrimmer
-import sampler.abc.actor.sub.flushing.WeightsHelper
+//import sampler.abc.actor.sub.flushing.WeightsHelper
 import sampler.math.Random
 import sampler.abc.Generation
 import sampler.abc.Population
@@ -29,7 +29,7 @@ trait ChildActorsComponentImpl[P] extends ChildActorsComponent[P]{
 			new ObservedIdsTrimmer(
 					config.memoryGenerations, 
 					numParticles),
-			new WeightsHelper(),
+//			new WeightsHelper(),
 			getters,
 			config)
 	val random = Random

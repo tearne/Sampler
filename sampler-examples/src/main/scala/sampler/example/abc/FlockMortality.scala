@@ -69,7 +69,7 @@ object FlockMortality extends App {
 	)
 
 	//Get median fit data
-	val posteriorSamplable = DistributionBuilder.fromWeightsTable(posterior.particleWeights)
+	val posteriorSamplable = DistributionBuilder.fromWeightsTable(posterior.consolidatedWeightsTable)
 	val bunchOfSamples = (1 to 100000).map(_ => posteriorSamplable.sample)
 	val medBeta = quantile(bunchOfSamples.map(_.beta).toEmpiricalSeq, 0.5)
 	val medEta = quantile(bunchOfSamples.map(_.eta).toEmpiricalSeq, 0.5)

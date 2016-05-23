@@ -1,21 +1,21 @@
 package sampler.abc.actor.sub.worker
 
 import sampler.abc.Model
-import sampler.abc.Scored
 import sampler.abc.Generation
 import sampler.abc.UseModelPrior
 import sampler.abc.Population
+import sampler.abc.actor.main.{Weighted, Scored}
 
 class ParticleWeightCalculator[P](model: Model[P], aborter: Aborter) {
 	def particleWeight(particle: Scored[P], tolerance: Double, prevGen: Generation[P]): Option[Double] = {
 		aborter.checkIfAborted()
-		val fHat = particle.repScores.filter(_ < tolerance).size.toDouble / particle.numReps
+		val fHat = particle.scores.filter(_ < tolerance).size.toDouble / particle.scores.size
 		
 		prevGen match {
 			case _: UseModelPrior[P] => Some(fHat) 	
 			case prevPop: Population[P] =>
 				val numerator = fHat * model.prior.density(particle.params)
-				val denominator = prevPop.particleWeights.map{case (prevParam, prevWeight) => 
+				val denominator = prevPop.weightedParticles.map{case Weighted(Scored(prevParam, _, _), prevWeight) => 
 					prevWeight * model.perturbDensity(prevParam, particle.params)
 				}.sum
 				/*
