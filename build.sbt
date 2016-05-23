@@ -1,6 +1,6 @@
 val buildOrganization = "org.tearne"
-val buildVersion = "0.2.10"
-val buildScalaVersion	= "2.11.7"
+val buildVersion = "0.2.13"
+val buildScalaVersion	= "2.11.8"
 
 lazy val commonSettings = Seq(
   organization := buildOrganization,
@@ -116,11 +116,11 @@ lazy val abc = project.in(file("sampler-abc"))
   .settings(commonSettings: _*)
   .settings(
     libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-actor" % "2.3.6",
-      "com.typesafe.akka" %% "akka-remote" % "2.3.6",
-      "com.typesafe.akka" %% "akka-cluster" % "2.3.6",
-      "com.typesafe.akka" %% "akka-slf4j" % "2.3.6",
-      "com.typesafe.akka" %% "akka-testkit" % "2.3.6" % "test",
+      "com.typesafe.akka" %% "akka-actor" % "2.4.6",
+      "com.typesafe.akka" %% "akka-remote" % "2.4.6",
+      "com.typesafe.akka" %% "akka-cluster" % "2.4.6",
+      "com.typesafe.akka" %% "akka-slf4j" % "2.4.6",
+      "com.typesafe.akka" %% "akka-testkit" % "2.4.6" % "test",
       "org.apache.commons" % "commons-math3" % "3.2",
       "commons-io" % "commons-io" % "2.4",
       "org.apache.jclouds" % "jclouds-core" % "1.9.2",
