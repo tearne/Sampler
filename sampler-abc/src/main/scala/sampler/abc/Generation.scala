@@ -13,8 +13,6 @@ import sampler.io.Tokens
 import java.util.Calendar
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import sampler.abc.actor.main.Weighted
-import sampler.abc.actor.main.Scored
 
 sealed trait Generation[P]{
 	val iteration: Int

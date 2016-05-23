@@ -9,7 +9,7 @@ import sampler.abc.UseModelPrior
 import sampler.abc.Population
 import sampler.abc.Model
 import sampler.abc.Generation
-import sampler.abc.actor.main.Weighted
+import sampler.abc.Weighted
 
 trait WeigherComponentImpl[P] extends WeigherComponent[P]{
 	self: AborterComponent =>

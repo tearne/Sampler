@@ -4,7 +4,7 @@ import sampler.abc.Model
 import sampler.abc.Generation
 import sampler.abc.UseModelPrior
 import sampler.abc.Population
-import sampler.abc.actor.main.{Weighted, Scored}
+import sampler.abc.{Weighted, Scored}
 
 class ParticleWeightCalculator[P](model: Model[P], aborter: Aborter) {
 	def particleWeight(particle: Scored[P], tolerance: Double, prevGen: Generation[P]): Option[Double] = {

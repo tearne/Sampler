@@ -24,7 +24,7 @@ import sampler.abc.actor.sub.GenerateParticlesFrom
 import sampler.data.Distribution
 import sampler.io.Logging
 import sampler.math.Random
-import sampler.abc.actor.main.Scored
+import sampler.abc.Scored
 import sampler.abc.Model
 
 class DetectedAbortionException() extends Exception("DetectedAbortionException")
@@ -48,10 +48,10 @@ trait ModelRunnerComponent[P] {
 		import model._
 
 		def run(job: GenerateParticlesFrom[P]): Try[ScoredParticles[P]] = Try {
-			val maxParticleRetries = job.config.maxParticleRetries
-			val numReplicates = job.config.numReplicates
-			val particleChunkSize = job.config.particleChunkSize
-			val proposalDist: Distribution[P] = job.prevGen.proposalDistribution(model, random)
+		  val maxParticleRetries = job.config.maxParticleRetries
+		  val numReplicates = job.config.numReplicates
+		  val particleChunkSize = job.config.particleChunkSize
+		  val proposalDist: Distribution[P] = job.prevGen.proposalDistribution(model, random)
 
 			@tailrec
 			def getScoredParameter(failures: Int = 0): Scored[P] = {

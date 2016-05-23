@@ -11,7 +11,6 @@ import sampler.abc.ABCConfig
 class GenerationFlusher(
 		toleranceCalculator: ToleranceCalculator,
 		observedIdsTrimmer: ObservedIdsTrimmer,
-//		weightsConsolidator: WeightsHelper,
 		getters: Getters,
 		config: ABCConfig
 	){
@@ -21,9 +20,6 @@ class GenerationFlusher(
 		val currentTolerance = gen.currentTolerance
 		val currentGeneration = gen.buildingGeneration
 		val idsObserved = gen.idsObserved
-		
-		//Strip out tags
-		//val seqWeighed = getters.weighedParticlesWithoutIdTags(weighedParticles)
 		
 		assert(config.numParticles <= weighedParticles.size)
 		

@@ -5,7 +5,7 @@ import sampler.abc.actor.main.ScoredParticles
 import sampler.abc.actor.main.EvolvingGeneration
 import sampler.Implicits
 import sampler.abc.ABCConfig
-import sampler.abc.actor.main.Weighted
+import sampler.abc.Weighted
 
 class ParticleMixer {
 	
@@ -14,13 +14,13 @@ class ParticleMixer {
   		config: ABCConfig
   	)(
   		implicit random: Random): Option[ScoredParticles[P]] = {
-    val weightedParticles = gen.weighed
+    val mixPool = gen.mixingPool
 		
     val mixingSize: Int = config.mixPayloadSize
 	
-    if(weightedParticles.size > mixingSize) {
+    if(mixPool.size > mixingSize) {
       val oneOfEachParticle = 
-      	weightedParticles.seq.map{case Weighted(scored, _) =>
+      	mixPool.map{case Weighted(scored, _) =>
           	scored -> 1
         	}
         	.toMap
@@ -31,8 +31,8 @@ class ParticleMixer {
       }.toSeq		
 			
       Some(ScoredParticles(res))
-    } else if(weightedParticles.size > 0){
-      val res = weightedParticles
+    } else if(mixPool.size > 0){
+      val res = mixPool
       .seq
       .map(_.scored)
 			

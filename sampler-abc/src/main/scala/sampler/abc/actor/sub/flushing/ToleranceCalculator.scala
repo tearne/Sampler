@@ -23,7 +23,7 @@ import sampler.math.StatisticsImpl
 import sampler.io.Logging
 import sampler.abc.ABCConfig
 import sampler.math.Statistics
-import sampler.abc.actor.main.Weighted
+import sampler.abc.Weighted
 
 trait ToleranceCalculator extends StatisticsComponent with Logging {
 	def apply[P](weighted: Seq[Weighted[P]], config: ABCConfig, currentTolerance: Double): Double = {
