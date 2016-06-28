@@ -21,11 +21,11 @@ import scala.annotation.tailrec
 import scala.util.Try
 import sampler.abc.actor.main.ScoredParticles
 import sampler.abc.actor.sub.GenerateParticlesFrom
-import sampler.data.Distribution
 import sampler.io.Logging
 import sampler.math.Random
 import sampler.abc.Scored
 import sampler.abc.Model
+import sampler.distribution.Distribution
 
 class DetectedAbortionException() extends Exception("DetectedAbortionException")
 
@@ -51,7 +51,7 @@ trait ModelRunnerComponent[P] {
 		  val maxParticleRetries = job.config.maxParticleRetries
 		  val numReplicates = job.config.numReplicates
 		  val particleChunkSize = job.config.particleChunkSize
-		  val proposalDist: Distribution[P] = job.prevGen.proposalDistribution(model, random)
+		  val proposalDistribution = job.prevGen.proposalDistribution(model, random)
 
 			@tailrec
 			def getScoredParameter(failures: Int = 0): Scored[P] = {
@@ -60,11 +60,11 @@ trait ModelRunnerComponent[P] {
 				else {
 					def getScores(params: P): IndexedSeq[Double] = {
 						val modelWithMetric = model.distanceToObservations(params)
-						(1 to numReplicates).map(_ => modelWithMetric.sample)
+						(1 to numReplicates).map(_ => modelWithMetric.sample(random))
 					}
 
 					val res: Option[Scored[P]] = for {
-						params <- Some(proposalDist.sample) if prior.density(params) > 0
+						params <- Some(proposalDistribution.sample(random)) if prior.density(params) > 0
 						fitScores <- Some(getScores(params))
 					} yield Scored(params, fitScores)
 

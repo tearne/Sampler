@@ -1,43 +1,27 @@
-/*
- * Copyright (c) 2012-14 Crown Copyright 
- *                    Animal Health and Veterinary Laboratories Agency
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+package sampler
 
-package sampler.math
+import scala.collection.GenMap
+import scala.collection.GenSeq
+import sampler.math.Partition
+import sampler.math.RangeCheck
 
-import sampler.data.Empirical
+sealed trait Statistical[T]{
+  val probabilityTable: Map[T, Double]
+  val size: Int //TODO needed?
+  
+  /** The size of the distribution's support
+	 *  
+	 *  @return Number of unique observations (not overall number of observations) 
+	 **/
+	def supportSize: Int = probabilityTable.size
+  
 
-//TODO confirm whether to delete
-trait StatisticsImpl{
-	val statistics = new Statistics{}
-}
-
-//TODO confirm whether to delete
-trait StatisticsComponent{
-	val statistics: Statistics
-}
-
-trait Statistics{
-	
-	 /** The proportion (0-1 range) of items in the Empirical which are greater than or equal to supplied value (inclusive)
+  /** The proportion (0-1 range) of items in the Empirical which are greater than or equal to supplied value (inclusive)
    *  
    *  @param itemInclusive The value of interest, return value is inclusive of this value
    *  @return Probability representing the proportion of items in the right tail
-   *  */
-	def rightTail[A](e: Empirical[A], itemInclusive: A)(implicit o: Ordering[A]): Double = {
-		import e._
+   **/
+	def rightTail(itemInclusive: T)(implicit o: Ordering[T]): Double = {
 		val value = probabilityTable.keys.toList.sorted(o).dropWhile(i => o.lt(i,itemInclusive)).foldLeft(0.0){
 			case (acc, i) => acc + probabilityTable(i)
 		}
@@ -50,26 +34,22 @@ trait Statistics{
    *  @param itemInclusive The value of interest, return value is inclusive of this value
    *  @return Probability representing the proportion of items in the left tail
    *  */
-	def leftTail[A](e: Empirical[A], itemInclusive: A)(implicit o: Ordering[A]) = rightTail(e, itemInclusive)(o.reverse)
+	def leftTail(itemInclusive: T)(implicit o: Ordering[T]) = rightTail(itemInclusive)(o.reverse)
 	
-	/** Takes a sequence of probabilities and returns the associated quantile values from an Empirical
+	/** Takes a sequence of probabilities and returns the associated percentile values from an Empirical
 	 *  
 	 *  @param e
 	 *  @param prob The required quantile values
 	 *  @return A sequence of the quantile values
 	 */
-	def quantiles[A](e: Empirical[A], probs: Seq[Double])(implicit f: Fractional[A]): Seq[A] = {
-		import e._
-
+	def percentile(probs: Seq[Double])(implicit f: Fractional[T]): Seq[T] = {
 		probs.foreach{p => RangeCheck.probability(p)}
 		
-		val probabilities = e.probabilityTable
-		
-		val ordered = probabilities.keys.toIndexedSeq.sorted
+		val ordered = probabilityTable.keys.toIndexedSeq.sorted
 		
 		assert(ordered.length > 0, "Cannot work out quantiles of an Empirical object with zero values")
 
-		val cumulativeProbability = ordered.map(value => probabilities(value)).scanLeft(0.0)(_ + _).tail
+		val cumulativeProbability = ordered.map(value => probabilityTable(value)).scanLeft(0.0)(_ + _).tail
 		
 		// Tolerance required to prevent incorrect results due to rounding errors
 		// Resulting quantiles are consistent with R type 1
@@ -78,23 +58,24 @@ trait Statistics{
 		index.map(ordered(_))
 	}
 	
-	/** Convenience method for calculating a single quantile value from an Empirical.  To avoid overheads 
+	/** Convenience method for calculating a single quantile value.  To avoid overheads 
 	 *  when calculating multiple times use [[sampler.math.Statistics.quantiles]]
 	 *  
 	 *  @param prob The required quantile value
 	 *  @return The quantile value
 	 */
-	def quantile[A](e: Empirical[A], prob: Double)(implicit f: Fractional[A]): A = quantiles(e, Seq(prob))(f).head
+	def percentile(prob: Double)(implicit f: Fractional[T]): T = percentile(Seq(prob))(f).head
 	
 	/** Returns the mean value of an Empirical
 	 */
-	def mean[A](e: Empirical[A])(implicit num: Fractional[A]) = {
+	def mean(implicit num: Fractional[T]): Double = {
 		import num._
-		e.probabilityTable.foldLeft(0.0){case (acc, (v,p)) => {
+		probabilityTable.foldLeft(0.0){case (acc, (v,p)) => {
 			acc + v.toDouble * p
 		}}
 	}
 	
+	/*
 	/** Returns the difference between the mean of two Empiricals
 	 *  
 	 *  A metric for calculating the difference between two Empiricals, using the mean value of the 
@@ -125,6 +106,32 @@ trait Statistics{
 		)
 		indexes.map(distAtIndex(_)).max
 	}
+	*/
 }
 
-object Statistics extends Statistics with Serializable
+trait StatisticalImplicits {
+  //Much testing needed
+  implicit class StatisticalTab[A](frequencyTable: Map[A, Int]) extends Statistical[A] {
+    assert(frequencyTable.size > 0, "Cannot create statistical from collection of size zero")
+    
+    lazy val size: Int = frequencyTable.values.sum
+  	
+  	private lazy val (items, counts) = frequencyTable.unzip
+  	private lazy val partition = Partition.fromWeights(counts.map(_.toDouble).toIndexedSeq)
+  	
+  	/** A map from each observation to the probability of seeing that value */
+  	lazy val probabilityTable: Map[A, Double] = items.zip(partition.probabilities).toMap
+  }
+  
+  implicit class StatisticaSeq[A](seq: Seq[A]) extends Statistical[A] {
+    assert(seq.size > 0, "Cannot create statistical from collection of size zero")
+    
+    lazy val size = seq.size
+    
+    /** A map from each observation to the probability of seeing that value */
+    lazy val probabilityTable = {
+  		val sizeAsDouble = seq.size.asInstanceOf[Double]
+  		seq.groupBy(identity).map{case (k,v) => (k, v.size / sizeAsDouble)}
+  	}
+  }
+}

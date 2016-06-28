@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-13 Crown Copyright 
+w * Copyright (c) 2012-13 Crown Copyright 
  *                       Animal Health and Veterinary Laboratories Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,10 +41,10 @@ import scala.concurrent.duration._
 import akka.cluster.ClusterEvent.ReachableMember
 import akka.cluster.ClusterEvent.UnreachableMember
 import akka.cluster.Member
-import sampler.data.DistributionBuilder
 import sampler.abc.actor.main.MixPayload
 import akka.cluster.ClusterEvent.ClusterDomainEvent
 import sampler.abc.ABCConfig
+import sampler.distribution.CommonDistributions
 
 class BroadcastActor(config: ABCConfig) extends Actor with ActorLogging{
 	implicit val r = Random
@@ -137,7 +137,7 @@ class BroadcastActor(config: ABCConfig) extends Actor with ActorLogging{
       }
     case msg: MixPayload[_] =>
       if(!nodes.isEmpty){
-        val recipient = DistributionBuilder.uniform(nodes.toIndexedSeq).sample 
+        val recipient = CommonDistributions.uniform(nodes.toIndexedSeq).sample 
         if(!preMixingTests.contains(recipient)){
           val test = PreMixingTest(msg)
           preMixingTests = preMixingTests + (recipient -> test)

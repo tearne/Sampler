@@ -1,35 +1,34 @@
 //package sampler.data
 //
-//import org.junit.Before
-//import org.junit.Test
+//import sampler._
 //import sampler.math.Random
-//import sampler.math.Partition
 //import org.scalatest.Matchers
 //import org.scalatest.FreeSpec
 //import org.scalatest.BeforeAndAfter
+//import sampler.distribution.Distribution
+//import sampler.distribution.CommonDistributions
 //
 //class DistributionTest extends FreeSpec with Matchers with BeforeAndAfter {
 //
 //  var instance: Distribution[Int] = _
 //  var instance2: Distribution[Int] = _
-//  val alwaysOne: Distribution[Int] = Distribution.continually(1)
 //  implicit val random: Random = Random
 //  
 //  before {
 //    instance = {
 //      val it = List(0,1,2,3,4,5,6,7,8,9).iterator
-//      Distribution(it.next)
+//      Distribution.from(_ => it.next)
 //    }
 //    
 //    instance2 = {
 //      val it = List(0,1,2,3,4,5,6,7,8,9).iterator
-//      Distribution(it.next)
+//      Distribution.from(_ => it.next)
 //    }
 //  }
 //  
 //  def append(previous: Seq[Int], d: Distribution[Int], requiredLength: Int): Seq[Int] = {
 //    if(previous.length == requiredLength) previous
-//	else append(previous.:+(d.sample()), d, requiredLength)
+//    else append(previous :+ d.sample, d, requiredLength)
 //  }
 //  
 //  "Samples values in order from sequence in iterator" in {
@@ -38,7 +37,7 @@
 //		assert(sampledSeq === Seq(0,1,2,3,4,5,6,7,8,9))
 //  }
 //  
-//  "Samples until a lenght of 5 has been reached" in {
+//  "Samples until a length of 5 has been reached" in {
 //    val resultsSeq = instance.until(_.size == 5).sample
 //				
 //		val expectedSeq = IndexedSeq(0,1,2,3,4)
@@ -61,7 +60,7 @@
 //  "Filters distribution for values greater than two" in {
 //    val filtered = instance.filter(_ > 2)
 //	
-//    val sampleList = append(Seq(filtered.sample()), filtered, 7)
+//    val sampleList = append(Seq(filtered.sample), filtered, 7)
 //				
 //		assert(sampleList === Seq(3,4,5,6,7,8,9))
 //  }
@@ -83,7 +82,7 @@
 //  }
 //  
 //  "Flat maps distribution" in {
-//    val flatMapped = instance.flatMap(x => Distribution.continually(x * 10))
+//    val flatMapped = instance.flatMap(x => Distribution.always(x * 10))
 //    
 //    val sampleList = append(Seq(), flatMapped, 10)
 //    
@@ -117,8 +116,8 @@
 //  }
 //  
 //  "Distribution.continually always gives the same result" in {
-//    val model1 = Distribution.continually(1)
-//    val model2 = Distribution.continually(2)
+//    val model1 = Distribution.always(1)
+//    val model2 = Distribution.always(2)
 //    
 //    val r1 = (1 to 10).map(_ => model1.sample)
 //    val r2 = (1 to 10).map(_ => model2.sample)

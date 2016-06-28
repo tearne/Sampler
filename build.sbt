@@ -1,5 +1,5 @@
 val buildOrganization = "org.tearne"
-val buildVersion      = "0.2.17"
+val buildVersion      = "0.3.0"
 val buildScalaVersion = "2.11.8"
 
 val akkaVersion       = "2.4.6"
@@ -7,6 +7,10 @@ val logbackClassic    = "ch.qos.logback" % "logback-classic" % "1.1.1"
 val commonsIo         = "commons-io" % "commons-io" % "2.4"
 val commonsMath3      = "org.apache.commons" % "commons-math3" % "3.2"
 val playJson          = "com.typesafe.play" %% "play-json" % "2.4.6" exclude("org.slf4j", "slf4j-simple")
+val cats              = "org.typelevel" %% "cats" % "0.4.1" withSources()
+
+val scalaTest         = "org.scalatest" % "scalatest_2.11" % "3.0.0-RC3" % "test"
+val scalaCheck        = "org.scalacheck" %% "scalacheck" % "1.13.1" % "test"
 
 EclipseKeys.withSource := true
 EclipseKeys.skipParents in ThisBuild := false
@@ -30,7 +34,8 @@ lazy val commonSettings = Seq(
 
   libraryDependencies ++= Seq(
     "junit" % "junit" % "4.8" % "test->default",
-    "org.scalatest" %% "scalatest" % "2.2.1" % "test",
+    scalaTest,
+    scalaCheck,
     "org.mockito" % "mockito-all" % "1.9.0" %"test->default",
     "org.slf4j" % "slf4j-api" % "1.7.7",
     "com.novocode" % "junit-interface" % "0.11" % "test"
@@ -66,7 +71,8 @@ lazy val core = project.in(file("sampler-core"))
       commonsMath3,
       playJson,
       "org.scalaz" %% "scalaz-core" % "7.1.0",
-      "org.spire-math" %% "spire" % "0.11.0"
+      "org.spire-math" %% "spire" % "0.11.0",
+      cats
     )
   )
   .settings(commonSettings: _*)
@@ -135,7 +141,7 @@ lazy val spike = project.in(file("sampler-spike"))
       logbackClassic,
       "org.json4s" %% "json4s-native" % "3.2.11",
       "org.freemarker" % "freemarker" % "2.3.21",
-      "org.typelevel" %% "cats" % "0.4.1"
+      cats
     )
   )
   .settings(commonSettings: _*)

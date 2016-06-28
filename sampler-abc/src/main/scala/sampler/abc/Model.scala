@@ -17,7 +17,7 @@
 
 package sampler.abc
 
-import sampler.data.Distribution
+import sampler.distribution.Distribution
 
 trait Model[P] {
 	val prior: Prior[P]

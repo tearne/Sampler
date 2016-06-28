@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package sampler.data
+package sampler.olddata
 
 import scala.IndexedSeq
 import scala.annotation.tailrec

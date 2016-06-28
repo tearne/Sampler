@@ -35,7 +35,6 @@ import sampler.abc.actor.sub.Abort
 import sampler.abc.actor.sub.FlushComplete
 import sampler.abc.actor.sub.GenerateParticlesFrom
 import sampler.abc.actor.sub.WeighJob
-import sampler.data.DistributionBuilder
 import sampler.math.Random
 import sampler.math.Statistics
 import sampler.math.StatisticsComponent

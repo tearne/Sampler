@@ -1,4 +1,4 @@
-package sampler.data
+package sampler.olddata
 
 import sampler.math.Random
 import scala.annotation.tailrec

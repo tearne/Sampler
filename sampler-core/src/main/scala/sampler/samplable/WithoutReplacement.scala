@@ -1,27 +1,10 @@
-/*
- * Copyright (c) 2012-14 Crown Copyright 
- *                    Animal Health and Veterinary Laboratories Agency
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-package sampler.data
+package sampler.samplable
 
 import scalaz._
 import Scalaz._
 import sampler.math.Random
 
-case class Sample[R, T](remainder: R, drawnCounts: Map[T,Int])
+case class Draw[R, T](remainder: R, drawnCounts: Map[T,Int])
 
 /** Trait for sampling without replacement
  *  
@@ -29,8 +12,9 @@ case class Sample[R, T](remainder: R, drawnCounts: Map[T,Int])
  *  without replacement.
  * 
  */
-trait Samplable[R, T]{
-	type Counts = Map[T, Int]
+//TODO replace Scalaz with cats
+trait WithoutReplacement[R, T] {
+  	type Counts = Map[T, Int]
 		
 	val items: R
 	def numRemaining: Int
@@ -40,10 +24,10 @@ trait Samplable[R, T]{
 	 * 
 	 * @return A [[sampler.data.Sample]] containing the draw counts and remainder left
 	 */
-	def draw(n: Int = 1)(implicit r: Random): Sample[R,T] = {
+	def draw(n: Int = 1)(implicit r: Random): Draw[R,T] = {
 		val state = drawState(n)
 		val (remainder, drawn) = state(items)
-		Sample(remainder, drawn)
+		Draw(remainder, drawn)
 	}
 
 	/*
@@ -60,11 +44,10 @@ trait Samplable[R, T]{
 			(1 to n).foldLeft(empty)((accState, _) => accState.flatMap(removeOne))
 		}
 	) yield selection
-	
 }
 
-trait ToSamplable {
-	implicit class SamplableMap[T](val items: Map[T, Int]) extends Samplable[Map[T,Int], T]{
+trait WithoutReplacementImplicits {
+	implicit class WithoutReplacemenMap[T](val items: Map[T, Int]) extends WithoutReplacement[Map[T,Int], T]{
 		def empty = state[Counts, Counts](Map[T, Int]())
 		def numRemaining = items.values.sum
 			
@@ -83,7 +66,7 @@ trait ToSamplable {
 		) yield soFar.updated(item, soFar.getOrElse(item, 0) + 1)
 	}
 	
-	implicit class SamplableSeq[T](val items: IndexedSeq[T]) extends Samplable[IndexedSeq[T], T]{
+	implicit class WithoutReplacemenSeq[T](val items: IndexedSeq[T]) extends WithoutReplacement[IndexedSeq[T], T]{
 		type Remain = IndexedSeq[T]
 		
 		def empty = state[Remain, Counts](Map[T, Int]())

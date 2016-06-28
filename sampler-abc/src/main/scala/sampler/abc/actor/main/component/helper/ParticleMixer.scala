@@ -1,9 +1,9 @@
 package sampler.abc.actor.main.component.helper
 
+import sampler._
 import sampler.math.Random
 import sampler.abc.actor.main.ScoredParticles
 import sampler.abc.actor.main.EvolvingGeneration
-import sampler.Implicits
 import sampler.abc.ABCConfig
 import sampler.abc.Weighted
 
@@ -25,7 +25,6 @@ class ParticleMixer {
         	}
         	.toMap
 
-      import sampler.Implicits.SamplableMap
 			val res = oneOfEachParticle.draw(mixingSize).drawnCounts.map{
         case (scoredParticle, count) => scoredParticle
       }.toSeq		

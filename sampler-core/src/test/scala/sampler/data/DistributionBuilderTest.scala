@@ -5,11 +5,14 @@ import org.scalatest.Matchers
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.mock.MockitoSugar
+
 import sampler.math.Random
+import sampler.olddata.DistributionBuilder;
+
 import org.mockito.Mockito._
 
 @RunWith(classOf[JUnitRunner])
-class DistributionTest extends FreeSpec with Matchers with MockitoSugar{
+class DistributionBuilderTest extends FreeSpec with Matchers with MockitoSugar{
 
 	"Test that bernoulli samples are sane" in {
 		//Setup
