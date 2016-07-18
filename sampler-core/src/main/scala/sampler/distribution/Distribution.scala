@@ -32,7 +32,7 @@ final case class FlatMap[A,B](d: Distribution[A], f: A => Distribution[B]) exten
 
 final case class EmpiricalTable[A](weightsByItem: Map[A, Double]) extends Distribution[A] {
   val (items, weights) = weightsByItem.toIndexedSeq.unzip
-  assume(!weights.exists(_ > 0), "No positive value in weights")
+  assume(weights.exists(_ > 0), "No positive value in weights")
   assume(weights.find(_ < 0).isEmpty, "Found negative weights.")
   val probPartition = Partition.fromWeights(weights)
   val aliasTable = new AliasTable(probPartition)
