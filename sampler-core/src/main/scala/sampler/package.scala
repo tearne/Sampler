@@ -6,5 +6,6 @@ package object sampler
   extends SamplableSyntax
   with DistributionImplicits
   with WithoutReplacementImplicits
-  with StatisticalImplicits {
+  //with StatisticalImplicits 
+  {
 }

@@ -16,7 +16,7 @@ import scala.IndexedSeq
  *  From FlatMap
  *  def flatMap[A, B](fa: F[A])(f: A => F[B]): F[B]
  *  
- *  In Monad
+ *  From Monad
  *  override def map[A, B](fa: F[A])(f: A => B): F[B] =
  *    flatMap(fa)(a => pure(f(a)))
  *  

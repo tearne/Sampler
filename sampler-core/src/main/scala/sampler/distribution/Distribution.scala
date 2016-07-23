@@ -11,8 +11,7 @@ import sampler.samplable.SamplableSyntax
 /*
  *  Algebraic data type for a distribution
  */
-//TODO seal me
-trait Distribution[A] {
+sealed trait Distribution[A] {
   def sample(implicit r: Random): A
   //TODO canEqual, equals, hashcode etc  (monad?)
 }
