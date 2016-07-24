@@ -1,8 +1,10 @@
-package sampler.math
+package sampler.maths
 
 import org.scalatest.Matchers
 import org.scalatest.FreeSpec
 import org.scalatest.BeforeAndAfter
+
+import sampler.maths.Random;
 
 class RandomTest extends FreeSpec with BeforeAndAfter with Matchers{
 

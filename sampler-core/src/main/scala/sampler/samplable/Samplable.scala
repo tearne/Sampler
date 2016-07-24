@@ -1,6 +1,6 @@
 package sampler.samplable
 
-import sampler.math.Random
+import sampler.maths.Random
 import scala.language.higherKinds
 import cats.Monad
 import scala.annotation.tailrec

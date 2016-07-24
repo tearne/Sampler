@@ -15,7 +15,9 @@
  * limitations under the License.
  */
 
-package sampler.math
+package sampler.maths
+
+import sampler._
 
 /** Contains a set of probabilities which sum to one
  * 
@@ -26,13 +28,12 @@ package sampler.math
  * @constructor create a new Partition from a sequence of probabilities
  * @param probabilities the probabilities used to form the Partition
  */
-
 case class Partition(val probabilities: IndexedSeq[Double]) {
   
-	private def isEqualOne(value: Double) = if(value > 1 - 1E-8 && value < 1 + 1E-8) true else false
+	private def isCloseToOne(value: Double) = if(value > 1 - 1E-8 && value < 1 + 1E-8) true else false
 	
-	assert(isEqualOne(probabilities.sum), s"Expected probabilies to sum to 1, but got ${probabilities.sum}")
-	RangeCheck.assertProbabilities(probabilities)
+	assert(isCloseToOne(probabilities.sum), s"Expected probabilies to sum to 1, but got ${probabilities.sum}")
+	assert(probabilities.areProbabilities)
 
 	/** the number of probabilties in the Partition */
 	lazy val size = probabilities.size

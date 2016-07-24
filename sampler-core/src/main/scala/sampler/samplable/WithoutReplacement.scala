@@ -2,7 +2,7 @@ package sampler.samplable
 
 import scalaz._
 import Scalaz._
-import sampler.math.Random
+import sampler.maths.Random
 
 case class Draw[R, T](remainder: R, drawnCounts: Map[T,Int])
 

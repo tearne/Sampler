@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sampler.math
+package sampler.maths
 
 import scala.annotation.tailrec
 

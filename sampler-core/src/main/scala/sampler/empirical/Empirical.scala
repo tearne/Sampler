@@ -1,6 +1,6 @@
 package sampler.empirical
 
-import sampler.math.RangeCheck
+import sampler._
 
 trait Empirical[A] {
   val observationCount: Int
@@ -34,7 +34,7 @@ trait Empirical[A] {
 	 *  @return A sequence of the quantile values
 	 */
 	def percentile(probs: Seq[Double])(implicit f: Fractional[A]): Seq[A] = {
-		RangeCheck.assertProbabilities(probs)
+		assert(probs.areProbabilities)
 		
 		val ordered = probabilityTable.keys.toIndexedSeq.sorted
 		

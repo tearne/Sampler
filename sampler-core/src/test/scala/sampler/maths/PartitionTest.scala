@@ -1,7 +1,9 @@
-package sampler.math
+package sampler.maths
 
 import org.scalatest.FreeSpec
 import org.scalatest.BeforeAndAfter
+
+import sampler.maths.Partition;
 
 class PartitionTest extends FreeSpec with BeforeAndAfter {
 

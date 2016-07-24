@@ -23,7 +23,7 @@ import java.io.FileNotFoundException
 import java.nio.file.Files
 import scala.io.Source
 import java.nio.file.StandardOpenOption
-import sampler.math.Partition
+import sampler.maths.Partition
 import org.scalatest.FreeSpec
 import org.scalatest.BeforeAndAfter
 

@@ -1,3 +1,4 @@
+package sampler.maths;
 //package sampler.math
 //
 //import sampler.Implicits._

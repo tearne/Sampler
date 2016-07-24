@@ -1,7 +1,7 @@
 package sampler.distribution
 
 import scala.collection.{GenSeq, GenMap}
-import sampler.math.Random
+import sampler.maths.Random
 
 // Type enrichments to easily make distributions from collections
 trait DistributionImplicits {

@@ -1,4 +1,4 @@
-package sampler.math
+package sampler.maths
 
 import org.scalatest.Matchers
 import org.scalatest.FreeSpec
@@ -30,7 +30,11 @@ class AliasTableTest extends FreeSpec with Matchers {
   }
   
   "Returns correct index, when sampling from mocked object" in {
-    import scala.collection.mutable.Queue
+
+import sampler.maths.AliasTable;
+import sampler.maths.Partition;
+import sampler.maths.Random;
+import scala.collection.mutable.Queue
     val r = new Random{
       val ints = Queue(0,1,2,3)
       val doubles = Queue(0.2, 0.9, 0.5, 0.1)

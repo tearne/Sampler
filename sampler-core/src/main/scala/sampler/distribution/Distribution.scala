@@ -1,7 +1,7 @@
 package sampler.distribution
 
 import scala.language.higherKinds
-import sampler.math.{Random, Partition, AliasTable}
+import sampler.maths.{Random, Partition, AliasTable}
 import sampler.samplable.Samplable
 import scala.annotation.tailrec
 import sampler.samplable.SamplableSyntax

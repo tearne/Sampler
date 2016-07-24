@@ -10,7 +10,9 @@ import org.scalatest.Matchers
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 
 import sampler._
-import sampler.math._
+import sampler.maths._
+import sampler.maths.Partition;
+import sampler.maths.Random;
 
 class DistributionTest 
     extends FreeSpec 

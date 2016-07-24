@@ -15,11 +15,10 @@
  * limitations under the License.
  */
 
-package sampler.math
+package sampler.maths
 
+import sampler._
 import scala.concurrent.forkjoin.ThreadLocalRandom
-
-/** Additional random drawing functionality required within the toolkit */
 
 trait Random {
 	def nextDouble(): Double
@@ -29,12 +28,11 @@ trait Random {
     	(max - min) * nextDouble() + min
   
   def nextBoolean(p: Double): Boolean = {
-		RangeCheck.assertProbability(p)
-		math.random < p
+		assert(p.isProbability)
+		scala.math.random < p
 	}
 }
 
-/** Instance of Random trait */
 object Random extends Random with Serializable{
 	def nextDouble = ThreadLocalRandom.current().nextDouble
 	
