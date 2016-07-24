@@ -32,7 +32,7 @@ case class Partition(val probabilities: IndexedSeq[Double]) {
 	private def isEqualOne(value: Double) = if(value > 1 - 1E-8 && value < 1 + 1E-8) true else false
 	
 	assert(isEqualOne(probabilities.sum), s"Expected probabilies to sum to 1, but got ${probabilities.sum}")
-	probabilities.foreach{p => RangeCheck.probability(p)}
+	RangeCheck.assertProbabilities(probabilities)
 
 	/** the number of probabilties in the Partition */
 	lazy val size = probabilities.size

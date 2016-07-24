@@ -28,8 +28,8 @@ trait Random {
 	def nextDouble(min: Double, max: Double): Double = 
     	(max - min) * nextDouble() + min
   
-    def nextBoolean(p: Double): Boolean = {
-		RangeCheck.probability(p)
+  def nextBoolean(p: Double): Boolean = {
+		RangeCheck.assertProbability(p)
 		math.random < p
 	}
 }

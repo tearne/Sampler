@@ -6,14 +6,22 @@ class RangeException[N: Numeric](actual: N, lower: N, upper: N)
 /** Object to allow  checking that a value is a valid probability or is within a given range*/
 
 object RangeCheck {
+  def isProbability[T: Fractional](p: T) = {
+    val f = implicitly[Fractional[T]]
+    f.lt(p, f.zero) || f.gt(p, f.one)
+  }
+  
   /** Checks that a given value is a valid probability
    *  
    *  @param p The value to be checked as a valid probability 
    */
-	def probability[T: Fractional](p: T) {
-		val f = implicitly[Fractional[T]]
-		if(f.lt(p, f.zero) || f.gt(p, f.one)) 
-			throw new RangeException(p, f.zero, f.one)
+	def assertProbability[T: Fractional](p: T) {
+	  val f = implicitly[Fractional[T]]
+		if(!isProbability(p)) throw new RangeException(p, f.zero, f.one)
+	}
+	
+	def assertProbabilities[T: Fractional](items: Traversable[T]) {
+	  assert(!items.exists(p => !isProbability(p)))
 	}
 	
 	/** Used to check if a given value is close enough to an expected value (determined 

@@ -6,17 +6,17 @@ import org.scalatest.FreeSpec
 class RangeCheckTest extends FreeSpec with Matchers{
 
   "Testing values supplied are valid probabilities" in {
-    RangeCheck.probability(0.0)
-    RangeCheck.probability(0.2)
-    RangeCheck.probability(0.55)
-    RangeCheck.probability(1.0)
+    RangeCheck.assertProbability(0.0)
+    RangeCheck.assertProbability(0.2)
+    RangeCheck.assertProbability(0.55)
+    RangeCheck.assertProbability(1.0)
     
     intercept[RangeException[Double]]{
-    	RangeCheck.probability(1.000001)
+    	RangeCheck.assertProbability(1.000001)
     }
     
     intercept[RangeException[Double]]{
-    	RangeCheck.probability(-0.000001)
+    	RangeCheck.assertProbability(-0.000001)
     }
   }
   
