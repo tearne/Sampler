@@ -11,7 +11,6 @@ import org.scalatest.prop.GeneratorDrivenPropertyChecks
 
 import sampler._
 import sampler.maths._
-import sampler.maths.Partition;
 import sampler.maths.Random;
 
 class DistributionTest 
@@ -45,7 +44,7 @@ class DistributionTest
 		def nextDouble() = it.next
   }
   
-  "From weights table" in forAll(weightsTableGen){wtTable =>
+  "From weights table" in forAll(weightsTableGen){ wtTable =>
     whenever(wtTable.values.exists(_ > 0)){
       val actual = {
         wtTable.toDistribution
@@ -54,9 +53,10 @@ class DistributionTest
       }
     
       val expected = {
-        val partition = Partition.fromWeights(wtTable.values.toIndexedSeq)
+        val weights = wtTable.values.toIndexedSeq
+        val totalWeight = weights.sum
         val indexedValues = wtTable.keys.toIndexedSeq
-        val at = new AliasTable(partition)
+        val at = new AliasTable(weights.map(_ / totalWeight))
   
         (1 to wtTable.size).map{_ => 
           indexedValues(at.next(mockRandom))

@@ -3,8 +3,6 @@ package sampler.distribution
 import sampler.samplable.SamplableSyntax
 import sampler.distribution.Distribution.from
 import scala.annotation.tailrec
-import sampler.maths.Partition
-import sampler.maths.AliasTable
 
 object CommonDistributions 
     extends DistributionImplicits

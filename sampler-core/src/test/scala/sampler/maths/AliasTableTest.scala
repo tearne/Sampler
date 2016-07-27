@@ -2,23 +2,24 @@ package sampler.maths
 
 import org.scalatest.Matchers
 import org.scalatest.FreeSpec
+import scala.collection.mutable.Queue
 
 class AliasTableTest extends FreeSpec with Matchers {
 
-  val rawProbSeq = Partition.fromWeights(IndexedSeq(0.1, 0.2, 0.3, 0.4))
+  val rawProbSeq = IndexedSeq(0.1, 0.2, 0.3, 0.4)
   val myAlias = new AliasTable(rawProbSeq)
   
   val tolerance = 1e-6
   
   "Generates correct probability table" in {
-    val probs = myAlias.probability
-    	
-    val expectedProbs = Array(0.4, 0.8, 1.0, 0.8)
+    val result = myAlias.probability
     
-    probs(0) should be(expectedProbs(0) +- tolerance)
-    probs(1) should be(expectedProbs(1) +- tolerance)
-    probs(2) should be(expectedProbs(2) +- tolerance)
-    probs(3) should be(expectedProbs(3) +- tolerance)
+    val expected = Array(0.4, 0.8, 1.0, 0.8)
+    
+    result(0) should be(expected(0) +- tolerance)
+    result(1) should be(expected(1) +- tolerance)
+    result(2) should be(expected(2) +- tolerance)
+    result(3) should be(expected(3) +- tolerance)
   }
   
   "Generates correct alias table" in {
@@ -30,11 +31,6 @@ class AliasTableTest extends FreeSpec with Matchers {
   }
   
   "Returns correct index, when sampling from mocked object" in {
-
-import sampler.maths.AliasTable;
-import sampler.maths.Partition;
-import sampler.maths.Random;
-import scala.collection.mutable.Queue
     val r = new Random{
       val ints = Queue(0,1,2,3)
       val doubles = Queue(0.2, 0.9, 0.5, 0.1)
@@ -53,30 +49,28 @@ import scala.collection.mutable.Queue
   }
   
   "Generates correct probability table - complicated example" in {
-	/*This was done by looking at the results of a more complicated example
-	* from the original Java implementation
-	* http://www.keithschwarz.com/interesting/code/?dir=alias-method
-	*/
+    /*This was done by looking at the results of a more complicated example
+    * from the original Java implementation
+    * http://www.keithschwarz.com/interesting/code/?dir=alias-method
+    */
     
-    val anotherPartition = Partition.fromWeights(IndexedSeq(
-          0.11, 0.05, 0.31, 0.17, 0.08, 0.19, 0.09))
+    val probs = IndexedSeq(0.11, 0.05, 0.31, 0.17, 0.08, 0.19, 0.09)
           
-    val probs = new AliasTable(anotherPartition).probability
+    val result = new AliasTable(probs).probability
 
-    probs(0) should be(0.77 +- tolerance)
-    probs(1) should be(0.35 +- tolerance)
-    probs(2) should be(1.0 +- tolerance)
-    probs(3) should be(0.71 +- tolerance)
-    probs(4) should be(0.56 +- tolerance)
-    probs(5) should be(0.96 +- tolerance)
-    probs(6) should be(0.63 +- tolerance)
+    result(0) should be(0.77 +- tolerance)
+    result(1) should be(0.35 +- tolerance)
+    result(2) should be(1.0 +- tolerance)
+    result(3) should be(0.71 +- tolerance)
+    result(4) should be(0.56 +- tolerance)
+    result(5) should be(0.96 +- tolerance)
+    result(6) should be(0.63 +- tolerance)
   }
   
   "Generates correct Alias table - complicated example" in {
-    val anotherPartition = Partition.fromWeights(IndexedSeq(
-          0.11, 0.05, 0.31, 0.17, 0.08, 0.19, 0.09))
+    val probs = IndexedSeq(0.11, 0.05, 0.31, 0.17, 0.08, 0.19, 0.09)
 
-    val generatedAlias = new AliasTable(anotherPartition).alias
+    val generatedAlias = new AliasTable(probs).alias
     
     val expectedAlias = Array(2,2,0,2,3,3,5)
         
@@ -84,7 +78,7 @@ import scala.collection.mutable.Queue
   }
   
   "Accepts a Partition containing a zero probability" in {
-    val zeroProbSpec = Partition.fromWeights(IndexedSeq(0.1, 0.2, 0, 0.3, 0.4))
+    val zeroProbSpec = IndexedSeq(0.1, 0.2, 0, 0.3, 0.4)
     val zeroAlias = new AliasTable(zeroProbSpec)
         
     val probs = zeroAlias.probability
@@ -102,7 +96,7 @@ import scala.collection.mutable.Queue
   }
   
   "Samples correctly from Partition with a zero probability" in {
-    val zeroProbSpec = Partition.fromWeights(IndexedSeq(0.1, 0.2, 0, 0.3, 0.4))
+    val zeroProbSpec = IndexedSeq(0.1, 0.2, 0, 0.3, 0.4)
     val zeroAlias = new AliasTable(zeroProbSpec)
     
     val rand = Random

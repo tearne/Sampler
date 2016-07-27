@@ -1,7 +1,7 @@
 package sampler.distribution
 
 import scala.language.higherKinds
-import sampler.maths.{Random, Partition, AliasTable}
+import sampler.maths.{Random, AliasTable}
 import sampler.samplable.Samplable
 import scala.annotation.tailrec
 import sampler.samplable.SamplableSyntax
@@ -29,14 +29,21 @@ final case class FlatMap[A,B](d: Distribution[A], f: A => Distribution[B]) exten
   def sample(implicit r: Random) = f(d.sample).sample
 }
 
-final case class EmpiricalTable[A](weightsByItem: Map[A, Double]) extends Distribution[A] {
-  val (items, weights) = weightsByItem.toIndexedSeq.unzip
-  assume(weights.exists(_ > 0), "No positive value in weights")
-  assume(weights.find(_ < 0).isEmpty, "Found negative weights.")
-  val probPartition = Partition.fromWeights(weights)
-  val aliasTable = new AliasTable(probPartition)
+final case class EmpiricalTable[A](items: IndexedSeq[A], aliasTable: AliasTable) extends Distribution[A] {
+  assert(items.size == aliasTable.size)
   def sample(implicit r: Random) = items(aliasTable.next(r))
 }
+object EmpiricalTable{
+  def apply[A](weightsByItem: Map[A, Double]): EmpiricalTable[A] = {
+    val (items, weights) = weightsByItem.toIndexedSeq.unzip
+    assume(weights.exists(_ > 0), "No positive value in weights")
+    assume(weights.find(_ < 0).isEmpty, "Found negative weights.")
+    val totalWeight = weights.sum
+    val probabilities = weights.map(_ / totalWeight)
+    EmpiricalTable(items, new AliasTable(probabilities))
+  }
+}
+
 
 final case class EmpiricalSeq[A](items: IndexedSeq[A]) extends Distribution[A] {
   val size = items.size

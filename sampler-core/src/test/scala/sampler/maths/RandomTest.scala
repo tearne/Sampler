@@ -4,8 +4,6 @@ import org.scalatest.Matchers
 import org.scalatest.FreeSpec
 import org.scalatest.BeforeAndAfter
 
-import sampler.maths.Random;
-
 class RandomTest extends FreeSpec with BeforeAndAfter with Matchers{
 
   var random: Random = _
@@ -53,27 +51,27 @@ class RandomTest extends FreeSpec with BeforeAndAfter with Matchers{
   
   "Generates Booleans in given proportion" in {
     def booleanSample(samples: List[Boolean], p: Double, currentIt: Int, numIts: Int): List[Boolean] = {
-	  if(currentIt >= numIts) samples
+  	  if(currentIt >= numIts) samples
       else {
-		booleanSample(samples.:+(random.nextBoolean(p)), p, currentIt+1, numIts)
-	  }
+  		  booleanSample(samples.:+(random.nextBoolean(p)), p, currentIt+1, numIts)
+  	  }
     }
-		    
-	val probability = 0.9
-	val requiredIterations = 1000
-		    
-	val sampledBooleans = booleanSample(List(), probability, 0, requiredIterations)
-	
-	sampledBooleans.count(_ == true) should be(900 +- 50)
+  		    
+  	val probability = 0.9
+  	val requiredIterations = 1000
+  		    
+  	val sampledBooleans = booleanSample(List(), probability, 0, requiredIterations)
+  	
+  	sampledBooleans.count(_ == true) should be(900 +- 50)
     sampledBooleans.count(_ == false) should be(100 +- 50)
   }
   
   "Exception when invalid probability to nextBoolean" in {
-    intercept[RangeException[Double]] {
+    intercept[IllegalArgumentException] {
       random.nextBoolean(1.5)
     }
 
-    intercept[RangeException[Double]] {
+    intercept[IllegalArgumentException] {
     	random.nextBoolean(-0.5)
     }
   }

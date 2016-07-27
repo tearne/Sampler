@@ -28,7 +28,7 @@ trait Random {
     	(max - min) * nextDouble() + min
   
   def nextBoolean(p: Double): Boolean = {
-		assert(p.isProbability)
+		require(p.isProbability)
 		scala.math.random < p
 	}
 }

@@ -27,66 +27,112 @@ import scala.annotation.tailrec
  *  @param p The [[sampler.math.Partition]] containing the probabilities to be drawn from
  */
 
-class AliasTable(p: Partition) extends Serializable{
-    val (probability, alias) = construct(p.probabilities)
-	
-    private def construct(probs: IndexedSeq[Double]): (Array[Double], Array[Int]) = {
-	  val arraySize = p.size
-	
-	  val average = 1.0 / arraySize
-      
-	  @tailrec
-	    def loop(
-    	  small: Array[Int], 
-    	  large: Array[Int], 
-    	  aliasProbs: Array[Double], 
-    	  alias: Array[Int], 
-    	  probs: IndexedSeq[Double]
-    	): (Array[Double], Array[Int]) = {
-		  
-		  if(small.isEmpty || large.isEmpty) {
-		   	(aliasProbs, alias)
-		  } else {
-		   	val less = small.last
-			val more = large.last
-			
-			val aliasProbability = probs(less) * arraySize
-			val rawProbability = probs(more) + probs(less) - average
-      
-			if(rawProbability >= average)
-			  loop(
-				small.dropRight(1), 
-	            large.dropRight(1).:+(more), 
-	            aliasProbs.updated(less, aliasProbability), 
-	            alias.updated(less, more), 
-	            probs.updated(more, rawProbability)
-			  )
-	        else
-	          loop(
-		        small.dropRight(1).:+(more), 
-		        large.dropRight(1), 
-		        aliasProbs.updated(less, aliasProbability), 
-		        alias.updated(less, more), 
-		        probs.updated(more, rawProbability)
-	          )
-		  }
-	  }
-	  
-      val initialProbability = Array.fill[Double](arraySize)(1.0)
-	  	val initialAlias = Array.fill[Int](arraySize)(0)
-	  	
-      val small = p.probabilities.zipWithIndex.filter(_._1 < average).map(_._2).toArray
-      val large = p.probabilities.zipWithIndex.filter(_._1 >= average).map(_._2).toArray
-      
-      loop(small, large, initialProbability, initialAlias,  p.probabilities)
-    }
+class AliasTable(probabilities: IndexedSeq[Double]) extends Serializable with RangeCheckImplicits {
+  require(probabilities.areProbabilities)
+  private def isCloseToOne(value: Double) = if(value > 1 - 1E-8 && value < 1 + 1E-8) true else false
+  require(isCloseToOne(probabilities.sum), s"Expected probabilies to sum to 1, but got ${probabilities.sum}")
+  
+  val size = probabilities.size
+  
+  val (probability, alias) = {
+  	val mean = 1.0 / size
+  	
+  	val initialProbability = Array.fill[Double](size)(1.0)
+  	val initialAlias = Array.fill[Int](size)(0)
+  	
+    val small = probabilities.zipWithIndex.filter(_._1 < mean).map(_._2).toArray
+    val large = probabilities.zipWithIndex.filter(_._1 >= mean).map(_._2).toArray
+        
+  	@tailrec
+    def loop(
+        small: Array[Int], 
+        large: Array[Int], 
+        aliasProbs: Array[Double], 
+        alias: Array[Int], 
+        probs: IndexedSeq[Double]
+    ): (Array[Double], Array[Int]) = {
     
-    /** Return a random value drawn from the distribution */
-    def next(rand: Random): Int = {
-      val column = rand.nextInt(probability.size)
-      
-      val coinToss = rand.nextDouble() < probability(column)
-      
-      if(coinToss) column else alias(column)
+      if(small.isEmpty || large.isEmpty) (aliasProbs, alias)
+      else {
+       	val less = small.last
+    		val more = large.last
+    		
+    		val aliasProbability = probs(less) * size
+    		val rawProbability = probs(more) + probs(less) - mean
+        
+    		if(rawProbability >= mean)
+    		  loop(
+            small.dropRight(1), 
+            large.dropRight(1).:+(more), 
+            aliasProbs.updated(less, aliasProbability), 
+            alias.updated(less, more), 
+            probs.updated(more, rawProbability)
+    		  )
+        else
+          loop(
+            small.dropRight(1).:+(more), 
+            large.dropRight(1), 
+            aliasProbs.updated(less, aliasProbability), 
+            alias.updated(less, more), 
+            probs.updated(more, rawProbability)
+          )
+  	  }
     }
+  
+    loop(small, large, initialProbability, initialAlias,  probabilities)
+  }
+  
+//  private def build(probs: IndexedSeq[Double]): (Array[Double], Array[Int]) = {
+//    val average = 1.0 / size
+//      
+//    @tailrec
+//    def loop(
+//        small: Array[Int], 
+//        large: Array[Int], 
+//        aliasProbs: Array[Double], 
+//        alias: Array[Int], 
+//        probs: IndexedSeq[Double]
+//  	): (Array[Double], Array[Int]) = {
+//  	  if(small.isEmpty || large.isEmpty) (aliasProbs, alias)
+//  	  else {
+//  	   	val less = small.last
+//  		  val more = large.last
+//  		
+//    		val aliasProbability = probs(less) * size
+//    		val rawProbability = probs(more) + probs(less) - average
+//        
+//    		if(rawProbability >= average) loop(
+//          small.dropRight(1), 
+//          large.dropRight(1).:+(more), 
+//          aliasProbs.updated(less, aliasProbability), 
+//          alias.updated(less, more), 
+//          probs.updated(more, rawProbability)
+//  		  )
+//        else loop(
+//          small.dropRight(1).:+(more), 
+//          large.dropRight(1), 
+//          aliasProbs.updated(less, aliasProbability), 
+//          alias.updated(less, more), 
+//          probs.updated(more, rawProbability)
+//        )
+//      }
+//    }
+//  
+//    val initialProbability = Array.fill[Double](size)(1.0)
+//  	val initialAlias = Array.fill[Int](size)(0)
+//  	
+//    val small = probabilities.zipWithIndex.filter(_._1 < average).map(_._2).toArray
+//    val large = probabilities.zipWithIndex.filter(_._1 >= average).map(_._2).toArray
+//    
+//    loop(small, large, initialProbability, initialAlias,  probabilities)
+//  }
+
+  /** Return a random value drawn from the distribution */
+  def next(rand: Random): Int = {
+    val column = rand.nextInt(probability.size)
+    val coinToss = rand.nextDouble() < probability(column)
+  
+    if(coinToss) column 
+    else alias(column)
+  }
 }
