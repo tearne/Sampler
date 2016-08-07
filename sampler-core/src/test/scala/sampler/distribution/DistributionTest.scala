@@ -15,8 +15,7 @@ import sampler.maths.Random;
 
 class DistributionTest 
     extends FreeSpec 
-    with GeneratorDrivenPropertyChecks 
-    with Matchers {
+    with GeneratorDrivenPropertyChecks {
   
 	val oneToThousandGen = Gen.choose(1,1000)
 	val intSetGen = Gen.containerOf[Set,Int](oneToThousandGen)
