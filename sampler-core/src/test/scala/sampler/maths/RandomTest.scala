@@ -42,9 +42,9 @@ class RandomTest extends FreeSpec with BeforeAndAfter with Matchers{
   "Generates Doubles in the correct range" in {
     val draw1 = random.nextDouble(0.5, 2.5)
     val draw2 = random.nextDouble(1.5, 2.5)
-	val draw3 = random.nextDouble(3.0, 5.0)
+    val draw3 = random.nextDouble(3.0, 5.0)
 	
-	draw1 should be(1.5 +- 1.0)
+    draw1 should be(1.5 +- 1.0)
     draw2 should be(2.0 +- 0.5)
     draw3 should be(4.0 +- 1.0)
   }
