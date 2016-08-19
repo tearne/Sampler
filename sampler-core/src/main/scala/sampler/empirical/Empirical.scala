@@ -20,13 +20,6 @@ trait Empirical[A] {
 		result
 	}
   
-  /** The proportion (0-1 range) of items in the Empirical which are less than or equal to supplied value (inclusive)
-   *  
-   *  @param itemInclusive The value of interest, return value is inclusive of this value
-   *  @return Probability representing the proportion of items in the left tail
-   *  */
-	def leftTail(itemInclusive: A)(implicit o: Ordering[A]) = rightTail(itemInclusive)(o.reverse)
-
 	/** Takes a sequence of probabilities and returns the associated percentile values from an Empirical
 	 *  
 	 *  @param e

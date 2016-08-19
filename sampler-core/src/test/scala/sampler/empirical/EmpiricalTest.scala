@@ -20,12 +20,12 @@ class EmpiricalTest extends FreeSpec with GeneratorDrivenPropertyChecks {
         map.mapValues(_ / totalWeight)
       }
   
-  "Right tail probability of empty table" in {
+  "Right tail of empty table" in {
     assert(0.0 === buildFrom(0, Map()).rightTail(null))
     assert(0.0 === buildFrom(0, Map()).rightTail(1))
   }
   
-  "Right tail probability of simple map" in {
+  "Right tail of simple map" in {
     val map = Map(1 -> 0.1, 2 -> 0.2, 3 -> 0.3, 4 -> 0.4)
     
     assert(buildFrom(3, map).rightTail(1) === 1)
@@ -34,7 +34,7 @@ class EmpiricalTest extends FreeSpec with GeneratorDrivenPropertyChecks {
     assert(buildFrom(3, map).rightTail(4) === 0.4)
   }
   
-  "Right tail probability of generated map" in forAll(weightsMapGen, posNum[Int]){ (wtMap: Map[Int, Double], int: Int) =>
+  "Right tail of generated map" in forAll(weightsMapGen, posNum[Int]){ (wtMap, int) =>
       val index = int % wtMap.size
       val sortedKeys = wtMap.keys.toIndexedSeq.sorted
       val item = sortedKeys.apply(index)
@@ -42,8 +42,6 @@ class EmpiricalTest extends FreeSpec with GeneratorDrivenPropertyChecks {
       
       assert(expected == buildFrom(0, wtMap).rightTail(item))
   }
-  
-  "Left tail" in pending
   
   "Percentile" in pending
   
