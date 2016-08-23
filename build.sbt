@@ -9,7 +9,7 @@ val commonsMath3      = "org.apache.commons" % "commons-math3" % "3.2"
 val playJson          = "com.typesafe.play" %% "play-json" % "2.4.6" exclude("org.slf4j", "slf4j-simple")
 val cats              = "org.typelevel" %% "cats" % "0.4.1" withSources()
 
-val scalaTest         = "org.scalatest" % "scalatest_2.11" % "3.0.0-RC3" % "test"
+val scalaTest         = "org.scalatest" %% "scalatest" % "3.0.0" % "test"
 val scalaCheck        = "org.scalacheck" %% "scalacheck" % "1.13.1" % "test"
 
 EclipseKeys.withSource := true
