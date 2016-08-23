@@ -1,11 +1,8 @@
 package sampler.maths
 
-import sampler._
-
-import org.scalatest.Matchers
-import org.scalatest.FreeSpec
+import org.scalatest.{FreeSpec, Matchers}
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
-import org.scalacheck.Gen
+import sampler._
 
 class RangeChecksTest extends FreeSpec 
     with Matchers
@@ -31,7 +28,7 @@ class RangeChecksTest extends FreeSpec
   }
   
   "Traversable of probabilities" in {
-     assert(Seq(0, 0.1, 0.2, 0.3, 0.4, 0.9, 0.9999, 1).areProbabilities)
-     assert(!Seq(0, 0.1, 0.2, 0.3, 1 + 1e-10, 0.9, 0.9999, 1).areProbabilities)
+    assert(Seq(0.0, 0.1, 0.2, 0.3, 0.4, 0.9, 0.9999, 1.0).areProbabilities)
+    assert(!Seq(0.0, 0.1, 0.2, 0.3, 1 + 1e-10, 0.9, 0.9999, 1.0).areProbabilities)
   }
 }
