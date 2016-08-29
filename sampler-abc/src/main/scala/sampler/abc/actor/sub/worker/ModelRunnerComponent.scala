@@ -17,15 +17,14 @@
 
 package sampler.abc.actor.sub.worker
 
-import scala.annotation.tailrec
-import scala.util.Try
+import sampler.abc.{Model, Scored}
 import sampler.abc.actor.main.ScoredParticles
 import sampler.abc.actor.sub.GenerateParticlesFrom
 import sampler.io.Logging
-import sampler.math.Random
-import sampler.abc.Scored
-import sampler.abc.Model
-import sampler.distribution.Distribution
+import sampler.maths.Random
+
+import scala.annotation.tailrec
+import scala.util.Try
 
 class DetectedAbortionException() extends Exception("DetectedAbortionException")
 

@@ -1,10 +1,11 @@
 package sampler.distribution
 
-import sampler.samplable.SamplableSyntax
 import sampler.distribution.Distribution.from
+import sampler.samplable.SamplableSyntax
+
 import scala.annotation.tailrec
 
-object CommonDistributions 
+trait CommonDistributions
     extends DistributionImplicits
     with SamplableSyntax {
   
@@ -33,16 +34,6 @@ object CommonDistributions
 		val size = items.size
 	  from{r => items(r.nextInt(size))}
 	}
-	
-	/** Builds a new [[sampler.data.Distribution]] which allows a set of items to be sampled according 
-	 *  to a normalised weighting.
-	 *  
-	 *  @param items the items which are to be sampled
-	 *  @param p [[sampler.math.Partition]] containing the probabilities of sampling each object
-	 */ 
-	//TODO isn't this just the same as Distribution.fromTable?
-	def fromWeightsTable[T](wTable: Map[T, Double]): Distribution[T] =
-		wTable.toDistribution
 	
 	/** Samples from multiple values without replacement using uniform weighting.
 	 *  

@@ -17,33 +17,14 @@
 
 package sampler.abc.actor.main
 
-import scala.concurrent.duration.DurationLong
-import akka.actor.Actor
-import akka.actor.ActorRef
-import akka.actor.Cancellable
-import akka.actor.FSM
-import akka.actor.actorRef2Scala
+import akka.actor.{Actor, ActorRef, Cancellable, FSM, actorRef2Scala}
 import akka.routing.Broadcast
-import sampler.abc.Generation
-import sampler.abc.Model
-import sampler.abc.actor.main.component.ChildActorsComponent
-import sampler.abc.actor.main.component.ChildActorsComponentImpl
-import sampler.abc.actor.main.component.HelperComponent
-import sampler.abc.actor.main.component.HelperCoponentImpl
+import sampler.abc.{ABCConfig, Model, Population}
+import sampler.abc.actor.main.component.{ChildActorsComponent, ChildActorsComponentImpl, HelperComponent, HelperCoponentImpl}
 import sampler.abc.actor.main.component.helper.Getters
-import sampler.abc.actor.sub.Abort
-import sampler.abc.actor.sub.FlushComplete
-import sampler.abc.actor.sub.GenerateParticlesFrom
-import sampler.abc.actor.sub.WeighJob
-import sampler.math.Random
-import sampler.math.Statistics
-import sampler.math.StatisticsComponent
-import sampler.abc.actor.sub.StatusReport
-import sampler.abc.actor.sub.NewScored
-import sampler.abc.Population
-import sampler.abc.actor.sub.FinishGen
-import sampler.abc.actor.sub.NewWeighed
-import sampler.abc.ABCConfig
+import sampler.abc.actor.sub._
+
+import scala.concurrent.duration.DurationLong
 
 /*
  * States/Data
@@ -114,7 +95,6 @@ trait MainActor[P]
 	when(Idle) {
 		case Event(s: Start[P], Uninitialized) =>
 			val client = sender
-			import s._
 
 			val evolvingGen = helper.initialiseEvolvingGeneration(s.initGeneration, config)
 		  childActors.reporter ! StatusReport(

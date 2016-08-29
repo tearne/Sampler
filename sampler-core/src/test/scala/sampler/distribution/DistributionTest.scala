@@ -1,17 +1,13 @@
 package sampler.distribution
 
-import scala.annotation.migration
-import scala.collection.immutable.ListMap
-
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
 import org.scalatest.FreeSpec
-import org.scalatest.Matchers
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
-
 import sampler._
-import sampler.maths._
-import sampler.maths.Random;
+import sampler.maths.{Random, _}
+
+import scala.collection.immutable.ListMap;
 
 class DistributionTest 
     extends FreeSpec 
@@ -72,7 +68,7 @@ class DistributionTest
   "Samplable filtering" in {
     forAll(intSetGen, intSetGen){ (pool: Set[Int], reject: Set[Int]) =>
       whenever(pool.size > 0){
-        val filteredSamples = CommonDistributions.uniform(pool.toIndexedSeq)
+        val filteredSamples = Distribution.uniform(pool.toIndexedSeq)
           .filter{v => !reject.contains(v)}
           .until(_.size == 100)
           .sample(realRandom)
@@ -85,7 +81,7 @@ class DistributionTest
   "Samplable until" in forAll(oneToThousandGen){ (n: Int) =>
     whenever(n > 0 && n <= 1000){
       assertResult(List.fill(n)(1)){
-        CommonDistributions.always(1)
+        Distribution.always(1)
           .until(_.size == n)
           .sample(dummyRandom)
       }

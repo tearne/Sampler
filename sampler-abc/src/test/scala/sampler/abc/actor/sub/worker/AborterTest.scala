@@ -1,11 +1,7 @@
 package sampler.abc.actor.sub.worker
 
 import org.scalatest.FreeSpec
-import org.scalatest.mock.MockitoSugar
-import org.mockito.Mockito._
-import org.mockito.Matchers._
-import java.util.concurrent.atomic.AtomicBoolean
-
+import org.scalatest.mockito.MockitoSugar
 
 class AborterTest extends FreeSpec with MockitoSugar {  
   

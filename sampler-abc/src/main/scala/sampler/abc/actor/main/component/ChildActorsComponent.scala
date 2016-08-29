@@ -1,21 +1,12 @@
 package sampler.abc.actor.main.component
 
-import akka.actor.Actor
-import akka.actor.Props
+import akka.actor.{Actor, Props}
 import akka.routing.FromConfig
-import sampler.abc.actor.sub.WorkerActorImpl
-import sampler.abc.actor.sub.FlushingActor
-import sampler.abc.actor.sub.BroadcastActor
-import sampler.abc.actor.sub.ReceiveActor
-import sampler.abc.actor.sub.ReportingActor
-import sampler.abc.actor.main.MainActor
-import sampler.abc.actor.sub.flushing.GenerationFlusher
-import sampler.abc.actor.sub.flushing.ToleranceCalculator
-import sampler.abc.actor.sub.flushing.ObservedIdsTrimmer
-//import sampler.abc.actor.sub.flushing.WeightsHelper
-import sampler.math.Random
-import sampler.abc.Generation
 import sampler.abc.Population
+import sampler.abc.actor.main.MainActor
+import sampler.abc.actor.sub._
+import sampler.abc.actor.sub.flushing.{GenerationFlusher, ObservedIdsTrimmer}
+import sampler.maths.Random
 
 trait ChildActorsComponentImpl[P] extends ChildActorsComponent[P]{
 	this: Actor 

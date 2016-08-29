@@ -5,7 +5,7 @@ trait EmpiricalImplicits{
 		def toEmpirical = EmpiricalTab(table)
 	}
   
-	implicit class SeqOps[A](seq: Seq[A]) {
-		def toEmpirical = EmpiricalSeq(seq)
+	implicit class SeqOps[A](items: Traversable[A]) {
+		def toEmpirical = EmpiricalSeq(items.toSeq)
 	}
 }

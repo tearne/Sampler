@@ -1,29 +1,13 @@
 package sampler.abc.actor.sub
 
-import org.scalatest.FreeSpecLike
-import akka.testkit.TestKit
 import akka.actor.ActorSystem
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.FreeSpecLike
-import org.scalatest.mock.MockitoSugar
-import akka.actor.ActorSystem
-import akka.routing.Broadcast
-import akka.testkit.TestFSMRef
 import akka.testkit.TestKit
-import akka.testkit.TestProbe
-import sampler.abc.Model
-import sampler.abc.actor.sub.worker.AborterComponent
-import sampler.abc.Prior
-import sampler.abc.actor.sub.worker.Aborter
-import org.mockito.Mockito.when
-import sampler.abc.actor.sub.worker.ModelRunnerComponent
-import sampler.abc.actor.sub.worker.WeigherComponentImpl
-import sampler.abc.Population
-import sampler.abc.Generation
-import akka.dispatch.MessageDispatcher
-import com.typesafe.config.ConfigFactory
-import com.typesafe.config.Config
-import sampler.abc.ABCConfig
+import com.typesafe.config.{Config, ConfigFactory}
+import org.scalatest.FreeSpecLike
+import org.scalatest.mockito.MockitoSugar
+import sampler.abc.{ABCConfig, Model, Prior}
+import sampler.abc.actor.sub.worker.{Aborter, AborterComponent, ModelRunnerComponent, WeigherComponentImpl}
+import sampler.maths.Random
 
 class WorkerActorTest
     extends TestKit(ActorSystem("ABC"))
@@ -43,7 +27,7 @@ class WorkerActorTest
 			//with WorkDispatcherComponent 
       with AborterComponent {
   //  self: AborterComponent =>
-    val random = sampler.math.Random
+    val random = Random
     val model: Model[T] = mock[Model[T]]
     val prior = mock[Prior[T]]
     // when(model.prior).thenReturn(prior)

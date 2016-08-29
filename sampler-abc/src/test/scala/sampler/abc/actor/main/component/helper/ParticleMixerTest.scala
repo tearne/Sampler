@@ -1,21 +1,11 @@
 package sampler.abc.actor.main.component.helper
 
-import scala.collection.immutable.Queue
-
-import org.scalatest.BeforeAndAfter
-import org.scalatest.FreeSpec
-import org.scalatest.Matchers
-import org.scalatest.mock.MockitoSugar
-
-import sampler.abc.ABCConfig
-import sampler.abc.Scored
-import sampler.abc.Weighted
-import sampler.abc.actor.main.EvolvingGeneration
-import sampler.abc.actor.main.ScoredParticles
-import sampler.abc.actor.main.WeighedParticles
-import sampler.math.Random
-
 import org.mockito.Mockito._
+import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{BeforeAndAfter, FreeSpec, Matchers}
+import sampler.abc.actor.main.EvolvingGeneration
+import sampler.abc.{ABCConfig, Scored, Weighted}
+import sampler.maths.Random
 
 class ParticleMixerTest extends FreeSpec with Matchers with MockitoSugar with BeforeAndAfter {
 

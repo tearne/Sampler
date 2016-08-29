@@ -1,18 +1,13 @@
 package sampler.abc
 
-import sampler.math.Random
-import play.api.libs.json._
-import sampler.io.Rounding
-import play.api.libs.json.Writes
-import play.api.libs.json.JsNumber
 import java.math.MathContext
-import sampler.io.Tokenable
-import sampler.io.Tokens
-import java.util.Calendar
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import sampler.distribution.Distribution
+
+import play.api.libs.json.{JsNumber, _}
 import sampler._
+import sampler.distribution.Distribution
+import sampler.io.{Tokenable, Tokens}
+import sampler.maths.Random
 
 sealed trait Generation[P]{
 	val iteration: Int

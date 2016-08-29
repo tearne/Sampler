@@ -1,18 +1,15 @@
 package sampler.abc.actor.sub.flushing
 
-import org.scalatest.FreeSpec
-import org.scalatest.Matchers
-import org.scalatest.mock.MockitoSugar
-import sampler.math.StatisticsImpl
-import sampler.abc.Weighted
-import sampler.abc.Scored
-import sampler.abc.ABCConfig
+import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{FreeSpec, Matchers}
+import sampler.abc.{ABCConfig, Scored, Weighted}
+import sampler.empirical.EmpiricalImplicits
 
 class ToleranceCalculatorTest extends FreeSpec with Matchers with MockitoSugar {
 
   "Tolerance component should" - {
   	//TODO use mock statistics?
-    val instance = new ToleranceCalculator with StatisticsImpl
+    val instance = new ToleranceCalculator with EmpiricalImplicits
     
     val weighted1 = Weighted(Scored(1, Seq(0.05, 0.1, 0.15)), 1)	// Mean rep score = 0.1
     val weighted2 = Weighted(Scored(2, Seq(0.15, 0.2, 0.25)), 1)	// Mean rep score = 0.2

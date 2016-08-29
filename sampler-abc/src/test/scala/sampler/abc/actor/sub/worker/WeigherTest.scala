@@ -1,20 +1,13 @@
 package sampler.abc.actor.sub.worker
 
-import org.scalatest.FreeSpec
-import org.scalatest.mock.MockitoSugar
-import sampler.abc.Scored
-import sampler.abc.Generation
-import sampler.abc.Population
-import sampler.abc.Model
-import scala.util.Try
-import sampler.abc.actor.main.WeighedParticles
-import sampler.abc.actor.sub.WeighJob
-import sampler.abc.actor.main.ScoredParticles
-import sampler.abc.Weighted
 import org.mockito.Mockito._
-import org.mockito.Matchers._
-import scala.util.Success
-import scala.util.Failure
+import org.scalatest.FreeSpec
+import org.scalatest.mockito.MockitoSugar
+import sampler.abc.{Generation, Population, Scored, Weighted}
+import sampler.abc.actor.main.{ScoredParticles, WeighedParticles}
+import sampler.abc.actor.sub.WeighJob
+
+import scala.util.{Failure, Success}
 
 class WeigherTest extends FreeSpec with MockitoSugar {
   type T = Int //Pretend model parameters

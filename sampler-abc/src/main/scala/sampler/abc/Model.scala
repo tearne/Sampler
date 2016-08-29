@@ -21,6 +21,8 @@ import sampler.distribution.Distribution
 
 trait Model[P] {
 	val prior: Prior[P]
+
+	//TODO fix inconsistency between methods which require a random , and perturb which doesn't
 	def perturb(parameters: P): P
 	def perturbDensity(a: P, b: P): Double	
 	def distanceToObservations(p: P): Distribution[Double]

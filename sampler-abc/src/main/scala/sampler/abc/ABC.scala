@@ -100,7 +100,7 @@ object ABC extends ABCActorsImpl with Logging {
 
 		if (config.terminateAtTargetGen) {
 			info("Terminating actor system")
-			system.shutdown
+			system.terminate
 		}
 
 		result

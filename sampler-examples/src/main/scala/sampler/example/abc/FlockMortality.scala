@@ -16,45 +16,34 @@
  */
 package sampler.example.abc
 
+import java.math.MathContext
 import java.nio.charset.Charset
-import java.nio.file.Files
-import java.nio.file.Paths
-import scala.Array.canBuildFrom
-import scala.IndexedSeq
-import scala.collection.mutable.Buffer
-import scala.language.existentials
+import java.nio.file.{Files, Paths}
+
+import com.typesafe.config.ConfigFactory
 import org.apache.commons.math3.distribution.NormalDistribution
 import org.apache.commons.math3.ode.FirstOrderDifferentialEquations
 import org.apache.commons.math3.ode.nonstiff.DormandPrince853Integrator
-import org.apache.commons.math3.ode.sampling.FixedStepHandler
-import org.apache.commons.math3.ode.sampling.StepNormalizer
-import org.apache.commons.math3.random.MersenneTwister
-import org.apache.commons.math3.random.RandomGenerator
-import org.apache.commons.math3.random.SynchronizedRandomGenerator
-import com.typesafe.config.ConfigFactory
-import sampler.Implicits.RichIndexedSeq
-import sampler.abc.ABC
-import sampler.abc.Model
-import sampler.abc.Prior
-import sampler.abc.ABCConfig
-import sampler.data.Distribution
-import sampler.io.CSV
-import sampler.math.Random
-import sampler.math.Statistics.quantile
-import sampler.r.script.RScript
-import sampler.math.Statistics
-import sampler.data.DistributionBuilder
-import sampler.io.Tokenable
-import sampler.io.Tokens
-import java.math.MathContext
+import org.apache.commons.math3.ode.sampling.{FixedStepHandler, StepNormalizer}
+import org.apache.commons.math3.random.{MersenneTwister, RandomGenerator, SynchronizedRandomGenerator}
 import play.api.libs.json.Json
+import sampler._
+import sampler.abc.{ABC, ABCConfig, Model, Prior}
+import sampler.distribution.Distribution
+import sampler.io.{CSV, Tokenable, Tokens}
+import sampler.maths.Random
+import sampler.r.script.RScript
+
+import scala.Array.canBuildFrom
+import scala.collection.mutable.Buffer
+import scala.language.existentials
 
 object FlockMortality extends App {
 	import FlockMortalityModel._
 	
 	val wd = Paths.get("results").resolve("FlockMortality")
 	Files.createDirectories(wd)
-	implicit val modelRandom = FlockMortalityModel.modelRandom 
+	implicit val r = Random
 	
 	val abcConfig = ABCConfig(ConfigFactory.load.getConfig("flock-mortality-example"))
 	val posterior = ABC(FlockMortalityModel, abcConfig)
@@ -69,15 +58,15 @@ object FlockMortality extends App {
 	)
 
 	//Get median fit data
-	val posteriorSamplable = DistributionBuilder.fromWeightsTable(posterior.consolidatedWeightsTable)
+	val posteriorSamplable = Distribution.fromWeightsTable(posterior.consolidatedWeightsTable)
 	val bunchOfSamples = (1 to 100000).map(_ => posteriorSamplable.sample)
-	val medBeta = quantile(bunchOfSamples.map(_.beta).toEmpiricalSeq, 0.5)
-	val medEta = quantile(bunchOfSamples.map(_.eta).toEmpiricalSeq, 0.5)
-	val medGamma = quantile(bunchOfSamples.map(_.gamma).toEmpiricalSeq, 0.5)
-	val medDelta = quantile(bunchOfSamples.map(_.delta).toEmpiricalSeq, 0.5)
-	val medSigma = quantile(bunchOfSamples.map(_.sigma).toEmpiricalSeq, 0.5)
-	val medSigma2 = quantile(bunchOfSamples.map(_.sigma2).toEmpiricalSeq, 0.5)
-	val medOffset = quantile(bunchOfSamples.map(_.offset).map(_.toDouble).toEmpiricalTable, 0.5).toInt
+	val medBeta = bunchOfSamples.map(_.beta).toEmpirical.percentile(0.5)
+	val medEta = bunchOfSamples.map(_.eta).toEmpirical.percentile(0.5)
+	val medGamma = bunchOfSamples.map(_.gamma).toEmpirical.percentile(0.5)
+	val medDelta = bunchOfSamples.map(_.delta).toEmpirical.percentile(0.5)
+	val medSigma = bunchOfSamples.map(_.sigma).toEmpirical.percentile(0.5)
+	val medSigma2 = bunchOfSamples.map(_.sigma2).toEmpirical.percentile(0.5)
+	val medOffset = bunchOfSamples.map(_.offset.toDouble).groupBy(identity).mapValues(_.size).toEmpirical.percentile(0.5).toInt
 	
 	val medianParams = FlockMortalityParams(medBeta, medEta, medGamma, medDelta, medSigma, medSigma2, medOffset)
 	val fitted = modelDistribution(medianParams).sample
@@ -162,10 +151,6 @@ object FlockMortalityParams{
 }
 
 object FlockMortalityModel extends Model[FlockMortalityParams] {
-	val random = Random
-	val modelRandom = Random
-	val statistics = sampler.math.Statistics
-	
 	val observed = Observed(
 		dailyEggs = List(2200,2578,2654,2167,2210,2444,2182,2152,2208,2100,1644,1872,1092,1236,1116,1200,1025,1172,1096,1122),
 		dailyDead = List(0,0,0,0,0,0,0,1,15,70,39,60,74,46,54,25,5,5,6,1)
@@ -188,16 +173,15 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 			unitRange(sigma2) *
 			tenRange(offset)
 		}
-		
-		//TODO can use random in the model?
-		def draw = FlockMortalityParams(
-			beta = modelRandom.nextDouble(0, 1),
-			eta = modelRandom.nextDouble(0, 1),
-			gamma = modelRandom.nextDouble(0, 1),
-			delta = modelRandom.nextDouble(0, 1),
-			sigma = modelRandom.nextDouble(0, 1),
-			sigma2 = modelRandom.nextDouble(0, 1),
-			offset = modelRandom.nextInt(10)
+
+		def draw(r: Random) = FlockMortalityParams(
+			beta = r.nextDouble(0, 1),
+			eta = r.nextDouble(0, 1),
+			gamma = r.nextDouble(0, 1),
+			delta = r.nextDouble(0, 1),
+			sigma = r.nextDouble(0, 1),
+			sigma2 = r.nextDouble(0, 1),
+			offset = r.nextInt(10)
 		)
 	}
 	
@@ -210,7 +194,7 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 			val syncRand: RandomGenerator = new SynchronizedRandomGenerator(new MersenneTwister())
 			new NormalDistribution(syncRand, 0, 0.1, NormalDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY)
 		}
-		def draw = {
+		def draw(r: Random) = {
 			val r = normal.sample
 			
 			if(r.isNaN() || r.isInfinite()) {
@@ -225,11 +209,12 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 			normal.density(at)
 		}
 	}
-	val threeDie = DistributionBuilder.uniform(IndexedSeq(-1,0,1))(random)
+	val threeDie = Distribution.uniform(IndexedSeq(-1,0,1))
 	private def threeDensity(v: Int) = if(v <= 1 || v >= -1) 1.0 / 3 else 0
 	
 	def perturb(p: FlockMortalityParams) = {
 		import p._
+    implicit val random = Random
 		FlockMortalityParams(
 			beta + kernel.sample,
 			eta + kernel.sample,
@@ -310,7 +295,7 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 			val stepHandler = new FixedStepHandler() {
 			    def init(t0: Double, y0: Array[Double], t: Double) {}
 			    def handleStep(t: Double, y: Array[Double], yDot: Array[Double], isLast: Boolean) {
-			        val rounded = y.map{value => if(math.abs(value) < 1e-4) 0 else value }
+            val rounded = y.map{value => if(math.abs(value) < 1e-4) 0 else value }
 			    	val state = ODEState(
 			        		rounded(0), 
 			        		rounded(1), 
@@ -351,7 +336,7 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 		}
 		
 		//Deterministic model will always return the same answer
-		DistributionBuilder.continually(solve)
+		Distribution.always(solve)
 	}
 }
 

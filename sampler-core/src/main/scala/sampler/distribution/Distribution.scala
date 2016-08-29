@@ -11,11 +11,10 @@ import sampler.samplable.SamplableSyntax
 /*
  *  Algebraic data type for a distribution
  */
-sealed trait Distribution[A] {
+trait Distribution[A] {
   def sample(implicit r: Random): A
   //TODO canEqual, equals, hashcode etc  (monad?)
 }
-
 
 final case class Build[A](f: Random => A) extends Distribution[A] {
   def sample(implicit r: Random) = f(r)
@@ -50,7 +49,7 @@ final case class EmpiricalSeq[A](items: IndexedSeq[A]) extends Distribution[A] {
   def sample(implicit r: Random) = items(r.nextInt(size))
 }
 
-object Distribution extends LowPriorityImplicits{
+object Distribution extends LowPriorityImplicits with CommonDistributions{
   def fromWeightsTable[A](weightsByItem: Map[A, Double]): Distribution[A] = 
     EmpiricalTable(weightsByItem: Map[A, Double])
   

@@ -1,22 +1,10 @@
 package sampler.abc.actor.main
 
-import org.scalatest.FreeSpec
-import org.scalatest.Matchers
-import org.scalatest.mock.MockitoSugar
-import org.mockito.Mockito._
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import sampler.abc.Scored
-import sampler.abc.Generation
+import org.scalatest.{FreeSpec, Matchers}
+import org.scalatest.mockito.MockitoSugar
+import sampler.abc._
+
 import scala.collection.immutable.Queue
-import sampler.abc.Weighted
-import sampler.abc.Model
-import sampler.abc.Prior
-import sampler.abc.UseModelPrior
-import sampler.abc.Population
-import sampler.abc.UseModelPrior
-import sampler.abc.actor.sub.flushing.ToleranceCalculator
-import sampler.abc.ABCConfig
 
 class EvolvingGenerationTest extends FreeSpec with Matchers with MockitoSugar {
 	type T = Int

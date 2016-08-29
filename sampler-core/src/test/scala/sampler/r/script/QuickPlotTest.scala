@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-15 Crown Copyright 
+ * Copyright (c) 2012-15 Crown Copyright
  * Animal & Plant Health Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,20 +17,13 @@
 
 package sampler.r.script
 
-import sampler.Implicits._
-import sampler.r.script.QuickPlot._
-import java.nio.file.Paths
-import scala.io.Source
-import java.io.File
-import java.nio.file.Files
-import java.nio.file.Path
-import QuickPlot._
-import org.scalatest.FreeSpec
-import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
-import org.scalatest.BeforeAndAfter
+import java.nio.file.{Files, Path, Paths}
+
 import org.junit.runner.RunWith
+import org.mockito.Mockito._
+import org.scalatest.{BeforeAndAfter, FreeSpec}
 import org.scalatest.junit.JUnitRunner
+import org.scalatest.mockito.MockitoSugar
 
 @RunWith(classOf[JUnitRunner])
 class QuickPlotTest 

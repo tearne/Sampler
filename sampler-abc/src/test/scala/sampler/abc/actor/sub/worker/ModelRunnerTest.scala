@@ -1,22 +1,15 @@
 package sampler.abc.actor.sub.worker
 
-import org.scalatest.FreeSpec
-import org.scalatest.mock.MockitoSugar
-import sampler.abc.Model
-import sampler.abc.Generation
-import sampler.abc.Population
-import sampler.abc.actor.sub.GenerateParticlesFrom
-import scala.util.Try
-import sampler.abc.actor.main.ScoredParticles
-import sampler.abc.Prior
-import org.mockito.Mockito.when
 import org.mockito.Matchers._
-import sampler.abc.Scored
-import scala.util.Success
-import scala.util.Failure
-import sampler.abc.ABCConfig
-import sampler.abc.Weighted
+import org.mockito.Mockito.when
+import org.scalatest.FreeSpec
+import org.scalatest.mockito.MockitoSugar
+import sampler.abc._
+import sampler.abc.actor.main.ScoredParticles
+import sampler.abc.actor.sub.GenerateParticlesFrom
+import sampler.maths.Random
 
+import scala.util.{Success, Try}
 
 class ModelRunnerTest extends FreeSpec with MockitoSugar {
   type T = Int //Pretend model parameters
@@ -28,7 +21,7 @@ class ModelRunnerTest extends FreeSpec with MockitoSugar {
 		val config: ABCConfig)
 			extends ModelRunnerComponent[T]
       with AborterComponent {
-		val random = sampler.math.Random
+		val random = Random
 		val model: Model[T] = mock[Model[T]]
 		val modelRunner = new ModelRunner {}
     val aborter = new Aborter {}

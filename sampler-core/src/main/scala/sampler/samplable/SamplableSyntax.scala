@@ -1,5 +1,7 @@
 package sampler.samplable
 
+import sampler.maths.Random
+
 import scala.language.higherKinds
 
 trait SamplableSyntax{
@@ -10,6 +12,12 @@ trait SamplableSyntax{
    * object
    */
   implicit class SamplableOps[T[_], A](thiz: T[A]){
+    def sample[A](implicit instance: Samplable[T], r: Random) =
+      instance.sample(thiz)(r)
+
+    def sample[A](r: Random)(implicit instance: Samplable[T]) =
+      instance.sample(thiz)(r)
+
     def flatMap[B](f: A => T[B])(implicit instance: Samplable[T]) = 
       instance.flatMap(thiz)(f)
 

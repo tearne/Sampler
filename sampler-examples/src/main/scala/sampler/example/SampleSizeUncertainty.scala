@@ -1,26 +1,18 @@
 package sampler.example
 
-import java.nio.file.Files
-import java.nio.file.Paths
+import java.nio.file.{Files, Paths}
 
 import org.apache.commons.io.FileUtils
 import org.apache.commons.math3.distribution.NormalDistribution
-import org.json4s.JsonDSL.double2jvalue
-import org.json4s.JsonDSL.pair2Assoc
-import org.json4s.JsonDSL.seq2jvalue
-import org.json4s.native.JsonMethods.pretty
-import org.json4s.native.JsonMethods.render
-
-import sampler.Implicits.RichIndexedSeq
-import sampler.data.ConvergenceProtocol
-import sampler.data.Distribution
-import sampler.data.DistributionBuilder
-import sampler.data.MaxMetric
-import sampler.data.ParallelSampler
+import play.api.libs.json.{JsValue, Json}
+import sampler._
+import sampler.distribution.Distribution
 import sampler.io.Rounding
-import sampler.math.Random
-import sampler.math.Statistics
+import sampler.maths.Random
 import sampler.r.script.RScript
+import sampler.samplable.{ConvergenceProtocol, MaxMetric, ParallelSampler}
+
+import scala.collection.GenTraversable
 
 /*
  *  Given an imperfect test characterised by empirical data, how many samples should be taken to
@@ -40,18 +32,17 @@ object SampleSizeUncertainty extends App with Rounding {
 	/* Generate some fake performance data.  In general this may be generated externally
 	 * and loaded, for example using the [[sampler.io.ChainReader]].
 	 */
-	val empiricalData = {
+	val generatedData: Seq[Double] = {
 		val normal = new NormalDistribution(0.7,0.3)
-		DistributionBuilder(normal.sample)
-			.filter(x => x > 0 && x < 1)
+		Distribution.from(_ => normal.sample)
+      .filter{(x: Double) => x > 0 && x < 1}
 			.until(_.size == 1000)
 			.sample
-			.toEmpiricalSeq
 	}
 
-	val empiricalDistribution = empiricalData.toDistribution
-	val empiricalMean = Statistics.mean(empiricalData)
-	val meanDistribution = DistributionBuilder.continually(empiricalMean)
+	val empiricalDistribution = generatedData.toDistribution
+	val empiricalMean = generatedData.toEmpirical.mean
+	val meanDistribution = Distribution.always(empiricalMean)
 
 	def getSampleSize(observedSe: Distribution[Double], requiredSensitivity: Double) = {
 
@@ -70,11 +61,11 @@ object SampleSizeUncertainty extends App with Rounding {
 				val tolerance = 1e-5
 				val maxSamples = 1000000
 
-				ParallelSampler(model){
+				ParallelSampler(model, random){
 					new ConvergenceProtocol[Boolean](chunkSize, tolerance, maxSamples)
 					with MaxMetric
 				}
-					.toEmpiricalTable
+					.toEmpirical
 					.probabilityTable(true)
 			}
 
@@ -87,12 +78,13 @@ object SampleSizeUncertainty extends App with Rounding {
 		loop()
 	}
 
-	val json = (
-			"PretendData" ->
-			empiricalData.values.map(_.decimalPlaces(3))
-		) ~ ("Mean" -> empiricalMean)
+  val json: JsValue = Json.obj(
+    "PretendData" -> generatedData.map(_.decimalPlaces(3)),
+    "Mean" -> empiricalMean
+  )
+
 	Files.createDirectories(wd)
-	FileUtils.writeStringToFile(wd.resolve("json.json").toFile(), pretty(render(json)))
+  FileUtils.writeStringToFile(wd.resolve("json.json").toFile(), Json.prettyPrint(json))
 
 	RScript("""
 	  library(ggplot2)

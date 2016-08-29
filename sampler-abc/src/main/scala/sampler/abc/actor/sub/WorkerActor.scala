@@ -17,30 +17,15 @@
 
 package sampler.abc.actor.sub
 
-import scala.concurrent.Future
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
-import akka.actor.Actor
-import akka.actor.ActorLogging
-import akka.actor.ActorRef
-import akka.actor.FSM
-import akka.actor.actorRef2Scala
+import akka.actor.{Actor, ActorLogging, ActorRef, FSM, actorRef2Scala}
 import akka.pattern.pipe
-import sampler.abc.ABCConfig
-import sampler.abc.Generation
-import sampler.abc.Model
-import sampler.abc.actor.main.EvolvingGeneration
-import sampler.abc.actor.main.Failed
-import sampler.abc.actor.main.ScoredParticles
-import sampler.abc.actor.main.WeighedParticles
-import sampler.abc.actor.sub.worker.AborterComponent
-import sampler.abc.actor.sub.worker.AborterComponentImpl
-import sampler.abc.actor.sub.worker.ModelRunnerComponent
-import sampler.abc.actor.sub.worker.ModelRunnerComponentImpl
-import sampler.abc.actor.sub.worker.WeigherComponent
-import sampler.abc.actor.sub.worker.WeigherComponentImpl
-import sampler.math.Random
+import sampler.abc.{ABCConfig, Generation, Model}
+import sampler.abc.actor.main.{EvolvingGeneration, Failed, ScoredParticles, WeighedParticles}
+import sampler.abc.actor.sub.worker._
+import sampler.maths.Random
+
+import scala.concurrent.Future
+import scala.util.{Failure, Success, Try}
 
 sealed trait Job[P]
 case class GenerateParticlesFrom[P](prevGen: Generation[P], config: ABCConfig) extends Job[P]

@@ -1,11 +1,11 @@
 package sampler.distribution
 
-import scala.collection.{GenSeq, GenMap}
+import scala.collection.{GenMap, GenSeq, GenTraversable}
 import sampler.maths.Random
 
 // Type enrichments to easily make distributions from collections
 trait DistributionImplicits {
-  implicit class SeqOps[A](genSeq: GenSeq[A]) {
+  implicit class SeqOps[A](genSeq: GenTraversable[A]) {
 		def toDistribution = Distribution.fromSequence(genSeq.toIndexedSeq)
 	}
 	

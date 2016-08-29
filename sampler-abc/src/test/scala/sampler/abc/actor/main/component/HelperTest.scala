@@ -1,24 +1,16 @@
 package sampler.abc.actor.main.component
 
-import org.scalatest.FreeSpec
-import org.scalatest.Matchers
-import org.scalatest.mock.MockitoSugar
-import sampler.math.Random
-import sampler.abc.Scored
-import sampler.abc.Weighted
-import scala.collection.immutable.Queue
-import org.mockito.Mockito._
 import org.mockito.Matchers._
-import sampler.abc.actor.main.EvolvingGeneration
-import sampler.abc.actor.sub.flushing.GenerationFlusher
-import sampler.abc.actor.main.component.helper.ParticleMixer
-import sampler.abc.actor.main.component.helper.Getters
-import sampler.abc.actor.main.WeighedParticles
-import sampler.abc.actor.main.ScoredParticles
-import sampler.abc.ABCConfig
+import org.mockito.Mockito._
+import org.scalatest.{FreeSpec, Matchers}
+import org.scalatest.mockito.MockitoSugar
+import sampler.abc._
+import sampler.abc.actor.main.{EvolvingGeneration, ScoredParticles, WeighedParticles}
+import sampler.abc.actor.main.component.helper.{Getters, ParticleMixer}
 import sampler.abc.actor.sub.flushing.ToleranceCalculator
-import sampler.abc.UseModelPrior
-import sampler.abc.Population
+import sampler.maths.Random
+
+import scala.collection.immutable.Queue
 
 class HelperTest extends FreeSpec with Matchers with MockitoSugar {
 

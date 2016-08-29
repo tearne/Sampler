@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-15 Crown Copyright 
+ * Copyright (c) 2012-15 Crown Copyright
  * Animal & Plant Health Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,17 +17,12 @@
 
 package sampler.r.script
 
-import java.nio.file.{Paths, Files}
-import collection.JavaConversions.asScalaBuffer
-import java.nio.file.Path
-import org.scalatest.BeforeAndAfter
-import org.scalatest.FreeSpec
-import scala.io.Source
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import org.scalatest.BeforeAndAfterAll
+import java.nio.file.{Files, Paths}
 
-@RunWith(classOf[JUnitRunner])
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FreeSpec}
+
+import scala.io.Source
+
 class RScriptTest extends FreeSpec with BeforeAndAfter with BeforeAndAfterAll {
 
   val baseDir = Paths.get(getClass.getResource("").toURI()).resolve("shouldBeDeletedByTest")

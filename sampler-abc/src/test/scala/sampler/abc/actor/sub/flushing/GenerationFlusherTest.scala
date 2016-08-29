@@ -1,18 +1,13 @@
 package sampler.abc.actor.sub.flushing
 
-import org.scalatest.FreeSpec
-import org.scalatest.mock.MockitoSugar
-import org.scalatest.Matchers
 import org.mockito.Mockito._
-import sampler.abc.Weighted
-import sampler.abc.Generation
-import sampler.abc.Model
-import scala.collection.immutable.Queue
-import sampler.abc.Population
-import sampler.abc.actor.main.EvolvingGeneration
+import org.scalatest.{FreeSpec, Matchers}
+import org.scalatest.mockito.MockitoSugar
+import sampler.abc.{ABCConfig, Model, Population, Weighted}
+import sampler.abc.actor.main.{EvolvingGeneration, WeighedParticles}
 import sampler.abc.actor.main.component.helper.Getters
-import sampler.abc.actor.main.WeighedParticles
-import sampler.abc.ABCConfig
+
+import scala.collection.immutable.Queue
 
 class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 	type T = Int

@@ -17,34 +17,17 @@ w * Copyright (c) 2012-13 Crown Copyright
 
 package sampler.abc.actor.sub
 
-import scala.language.existentials
-import scala.concurrent.duration._
-import akka.actor.Actor
-import akka.actor.ActorLogging
-import akka.actor.ActorRef
-import akka.actor.Props
-import akka.actor.RootActorPath
-import akka.actor.actorRef2Scala
-import akka.cluster.Cluster
-import akka.cluster.ClusterEvent.ClusterDomainEvent
-import akka.cluster.ClusterEvent.CurrentClusterState
-import akka.cluster.ClusterEvent.MemberRemoved
-import akka.cluster.ClusterEvent.MemberUp
-import akka.cluster.MemberStatus
-import sampler.math.Random
-import akka.actor.Identify
-import akka.actor.ActorIdentity
-import com.typesafe.config.ConfigFactory
 import akka.actor.ActorSelection.toScala
-import akka.cluster.ClusterEvent.ClusterDomainEvent
-import scala.concurrent.duration._
-import akka.cluster.ClusterEvent.ReachableMember
-import akka.cluster.ClusterEvent.UnreachableMember
-import akka.cluster.Member
-import sampler.abc.actor.main.MixPayload
-import akka.cluster.ClusterEvent.ClusterDomainEvent
+import akka.actor.{Actor, ActorIdentity, ActorLogging, ActorRef, Identify, Props, RootActorPath, actorRef2Scala}
+import akka.cluster.ClusterEvent._
+import akka.cluster.{Cluster, Member, MemberStatus}
 import sampler.abc.ABCConfig
-import sampler.distribution.CommonDistributions
+import sampler.abc.actor.main.MixPayload
+import sampler.distribution.Distribution
+import sampler.maths.Random
+
+import scala.concurrent.duration._
+import scala.language.existentials
 
 class BroadcastActor(config: ABCConfig) extends Actor with ActorLogging{
 	implicit val r = Random
@@ -136,8 +119,8 @@ class BroadcastActor(config: ABCConfig) extends Actor with ActorLogging{
       	!expired
       }
     case msg: MixPayload[_] =>
-      if(!nodes.isEmpty){
-        val recipient = CommonDistributions.uniform(nodes.toIndexedSeq).sample 
+      if(nodes.nonEmpty){
+        val recipient = Distribution.uniform(nodes.toIndexedSeq).sample
         if(!preMixingTests.contains(recipient)){
           val test = PreMixingTest(msg)
           preMixingTests = preMixingTests + (recipient -> test)
@@ -150,6 +133,7 @@ class BroadcastActor(config: ABCConfig) extends Actor with ActorLogging{
   val reportingActor = context.actorOf(Props(new Actor with ActorLogging{
 	  case object Tick
 		import context.dispatcher
+
 		import scala.concurrent.duration._
 		
 		var numWorkers: Option[Int] = None

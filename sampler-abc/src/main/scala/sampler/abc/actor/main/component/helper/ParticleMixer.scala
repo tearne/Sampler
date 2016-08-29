@@ -1,11 +1,9 @@
 package sampler.abc.actor.main.component.helper
 
 import sampler._
-import sampler.math.Random
-import sampler.abc.actor.main.ScoredParticles
-import sampler.abc.actor.main.EvolvingGeneration
-import sampler.abc.ABCConfig
-import sampler.abc.Weighted
+import sampler.abc.actor.main.{EvolvingGeneration, ScoredParticles}
+import sampler.abc.{ABCConfig, Weighted}
+import sampler.maths.Random
 
 class ParticleMixer {
 	

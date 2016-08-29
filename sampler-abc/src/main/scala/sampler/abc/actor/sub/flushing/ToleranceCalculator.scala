@@ -17,17 +17,15 @@
 
 package sampler.abc.actor.sub.flushing
 
-import sampler._
-import sampler.math.StatisticsComponent
-import sampler.math.StatisticsImpl
 import sampler.io.Logging
 import sampler.abc.ABCConfig
-import sampler.math.Statistics
 import sampler.abc.Weighted
+import sampler._
+import sampler.empirical.EmpiricalImplicits
 
-trait ToleranceCalculator extends StatisticsComponent with Logging {
+trait ToleranceCalculator extends Logging {
 	def apply[P](weighted: Seq[Weighted[P]], config: ABCConfig, currentTolerance: Double): Double = {
-		val percentileMeanScore = weighted.map(_.meanScore).percentile(config.toleranceDescentPercentile)
+		val percentileMeanScore = weighted.map(_.meanScore).toEmpirical.percentile(config.toleranceDescentPercentile)
 		if (percentileMeanScore == 0) {
 			warn("New tolerance evaluated to 0. Will use old tolerance again.")
 			currentTolerance
@@ -40,4 +38,4 @@ trait ToleranceCalculator extends StatisticsComponent with Logging {
 
 object ToleranceCalculator
 	extends ToleranceCalculator
-	with StatisticsImpl
+  with EmpiricalImplicits

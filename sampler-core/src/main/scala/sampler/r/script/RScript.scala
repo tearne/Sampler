@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-15 Crown Copyright 
+ * Copyright (c) 2012-15 Crown Copyright
  *                       Animal and Plant Health Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,9 +18,7 @@
 package sampler.r.script
 
 import java.io.FileWriter
-import java.nio.file.Path
-import scala.sys.process.stringSeqToProcess
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 
 trait RScript {
 	def apply(script: String, workingDirectory: Path)

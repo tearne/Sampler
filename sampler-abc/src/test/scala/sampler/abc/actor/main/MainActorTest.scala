@@ -1,33 +1,19 @@
 package sampler.abc.actor.main
 
-import org.mockito.Mockito.when
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.FreeSpecLike
-import org.scalatest.mock.MockitoSugar
 import akka.actor.ActorSystem
 import akka.routing.Broadcast
-import akka.testkit.TestFSMRef
-import akka.testkit.TestKit
-import akka.testkit.TestProbe
-import sampler.abc.Model
-import sampler.abc.Scored
-import akka.actor.Cancellable
+import akka.testkit.{TestFSMRef, TestKit, TestProbe}
+import org.mockito.Mockito.when
+import org.scalatest.{BeforeAndAfterAll, FreeSpecLike}
+import org.scalatest.mockito.MockitoSugar
+import sampler.abc.{ABCConfig, Model, Population, Scored}
+import sampler.abc.actor.main.component.{ChildActorsComponent, Helper, HelperComponent}
 import sampler.abc.actor.main.component.helper.Getters
-import scala.collection.immutable.Queue
-import org.scalatest.BeforeAndAfter
-import akka.actor.ActorRef
-import sampler.abc.actor.sub.FlushComplete
-import sampler.abc.Population
-import sampler.abc.actor.sub.GenerateParticlesFrom
-import sampler.abc.actor.sub.Abort
-import sampler.abc.actor.sub.WeighJob
-import sampler.abc.actor.main.component.ChildActorsComponent
-import sampler.abc.actor.main.component.HelperComponent
+import sampler.abc.actor.sub._
 import sampler.abc.actor.sub.flushing.GenerationFlusher
-import sampler.abc.actor.main.component.Helper
-import sampler.abc.actor.sub.StatusReport
-import sampler.abc.actor.sub.FinishGen
-import sampler.abc.ABCConfig
+import sampler.maths.Random
+
+import scala.collection.immutable.Queue
 
 class MainActorTest
 		extends TestKit(ActorSystem("ABC"))
@@ -51,7 +37,7 @@ class MainActorTest
 		val generationFlusher = mock[GenerationFlusher]
 		val helper = mock[Helper]
 
-		val random = sampler.math.Random
+		val random = Random
 	}
 
 	override def afterAll {

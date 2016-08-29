@@ -1,12 +1,11 @@
 package sampler.abc.actor.sub.worker
 
 import org.scalatest.FreeSpec
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import sampler.abc.Model
 import sampler.abc.Prior
 import org.mockito.Mockito._
 import org.mockito.Matchers._
-import sampler.abc.actor.sub.WeighJob
 import sampler.abc.Generation
 import sampler.abc.Population
 import sampler.abc.UseModelPrior

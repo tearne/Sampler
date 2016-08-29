@@ -1,21 +1,11 @@
 package sampler.abc.actor.main.component
 
-import sampler.abc.actor.sub.flushing.GenerationFlusher
+import sampler.abc._
+import sampler.abc.actor.main.{EvolvingGeneration, MainActor, ScoredParticles, WeighedParticles}
+import sampler.abc.actor.main.component.helper.{Getters, ParticleMixer}
 import sampler.abc.actor.sub.flushing.ToleranceCalculator
-import sampler.abc.actor.sub.flushing.ObservedIdsTrimmer
-import sampler.math.Random
-import sampler.abc.actor.main.MainActor
-import sampler.abc.actor.main.component.helper.ParticleMixer
-import sampler.abc.actor.main.EvolvingGeneration
-import sampler.abc.actor.main.ScoredParticles
-import sampler.abc.actor.main.WeighedParticles
-import sampler.abc.actor.main.component.helper.Getters
-import sampler.abc.ABCConfig
-import sampler.abc.ABCConfig
-import sampler.abc.Scored
-import sampler.abc.Generation
-import sampler.abc.UseModelPrior
-import sampler.abc.Population
+import sampler.maths.Random
+
 import scala.collection.immutable.Queue
 
 trait HelperCoponentImpl extends HelperComponent {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-15 Crown Copyright 
+ * Copyright (c) 2012-15 Crown Copyright
  * Animal & Plant Health Agency
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,9 +19,9 @@ package sampler.r.script
 
 import java.nio.file.Path
 
-import scala.language.implicitConversions
-
 import sampler.io.CSV
+
+import scala.language.implicitConversions
 
 trait QuickPlot{
 	val runner: RScript
@@ -61,7 +61,6 @@ trait QuickPlot{
    */
   def writeDensity[T: Fractional](filePath: Path, width:String, height:String, data: NamedSeqFractional[T]*) = {
 		val header = Seq[Any]("variable", "value")
-	  import Numeric.Implicits._
 		
 		val parentPath = filePath.getParent()
 		val pdfFile = filePath.getFileName()
