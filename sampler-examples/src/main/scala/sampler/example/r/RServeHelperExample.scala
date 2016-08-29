@@ -3,8 +3,8 @@ package sampler.example.r
 import org.json4s.JsonDSL._
 import org.json4s._
 import org.json4s.native.JsonMethods._
-import sampler.r.rserve.RServeHelper
 import org.rosuda.REngine.Rserve.RConnection
+import sampler.r.rserve.RServeHelper
 
 object RServeHelperExample extends App {
 	// Prep some data to send to R

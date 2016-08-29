@@ -4,6 +4,8 @@ import sampler._
 import sampler.empirical.Empirical
 import sampler.maths.Random
 
+import scala.language.higherKinds
+
 trait Sampler{
   /** Collects samples from distribution until condition returns true
     *

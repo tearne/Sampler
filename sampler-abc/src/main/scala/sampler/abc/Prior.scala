@@ -1,15 +1,13 @@
 package sampler.abc
 
 import sampler.distribution.Distribution
-import sampler.maths.Random
+import sampler._
 
-trait Prior[A] extends Distribution[A]{
-	def density(value: A): Double
-	def draw(implicit r: Random): A
+trait Prior[A] {
+  def density(value: A): Double
 
-  def sample(implicit r: Random): A = {
-		val drawn = draw(r)
-		assume(density(drawn) > 0.0)
-		drawn
-	}
+  protected val distribution: Distribution[A]
+
+  def distributionSupportChecked: Distribution[A] =
+    distribution.map { drawn => assume(density(drawn) > 0.0); drawn }
 }

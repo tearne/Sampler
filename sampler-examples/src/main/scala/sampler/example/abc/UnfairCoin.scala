@@ -149,18 +149,16 @@ object CoinParams {
 }
 
 object CoinModel extends Model[CoinParams] {
-	val random = Random
-
 	case class Observed(numTrials: Int, numHeads: Int) extends Serializable
   	val observedData = Observed(100,70)
 
-	val prior = new Prior[CoinParams] with Serializable{
+	val prior = new Prior[CoinParams] {
 	    def density(p: CoinParams) = {
 	      if(p.pHeads > 1 || p.pHeads < 0) 0.0
 	      else 1.0
 	    }
 	    
-	    def draw(r: Random) = {
+	    val distribution = Distribution.from{ r =>
 	    	CoinParams(r.nextDouble(0.0, 1.0))
 	    }
     }

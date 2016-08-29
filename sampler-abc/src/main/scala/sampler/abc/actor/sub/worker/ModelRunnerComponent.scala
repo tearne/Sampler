@@ -50,7 +50,7 @@ trait ModelRunnerComponent[P] {
 		  val maxParticleRetries = job.config.maxParticleRetries
 		  val numReplicates = job.config.numReplicates
 		  val particleChunkSize = job.config.particleChunkSize
-		  val proposalDistribution = job.prevGen.proposalDistribution(model, random)
+		  val proposalDistribution = job.prevGen.proposalDistribution(model)
 
 			@tailrec
 			def getScoredParameter(failures: Int = 0): Scored[P] = {

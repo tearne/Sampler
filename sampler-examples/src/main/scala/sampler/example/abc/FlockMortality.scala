@@ -174,18 +174,20 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 			tenRange(offset)
 		}
 
-		def draw(r: Random) = FlockMortalityParams(
-			beta = r.nextDouble(0, 1),
-			eta = r.nextDouble(0, 1),
-			gamma = r.nextDouble(0, 1),
-			delta = r.nextDouble(0, 1),
-			sigma = r.nextDouble(0, 1),
-			sigma2 = r.nextDouble(0, 1),
-			offset = r.nextInt(10)
-		)
+		val distribution = Distribution.from(r =>
+      FlockMortalityParams(
+        beta = r.nextDouble(0, 1),
+        eta = r.nextDouble(0, 1),
+        gamma = r.nextDouble(0, 1),
+        delta = r.nextDouble(0, 1),
+        sigma = r.nextDouble(0, 1),
+        sigma2 = r.nextDouble(0, 1),
+        offset = r.nextInt(10)
+      )
+    )
 	}
 	
-	private val kernel = new Prior[Double] with Distribution[Double]{
+	private val kernel = new Prior[Double]{
 		/*
 		 * The Mersenne Twister is a fast generator with very good properties well suited for Monte-Carlo simulation
 		 * http://commons.apache.org/proper/commons-math/userguide/random.html
@@ -194,17 +196,11 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 			val syncRand: RandomGenerator = new SynchronizedRandomGenerator(new MersenneTwister())
 			new NormalDistribution(syncRand, 0, 0.1, NormalDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY)
 		}
-		def draw(r: Random) = {
-			val r = normal.sample
-			
-			if(r.isNaN() || r.isInfinite()) {
-				val e = new Exception("here... r = "+r)
-				e.printStackTrace()
-				throw e
-			}
-			
-			r
-		}
+		val distribution = Distribution.from{r =>
+      val s = normal.sample
+      assume(s.isNaN() || s.isInfinite())
+      s
+    }
 		def density(at: Double) = {
 			normal.density(at)
 		}
@@ -216,12 +212,12 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 		import p._
     implicit val random = Random
 		FlockMortalityParams(
-			beta + kernel.sample,
-			eta + kernel.sample,
-			gamma + kernel.sample,
-			delta + kernel.sample,
-			sigma + kernel.sample,
-			sigma2 + kernel.sample,
+			beta + kernel.distributionSupportChecked.sample,
+			eta + kernel.distributionSupportChecked.sample,
+			gamma + kernel.distributionSupportChecked.sample,
+			delta + kernel.distributionSupportChecked.sample,
+			sigma + kernel.distributionSupportChecked.sample,
+			sigma2 + kernel.distributionSupportChecked.sample,
 			offset + threeDie.sample
 		)
 	}

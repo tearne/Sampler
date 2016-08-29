@@ -1,25 +1,27 @@
 package sampler.abc
 
 import org.scalatest.FreeSpec
-import sampler.maths.Random
+import sampler.distribution.Distribution
 
 class PriorTest extends FreeSpec {
 	"Exception if samples drawn outside density support" in {
 		val harness = new Prior[Int] {
-			val it = (1 to 3).iterator
+			private val it = (1 to 3).iterator
 			
-			def draw(implicit r: Random): Int = it.next;
 			def density(i: Int): Double = {
 				if(i == 3) 0.0
 				else 1.0
 			}
+
+			val distribution = Distribution.from(_ => it.next)
 		}
 		
-		assertResult(1)(harness.sample(null))
-		assertResult(2)(harness.sample(null))
+    println(harness.distributionSupportChecked)
+		assertResult(1)(harness.distributionSupportChecked.sample(null))
+		assertResult(2)(harness.distributionSupportChecked.sample(null))
 		
 		intercept[AssertionError]{
-			harness.sample(null)
+			harness.distributionSupportChecked.sample(null)
 		}
 	}
 }

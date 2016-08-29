@@ -6,13 +6,12 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.math3.distribution.NormalDistribution
 import play.api.libs.json.{JsValue, Json}
 import sampler._
-import sampler.distribution.Distribution
+import sampler.distribution.{Distribution, DistributionImplicits}
+import sampler.empirical.EmpiricalImplicits
 import sampler.io.Rounding
 import sampler.maths.Random
 import sampler.r.script.RScript
 import sampler.samplable.{ConvergenceProtocol, MaxMetric, ParallelSampler}
-
-import scala.collection.GenTraversable
 
 /*
  *  Given an imperfect test characterised by empirical data, how many samples should be taken to
@@ -22,7 +21,7 @@ import scala.collection.GenTraversable
  *  multiple infected replicates.  Sample size is increased until the desired sensitivity is
  *  achieved.
  */
-object SampleSizeUncertainty extends App with Rounding {
+object SampleSizeUncertainty extends App with Rounding with DistributionImplicits with EmpiricalImplicits {
 	implicit val random = Random
 	val wd = Paths.get("results", "SampleSize")
 	Files.createDirectories(wd)

@@ -2,22 +2,17 @@ package sampler.r.rserve
 
 import java.io.InputStream
 import java.net.ConnectException
-import java.nio.file.Files
-import java.nio.file.Path
-
-import scala.annotation.tailrec
-import scala.io.Source
-import scala.sys.process.Process
-import scala.sys.process.ProcessIO
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
-import scala.language.implicitConversions
+import java.nio.file.{Files, Path}
 
 import org.rosuda.REngine.REXP
 import org.rosuda.REngine.Rserve.RConnection
-
 import sampler.io.Logging
+
+import scala.annotation.tailrec
+import scala.io.Source
+import scala.language.implicitConversions
+import scala.sys.process.{Process, ProcessIO}
+import scala.util.{Failure, Success, Try}
 
 object RServeHelper extends Logging{
 	@tailrec

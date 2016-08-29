@@ -9,11 +9,12 @@ import org.apache.commons.math3.distribution.NormalDistribution
 import org.apache.commons.math3.random.{MersenneTwister, RandomGenerator, SynchronizedRandomGenerator}
 import play.api.libs.json.Json
 import sampler.abc._
+import sampler._
 import sampler.io.{CSV, Logging, Tokenable, Tokens}
 import sampler.r.script.RScript
-import sampler._
 import sampler.distribution.Distribution
 import sampler.maths.Random
+import sampler.samplable.WithoutReplacementImplicits
 
 import scala.annotation.tailrec
 
@@ -35,7 +36,7 @@ import scala.annotation.tailrec
  * parameters which generated the outbreak. 
  */
 
-object Data extends Logging {
+object Data extends WithoutReplacementImplicits with Logging {
 	val wd = Paths.get("results").resolve("Outbreak")
 	val fullObservedDataPath = wd.resolve("diffMatrix.csv")
 	val proportionOfCasesObserved = 0.8
@@ -479,8 +480,9 @@ object Parameters{
 			import p._
 			SpreadRates.prior.density(spreadRates)
 		}
-		def draw(r: Random) =
-			Parameters(SpreadRates.prior.sample(r))
+		val distribution = Distribution.from { implicit r =>
+      Parameters(SpreadRates.prior.distributionSupportChecked.sample)
+    }
 	}
 	
 	val names = Seq("Local", "Company")
@@ -548,7 +550,12 @@ object SpreadRates{
 			Transmission.prior.density(r.local) *
 			Transmission.prior.density(r.company)
 		}
-		def draw(r: Random) = SpreadRates(Transmission.prior.sample(r), Transmission.prior.sample(r))
+		val distribution = Distribution.from{implicit r: Random =>
+      SpreadRates(
+        Transmission.prior.distributionSupportChecked.sample,
+        Transmission.prior.distributionSupportChecked.sample
+      )
+    }
 	}
 	
 	def perturb(r: SpreadRates) = SpreadRates(Transmission.perturb(r.local), Transmission.perturb(r.company))
@@ -564,30 +571,34 @@ object Transmission {
   val r = Random
 
 	case class UniformPrior(min: Double, max: Double){
-		def density(x: Double) = if(x <= max && x >= min) 1.0/(max-min) else 0
+		def density(x: Double) = if(x <= max && x >= min) 1.0/(max-min) else 0.0
 		def sample = Random.nextDouble(min, max)
 	}
 	val uniformPrior = UniformPrior(0.0, 1.0)
 	
 	private val kernel = new Prior[Double]{
 		val normal = {
-			val syncRand: RandomGenerator = new SynchronizedRandomGenerator(new MersenneTwister())
-			new NormalDistribution(syncRand, 0, 0.05, NormalDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY)
-		}
-		def draw(r: Random) = normal.sample
+      val syncRand: RandomGenerator = new SynchronizedRandomGenerator(new MersenneTwister())
+      new NormalDistribution(syncRand, 0, 0.05, NormalDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY)
+    }
 		def density(at: Double) = normal.density(at)
+    //TODO bit weired that none of these actually use the random
+    val distribution = Distribution.from(r => normal.sample)
 	}
 	
 	def perturb(p: Transmission): Transmission = {
 		def perturbUnit(u: Double): Double = {
-			kernel.map(_ + u).filter(value => value <= 1.0 && value >= 0.0).sample(r)
+			kernel.distributionSupportChecked
+        .map(_ + u)
+        .filter(value => value <= 1.0 && value >= 0.0)
+        .sample(r)
 		}
 		Transmission(perturbUnit(p.rate))
 	}
 	
 	val prior = new Prior[Transmission]{
 		def density(p: Transmission) = uniformPrior.density(p.rate)
-		def draw(r: Random) = Transmission(uniformPrior.sample)
+		val distribution = Distribution.from(r => Transmission(uniformPrior.sample))
 	}
 	
 	def perturbDensity(a: Transmission, b: Transmission): Double = kernel.density(a.rate - b.rate)

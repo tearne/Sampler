@@ -7,22 +7,21 @@ import play.api.libs.json.{JsNumber, _}
 import sampler._
 import sampler.distribution.Distribution
 import sampler.io.{Tokenable, Tokens}
-import sampler.maths.Random
 
 sealed trait Generation[P]{
 	val iteration: Int
 	val tolerance: Double
-	def proposalDistribution(model: Model[P], rnd: Random): Distribution[P]
+	def proposalDistribution(model: Model[P]): Distribution[P]
 }
 
 case class UseModelPrior[P](tolerance: Double = Double.MaxValue) extends Generation[P]{
 	val iteration = 0
 	
 	/*
-	 *  Model & Random are args rather than in constructor so 
-	 *  this class can safely be serialised and used as message.
+	 *  Model is an argument rather than in constructor so
+	 *  class can safely be serialised and used as message.
 	 */
-	def proposalDistribution(model: Model[P], rnd: Random) = model.prior
+	def proposalDistribution(model: Model[P]) = model.prior.distributionSupportChecked
 }
 
 case class Population[P](
@@ -37,13 +36,12 @@ case class Population[P](
 		  .groupBy(_.scored.params)
 		  .map{case (k,v) => (k, v.map(_.weight).sum)}
   }
-  
+
 	/*
-	 *  Model & Random are args rather than in constructor so 
-	 *  this class can safely be serialised and used as message.
+	 *  Model is an argument rather than in constructor so
+	 *  class can safely be serialised and used as message.
 	 */
-  // TODO what about the random?
-	def proposalDistribution(model: Model[P], rnd: Random) =
+	def proposalDistribution(model: Model[P]) =
 	  consolidatedWeightsTable.toDistribution.map(model.perturb)
 	
 	def toJSON(wtPrecision: Int = 8)(implicit tokenable: Tokenable[P]) = {

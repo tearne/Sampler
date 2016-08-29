@@ -8,6 +8,7 @@ val commonsIo         = "commons-io" % "commons-io" % "2.4"
 val commonsMath3      = "org.apache.commons" % "commons-math3" % "3.2"
 val playJson          = "com.typesafe.play" %% "play-json" % "2.4.6" exclude("org.slf4j", "slf4j-simple")
 val cats              = "org.typelevel" %% "cats" % "0.4.1" withSources()
+val rServe            = "org.rosuda.REngine" % "Rserve" % "1.8.1"
 
 val scalaTest         = "org.scalatest" %% "scalatest" % "3.0.0" % "test"
 val scalaCheck        = "org.scalacheck" %% "scalacheck" % "1.13.1" % "test"
@@ -58,7 +59,7 @@ lazy val packageSettings = Seq(
 )
 
 lazy val root = project.in(file("."))
-  .aggregate(core, examples, abc, r, spike)
+  .aggregate(core, examples, abc, spike)
   .settings(commonSettings: _*)
   .settings(publish := { })
 
@@ -70,6 +71,7 @@ lazy val core = project.in(file("sampler-core"))
     libraryDependencies ++= Seq(
       commonsMath3,
       playJson,
+      rServe,
       "org.scalaz" %% "scalaz-core" % "7.1.0",
       "org.spire-math" %% "spire" % "0.11.0",
       cats
@@ -77,21 +79,9 @@ lazy val core = project.in(file("sampler-core"))
   )
   .settings(commonSettings: _*)
   .settings(packageSettings: _*)
-
-lazy val r = (project in file("sampler-r"))
-  .dependsOn(core)
-  .settings(name := "sampler-r")
-  .settings(
-    libraryDependencies ++= Seq(
-      "org.rosuda.REngine" % "Rserve" % "1.8.1",
-      logbackClassic
-    )
-  )
-  .settings(commonSettings: _*)
-  .settings(packageSettings: _*)
   
 lazy val examples = project.in(file("sampler-examples"))
-  .dependsOn(core, abc, r)
+  .dependsOn(core, abc)
   .settings(name := "sampler-examples")
   .settings(
     libraryDependencies ++= Seq(
@@ -132,7 +122,7 @@ lazy val abc = project.in(file("sampler-abc"))
 
   
 lazy val spike = project.in(file("sampler-spike"))
-  .dependsOn(core, r)
+  .dependsOn(core)
   .settings(name := "sampler-spike")
   .settings(publish := { })
   .settings(
