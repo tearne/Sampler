@@ -19,10 +19,10 @@ package sampler.abc.actor.main
 
 import akka.actor.{Actor, ActorRef, Cancellable, FSM, actorRef2Scala}
 import akka.routing.Broadcast
-import sampler.abc.{ABCConfig, Model, Population}
-import sampler.abc.actor.main.component.{ChildActorsComponent, ChildActorsComponentImpl, HelperComponent, HelperCoponentImpl}
 import sampler.abc.actor.main.component.helper.Getters
+import sampler.abc.actor.main.component.{ChildActorsComponent, ChildActorsComponentImpl, HelperComponent, HelperCoponentImpl}
 import sampler.abc.actor.sub._
+import sampler.abc.{ABCConfig, Model, Population}
 
 import scala.concurrent.duration.DurationLong
 
