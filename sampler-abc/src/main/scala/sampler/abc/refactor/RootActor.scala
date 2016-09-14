@@ -1,7 +1,9 @@
 package sampler.abc.refactor
 
+import akka.actor.Actor
 import sampler.abc.Generation
-import sampler.abc.actor.main.{ReportCompleted, ScoredParticles}
+import sampler.abc.actor.main._
+import sampler.abc.actor.sub.FlushComplete
 
 object Messages {
   case class Start[P](initGen: Generation[P])
@@ -26,12 +28,12 @@ class RootActor[P](businessLogic: BusinessLogic) extends Actor {
     case MixNow =>
     case mixP: MixPayload[P] =>
     case ReportCompleted =>
-  }
+  }.
 
   def flushing: Receive ={
-    case ScoredParticles[P] =>
+    case _: ScoredParticles[P] =>
     case MixNow =>
-    case fc: FlushComplete =>
+    case fc: FlushComplete[P] =>
     case ReportCompleted =>
   }
 
@@ -40,10 +42,3 @@ class RootActor[P](businessLogic: BusinessLogic) extends Actor {
   }
 }
 
-class BusinessLogic{
-
-}
-
-object BusinessLogic{
-  def init(): BusinessLogic = ???
-}
