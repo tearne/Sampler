@@ -13,9 +13,6 @@ val rServe            = "org.rosuda.REngine" % "Rserve" % "1.8.1"
 val scalaTest         = "org.scalatest" %% "scalatest" % "3.0.0" % "test"
 val scalaCheck        = "org.scalacheck" %% "scalacheck" % "1.13.1" % "test"
 
-EclipseKeys.withSource := true
-EclipseKeys.skipParents in ThisBuild := false
-
 lazy val commonSettings = Seq(
   organization := buildOrganization,
   version      := buildVersion,
@@ -61,7 +58,6 @@ lazy val packageSettings = Seq(
 lazy val root = project.in(file("."))
   .aggregate(core, examples, abc, spike)
   .settings(commonSettings: _*)
-  .settings(publish := { })
 
 lazy val core = project.in(file("sampler-core"))
   .settings(
@@ -79,7 +75,7 @@ lazy val core = project.in(file("sampler-core"))
   )
   .settings(commonSettings: _*)
   .settings(packageSettings: _*)
-  
+
 lazy val examples = project.in(file("sampler-examples"))
   .dependsOn(core, abc)
   .settings(name := "sampler-examples")
@@ -97,7 +93,6 @@ lazy val examples = project.in(file("sampler-examples"))
   )
   .settings(commonSettings: _*)
   .settings(packageSettings: _*)
-  .enablePlugins(JavaAppPackaging)
 
 lazy val abc = project.in(file("sampler-abc"))
   .dependsOn(core)
