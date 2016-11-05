@@ -18,6 +18,7 @@
 package sampler.abc
 
 import java.util.concurrent.TimeUnit.MILLISECONDS
+
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import com.typesafe.config.ConfigFactory
@@ -30,79 +31,123 @@ import sampler.abc.actor.main.MainActorImpl
 import sampler.cluster.PortFallbackSystemFactory
 import sampler.io.Logging
 import sampler.abc.actor.main.Start
+import sampler.abc.actor.main.component.Helper
+import sampler.abc.actor.main.component.helper.{Getters, ParticleMixer}
+import sampler.abc.actor.sub.flushing.{GenerationFlusher, ObservedIdsTrimmer, ToleranceCalculator}
+import sampler.abc.refactor.{BusinessLogic, ChildActors, RootActor}
+import sampler.maths.Random
 
 trait ABCActors {
-	val system: ActorSystem
-	def entryPointActor[P](
-		model: Model[P],
-		config: ABCConfig,
-		generationHandler: Option[Population[P] => Unit]): ActorRef
+  val system: ActorSystem
+
+  def entryPointActor[P](
+      model: Model[P],
+      config: ABCConfig,
+      generationHandler: Option[Population[P] => Unit]): ActorRef
 }
 
 trait ABCActorsImpl extends ABCActors {
-	val system = PortFallbackSystemFactory("ABC")
+  //TODO make actor system name configurable
+  val system = PortFallbackSystemFactory("ABC")
 
-	def entryPointActor[P](
-		model: Model[P],
-		config: ABCConfig,
-		generationHandler: Option[Population[P] => Unit]) = {
+  def entryPointActor[P](
+      model: Model[P],
+      config: ABCConfig,
+      reportHandler: Option[Population[P] => Unit]) = {
 
-		system.actorOf(
-			Props(classOf[MainActorImpl[P]], model, config, generationHandler),
-			"root")
-	}
+    //TODO this is mess.  Tidy the factory floor!
+    val random = Random
+    val getters = new Getters()
+
+    val businessLogic = new BusinessLogic[P](
+      new Helper(
+        new ParticleMixer(),
+        new ToleranceCalculator {},
+        getters,
+        random
+      ),
+      config,
+      getters
+    )
+
+    lazy val helper = new Helper(
+      new ParticleMixer(),
+      ToleranceCalculator,
+      getters,
+      random)
+
+    lazy val generationFlusher = new GenerationFlusher(
+      helper.toleranceCalculator,
+      new ObservedIdsTrimmer(config.memoryGenerations,config.numParticles),
+      getters,
+      config)
+
+    val childActorsFactory = new ChildActors(
+      generationFlusher,
+      config,
+      model,
+      reportHandler,
+      random
+    )
+    system.actorOf(
+      Props(classOf[RootActor[P]],
+        childActorsFactory,
+        businessLogic,
+        config),
+      "root")
+  }
 }
 
 object ABC extends ABCActorsImpl with Logging {
-	def apply[P](
-			model: Model[P],
-			config: ABCConfig): Population[P] =
-		apply(model, config, None, UseModelPrior[P]())
-		
-	def apply[P](
-			model: Model[P],
-			config: ABCConfig,
-			genHandler: Population[P] => Unit): Population[P] =
-		apply(model, config, Some(genHandler), UseModelPrior())
-	
+  def apply[P](
+      model: Model[P],
+      config: ABCConfig): Population[P] =
+    apply(model, config, None, UseModelPrior[P]())
+
+  def apply[P](
+      model: Model[P],
+      config: ABCConfig,
+      genHandler: Population[P] => Unit): Population[P] =
+    apply(model, config, Some(genHandler), UseModelPrior())
+
   def resumeByRepeatingTolerance[P](
-	    model: Model[P],
-			config: ABCConfig,
-			population: Population[P]
-		): Population[P] = {
-	  apply(model, config, None, population)
-	}
-		
-	def resumeByRepeatingTolerance[P](
-	    model: Model[P],
-			config: ABCConfig,
-			population: Population[P],
-			genHandler: Population[P] => Unit
-		): Population[P] = {
-	  apply(model, config, Some(genHandler), population)
-	}
-		
-	def apply[P](
-			model: Model[P],
-			config: ABCConfig,
-			genHandler: Option[Population[P] => Unit],
-			initialPopulation: Generation[P]): Population[P] = {
-		info("      Job config: "+config.renderJob)
-		info("Algorithm config: "+config.renderAlgorithm)
-		info("  Cluster config: "+config.renderCluster)
+      model: Model[P],
+      config: ABCConfig,
+      population: Population[P]
+  ): Population[P] = {
+    apply(model, config, None, population)
+  }
 
-		val actor = entryPointActor(model, config, genHandler)
+  def resumeByRepeatingTolerance[P](
+      model: Model[P],
+      config: ABCConfig,
+      population: Population[P],
+      genHandler: Population[P] => Unit
+  ): Population[P] = {
+    apply(model, config, Some(genHandler), population)
+  }
 
-		implicit val timeout = Timeout(config.futuresTimeoutMS, MILLISECONDS)
-		val future = (actor ? Start(initialPopulation)).mapTo[Population[P]]
-		val result = Await.result(future, Duration.Inf)
-		//TODO unlimited timeout just for the future above?
+  def apply[P](
+      model: Model[P],
+      config: ABCConfig,
+      genHandler: Option[Population[P] => Unit],
+      initialPopulation: Generation[P]): Population[P] = {
+    info("      Job config: " + config.renderJob)
+    info("Algorithm config: " + config.renderAlgorithm)
+    info("  Cluster config: " + config.renderCluster)
 
-		if (config.terminateAtTargetGen) {
-			info("Terminating actor system")
-			system.terminate
-		}
+    val actor = entryPointActor(model, config, genHandler)
 
-		result
-	}
+    implicit val timeout = Timeout(config.futuresTimeoutMS, MILLISECONDS)
+    val future = (actor ? Start(initialPopulation)).mapTo[Population[P]]
+    val result = Await.result(future, Duration.Inf)
+    //TODO unlimited timeout just for the future above?
+
+    if (config.terminateAtTargetGen) {
+      info("Terminating actor system")
+      system.terminate
+    }
+
+    result
+  }
 }

@@ -84,7 +84,7 @@ trait UnfairCoinCommon {
 	
 	def plot(){
     val rScript = """
-      lapply(c("ggplot2", "reshape", "jsonlite", "plyr"), require, character.only=T)
+      lapply(c("ggplot2", "reshape2", "jsonlite", "plyr"), require, character.only=T)
       
       load = function(file) {
       	raw = fromJSON(file)

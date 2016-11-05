@@ -8,6 +8,7 @@ import sampler.maths.Random
 
 import scala.collection.immutable.Queue
 
+//TODO delete as prob no longer user ((mpl)
 trait HelperCoponentImpl extends HelperComponent {
 	this: MainActor[_] =>
 	
