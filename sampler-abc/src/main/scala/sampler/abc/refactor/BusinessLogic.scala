@@ -1,7 +1,6 @@
 package sampler.abc.refactor
 
 import akka.actor.ActorRef
-import akka.routing.Broadcast
 import sampler.abc.ABCConfig
 import sampler.abc.actor.main.component.Helper
 import sampler.abc.actor.main.component.helper.Getters
@@ -14,7 +13,7 @@ class BusinessLogic[P](
     config: ABCConfig,
     getters: Getters) extends Logging {
 
-  def buildInitialworkingData(startMsg: Start[P], client: ActorRef): StateData[P] ={
+  def buildInitialworkingData(startMsg: Start[P], client: ActorRef): StateData[P] = {
     StateData(
       config,
       client,
@@ -22,7 +21,7 @@ class BusinessLogic[P](
     )
   }
 
-  def workerFailed(state: StateData[P], worker: ActorRef) {
+  def workerFailed(state: StateData[P], worker: ActorRef)(implicit rootActor: ActorRef) {
     warn("Failure in worker, resending job.")
     allocateWorkerTask(state, worker)
   }
@@ -31,7 +30,8 @@ class BusinessLogic[P](
       state: StateData[P],
       scored: ScoredParticles[P],
       worker: ActorRef,
-      childRefs: ChildRefs): StateData[P] = {
+      childRefs: ChildRefs)(
+      implicit rootActor: ActorRef): StateData[P] = {
 
     val newState = {
       val updatedEGen = helper.filterAndQueueUnweighedParticles(
@@ -42,7 +42,7 @@ class BusinessLogic[P](
     }
 
     // Report on the new workingData
-    childRefs.reporter ! StatusReport( //TODO untested
+    childRefs.reporter ! StatusReport(//TODO untested
       NewScored(scored.seq.size, worker, false),
       newState.evolvingGeneration,
       config
@@ -57,7 +57,8 @@ class BusinessLogic[P](
       mixP: MixPayload[P],
       state: StateData[P],
       sender: ActorRef,
-      childRefs: ChildRefs): StateData[P] = {
+      childRefs: ChildRefs)(
+      implicit rootActor: ActorRef): StateData[P] = {
     val newState = {
       val newEGen = helper.filterAndQueueUnweighedParticles(
         mixP.scoredParticles,
@@ -78,7 +79,8 @@ class BusinessLogic[P](
       state: StateData[P],
       weighed: WeighedParticles[P],
       sender: ActorRef,
-      childRefs: ChildRefs): StateData[P] = {
+      childRefs: ChildRefs)(
+      implicit rootActor: ActorRef): StateData[P] = {
     val newState = {
       val updatedEGen = helper.addWeightedParticles(weighed, state.evolvingGeneration)
       state.updateEvolvingGeneration(updatedEGen)
@@ -95,21 +97,30 @@ class BusinessLogic[P](
 
   def doGenerationFlush(
       workingData: StateData[P],
-      childRefs: ChildRefs) {
-    childRefs.workRouter ! Broadcast(Abort)
+      childRefs: ChildRefs)(
+      implicit rootActor: ActorRef) {
+    childRefs.workRouter ! Abort
     childRefs.flusher ! workingData
   }
 
-  def allocateWorkerTask(workingData: StateData[P], worker: ActorRef) {
+  def allocateWorkerTask(
+      workingData: StateData[P],
+      worker: ActorRef)(
+      implicit rootActor: ActorRef) {
+
     val eGen = workingData.evolvingGeneration
 
-    if(eGen.dueWeighing.size > 0)
+    if (eGen.dueWeighing.size > 0)
       worker ! WeighJob.buildFrom(eGen)
     else
       worker ! GenerateParticlesFrom(eGen.previousGen, config)
   }
 
-  def doMixing(state: StateData[P], childRefs: ChildRefs) {
+  def doMixing(
+      state: StateData[P],
+      childRefs: ChildRefs)(
+      implicit rootActor: ActorRef) {
+
     val payload: Option[ScoredParticles[P]] = helper.buildMixPayload(
       state.evolvingGeneration,
       config)
@@ -122,7 +133,9 @@ class BusinessLogic[P](
   def newFlushedGeneration(
       fc: FlushComplete[P],
       state: StateData[P],
-      childRefs: ChildRefs): StateData[P] = {
+      childRefs: ChildRefs)(
+      implicit rootActor: ActorRef): StateData[P] = {
+
     val newState = state.updateEvolvingGeneration(fc.eGeneration)
 
     //TODO don't like having to do newState.evolvingGen.previous all th etime
@@ -138,15 +151,25 @@ class BusinessLogic[P](
     newState
   }
 
-  def terminate(state: StateData[P], childRefs: ChildRefs) {
+  def terminate(
+      state: StateData[P],
+      childRefs: ChildRefs)(
+      implicit rootActor: ActorRef) {
+
     childRefs.workRouter ! Abort
     childRefs.reporter ! state.evolvingGeneration.previousGen
   }
 
-  def startNewGeneration(state: StateData[P], childRefs: ChildRefs) {
-    childRefs.workRouter ! Broadcast(GenerateParticlesFrom(
+  def startNewGeneration(
+      state: StateData[P],
+      childRefs: ChildRefs)(
+      implicit rootActor: ActorRef) {
+
+    val job = GenerateParticlesFrom(
       state.evolvingGeneration.previousGen,
-      config))
+      config)
+
+    childRefs.workRouter ! job
 
     val report = {
       val evolvingGen = state.evolvingGeneration
@@ -164,7 +187,7 @@ class BusinessLogic[P](
 
   }
 
-  def sendResultToClient(state: StateData[P]) {
+  def sendResultToClient(state: StateData[P])(implicit rootActor: ActorRef) {
     state.client ! state.evolvingGeneration.previousGen
   }
- }
+}
