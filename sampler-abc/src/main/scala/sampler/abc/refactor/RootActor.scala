@@ -42,7 +42,10 @@ class RootActor[P](
         logic.doGenerationFlush(newState, childRefs)
         context.become(waitingForFlushComplete(newState))
       }
-      else logic.allocateWorkerTask(newState, sender)
+      else {
+        logic.allocateWorkerTask(newState, sender)
+        context.become(gathering(newState))
+      }
     case MixNow => logic.doMixing(state, childRefs)
     case other => log.warning("Unexpected Message in gathering state: {}", other)
   }
