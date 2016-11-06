@@ -100,7 +100,7 @@ class BusinessLogic[P](
       childRefs: ChildRefs)(
       implicit rootActor: ActorRef) {
     childRefs.workRouter ! Abort
-    childRefs.flusher ! workingData
+    childRefs.flusher ! workingData.evolvingGeneration
   }
 
   def allocateWorkerTask(

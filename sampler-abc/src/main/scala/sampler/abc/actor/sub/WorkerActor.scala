@@ -88,7 +88,6 @@ trait WorkerActor[P]
 
   when(Working) {
     case Event(Abort, _) =>
-      log.info("Eeek!  ABORT!")
       aborter.abort
       goto(AwaitingAbortConfirmation) using Uninitialised
     case Event(j: Job[P], _) =>
