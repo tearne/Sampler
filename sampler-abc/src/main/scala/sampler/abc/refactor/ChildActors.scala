@@ -40,9 +40,6 @@ class ChildActors[P](
       else None
 
 
-
-
-
    rootActorContext.actorOf(
       Props(classOf[BroadcastActor], config),
       "broadcaster"
@@ -61,7 +58,6 @@ class ChildActors[P](
     )
 
     rootActorContext.actorOf(
-      //TODO why do both this and reporter have genFlusher?
       Props(classOf[FlushingActor[P]], genFlusher),
       "flusher"
     )
