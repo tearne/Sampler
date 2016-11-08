@@ -1,11 +1,9 @@
 package sampler.abc.refactor
 
-import akka.actor.{Actor, ActorLogging, ActorRef}
-import sampler.abc.{ABCConfig, Model}
+import akka.actor.{Actor, ActorLogging}
+import sampler.abc.ABCConfig
 import sampler.abc.actor.main._
 import sampler.abc.actor.sub.FlushComplete
-
-import scala.concurrent.{Await, Future}
 
 class RootActor[P](
     childActors: ChildActors[P],
