@@ -1,9 +1,9 @@
-package sampler.abc.actor
+package sampler.abc.refactor
 
 import akka.actor.{Actor, ActorLogging}
 import sampler.abc.ABCConfig
-import sampler.abc.actor.children.FlushComplete
-import sampler.abc.actor.root._
+import sampler.abc.actor.main._
+import sampler.abc.actor.sub.FlushComplete
 
 class RootActor[P](
     childActors: ChildActors[P],

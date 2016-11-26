@@ -1,10 +1,11 @@
-package sampler.abc.actor
+package sampler.abc.refactor
 
 import akka.actor.{ActorContext, ActorRef, Props}
 import akka.routing.FromConfig
 import akka.util.Timeout
-import sampler.abc.actor.children._
-import sampler.abc.actor.children.flushing.GenerationFlusher
+import sampler.abc.actor.main.MixNow
+import sampler.abc.actor.sub._
+import sampler.abc.actor.sub.flushing.GenerationFlusher
 import sampler.abc.{ABCConfig, Model, Population}
 import sampler.maths.Random
 
@@ -23,35 +24,45 @@ class ChildActors[P](
     reportHandler: Option[Population[P] => Unit],
     random: Random) {
 
-  def startup(context: ActorContext) {
+  def startup(rootActorContext: ActorContext) {
 
-    //TODO create 'val mixTimer' here
-    // max frequency 10 seconds?
+    // TODO this in a better place? cancellableMixing never actually cancelled
+    val mixMS = config.mixRateMS max 10000 // No faster than once every 10s
+    val cancellableMixing =
+      if (mixMS > 0)
+        Some(
+          rootActorContext.system.scheduler.schedule(
+            mixMS.milliseconds,
+            mixMS.milliseconds,
+            rootActorContext.self,
+            MixNow)(
+            rootActorContext.dispatcher))
+      else None
 
-   context.actorOf(
+
+   rootActorContext.actorOf(
       Props(classOf[BroadcastActor], config),
       "broadcaster"
     )
 
-    context.actorOf(
+    rootActorContext.actorOf(
       Props[ReceiveActor],
       "receiver"
     )
 
-    context.actorOf(
+    rootActorContext.actorOf(
       FromConfig.props(
         Props(new WorkerActorImpl[P](model, random))
       ),
       "work-router"
     )
 
-    context.actorOf(
-      //TODO why do both this and reporter have genFlusher?
+    rootActorContext.actorOf(
       Props(classOf[FlushingActor[P]], genFlusher),
       "flusher"
     )
 
-    context.actorOf(
+    rootActorContext.actorOf(
       Props(classOf[ReportingActor[P]], reportHandler),
       "reporter"
     )
