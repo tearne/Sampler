@@ -19,23 +19,18 @@ package sampler.abc
 
 import java.util.concurrent.TimeUnit.MILLISECONDS
 
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
-import com.typesafe.config.ConfigFactory
-import akka.actor.ActorRef
-import akka.actor.ActorSystem
-import akka.actor.Props
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.util.Timeout
-import sampler.abc.actor.main.MainActorImpl
+import sampler.abc.actor.children.flushing.{GenerationFlusher, ObservedIdsTrimmer, ToleranceCalculator}
+import sampler.abc.actor.root._
+import sampler.abc.actor.{ChildActors, RootActor}
 import sampler.cluster.PortFallbackSystemFactory
 import sampler.io.Logging
-import sampler.abc.actor.main.Start
-import sampler.abc.actor.main.component.Helper
-import sampler.abc.actor.main.component.helper.{Getters, ParticleMixer}
-import sampler.abc.actor.sub.flushing.{GenerationFlusher, ObservedIdsTrimmer, ToleranceCalculator}
-import sampler.abc.refactor.{BusinessLogic, ChildActors, RootActor}
 import sampler.maths.Random
+
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 trait ABCActors {
   val system: ActorSystem

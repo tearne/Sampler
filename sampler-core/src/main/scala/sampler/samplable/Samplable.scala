@@ -1,10 +1,10 @@
 package sampler.samplable
 
-import sampler.maths.Random
-import scala.language.higherKinds
 import cats.Monad
+import sampler.maths.Random
+
 import scala.annotation.tailrec
-import scala.IndexedSeq
+import scala.language.higherKinds
 
 /*
  *  Typeclass for 'things which can be sampled from'
