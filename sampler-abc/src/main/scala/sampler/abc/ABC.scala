@@ -131,10 +131,11 @@ object ABC extends ABCActorsImpl with Logging {
 
     val actorStuff = initActorStuff(model, config, genHandler)
 
-    implicit val timeout = Timeout(config.futuresTimeoutMS, MILLISECONDS)
-    val future = (actorStuff.rootActor ? Start(initialPopulation)).mapTo[Population[P]]
-    val result = Await.result(future, Duration.Inf)
-    //TODO unlimited timeout just for the future above?
+    val futureResult = {
+      implicit val timeout = Timeout(config.futuresTimeoutMS, MILLISECONDS)
+      (actorStuff.rootActor ? Start(initialPopulation)).mapTo[Population[P]]
+    }
+    val result = Await.result(futureResult, Duration.Inf)
 
     if (config.terminateAtTargetGen) {
       info("Terminating actor system")

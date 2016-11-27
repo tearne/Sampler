@@ -13,7 +13,7 @@ case class ABCConfig(config: Config) {
   def renderAlgorithm(): String = algorithm.root.render(ConfigRenderOptions.concise.setOriginComments(false))
   def renderCluster(): String = cluster.root.render(ConfigRenderOptions.concise.setOriginComments(false))
 
-  //TODO Do these need to be lazy for the tests to work?
+  // Use of lazy allows easy overriding in tests
   lazy val numReplicates =  job.getInt("replicates")
   lazy val numParticles =   job.getInt("particles")
   lazy val numGenerations = job.getInt("generations")
