@@ -50,12 +50,10 @@ trait ABCActorsImpl extends ABCActors {
   ) = {
 
     val system = PortFallbackSystemFactory(config.clusterName)
-
-    //TODO this is mess.  Tidy the factory floor!
     val random = Random
     val getters = new Getters()
 
-    lazy val helper = new Helper(
+    val helper = new Helper(
       new ParticleMixer(),
       getters,
       random)
@@ -66,22 +64,25 @@ trait ABCActorsImpl extends ABCActors {
       getters
     )
 
-    lazy val generationFlusher = new GenerationFlusher(
+    val generationFlusher = new GenerationFlusher(
       ToleranceCalculator,
-      new ObservedIdsTrimmer(config.memoryGenerations,config.numParticles),
+      new ObservedIdsTrimmer(
+        config.memoryGenerations,
+        config.numParticles),
       getters,
       config)
 
-    val childActorsFactory = new ChildActors(
+    val childActors = new ChildActors(
       generationFlusher,
       config,
       model,
       reportHandler,
       random
     )
+
     val rootActor = system.actorOf(
       Props(classOf[RootActor[P]],
-        childActorsFactory,
+        childActors,
         businessLogic,
         config),
       "root")
