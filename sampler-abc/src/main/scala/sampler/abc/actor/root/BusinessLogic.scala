@@ -174,6 +174,9 @@ class BusinessLogic(
 
     val newState = state.updateEvolvingGeneration(fc.eGeneration)
 
+    val completedGen = newState.evolvingGeneration.previousGen
+    childRefs.reporter ! completedGen
+
     newState
   }
 
@@ -183,7 +186,6 @@ class BusinessLogic(
       implicit rootActor: ActorRef) {
 
     childRefs.workRouter ! Abort
-    childRefs.reporter ! state.evolvingGeneration.previousGen
   }
 
   def startNewGeneration[P](
