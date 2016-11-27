@@ -48,15 +48,6 @@ class BusinessLogic(
     }
   }
 
-  //TODO moving this
-//  def buildInitialworkingData(startMsg: Start[P], client: ActorRef): StateData[P] = {
-//    StateData(
-//      config,
-//      client,
-//      helper.initialiseEvolvingGeneration(startMsg.initGeneration, config)
-//    )
-//  }
-
   def workerFailed[P](state: RunningState[P], worker: ActorRef)(implicit rootActor: ActorRef) {
     warn("Failure in worker, resending job.")
     allocateWorkerTask(state, worker)
@@ -77,8 +68,7 @@ class BusinessLogic(
       state.updateEvolvingGeneration(updatedEGen)
     }
 
-    // Report on the new workingData
-    childRefs.reporter ! StatusReport(//TODO untested
+    childRefs.reporter ! StatusReport(
       NewScored(scored.seq.size, worker, false),
       newState.evolvingGeneration,
       config
@@ -102,7 +92,7 @@ class BusinessLogic(
       state.updateEvolvingGeneration(newEGen)
     }
 
-    childRefs.reporter ! StatusReport(//TODO untested
+    childRefs.reporter ! StatusReport(
       NewScored(mixP.scoredParticles.seq.size, sender, true),
       newState.evolvingGeneration,
       config
