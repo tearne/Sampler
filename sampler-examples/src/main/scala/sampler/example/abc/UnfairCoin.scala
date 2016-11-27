@@ -71,7 +71,7 @@ object ResumeUnfairCoin extends UnfairCoinCommon with App {
     .withFallback(ConfigFactory.load())
     .getConfig("unfair-coin-example"))
   
-  ABC.resumeByRepeatingTolerance(CoinModel, sixGenConfig, prevGeneration, abcReporting)
+  ABC.resume(CoinModel, sixGenConfig, prevGeneration, abcReporting)
   plot()
 }
 

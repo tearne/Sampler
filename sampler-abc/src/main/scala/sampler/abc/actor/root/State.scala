@@ -37,8 +37,7 @@ case class RunningState[P](
     evolvingGeneration.weighed.size >= config.numParticles
 
   def shouldTerminate: Boolean = {
-    evolvingGeneration.previousGen.iteration >=
-      config.numGenerations &&
+    evolvingGeneration.previousGen.iteration >= config.numGenerations - 1 &&
       config.terminateAtTargetGen
   }
 }

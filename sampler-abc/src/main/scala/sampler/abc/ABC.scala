@@ -99,7 +99,7 @@ object ABC extends ABCActorsImpl with Logging {
       genHandler: Population[P] => Unit): Population[P] =
     apply(model, config, Some(genHandler), UseModelPrior())
 
-  def resumeByRepeatingTolerance[P](
+  def resume[P](
       model: Model[P],
       config: ABCConfig,
       population: Population[P]
@@ -107,7 +107,7 @@ object ABC extends ABCActorsImpl with Logging {
     apply(model, config, None, population)
   }
 
-  def resumeByRepeatingTolerance[P](
+  def resume[P](
       model: Model[P],
       config: ABCConfig,
       population: Population[P],

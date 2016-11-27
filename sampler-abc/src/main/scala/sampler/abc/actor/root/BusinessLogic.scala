@@ -172,7 +172,9 @@ class BusinessLogic(
       childRefs: ChildRefs)(
       implicit rootActor: ActorRef): RunningState[P] = {
 
-    state.updateEvolvingGeneration(fc.eGeneration)
+    val newState = state.updateEvolvingGeneration(fc.eGeneration)
+
+    newState
   }
 
   def terminate[P](
