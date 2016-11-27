@@ -9,7 +9,7 @@ class GenerationFlusher(
 		toleranceCalculator: ToleranceCalculator,
 		observedIdsTrimmer: ObservedIdsTrimmer,
 		getters: Getters,
-		config: ABCConfig  //TODO send the config in messages, method args, stateData etc, not constructor?
+		config: ABCConfig
 	){
 	
 	def fromEvolvingGen[P](gen: EvolvingGeneration[P]) = {

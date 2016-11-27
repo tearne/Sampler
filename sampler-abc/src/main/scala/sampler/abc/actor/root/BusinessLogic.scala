@@ -1,9 +1,9 @@
 package sampler.abc.actor.root
 
 import akka.actor.ActorRef
-import sampler.abc.{ABCConfig, Population, UseModelPrior}
 import sampler.abc.actor.children._
 import sampler.abc.refactor.ChildRefs
+import sampler.abc.{ABCConfig, Population, UseModelPrior}
 import sampler.io.Logging
 
 import scala.collection.immutable.Queue
@@ -15,7 +15,6 @@ class BusinessLogic(
 
   def initialise[P](
       start: Start[P],
-      config: ABCConfig,
       childRefs: ChildRefs,
       client: ActorRef
   )(

@@ -20,7 +20,7 @@ class RootActor[P](
   def idle(): Receive = {
     case MixNow =>  // Ignored
     case startMsg: Start[P] =>
-      logic.initialise(startMsg, config, childRefs, sender) match {
+      logic.initialise(startMsg, childRefs, sender) match {
         case runningState: RunningState[P] =>
           context.become(gathering(runningState))
         case resumingState: ResumingState[P] =>
