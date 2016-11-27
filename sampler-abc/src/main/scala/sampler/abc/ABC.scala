@@ -32,23 +32,24 @@ import sampler.maths.Random
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
-trait ABCActors {
-  val system: ActorSystem
+case class ActorStuff(rootActor: ActorRef, system: ActorSystem)
 
-  def entryPointActor[P](
+trait ABCActors {
+  def initActorStuff[P](
       model: Model[P],
       config: ABCConfig,
-      generationHandler: Option[Population[P] => Unit]): ActorRef
+      generationHandler: Option[Population[P] => Unit]
+  ): ActorStuff
 }
 
 trait ABCActorsImpl extends ABCActors {
-  //TODO make actor system name configurable
-  val system = PortFallbackSystemFactory("ABC")
-
-  def entryPointActor[P](
+  def initActorStuff[P](
       model: Model[P],
       config: ABCConfig,
-      reportHandler: Option[Population[P] => Unit]) = {
+      reportHandler: Option[Population[P] => Unit]
+  ) = {
+
+    val system = PortFallbackSystemFactory(config.clusterName)
 
     //TODO this is mess.  Tidy the factory floor!
     val random = Random
@@ -78,12 +79,14 @@ trait ABCActorsImpl extends ABCActors {
       reportHandler,
       random
     )
-    system.actorOf(
+    val rootActor = system.actorOf(
       Props(classOf[RootActor[P]],
         childActorsFactory,
         businessLogic,
         config),
       "root")
+
+    ActorStuff(rootActor, system)
   }
 }
 
@@ -125,16 +128,16 @@ object ABC extends ABCActorsImpl with Logging {
     info("Algorithm config: " + config.renderAlgorithm)
     info("  Cluster config: " + config.renderCluster)
 
-    val actor = entryPointActor(model, config, genHandler)
+    val actorStuff = initActorStuff(model, config, genHandler)
 
     implicit val timeout = Timeout(config.futuresTimeoutMS, MILLISECONDS)
-    val future = (actor ? Start(initialPopulation)).mapTo[Population[P]]
+    val future = (actorStuff.rootActor ? Start(initialPopulation)).mapTo[Population[P]]
     val result = Await.result(future, Duration.Inf)
     //TODO unlimited timeout just for the future above?
 
     if (config.terminateAtTargetGen) {
       info("Terminating actor system")
-      system.terminate
+      actorStuff.system.terminate
     }
 
     result

@@ -22,6 +22,7 @@ case class ABCConfig(config: Config) {
   lazy val maxParticleRetries = algorithm.getInt("particle-retries")
   lazy val toleranceDescentPercentile =  algorithm.getDouble("tolerance-descent-percentile")
 
+  lazy val clusterName =          cluster.getString("system-name")
   lazy val mixRateMS: Long =      cluster.getDuration("mixing.rate", MILLISECONDS)
   lazy val mixResponseTimeoutMS = cluster.getDuration("mixing.response-threshold", MILLISECONDS)
   lazy val mixPayloadSize =       cluster.getInt("mixing.num-particles")

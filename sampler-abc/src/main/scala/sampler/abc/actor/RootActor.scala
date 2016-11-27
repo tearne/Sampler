@@ -21,10 +21,10 @@ class RootActor[P](
     case MixNow =>  // Ignored
     case startMsg: Start[P] =>
       logic.initialise(startMsg, config, childRefs, sender) match {
-        case zeroState: RunningState[P] =>
-          context.become(gathering(zeroState))
-        case resumeState: ResumingState[P] =>
-          context.become(waitingForFlushComplete(resumeState))
+        case runningState: RunningState[P] =>
+          context.become(gathering(runningState))
+        case resumingState: ResumingState[P] =>
+          context.become(waitingForFlushComplete(resumingState))
       }
 
     case other => log.warning("Unexpected Message in idle state: {}", other)

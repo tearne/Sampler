@@ -18,6 +18,7 @@ class ABCConfigTest extends FreeSpec {
 				tolerance-descent-percentile = 0.7
 			}
 			cluster {
+   			system-name = "MyCluster"
 				particle-memory-generations = 2
 				terminate-at-target-generation = true
 				futures-timeout = 10 hour
@@ -51,6 +52,7 @@ class ABCConfigTest extends FreeSpec {
 			assertResult(50)(instance.numGenerations)
 		}
 		"Cluster parameters" in {
+			assertResult("MyCluster")(instance.clusterName)
 			assertResult(2)(instance.memoryGenerations)
 			assert(instance.terminateAtTargetGen)
 			assertResult(10.hour.toMillis)(instance.futuresTimeoutMS)
