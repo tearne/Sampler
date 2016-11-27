@@ -1,39 +1,13 @@
 package sampler.abc.actor.root
 
 import sampler.abc._
-import sampler.abc.actor.children.flushing.ToleranceCalculator
 import sampler.maths.Random
-
-import scala.collection.immutable.Queue
 
 class Helper(
   particleMixer: ParticleMixer,
-  val toleranceCalculator: ToleranceCalculator,
   getters: Getters,
   random: Random
 ) {
-
-  //TODO test me
-  def initialiseEvolvingGeneration[P](gen: Generation[P], config: ABCConfig): EvolvingGeneration[P] = {
-    gen match {
-      case prior: UseModelPrior[P] =>
-        EvolvingGeneration(
-          prior.tolerance,
-          prior,
-          ScoredParticles.empty,
-          WeighedParticles.empty,
-          Queue.empty[Long]
-        )
-      case pop: Population[P] =>
-        EvolvingGeneration(
-          toleranceCalculator(pop.weightedParticles, config, pop.tolerance),
-          pop,
-          ScoredParticles.empty,
-          WeighedParticles.empty,
-          Queue.empty[Long]
-        )
-    }
-  }
 
   def addWeightedParticles[P](
     incoming: WeighedParticles[P],

@@ -2,12 +2,12 @@ package sampler.abc.refactor
 
 import akka.actor.{Actor, ActorLogging}
 import sampler.abc.ABCConfig
-import sampler.abc.actor.main._
-import sampler.abc.actor.sub.FlushComplete
+import sampler.abc.actor.children.FlushComplete
+import sampler.abc.actor.root._
 
 class RootActor[P](
     childActors: ChildActors[P],
-    logic: BusinessLogic[P],
+    logic: BusinessLogic,
     config: ABCConfig)
       extends Actor
       with ActorLogging {
@@ -19,14 +19,18 @@ class RootActor[P](
 
   def idle(): Receive = {
     case MixNow =>  // Ignored
-    case start: Start[P] =>
-      val initialState = logic.buildInitialworkingData(start, sender)
-      logic.startNewGeneration(initialState, childRefs)
-      context.become(gathering(initialState))
+    case startMsg: Start[P] =>
+      logic.initialise(startMsg, config, childRefs, sender) match {
+        case zeroState: RunningState[P] =>
+          context.become(gathering(zeroState))
+        case resumeState: ResumingState[P] =>
+          context.become(waitingForFlushComplete(resumeState))
+      }
+
     case other => log.warning("Unexpected Message in idle state: {}", other)
   }
 
-  def gathering(state: StateData[P]): Receive = {
+  def gathering(state: RunningState[P]): Receive = {
     case ReportCompleted => // Ignored
     case Failed =>
       logic.workerFailed(state, sender)
@@ -36,8 +40,8 @@ class RootActor[P](
       context.become(gathering(logic.addScoredFromMixing(mixP, state, sender, childRefs)))
     case weighted: WeighedParticles[P] =>
       val newState = logic.addNewWeighted(state, weighted, sender, childRefs)
-      if(newState.dueToFlush) {
-        logic.doGenerationFlush(newState, childRefs)
+      if(newState.shouldFlush) {
+        logic.startGenerationFlush(newState, childRefs)
         context.become(waitingForFlushComplete(newState))
       }
       else {
@@ -48,13 +52,13 @@ class RootActor[P](
     case other => log.warning("Unexpected Message in gathering state: {}", other)
   }
 
-  def waitingForFlushComplete(state: StateData[P]): Receive ={
+  def waitingForFlushComplete(state: State[P]): Receive ={
     case _: ScoredParticles[P] => // Ignored
     case MixNow =>                // Ignored
     case ReportCompleted =>       // Ignored
     case flushed: FlushComplete[P] =>
       val newState = logic.newFlushedGeneration(flushed, state, childRefs)
-      if(state.dueToTerminate) {
+      if(state.shouldTerminate) {
         logic.terminate(newState, childRefs)
         context.become(waitingForShutdown(newState))
       } else {
@@ -64,7 +68,7 @@ class RootActor[P](
     case other => log.warning("Unexpected Message while waiting for flush to complete: {}", other)
   }
 
-  def waitingForShutdown(state: StateData[P]): Receive ={
+  def waitingForShutdown(state: RunningState[P]): Receive ={
     case ReportCompleted =>
       logic.sendResultToClient(state)
     case other => log.warning("Unexpected Message while waiting for shutdown: {}", other)

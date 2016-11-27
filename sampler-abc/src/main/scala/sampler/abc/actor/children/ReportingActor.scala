@@ -21,8 +21,8 @@ case class NewScored(num: Int, sender: ActorRef, fromRemoteActor: Boolean) exten
 case class NewWeighed(num: Int) extends StatusDelta {
 	def getMsg = s"+$num weighed"
 }
-case class FinishGen(num: Int, tol: Double) extends StatusDelta {
-	def getMsg = s"Generation $num complete, next tolerance = $tol"
+case class StartingGen(num: Int, tol: Double) extends StatusDelta {
+	def getMsg = s"Starting generation $num with tolerance = $tol"
 }
 
 case class StatusReport[P](delta: StatusDelta, eGen: EvolvingGeneration[P], config: ABCConfig){
@@ -30,7 +30,7 @@ case class StatusReport[P](delta: StatusDelta, eGen: EvolvingGeneration[P], conf
 		val due = "|SQ|="+eGen.dueWeighing.size
 		val acc = s"Acc=${StatusReport.percentage(eGen.weighed.acceptanceRatio)}%"
 		val par = "|W|="+eGen.weighed.size+"/"+config.numParticles
-		val gen = s"G:${eGen.previousGen.iteration}/${config.numGenerations}"
+		val gen = s"G:${eGen.previousGen.iteration}+/${config.numGenerations}"
 		s"($gen, $acc, $par, $due) ${delta.getMsg}"
 	}
 }

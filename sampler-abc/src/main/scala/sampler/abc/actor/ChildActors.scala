@@ -3,9 +3,9 @@ package sampler.abc.refactor
 import akka.actor.{ActorContext, ActorRef, Props}
 import akka.routing.FromConfig
 import akka.util.Timeout
-import sampler.abc.actor.main.MixNow
-import sampler.abc.actor.sub._
-import sampler.abc.actor.sub.flushing.GenerationFlusher
+import sampler.abc.actor.children._
+import sampler.abc.actor.children.flushing.GenerationFlusher
+import sampler.abc.actor.root.MixNow
 import sampler.abc.{ABCConfig, Model, Population}
 import sampler.maths.Random
 

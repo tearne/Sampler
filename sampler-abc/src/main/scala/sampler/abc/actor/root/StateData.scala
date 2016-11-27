@@ -1,20 +1,42 @@
 package sampler.abc.actor.root
 
 import akka.actor.ActorRef
-import sampler.abc.ABCConfig
+import sampler.abc.{ABCConfig, Population}
 
-case class StateData[P](
-    config: ABCConfig,
-    client: ActorRef,
-    evolvingGeneration: EvolvingGeneration[P]){
+trait State[P] {
+  val config: ABCConfig
+  val client: ActorRef
 
   def updateEvolvingGeneration(eGen: EvolvingGeneration[P]) =
-    copy(evolvingGeneration = eGen)
+    RunningState(config, client, eGen)
 
-  def dueToFlush: Boolean =
+  def shouldFlush: Boolean
+  def shouldTerminate: Boolean
+}
+
+/*
+Used when resuming from prevous generation data and waiting for the next tolerance
+to be come back from the generation flushing process.
+ */
+case class ResumingState[P](
+    config: ABCConfig,
+    client: ActorRef,
+    initialPopulation: Population[P]
+  ) extends State[P] {
+  def shouldFlush = false
+  def shouldTerminate = false
+}
+
+case class RunningState[P](
+    config: ABCConfig,
+    client: ActorRef,
+    evolvingGeneration: EvolvingGeneration[P]
+  ) extends State[P] {
+
+  def shouldFlush: Boolean =
     evolvingGeneration.weighed.size >= config.numParticles
 
-  def dueToTerminate: Boolean = {
+  def shouldTerminate: Boolean = {
     evolvingGeneration.previousGen.iteration >=
       config.numGenerations &&
       config.terminateAtTargetGen

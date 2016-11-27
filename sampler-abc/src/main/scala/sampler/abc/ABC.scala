@@ -24,7 +24,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import sampler.abc.actor.children.flushing.{GenerationFlusher, ObservedIdsTrimmer, ToleranceCalculator}
 import sampler.abc.actor.root._
-import sampler.abc.actor.{ChildActors, RootActor}
+import sampler.abc.refactor.{ChildActors, RootActor}
 import sampler.cluster.PortFallbackSystemFactory
 import sampler.io.Logging
 import sampler.maths.Random
@@ -54,25 +54,19 @@ trait ABCActorsImpl extends ABCActors {
     val random = Random
     val getters = new Getters()
 
-    val businessLogic = new BusinessLogic[P](
-      new Helper(
-        new ParticleMixer(),
-        new ToleranceCalculator {},
-        getters,
-        random
-      ),
+    lazy val helper = new Helper(
+      new ParticleMixer(),
+      getters,
+      random)
+
+    val businessLogic = new BusinessLogic(
+      helper,
       config,
       getters
     )
 
-    lazy val helper = new Helper(
-      new ParticleMixer(),
-      ToleranceCalculator,
-      getters,
-      random)
-
     lazy val generationFlusher = new GenerationFlusher(
-      helper.toleranceCalculator,
+      ToleranceCalculator,
       new ObservedIdsTrimmer(config.memoryGenerations,config.numParticles),
       getters,
       config)

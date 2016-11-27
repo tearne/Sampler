@@ -1,35 +1,73 @@
 package sampler.abc.actor.root
 
 import akka.actor.ActorRef
-import sampler.abc.ABCConfig
-import sampler.abc.actor.ChildRefs
+import sampler.abc.{ABCConfig, Population, UseModelPrior}
 import sampler.abc.actor.children._
+import sampler.abc.refactor.ChildRefs
 import sampler.io.Logging
 
-class BusinessLogic[P](
+import scala.collection.immutable.Queue
+
+class BusinessLogic(
     helper: Helper,
     config: ABCConfig,
     getters: Getters) extends Logging {
 
-  def buildInitialworkingData(startMsg: Start[P], client: ActorRef): StateData[P] = {
-    StateData(
-      config,
-      client,
-      helper.initialiseEvolvingGeneration(startMsg.initGeneration, config)
-    )
+  def initialise[P](
+      start: Start[P],
+      config: ABCConfig,
+      childRefs: ChildRefs,
+      client: ActorRef
+  )(
+      implicit rootActor: ActorRef
+  ): State[P] = {
+
+    start.initGeneration match {
+      case prior: UseModelPrior[P] =>
+        val zeroState = RunningState(
+          config,
+          client,
+          EvolvingGeneration(
+            prior.tolerance,
+            prior,
+            ScoredParticles.empty,
+            WeighedParticles.empty,
+            Queue.empty[Long]
+          )
+        )
+        startNewGeneration(zeroState, childRefs)
+        zeroState
+      case population: Population[P] =>
+        val resumeState = ResumingState(
+          config,
+          client,
+          population
+        )
+        startGenerationFlush(resumeState, childRefs)
+        resumeState
+    }
   }
 
-  def workerFailed(state: StateData[P], worker: ActorRef)(implicit rootActor: ActorRef) {
+  //TODO moving this
+//  def buildInitialworkingData(startMsg: Start[P], client: ActorRef): StateData[P] = {
+//    StateData(
+//      config,
+//      client,
+//      helper.initialiseEvolvingGeneration(startMsg.initGeneration, config)
+//    )
+//  }
+
+  def workerFailed[P](state: RunningState[P], worker: ActorRef)(implicit rootActor: ActorRef) {
     warn("Failure in worker, resending job.")
     allocateWorkerTask(state, worker)
   }
 
-  def addLocallyScoredParticles(
-      state: StateData[P],
+  def addLocallyScoredParticles[P](
+      state: RunningState[P],
       scored: ScoredParticles[P],
       worker: ActorRef,
       childRefs: ChildRefs)(
-      implicit rootActor: ActorRef): StateData[P] = {
+      implicit rootActor: ActorRef): RunningState[P] = {
 
     val newState = {
       val updatedEGen = helper.filterAndQueueUnweighedParticles(
@@ -51,12 +89,12 @@ class BusinessLogic[P](
     newState
   }
 
-  def addScoredFromMixing(
+  def addScoredFromMixing[P](
       mixP: MixPayload[P],
-      state: StateData[P],
+      state: RunningState[P],
       sender: ActorRef,
       childRefs: ChildRefs)(
-      implicit rootActor: ActorRef): StateData[P] = {
+      implicit rootActor: ActorRef): RunningState[P] = {
     val newState = {
       val newEGen = helper.filterAndQueueUnweighedParticles(
         mixP.scoredParticles,
@@ -73,12 +111,12 @@ class BusinessLogic[P](
     newState
   }
 
-  def addNewWeighted(
-      state: StateData[P],
+  def addNewWeighted[P](
+      state: RunningState[P],
       weighed: WeighedParticles[P],
       sender: ActorRef,
       childRefs: ChildRefs)(
-      implicit rootActor: ActorRef): StateData[P] = {
+      implicit rootActor: ActorRef): RunningState[P] = {
     val newState = {
       val updatedEGen = helper.addWeightedParticles(weighed, state.evolvingGeneration)
       state.updateEvolvingGeneration(updatedEGen)
@@ -93,16 +131,16 @@ class BusinessLogic[P](
     newState
   }
 
-  def doGenerationFlush(
-      workingData: StateData[P],
+  def startGenerationFlush[P](
+      state: State[P],
       childRefs: ChildRefs)(
       implicit rootActor: ActorRef) {
     childRefs.workRouter ! Abort
-    childRefs.flusher ! workingData.evolvingGeneration
+    childRefs.flusher ! state
   }
 
-  def allocateWorkerTask(
-      workingData: StateData[P],
+  def allocateWorkerTask[P](
+      workingData: RunningState[P],
       worker: ActorRef)(
       implicit rootActor: ActorRef) {
 
@@ -114,8 +152,8 @@ class BusinessLogic[P](
       worker ! GenerateParticlesFrom(eGen.previousGen, config)
   }
 
-  def doMixing(
-      state: StateData[P],
+  def doMixing[P](
+      state: RunningState[P],
       childRefs: ChildRefs)(
       implicit rootActor: ActorRef) {
 
@@ -128,29 +166,17 @@ class BusinessLogic[P](
     }
   }
 
-  def newFlushedGeneration(
+  def newFlushedGeneration[P](
       fc: FlushComplete[P],
-      state: StateData[P],
+      state: State[P],
       childRefs: ChildRefs)(
-      implicit rootActor: ActorRef): StateData[P] = {
+      implicit rootActor: ActorRef): RunningState[P] = {
 
-    val newState = state.updateEvolvingGeneration(fc.eGeneration)
-
-    //TODO don't like having to do newState.evolvingGen.previous all th etime
-
-    childRefs.reporter ! StatusReport(
-      FinishGen(
-        newState.evolvingGeneration.previousGen.iteration,
-        newState.evolvingGeneration.currentTolerance),
-      newState.evolvingGeneration,
-      config
-    )
-
-    newState
+    state.updateEvolvingGeneration(fc.eGeneration)
   }
 
-  def terminate(
-      state: StateData[P],
+  def terminate[P](
+      state: RunningState[P],
       childRefs: ChildRefs)(
       implicit rootActor: ActorRef) {
 
@@ -158,8 +184,8 @@ class BusinessLogic[P](
     childRefs.reporter ! state.evolvingGeneration.previousGen
   }
 
-  def startNewGeneration(
-      state: StateData[P],
+  def startNewGeneration[P](
+      state: RunningState[P],
       childRefs: ChildRefs)(
       implicit rootActor: ActorRef) {
 
@@ -172,20 +198,19 @@ class BusinessLogic[P](
     val report = {
       val evolvingGen = state.evolvingGeneration
       val prevItNum = evolvingGen.previousGen.iteration
-      val currentTol = evolvingGen.buildingGeneration
+      val currentTol = evolvingGen.currentTolerance
 
       StatusReport(
-        FinishGen(prevItNum, currentTol),
+        StartingGen(prevItNum, currentTol),
         evolvingGen,
         config
       )
     }
 
     childRefs.reporter ! report
-
   }
 
-  def sendResultToClient(state: StateData[P])(implicit rootActor: ActorRef) {
+  def sendResultToClient[P](state: RunningState[P])(implicit rootActor: ActorRef) {
     state.client ! state.evolvingGeneration.previousGen
   }
 }

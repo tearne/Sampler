@@ -54,7 +54,7 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 		"build inner completed generation" in new Setup {
 			val numParticlesReqd = 10
 			
-			val result: EvolvingGeneration[T] = instance.apply(inProgress)
+			val result: EvolvingGeneration[T] = instance.fromEvolvingGen(inProgress)
 			val completedGen = result.previousGen.asInstanceOf[Population[T]]
 			
 			assert(completedGen.iteration === 11)
@@ -66,7 +66,7 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 		"be ok with flushing more than the required number of particles" in new Setup {
 		  val numParticlesReqd = 5
 			
-			val result: EvolvingGeneration[T] = instance.apply(inProgress)
+			val result: EvolvingGeneration[T] = instance.fromEvolvingGen(inProgress)
 			val completedGen = result.previousGen.asInstanceOf[Population[T]]
 			
 			assert(completedGen.weightedParticles === seqWeighed)
@@ -74,7 +74,7 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 		
 		"build new evolving generation" in new Setup {
 		  val numParticlesReqd = 10
-			val result = instance.apply(inProgress)
+			val result = instance.fromEvolvingGen(inProgress)
 			
 			assert(result.currentTolerance === 0.001)
 			assert(result.dueWeighing.size === 0)
@@ -86,7 +86,7 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 		"throw exception if insufficient particles" in new Setup {
 			val numParticlesReqd = 11
 			intercept[AssertionError]{
-				val result = instance.apply(inProgress)
+				val result = instance.fromEvolvingGen(inProgress)
 			}
 		}
 		

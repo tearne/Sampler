@@ -42,7 +42,6 @@ class BroadcastActor(config: ABCConfig) extends Actor with ActorLogging{
 	override def postStop(): Unit = {
 		val cluster = Cluster(context.system)
 		cluster.unsubscribe(self)
-		log.info("Post stop")
 	}
 	
 	import context._

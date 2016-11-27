@@ -16,7 +16,6 @@ class HelperTest extends FreeSpec with Matchers with MockitoSugar {
     val particleMixer = mock[ParticleMixer]
     val instance = new Helper(
       particleMixer,
-      mock[ToleranceCalculator],
       mock[Getters],
       mock[Random]
     )
@@ -33,41 +32,6 @@ class HelperTest extends FreeSpec with Matchers with MockitoSugar {
 
     val numRejected1 = 5
     val numRejected2 = 2
-
-    "Build EvolvingGen from model prior" in new Setup {
-      val tolerance = 0.8
-      val useModelPrior = UseModelPrior[Int](tolerance)
-
-      val result = instance.initialiseEvolvingGeneration(useModelPrior, null)
-      val expected = EvolvingGeneration(
-        tolerance,
-        useModelPrior,
-        ScoredParticles.empty,
-        WeighedParticles.empty,
-        Queue.empty[Long]
-      )
-
-      assert(expected === result)
-    }
-
-    "Build EvolvingGen from a previous generation" in new Setup {
-      val (oldTol, newTol) = (0.8, 0.75)
-      val config = mock[ABCConfig]
-      val seqWeighted = mock[Seq[Weighted[Float]]]
-      val pop = Population(seqWeighted, 0, oldTol, 0)
-      when(instance.toleranceCalculator.apply(seqWeighted, config, oldTol)).thenReturn(newTol)
-
-      val result = instance.initialiseEvolvingGeneration(pop, config)
-      val expected = EvolvingGeneration(
-        newTol,
-        pop,
-        ScoredParticles.empty,
-        WeighedParticles.empty,
-        Queue.empty[Long]
-      )
-
-      assert(expected === result)
-    }
 
     "Add incoming weighted particles to a generation" in new Setup {
       val initialSeq = WeighedParticles(Seq(weighed1), numRejected1)
