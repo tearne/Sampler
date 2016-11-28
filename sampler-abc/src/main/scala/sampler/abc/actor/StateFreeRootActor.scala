@@ -1,6 +1,7 @@
 package sampler.abc.actor
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
+import akka.event.LoggingAdapter
 import sampler.abc.actor.children.FlushComplete
 import sampler.abc.actor.root._
 import sampler.abc.refactor.{ChildActors, ChildRefs}
@@ -13,7 +14,8 @@ https://alexn.org/blog/2015/12/15/avoid-javaisms-code-smell.html
 case class Dependencies(
   logic: BusinessLogic,
   childRefs: ChildRefs,
-  rootActor: ActorRef
+  rootActor: ActorRef,
+  log: LoggingAdapter
 )
 
 trait Phase{
@@ -21,6 +23,11 @@ trait Phase{
   def dependencies: Dependencies
 
   implicit val rootActor0 = dependencies.rootActor
+
+  def unexpected(msg: Any) = {
+    dependencies.log.warning("Unexpected message encountered in {}: [{} ...]", this.getClass, msg.toString.take(20))
+    this
+  }
 }
 
 trait Running[P] extends Phase {
@@ -40,7 +47,7 @@ case class Idle[P](dependencies: Dependencies) extends Phase {
         case resumingState: ResumingState[P] =>
           Flushing(dependencies, resumingState)
       }
-//    case other => throw new UnsupportedOperationException(other)
+    case other => unexpected(other)
   }
 }
 
@@ -72,9 +79,7 @@ case class Gathering[P](dependencies: Dependencies, state: RunningState[P]) exte
     case MixNow =>
       logic.doMixing(state, childRefs) //TODO conform to startMixing/doMixing
       this
-    case other =>
-      println("UNKNOWN "+other.toString.take(100))//log.warning("Unexpected Message in gathering state: {}", other)
-      this
+    case other => unexpected(other)
   }
 }
 
@@ -94,10 +99,7 @@ case class Flushing[P](dependencies: Dependencies, state: State[P]) extends Runn
         logic.startNewGeneration(newState, childRefs)
         Gathering(dependencies, newState)
       }
-    case other =>
-      println("UNKNOWN "+other.toString.take(100))
-      this
-      //log.warning("Unexpected Message while waiting for flush to complete: {}", other)
+    case other => unexpected(other)
   }
 }
 
@@ -108,7 +110,7 @@ case class ShuttingDown[P](dependencies: Dependencies, state: RunningState[P]) e
     case ReportCompleted =>
       logic.sendResultToClient(state)//(rootActor)
       this
-    //case other => log.warning("Unexpected Message while waiting for shutdown: {}", other)
+    case other => unexpected(other)
   }
 }
 
@@ -121,7 +123,7 @@ class StateFreeRootActor[P](childActors: ChildActors[P], logic: BusinessLogic)
   }
 
   def receive = behaviour(
-    Idle(Dependencies(logic, childRefs, self))
+    Idle(Dependencies(logic, childRefs, self, log))
   )
 
   def behaviour(phase: Phase): Receive = {
