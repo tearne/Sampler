@@ -24,7 +24,7 @@ class ChildActors[P](
     reportHandler: Option[Population[P] => Unit],
     random: Random) {
 
-  def startup(rootActorContext: ActorContext) {
+  def startup(rootActorContext: ActorContext): ChildRefs = {
 
     // TODO this in a better place? cancellableMixing never actually cancelled
     val mixMS = config.mixRateMS max 10000 // No faster than once every 10s
@@ -66,9 +66,11 @@ class ChildActors[P](
       Props(classOf[ReportingActor[P]], reportHandler),
       "reporter"
     )
+
+    resolve(rootActorContext)
   }
 
-  def resolve(context: ActorContext): ChildRefs = {
+  private def resolve(context: ActorContext): ChildRefs = {
     import scala.concurrent.ExecutionContext.Implicits.global
     implicit val timeout = Timeout(1 second)
 

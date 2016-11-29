@@ -22,10 +22,10 @@ import java.util.concurrent.TimeUnit.MILLISECONDS
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.util.Timeout
-import sampler.abc.actor.{Dependencies, Idle, StateFreeRootActor}
+import sampler.abc.actor.{Dependencies, Idle, RootActor}
 import sampler.abc.actor.children.flushing.{GenerationFlusher, ObservedIdsTrimmer, ToleranceCalculator}
 import sampler.abc.actor.root._
-import sampler.abc.refactor.{ChildActors, RootActor}
+import sampler.abc.refactor.ChildActors
 import sampler.cluster.PortFallbackSystemFactory
 import sampler.io.Logging
 import sampler.maths.Random
@@ -83,7 +83,7 @@ trait ABCActorsImpl extends ABCActors {
 
     val rootActor = system.actorOf(
       Props(
-        classOf[StateFreeRootActor[P]],
+        classOf[RootActor[P]],
         childActors,
         businessLogic
       ),

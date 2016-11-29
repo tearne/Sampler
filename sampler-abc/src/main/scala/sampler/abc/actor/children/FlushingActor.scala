@@ -2,7 +2,7 @@ package sampler.abc.actor.children
 
 import akka.actor.{Actor, ActorLogging, actorRef2Scala}
 import sampler.abc.actor.children.flushing.GenerationFlusher
-import sampler.abc.actor.root.{EvolvingGeneration, ResumingState, RunningState}
+import sampler.abc.actor.root.{EvolvingGeneration, ResumingTask, RunningTask}
 
 case class FlushComplete[P](eGeneration: EvolvingGeneration[P])
 
@@ -10,12 +10,12 @@ class FlushingActor[P](generationFlusher: GenerationFlusher) extends Actor with 
 
   def receive = {
     //TODO test me
-    case resuming: ResumingState[P] =>
+    case resuming: ResumingTask[P] =>
       sender ! FlushComplete(
         generationFlusher.fromPreExistingPopulation(resuming.initialPopulation)
       )
 
-    case running: RunningState[P] =>
+    case running: RunningTask[P] =>
       sender ! FlushComplete(
         generationFlusher.fromEvolvingGen(running.evolvingGeneration)
       )

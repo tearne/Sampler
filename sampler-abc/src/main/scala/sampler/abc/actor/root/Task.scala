@@ -3,40 +3,41 @@ package sampler.abc.actor.root
 import akka.actor.ActorRef
 import sampler.abc.{ABCConfig, Population}
 
-trait State[P] {
+trait Task[P] {
   val config: ABCConfig
   val client: ActorRef
 
   def updateEvolvingGeneration(eGen: EvolvingGeneration[P]) =
-    RunningState(config, client, eGen)
+    RunningTask(config, client, eGen)
 
   def shouldFlush: Boolean
   def shouldTerminate: Boolean
 }
 
 /*
-Used when resuming from prevous generation data and waiting for the next tolerance
+Used when resuming from previous generation data and waiting for the next tolerance
 to be come back from the generation flushing process.
  */
-case class ResumingState[P](
+case class ResumingTask[P](
     config: ABCConfig,
     client: ActorRef,
     initialPopulation: Population[P]
-  ) extends State[P] {
+  ) extends Task[P] {
+
   def shouldFlush = false
   def shouldTerminate = false
 }
 
-case class RunningState[P](
+case class RunningTask[P](
     config: ABCConfig,
     client: ActorRef,
     evolvingGeneration: EvolvingGeneration[P]
-  ) extends State[P] {
+  ) extends Task[P] {
 
-  def shouldFlush: Boolean =
+  def shouldFlush =
     evolvingGeneration.weighed.size >= config.numParticles
 
-  def shouldTerminate: Boolean = {
+  def shouldTerminate = {
     evolvingGeneration.previousGen.iteration >= config.numGenerations - 1 &&
       config.terminateAtTargetGen
   }

@@ -1,77 +1,25 @@
-package sampler.abc.refactor
+package sampler.abc.actor
 
 import akka.actor.{Actor, ActorLogging}
-import sampler.abc.ABCConfig
-import sampler.abc.actor.children.FlushComplete
-import sampler.abc.actor.root._
+import sampler.abc.actor.root.BusinessLogic
+import sampler.abc.refactor.ChildActors
 
 class RootActor[P](
-    childActors: ChildActors[P],
-    logic: BusinessLogic,
-    config: ABCConfig)
-      extends Actor
-      with ActorLogging {
+  childActors: ChildActors[P],
+  logic: BusinessLogic
+) extends Actor
+  with ActorLogging {
 
-  childActors.startup(context)
-  val childRefs = childActors.resolve(context)
+  val childRefs = childActors.startup(context)
 
-  def receive: Receive = idle()
+  def receive = behaviour(
+    Idle(Dependencies(
+      logic, childRefs, self, log))
+  )
 
-  def idle(): Receive = {
-    case MixNow =>  // Ignored
-    case startMsg: Start[P] =>
-      logic.initialise(startMsg, childRefs, sender) match {
-        case runningState: RunningState[P] =>
-          context.become(gathering(runningState))
-        case resumingState: ResumingState[P] =>
-          context.become(waitingForFlushComplete(resumingState))
-      }
-
-    case other => log.warning("Unexpected Message in idle state: {}", other)
-  }
-
-  def gathering(state: RunningState[P]): Receive = {
-    case ReportCompleted => // Ignored
-    case Failed =>
-      logic.workerFailed(state, sender)
-    case scored: ScoredParticles[P] =>
-      context.become(gathering(logic.addLocallyScoredParticles(state, scored, sender, childRefs)))
-    case mixP: MixPayload[P] =>
-      context.become(gathering(logic.addScoredFromMixing(mixP, state, sender, childRefs)))
-    case weighted: WeighedParticles[P] =>
-      val newState = logic.addNewWeighted(state, weighted, sender, childRefs)
-      if(newState.shouldFlush) {
-        logic.startGenerationFlush(newState, childRefs)
-        context.become(waitingForFlushComplete(newState))
-      }
-      else {
-        logic.allocateWorkerTask(newState, sender)
-        context.become(gathering(newState))
-      }
-    case MixNow => logic.doMixing(state, childRefs)
-    case other => log.warning("Unexpected Message in gathering state: {}", other)
-  }
-
-  def waitingForFlushComplete(state: State[P]): Receive ={
-    case _: ScoredParticles[P] => // Ignored
-    case MixNow =>                // Ignored
-    case ReportCompleted =>       // Ignored
-    case flushed: FlushComplete[P] =>
-      val newState = logic.newFlushedGeneration(flushed, state, childRefs)
-      if(state.shouldTerminate) {
-        logic.terminate(newState, childRefs)
-        context.become(waitingForShutdown(newState))
-      } else {
-        logic.startNewGeneration(newState, childRefs)
-        context.become(gathering(newState))
-      }
-    case other => log.warning("Unexpected Message while waiting for flush to complete: {}", other)
-  }
-
-  def waitingForShutdown(state: RunningState[P]): Receive ={
-    case ReportCompleted =>
-      logic.sendResultToClient(state)
-    case other => log.warning("Unexpected Message while waiting for shutdown: {}", other)
+  def behaviour(phase: Phase): Receive = {
+    case message => context.become(
+        behaviour(phase.evolve(sender, self)(message))
+      )
   }
 }
-
