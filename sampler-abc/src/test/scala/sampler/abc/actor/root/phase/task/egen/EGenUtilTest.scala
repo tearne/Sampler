@@ -1,20 +1,20 @@
-package sampler.abc.actor.root
+package sampler.abc.actor.root.phase.task.egen
 
 import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FreeSpec, Matchers}
 import sampler.abc._
-import sampler.abc.actor.root.phase.task.egen.{EvolvingGeneration, EvolvingGenerationUtil, ParticleMixer}
+import sampler.abc.actor.root.{ScoredParticles, WeighedParticles}
 import sampler.maths.Random
 
 import scala.collection.immutable.Queue
 
-class HelperTest extends FreeSpec with Matchers with MockitoSugar {
+class EGenUtilTest extends FreeSpec with Matchers with MockitoSugar {
 
   trait Setup {
     val particleMixer = mock[ParticleMixer]
-    val instance = new EvolvingGenerationUtil(
+    val instance = new EGenUtil(
       particleMixer,
       mock[Random]
     )

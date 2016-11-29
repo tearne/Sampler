@@ -17,14 +17,12 @@
 
 package sampler.abc.actor.children
 
-import java.util.Date
-
 import akka.actor.{Actor, ActorLogging, ActorRef, FSM, actorRef2Scala}
 import akka.pattern.pipe
-import sampler.abc.{ABCConfig, Generation, Model}
-import sampler.abc.actor.root.{Failed, ScoredParticles, WeighedParticles}
 import sampler.abc.actor.children.worker._
+import sampler.abc.actor.message.{Failed, ScoredParticles, WeighedParticles}
 import sampler.abc.actor.root.phase.task.egen.EvolvingGeneration
+import sampler.abc.{ABCConfig, Generation, Model}
 import sampler.maths.Random
 
 import scala.concurrent.Future
@@ -160,7 +158,7 @@ trait WorkerActor[P]
   def startWeighing(wJob: WeighJob[P]) {
     Future {
       log.debug("Weighing")
-      val result: Try[WeighedParticles[P]] = weigher(wJob)
+      val result: Try[WeighedParticles[P]] = weigher.apply(wJob)
       result
       //match{   //TODO can't we just delete all of this?
       //				case Failure(e: DetectedAbortionException) =>

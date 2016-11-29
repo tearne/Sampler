@@ -1,10 +1,11 @@
 package sampler.abc.actor.root.phase.task.egen
 
 import sampler.abc._
+import sampler.abc.actor.message.{ScoredParticles, WeighedParticles}
 import sampler.abc.actor.root._
 import sampler.maths.Random
 
-class EvolvingGenerationUtil(
+class EGenUtil(
     particleMixer: ParticleMixer,
     random: Random
   ) {

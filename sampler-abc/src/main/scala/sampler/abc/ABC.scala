@@ -24,9 +24,10 @@ import akka.pattern.ask
 import akka.util.Timeout
 import sampler.abc.actor.RootActor
 import sampler.abc.actor.children.flushing.{GenerationFlusher, ObservedIdsTrimmer, ToleranceCalculator}
+import sampler.abc.actor.message.Start
 import sampler.abc.actor.root._
-import sampler.abc.actor.root.phase.PhaseLogic
-import sampler.abc.actor.root.phase.task.egen.{EvolvingGenerationUtil, ParticleMixer}
+import sampler.abc.actor.root.phase.PhaseUtil
+import sampler.abc.actor.root.phase.task.egen.{EGenUtil, ParticleMixer}
 import sampler.abc.refactor.ChildActors
 import sampler.cluster.PortFallbackSystemFactory
 import sampler.io.Logging
@@ -55,11 +56,11 @@ trait ABCActorsImpl extends ABCActors {
     val system = PortFallbackSystemFactory(config.clusterName)
     val random = Random
 
-    val helper = new EvolvingGenerationUtil(
+    val helper = new EGenUtil(
       new ParticleMixer(),
       random)
 
-    val businessLogic = new PhaseLogic(
+    val businessLogic = new PhaseUtil(
       helper,
       config
     )

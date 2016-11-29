@@ -1,15 +1,10 @@
 package sampler.abc.actor.children.worker
 
-import sampler.abc.Model
-import java.util.concurrent.atomic.AtomicBoolean
+import sampler.abc.{Model, Weighted}
 import sampler.abc.actor.children.WeighJob
+import sampler.abc.actor.message.WeighedParticles
+
 import scala.util.Try
-import sampler.abc.actor.root.WeighedParticles
-import sampler.abc.UseModelPrior
-import sampler.abc.Population
-import sampler.abc.Model
-import sampler.abc.Generation
-import sampler.abc.Weighted
 
 trait WeigherComponentImpl[P] extends WeigherComponent[P]{
 	self: AborterComponent =>

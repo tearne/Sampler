@@ -1,12 +1,12 @@
 package sampler.abc.actor
 
 import akka.actor.{Actor, ActorLogging}
-import sampler.abc.actor.root.phase.{Dependencies, Idle, Phase, PhaseLogic}
+import sampler.abc.actor.root.phase.{Dependencies, Idle, Phase, PhaseUtil}
 import sampler.abc.refactor.ChildActors
 
 class RootActor[P](
   childActors: ChildActors[P],
-  logic: PhaseLogic
+  logic: PhaseUtil
 ) extends Actor
   with ActorLogging {
 
@@ -14,7 +14,8 @@ class RootActor[P](
 
   def receive = behaviour(
     Idle(Dependencies(
-      logic, childRefs, self, log))
+      logic, childRefs, self, log
+    ))
   )
 
   def behaviour(phase: Phase): Receive = {

@@ -22,7 +22,7 @@ import akka.actor.{Actor, ActorIdentity, ActorLogging, ActorRef, Identify, Props
 import akka.cluster.ClusterEvent._
 import akka.cluster.{Cluster, Member, MemberStatus}
 import sampler.abc.ABCConfig
-import sampler.abc.actor.root.MixPayload
+import sampler.abc.actor.message.MixPayload
 import sampler.distribution.Distribution
 import sampler.maths.Random
 

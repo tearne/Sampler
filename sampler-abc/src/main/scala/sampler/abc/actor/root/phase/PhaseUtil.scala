@@ -2,8 +2,8 @@ package sampler.abc.actor.root.phase
 
 import akka.actor.ActorRef
 import sampler.abc.actor.children._
-import sampler.abc.actor.root._
-import sampler.abc.actor.root.phase.task.egen.{EvolvingGeneration, EvolvingGenerationUtil}
+import sampler.abc.actor.message.{MixPayload, ScoredParticles, Start, WeighedParticles}
+import sampler.abc.actor.root.phase.task.egen.{EGenUtil, EvolvingGeneration}
 import sampler.abc.actor.root.phase.task.{ResumingTask, RunningTask, Task}
 import sampler.abc.refactor.ChildRefs
 import sampler.abc.{ABCConfig, Population, UseModelPrior}
@@ -11,8 +11,8 @@ import sampler.io.Logging
 
 import scala.collection.immutable.Queue
 
-class PhaseLogic(
-    helper: EvolvingGenerationUtil,
+class PhaseUtil(
+    eGenUtil: EGenUtil,
     config: ABCConfig
   ) extends Logging {
 
@@ -71,7 +71,7 @@ class PhaseLogic(
     ): RunningTask[P] = {
 
     val newTask = {
-      val updatedEGen = helper.filterAndQueueUnweighedParticles(
+      val updatedEGen = eGenUtil.filterAndQueueUnweighedParticles(
         scored,
         state.evolvingGeneration
       )
@@ -97,7 +97,7 @@ class PhaseLogic(
     ): RunningTask[P] = {
 
     val newTask = {
-      val newEGen = helper.filterAndQueueUnweighedParticles(
+      val newEGen = eGenUtil.filterAndQueueUnweighedParticles(
         mixP.scoredParticles,
         state.evolvingGeneration)
       state.updateEvolvingGeneration(newEGen)
@@ -122,7 +122,7 @@ class PhaseLogic(
     ): RunningTask[P] = {
 
     val newTask = {
-      val updatedEGen = helper.addWeightedParticles(weighed, state.evolvingGeneration)
+      val updatedEGen = eGenUtil.addWeightedParticles(weighed, state.evolvingGeneration)
       state.updateEvolvingGeneration(updatedEGen)
     }
 
@@ -169,15 +169,16 @@ class PhaseLogic(
   }
 
   def doMixing[P](
-      state: RunningTask[P],
+      task: RunningTask[P],
       childRefs: ChildRefs
     )(
       implicit rootActor: ActorRef
     ) {
 
-    val payload: Option[ScoredParticles[P]] = helper.buildMixPayload(
-      state.evolvingGeneration,
-      config)
+    val payload: Option[ScoredParticles[P]] = eGenUtil.buildMixPayload(
+      task.evolvingGeneration,
+      config
+    )
 
     payload.foreach { message =>
       childRefs.broadcaster ! MixPayload(message)

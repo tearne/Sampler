@@ -1,11 +1,9 @@
-package sampler.abc.actor.root
+package sampler.abc.actor.message
 
-import org.scalatest.FreeSpec
-import org.scalatest.Matchers
-import sampler.abc.Scored
-import sampler.abc.Weighted
+import org.scalatest.{FreeSpec, Matchers}
+import sampler.abc.{Scored, Weighted}
 
-class MessagesTest extends FreeSpec with Matchers {
+class WorkerResultTest extends FreeSpec with Matchers {
 
 	"ScoredParticles messages should" - {
 		val p1 = Scored(1, Seq(0.5))

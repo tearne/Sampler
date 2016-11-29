@@ -1,18 +1,11 @@
 package sampler.abc.actor.root.phase
 
 import akka.actor.ActorRef
-import akka.event.LoggingAdapter
 import sampler.abc.actor.children.FlushComplete
+import sampler.abc.actor.message._
 import sampler.abc.actor.root._
 import sampler.abc.actor.root.phase.task.{ResumingTask, RunningTask, Task}
-import sampler.abc.refactor.ChildRefs
 
-case class Dependencies(
-  logic: PhaseLogic,
-  childRefs: ChildRefs,
-  rootActor: ActorRef,
-  log: LoggingAdapter
-)
 
 trait Phase{
   def evolve(sender: ActorRef, rootActor: ActorRef): PartialFunction[Any, Phase]

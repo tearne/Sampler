@@ -3,12 +3,12 @@ package sampler.abc.actor.children
 import akka.actor.ActorLogging
 import akka.actor.Actor
 import akka.actor.actorRef2Scala
-import sampler.abc.actor.root.ReportCompleted
 import akka.actor.ActorRef
 import sampler.abc.Population
 import java.math.MathContext
 
 import sampler.abc.ABCConfig
+import sampler.abc.actor.message.ReportCompleted
 import sampler.abc.actor.root.phase.task.egen.EvolvingGeneration
 
 sealed trait StatusDelta{

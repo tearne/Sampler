@@ -1,9 +1,8 @@
-package sampler.abc.actor.root
+package sampler.abc.actor.root.phase.task.egen
 
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfter, FreeSpec, Matchers}
-import sampler.abc.actor.root.phase.task.egen.{EvolvingGeneration, ParticleMixer}
 import sampler.abc.{ABCConfig, Scored, Weighted}
 import sampler.maths.Random
 

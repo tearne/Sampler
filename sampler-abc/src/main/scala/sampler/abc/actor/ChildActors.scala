@@ -5,7 +5,7 @@ import akka.routing.FromConfig
 import akka.util.Timeout
 import sampler.abc.actor.children._
 import sampler.abc.actor.children.flushing.GenerationFlusher
-import sampler.abc.actor.root.MixNow
+import sampler.abc.actor.message.MixNow
 import sampler.abc.{ABCConfig, Model, Population}
 import sampler.maths.Random
 
@@ -67,10 +67,10 @@ class ChildActors[P](
       "reporter"
     )
 
-    resolve(rootActorContext)
+    resolveRefs(rootActorContext)
   }
 
-  private def resolve(context: ActorContext): ChildRefs = {
+  private def resolveRefs(context: ActorContext): ChildRefs = {
     import scala.concurrent.ExecutionContext.Implicits.global
     implicit val timeout = Timeout(1 second)
 

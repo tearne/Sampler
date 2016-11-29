@@ -1,6 +1,6 @@
 package sampler.abc.actor.root.phase.task.egen
 
-import sampler.abc.actor.root.{ScoredParticles, WeighedParticles}
+import sampler.abc.actor.message.{ScoredParticles, WeighedParticles}
 import sampler.abc.{Generation, Population, UseModelPrior, Weighted}
 
 import scala.collection.immutable.Queue

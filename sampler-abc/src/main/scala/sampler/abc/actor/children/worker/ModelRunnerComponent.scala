@@ -17,9 +17,9 @@
 
 package sampler.abc.actor.children.worker
 
-import sampler.abc.{Model, Scored}
-import sampler.abc.actor.root.ScoredParticles
 import sampler.abc.actor.children.GenerateParticlesFrom
+import sampler.abc.actor.message.ScoredParticles
+import sampler.abc.{Model, Scored}
 import sampler.io.Logging
 import sampler.maths.Random
 
