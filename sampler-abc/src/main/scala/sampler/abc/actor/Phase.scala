@@ -22,6 +22,8 @@ trait Phase{
   def evolve(sender: ActorRef, rootActor: ActorRef): PartialFunction[Any, Phase]
   def dependencies: Dependencies
 
+  val ignore = this
+
   implicit val rootActor0 = dependencies.rootActor
 
   def unexpected(msg: Any) = {
@@ -42,7 +44,7 @@ case class Idle[P](dependencies: Dependencies) extends Phase {
   import dependencies._
 
   def evolve(sender: ActorRef, rootActor: ActorRef) = PartialFunction[Any, Phase]{
-    case MixNow => this //Ignored
+    case MixNow => ignore
     case startMsg: Start[P] =>
       val newTask = logic.initialise(startMsg, childRefs, sender)
       newTask match {
@@ -55,8 +57,6 @@ case class Idle[P](dependencies: Dependencies) extends Phase {
   }
 }
 
-//TODO logic tasks, adding to state Vs starting processes, ...
-
 case class Gathering[P](
     dependencies: Dependencies,
     task: RunningTask[P]
@@ -64,7 +64,7 @@ case class Gathering[P](
   import dependencies._
 
   def evolve(sender: ActorRef, rootActor: ActorRef) = PartialFunction[Any, Phase] {
-    case ReportCompleted => this // Ignored
+    case ReportCompleted => ignore
     case Failed =>
       logic.reallocateWorkAfterFailure(task, sender)
       this
@@ -75,16 +75,16 @@ case class Gathering[P](
       val newTask = logic.addScoredFromMixing(mixP, task, sender, childRefs)
       this.copy(task = newTask)
     case weighted: WeighedParticles[P] =>
-      val newTask = logic.addNewWeighted(task, weighted, sender, childRefs)
+      val newTask = logic.addWeighted(task, weighted, sender, childRefs)
       if(newTask.shouldFlush) {
-        logic.startGenerationFlush(newTask, childRefs)
+        logic.startFlush(newTask, childRefs)
         Flushing(dependencies, newTask)
       } else {
-        logic.allocateWorkerTask(newTask, sender)
+        logic.allocateWork(newTask, sender)
         this.copy(task = newTask)
       }
     case MixNow =>
-      logic.doMixing(task, childRefs) //TODO conform to startMixing/doMixing
+      logic.doMixing(task, childRefs)
       this
     case other => unexpected(other)
   }
@@ -97,14 +97,14 @@ case class Flushing[P](
   import dependencies._
 
   def evolve(sender: ActorRef, rootActor: ActorRef): PartialFunction[Any, Phase] = {
-    case _: ScoredParticles[P] =>   this // Ignored
-    case _: WeighedParticles[P] =>  this // Ignored
-    case MixNow =>                  this // Ignored
-    case ReportCompleted =>         this // Ignored
+    case _: ScoredParticles[P] =>   ignore
+    case _: WeighedParticles[P] =>  ignore
+    case MixNow =>                  ignore
+    case ReportCompleted =>         ignore
     case flushed: FlushComplete[P] =>
-      val newTask = logic.addFlushedGeneration(flushed, task, childRefs)
+      val newTask = logic.updateWithFlushedGeneration(flushed, task, childRefs)
       if(task.shouldTerminate) {
-        logic.terminate(newTask, childRefs) //TODO rename
+        logic.startTermination(newTask, childRefs)
         ShuttingDown(dependencies, newTask)
       } else {
         logic.startNewGeneration(newTask, childRefs)
@@ -122,7 +122,7 @@ case class ShuttingDown[P](
 
   def evolve(sender: ActorRef, rootActor: ActorRef): PartialFunction[Any, Phase] = {
     case ReportCompleted =>
-      logic.sendResultToClient(task)//(rootActor)
+      logic.sendResultToClient(task)
       this
     case other => unexpected(other)
   }

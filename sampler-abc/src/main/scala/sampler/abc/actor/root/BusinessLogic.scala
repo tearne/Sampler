@@ -42,14 +42,14 @@ class BusinessLogic(
           client,
           population
         )
-        startGenerationFlush(resumeTask, childRefs)
+        startFlush(resumeTask, childRefs)
         resumeTask
     }
   }
 
   def reallocateWorkAfterFailure[P](state: RunningTask[P], worker: ActorRef)(implicit rootActor: ActorRef) {
     warn("Failure in worker, resending job.")
-    allocateWorkerTask(state, worker)
+    allocateWork(state, worker)
   }
 
   def addLocallyScoredParticles[P](
@@ -73,7 +73,7 @@ class BusinessLogic(
       config
     )
 
-    allocateWorkerTask(newTask, worker)
+    allocateWork(newTask, worker)
 
     newTask
   }
@@ -100,7 +100,7 @@ class BusinessLogic(
     newTask
   }
 
-  def addNewWeighted[P](
+  def addWeighted[P](
       state: RunningTask[P],
       weighed: WeighedParticles[P],
       sender: ActorRef,
@@ -120,7 +120,7 @@ class BusinessLogic(
     newTask
   }
 
-  def startGenerationFlush[P](
+  def startFlush[P](
       state: Task[P],
       childRefs: ChildRefs)(
       implicit rootActor: ActorRef) {
@@ -128,7 +128,7 @@ class BusinessLogic(
     childRefs.flusher ! state
   }
 
-  def allocateWorkerTask[P](
+  def allocateWork[P](
       workingData: RunningTask[P],
       worker: ActorRef)(
       implicit rootActor: ActorRef) {
@@ -155,7 +155,7 @@ class BusinessLogic(
     }
   }
 
-  def addFlushedGeneration[P](
+  def updateWithFlushedGeneration[P](
       fc: FlushComplete[P],
       task: Task[P],
       childRefs: ChildRefs)(
@@ -169,7 +169,7 @@ class BusinessLogic(
     newTask
   }
 
-  def terminate[P](
+  def startTermination[P](
       task: RunningTask[P],
       childRefs: ChildRefs)(
       implicit rootActor: ActorRef) {
