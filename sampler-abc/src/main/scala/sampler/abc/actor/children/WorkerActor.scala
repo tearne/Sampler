@@ -17,6 +17,8 @@
 
 package sampler.abc.actor.children
 
+import java.util.Date
+
 import akka.actor.{Actor, ActorLogging, ActorRef, FSM, actorRef2Scala}
 import akka.pattern.pipe
 import sampler.abc.{ABCConfig, Generation, Model}
@@ -31,7 +33,11 @@ sealed trait Job[P]
 
 case class GenerateParticlesFrom[P](prevGen: Generation[P], config: ABCConfig) extends Job[P]
 
-case class WeighJob[P](scored: ScoredParticles[P], prevGen: Generation[P], tolerance: Double) extends Job[P]
+case class WeighJob[P](
+    scored: ScoredParticles[P],
+    prevGen: Generation[P],
+    tolerance: Double
+  ) extends Job[P]
 
 object WeighJob {
   def buildFrom[P](eGen: EvolvingGeneration[P]) =
@@ -80,6 +86,7 @@ trait WorkerActor[P]
 
   when(Idle) {
     case Event(j: Job[P], Uninitialised) =>
+      //log.info(">>>> "+j.toString.take(100)+" [...] "+j.toString.takeRight(100))
       startWork(j)
       goto(Working) using Client(sender)
     case Event(Abort, Uninitialised) =>

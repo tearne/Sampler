@@ -96,7 +96,7 @@ object FlockMortality extends App {
 	
 	val rScript = 
 """
-lapply(c("ggplot2", "reshape", "jsonlite"), require, character.only=T)
+lapply(c("ggplot2", "reshape2", "jsonlite"), require, character.only=T)
 
 posterior = as.data.frame(fromJSON("posterior.json")$particles)
 observations = read.csv("obseravtions.csv")
@@ -198,7 +198,7 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 		}
 		val distribution = Distribution.from{r =>
       val s = normal.sample
-      assume(s.isNaN() || s.isInfinite())
+      assume(!(s.isNaN() || s.isInfinite()))
       s
     }
 		def density(at: Double) = {
@@ -206,7 +206,7 @@ object FlockMortalityModel extends Model[FlockMortalityParams] {
 		}
 	}
 	val threeDie = Distribution.uniform(IndexedSeq(-1,0,1))
-	private def threeDensity(v: Int) = if(v <= 1 || v >= -1) 1.0 / 3 else 0
+	private def threeDensity(v: Int) = if(v <= 1 || v >= -1) 1.0 / 3 else 0.0
 	
 	def perturb(p: FlockMortalityParams) = {
 		import p._

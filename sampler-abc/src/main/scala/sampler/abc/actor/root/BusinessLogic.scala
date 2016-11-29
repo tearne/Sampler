@@ -47,17 +47,25 @@ class BusinessLogic(
     }
   }
 
-  def reallocateWorkAfterFailure[P](state: RunningTask[P], worker: ActorRef)(implicit rootActor: ActorRef) {
+  def reallocateWorkAfterFailure[P](
+      task: RunningTask[P],
+      worker: ActorRef
+    )(
+      implicit rootActor: ActorRef
+    ): RunningTask[P] = {
+
     warn("Failure in worker, resending job.")
-    allocateWork(state, worker)
+    allocateWork(task, worker)
   }
 
   def addLocallyScoredParticles[P](
       state: RunningTask[P],
       scored: ScoredParticles[P],
       worker: ActorRef,
-      childRefs: ChildRefs)(
-      implicit rootActor: ActorRef): RunningTask[P] = {
+      childRefs: ChildRefs
+    )(
+      implicit rootActor: ActorRef
+    ): RunningTask[P] = {
 
     val newTask = {
       val updatedEGen = helper.filterAndQueueUnweighedParticles(
@@ -74,16 +82,17 @@ class BusinessLogic(
     )
 
     allocateWork(newTask, worker)
-
-    newTask
   }
 
   def addScoredFromMixing[P](
       mixP: MixPayload[P],
       state: RunningTask[P],
       sender: ActorRef,
-      childRefs: ChildRefs)(
-      implicit rootActor: ActorRef): RunningTask[P] = {
+      childRefs: ChildRefs
+    )(
+      implicit rootActor: ActorRef
+    ): RunningTask[P] = {
+
     val newTask = {
       val newEGen = helper.filterAndQueueUnweighedParticles(
         mixP.scoredParticles,
@@ -104,8 +113,11 @@ class BusinessLogic(
       state: RunningTask[P],
       weighed: WeighedParticles[P],
       sender: ActorRef,
-      childRefs: ChildRefs)(
-      implicit rootActor: ActorRef): RunningTask[P] = {
+      childRefs: ChildRefs
+    )(
+      implicit rootActor: ActorRef
+    ): RunningTask[P] = {
+
     val newTask = {
       val updatedEGen = helper.addWeightedParticles(weighed, state.evolvingGeneration)
       state.updateEvolvingGeneration(updatedEGen)
@@ -129,16 +141,23 @@ class BusinessLogic(
   }
 
   def allocateWork[P](
-      workingData: RunningTask[P],
+      task: RunningTask[P],
       worker: ActorRef)(
-      implicit rootActor: ActorRef) {
+      implicit rootActor: ActorRef): RunningTask[P] = {
 
-    val eGen = workingData.evolvingGeneration
+    val eGen = task.evolvingGeneration
 
-    if (eGen.dueWeighing.size > 0)
+    if (eGen.dueWeighing.size > 0) {
       worker ! WeighJob.buildFrom(eGen)
-    else
+      //TODO de-uglify
+      val updatedEGen = eGen.emptyWeighingBuffer()
+      task.copy(
+        evolvingGeneration = updatedEGen
+      )
+    } else {
       worker ! GenerateParticlesFrom(eGen.previousGen, config)
+      task
+    }
   }
 
   def doMixing[P](

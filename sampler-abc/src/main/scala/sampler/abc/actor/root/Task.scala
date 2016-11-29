@@ -41,4 +41,6 @@ case class RunningTask[P](
     evolvingGeneration.previousGen.iteration >= config.numGenerations - 1 &&
       config.terminateAtTargetGen
   }
+
+  //TODO empty weighing buffer?
 }

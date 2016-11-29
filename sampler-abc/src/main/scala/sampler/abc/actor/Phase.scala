@@ -1,15 +1,10 @@
 package sampler.abc.actor
 
-import akka.actor.{Actor, ActorLogging, ActorRef}
+import akka.actor.ActorRef
 import akka.event.LoggingAdapter
 import sampler.abc.actor.children.FlushComplete
 import sampler.abc.actor.root._
-import sampler.abc.refactor.{ChildActors, ChildRefs}
-
-/*
-Experiment inspired by
-https://alexn.org/blog/2015/12/15/avoid-javaisms-code-smell.html
- */
+import sampler.abc.refactor.ChildRefs
 
 case class Dependencies(
   logic: BusinessLogic,
@@ -66,8 +61,8 @@ case class Gathering[P](
   def evolve(sender: ActorRef, rootActor: ActorRef) = PartialFunction[Any, Phase] {
     case ReportCompleted => ignore
     case Failed =>
-      logic.reallocateWorkAfterFailure(task, sender)
-      this
+      val newTask = logic.reallocateWorkAfterFailure(task, sender)
+      this.copy(task = newTask)
     case scored: ScoredParticles[P] =>
       val newTask = logic.addLocallyScoredParticles(task, scored, sender, childRefs)
       this.copy(task = newTask)

@@ -18,6 +18,10 @@ class ParticleMixer {
     val mixingSize: Int = config.mixPayloadSize
 
     if (mixPool.size > mixingSize) {
+      //TODO after this, effective, consolidation it's...
+      // possible that we have fewer particles and
+      // then cane do the desired sample.
+      //Prob only an issue for discrete params
       val oneOfEachParticle =
         mixPool.map { case Weighted(scored, _) =>
           scored -> 1
