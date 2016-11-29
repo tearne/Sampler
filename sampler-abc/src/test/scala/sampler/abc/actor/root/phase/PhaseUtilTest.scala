@@ -8,8 +8,7 @@ class PhaseUtilTest extends FreeSpec {
       "weighing job if available" in fail("TODO")
       "generating job if no weighing jobs available" in fail("TODO")
     }
-    "Be tested" in {
-      fail("TODO")
-    }
+
+    "Have more tests" in fail("TODO")
   }
 }

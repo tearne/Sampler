@@ -10,6 +10,5 @@ class IdleTest extends FreeSpec {
     "Start from a previous generation" in {
       fail("TODO")
     }
-    "Be tested" in {fail("TODO")}
   }
 }

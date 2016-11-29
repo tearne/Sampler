@@ -10,7 +10,7 @@ class GatheringTest extends FreeSpec {
 
     "Worker failure triggers allocation of new job" in {
       fail("TODO")
-      // TODO consider ability to reallocated weight jobs
+      // TODO consider ability to reallocate weighting jobs
       //  Note that if the failed job was a weighing job
       // then it doesn't get reallocated, we just loose all
       // those scored particles.  Not ideal, but if a weigh
@@ -37,7 +37,5 @@ class GatheringTest extends FreeSpec {
     "MixNow message" in {
       fail("TODO")
     }
-
-    "Be tested" in {fail("TODO")}
   }
 }
