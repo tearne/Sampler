@@ -5,9 +5,6 @@ import sampler.abc.actor.children.FlushComplete
 import sampler.abc.actor.message.{MixNow, ReportCompleted, ScoredParticles, WeighedParticles}
 import sampler.abc.actor.root.phase.task.Task
 
-/**
-  * Created by ubuntu on 11/29/16.
-  */
 case class Flushing[P](
     dependencies: Dependencies,
     task: Task[P]

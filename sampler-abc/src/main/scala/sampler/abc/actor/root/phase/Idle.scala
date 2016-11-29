@@ -4,9 +4,6 @@ import akka.actor.ActorRef
 import sampler.abc.actor.message.{MixNow, Start}
 import sampler.abc.actor.root.phase.task.{ResumingTask, RunningTask}
 
-/**
-  * Created by ubuntu on 11/29/16.
-  */
 case class Idle[P](
     dependencies: Dependencies
   ) extends Phase {
