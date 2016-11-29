@@ -15,10 +15,6 @@ trait Task[P] {
   def shouldTerminate: Boolean
 }
 
-/*
-Used when resuming from previous generation data and waiting for the next tolerance
-to be come back from the generation flushing process.
- */
 case class ResumingTask[P](
     config: ABCConfig,
     client: ActorRef,
