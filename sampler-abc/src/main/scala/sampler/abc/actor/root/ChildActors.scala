@@ -1,4 +1,4 @@
-package sampler.abc.refactor
+package sampler.abc.actor.root
 
 import akka.actor.{ActorContext, ActorRef, Props}
 import akka.routing.FromConfig

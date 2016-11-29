@@ -25,10 +25,9 @@ import akka.util.Timeout
 import sampler.abc.actor.RootActor
 import sampler.abc.actor.children.flushing.{GenerationFlusher, ObservedIdsTrimmer, ToleranceCalculator}
 import sampler.abc.actor.message.Start
-import sampler.abc.actor.root._
+import sampler.abc.actor.root.{ChildActors, _}
 import sampler.abc.actor.root.phase.PhaseUtil
 import sampler.abc.actor.root.phase.task.egen.{EGenUtil, ParticleMixer}
-import sampler.abc.refactor.ChildActors
 import sampler.cluster.PortFallbackSystemFactory
 import sampler.io.Logging
 import sampler.maths.Random

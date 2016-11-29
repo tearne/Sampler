@@ -3,9 +3,9 @@ package sampler.abc.actor.root.phase
 import akka.actor.ActorRef
 import sampler.abc.actor.children._
 import sampler.abc.actor.message.{MixPayload, ScoredParticles, Start, WeighedParticles}
+import sampler.abc.actor.root.ChildRefs
 import sampler.abc.actor.root.phase.task.egen.{EGenUtil, EvolvingGeneration}
 import sampler.abc.actor.root.phase.task.{ResumingTask, RunningTask, Task}
-import sampler.abc.refactor.ChildRefs
 import sampler.abc.{ABCConfig, Population, UseModelPrior}
 import sampler.io.Logging
 
