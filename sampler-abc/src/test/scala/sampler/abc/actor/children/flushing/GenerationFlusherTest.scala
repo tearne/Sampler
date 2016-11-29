@@ -3,7 +3,7 @@ package sampler.abc.actor.children.flushing
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FreeSpec, Matchers}
-import sampler.abc.actor.root.WeighedParticles
+import sampler.abc.actor.message.WeighedParticles
 import sampler.abc.actor.root.phase.task.egen.EvolvingGeneration
 import sampler.abc.{ABCConfig, Model, Population, Weighted}
 

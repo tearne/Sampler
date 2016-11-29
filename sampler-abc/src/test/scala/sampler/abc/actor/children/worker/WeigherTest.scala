@@ -4,8 +4,8 @@ import org.mockito.Mockito._
 import org.scalatest.FreeSpec
 import org.scalatest.mockito.MockitoSugar
 import sampler.abc.{Generation, Population, Scored, Weighted}
-import sampler.abc.actor.root.{ScoredParticles, WeighedParticles}
 import sampler.abc.actor.children.WeighJob
+import sampler.abc.actor.message.{ScoredParticles, WeighedParticles}
 
 import scala.util.{Failure, Success}
 

@@ -1,7 +1,7 @@
 package sampler.abc.actor.children.flushing
 
+import sampler.abc.actor.message.{ScoredParticles, WeighedParticles}
 import sampler.abc.actor.root.phase.task.egen.EvolvingGeneration
-import sampler.abc.actor.root.{ScoredParticles, WeighedParticles}
 import sampler.abc.{ABCConfig, Population}
 
 import scala.collection.immutable.Queue

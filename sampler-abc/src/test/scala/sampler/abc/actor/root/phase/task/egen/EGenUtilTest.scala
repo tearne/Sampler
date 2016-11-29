@@ -5,7 +5,7 @@ import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FreeSpec, Matchers}
 import sampler.abc._
-import sampler.abc.actor.root.{ScoredParticles, WeighedParticles}
+import sampler.abc.actor.message.{ScoredParticles, WeighedParticles}
 import sampler.maths.Random
 
 import scala.collection.immutable.Queue

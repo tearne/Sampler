@@ -5,8 +5,8 @@ import org.mockito.Mockito.when
 import org.scalatest.FreeSpec
 import org.scalatest.mockito.MockitoSugar
 import sampler.abc._
-import sampler.abc.actor.root.ScoredParticles
 import sampler.abc.actor.children.GenerateParticlesFrom
+import sampler.abc.actor.message.ScoredParticles
 import sampler.maths.Random
 
 import scala.util.{Success, Try}
