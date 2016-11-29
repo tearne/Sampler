@@ -4,11 +4,12 @@ import akka.actor.ActorLogging
 import akka.actor.Actor
 import akka.actor.actorRef2Scala
 import sampler.abc.actor.root.ReportCompleted
-import sampler.abc.actor.root.EvolvingGeneration
 import akka.actor.ActorRef
 import sampler.abc.Population
 import java.math.MathContext
+
 import sampler.abc.ABCConfig
+import sampler.abc.actor.root.phase.task.egen.EvolvingGeneration
 
 sealed trait StatusDelta{
 	def getMsg(): String
@@ -22,7 +23,7 @@ case class NewWeighed(num: Int) extends StatusDelta {
 	def getMsg = s"+$num weighed"
 }
 case class StartingGen(num: Int, tol: Double) extends StatusDelta {
-	def getMsg = s"Starting generation $num with tolerance = $tol"
+	def getMsg = s"Start building gen $num with tolerance = $tol"
 }
 
 case class StatusReport[P](delta: StatusDelta, eGen: EvolvingGeneration[P], config: ABCConfig){

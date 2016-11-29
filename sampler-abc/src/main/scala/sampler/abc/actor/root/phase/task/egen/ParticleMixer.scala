@@ -1,6 +1,7 @@
-package sampler.abc.actor.root
+package sampler.abc.actor.root.phase.task.egen
 
 import sampler._
+import sampler.abc.actor.root.ScoredParticles
 import sampler.abc.{ABCConfig, Weighted}
 import sampler.maths.Random
 

@@ -1,12 +1,12 @@
 package sampler.abc.actor
 
 import akka.actor.{Actor, ActorLogging}
-import sampler.abc.actor.root.BusinessLogic
+import sampler.abc.actor.root.phase.{Dependencies, Idle, Phase, PhaseLogic}
 import sampler.abc.refactor.ChildActors
 
 class RootActor[P](
   childActors: ChildActors[P],
-  logic: BusinessLogic
+  logic: PhaseLogic
 ) extends Actor
   with ActorLogging {
 

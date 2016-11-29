@@ -1,26 +1,27 @@
-package sampler.abc.actor.root
+package sampler.abc.actor.root.phase.task.egen
 
 import sampler.abc._
+import sampler.abc.actor.root._
 import sampler.maths.Random
 
-class Helper(
-  particleMixer: ParticleMixer,
-  getters: Getters,
-  random: Random
-) {
+class EvolvingGenerationUtil(
+    particleMixer: ParticleMixer,
+    random: Random
+  ) {
 
   def addWeightedParticles[P](
-    incoming: WeighedParticles[P],
-    eGen: EvolvingGeneration[P]
-  ): EvolvingGeneration[P] = {
+      incoming: WeighedParticles[P],
+      eGen: EvolvingGeneration[P]
+    ): EvolvingGeneration[P] = {
     val weightedParticles = eGen.weighed
     eGen.copy(weighed = weightedParticles.add(incoming))
   }
 
   def filterAndQueueUnweighedParticles[P](
-    taggedAndScoredParamSets: ScoredParticles[P],
-    gen: EvolvingGeneration[P]
-  ): EvolvingGeneration[P] = {
+      taggedAndScoredParamSets: ScoredParticles[P],
+      gen: EvolvingGeneration[P]
+    ): EvolvingGeneration[P] = {
+
     val observedIds = gen.idsObserved
     val particlesDueWeighting = gen.dueWeighing
 
@@ -35,13 +36,26 @@ class Helper(
     )
   }
 
-  def isEnoughParticles(gen: EvolvingGeneration[_], config: ABCConfig): Boolean =
+  def isEnoughParticles(
+      gen: EvolvingGeneration[_],
+      config: ABCConfig
+    ): Boolean = {
+
     gen.weighed.size >= config.numParticles
+  }
 
-  def emptyWeighingBuffer[P](gen: EvolvingGeneration[P]): EvolvingGeneration[P] =
+  def emptyWeighingBuffer[P](
+      gen: EvolvingGeneration[P]
+    ): EvolvingGeneration[P] = {
+
     gen.copy(dueWeighing = ScoredParticles.empty)
+  }
 
-  def buildMixPayload[P](gen: EvolvingGeneration[P], config: ABCConfig): Option[ScoredParticles[P]] = {
+  def buildMixPayload[P](
+      gen: EvolvingGeneration[P],
+      config: ABCConfig
+    ): Option[ScoredParticles[P]] = {
+
     particleMixer.apply(gen, config)(random)
   }
 }

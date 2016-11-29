@@ -1,25 +1,28 @@
-package sampler.abc.actor.root
+package sampler.abc.actor.root.phase
 
 import akka.actor.ActorRef
 import sampler.abc.actor.children._
+import sampler.abc.actor.root._
+import sampler.abc.actor.root.phase.task.egen.{EvolvingGeneration, EvolvingGenerationUtil}
+import sampler.abc.actor.root.phase.task.{ResumingTask, RunningTask, Task}
 import sampler.abc.refactor.ChildRefs
 import sampler.abc.{ABCConfig, Population, UseModelPrior}
 import sampler.io.Logging
 
 import scala.collection.immutable.Queue
 
-class BusinessLogic(
-    helper: Helper,
-    config: ABCConfig,
-    getters: Getters) extends Logging {
+class PhaseLogic(
+    helper: EvolvingGenerationUtil,
+    config: ABCConfig
+  ) extends Logging {
 
   def initialise[P](
       start: Start[P],
       childRefs: ChildRefs,
       client: ActorRef
-  )(
+    )(
       implicit rootActor: ActorRef
-  ): Task[P] = {
+    ): Task[P] = {
 
     start.initGeneration match {
       case prior: UseModelPrior[P] =>
@@ -124,7 +127,7 @@ class BusinessLogic(
     }
 
     childRefs.reporter ! StatusReport(
-      NewWeighed(getters.getNumParticles(weighed)),
+      NewWeighed(weighed.seq.size),
       newTask.evolvingGeneration,
       config
     )
@@ -134,16 +137,21 @@ class BusinessLogic(
 
   def startFlush[P](
       state: Task[P],
-      childRefs: ChildRefs)(
-      implicit rootActor: ActorRef) {
+      childRefs: ChildRefs
+    )(
+      implicit rootActor: ActorRef
+    ) {
+
     childRefs.workRouter ! Abort
     childRefs.flusher ! state
   }
 
   def allocateWork[P](
       task: RunningTask[P],
-      worker: ActorRef)(
-      implicit rootActor: ActorRef): RunningTask[P] = {
+      worker: ActorRef
+    )(
+      implicit rootActor: ActorRef
+    ): RunningTask[P] = {
 
     val eGen = task.evolvingGeneration
 
@@ -162,8 +170,10 @@ class BusinessLogic(
 
   def doMixing[P](
       state: RunningTask[P],
-      childRefs: ChildRefs)(
-      implicit rootActor: ActorRef) {
+      childRefs: ChildRefs
+    )(
+      implicit rootActor: ActorRef
+    ) {
 
     val payload: Option[ScoredParticles[P]] = helper.buildMixPayload(
       state.evolvingGeneration,
@@ -177,8 +187,10 @@ class BusinessLogic(
   def updateWithFlushedGeneration[P](
       fc: FlushComplete[P],
       task: Task[P],
-      childRefs: ChildRefs)(
-      implicit rootActor: ActorRef): RunningTask[P] = {
+      childRefs: ChildRefs
+    )(
+      implicit rootActor: ActorRef
+    ): RunningTask[P] = {
 
     val newTask = task.updateEvolvingGeneration(fc.eGeneration)
 
@@ -190,16 +202,20 @@ class BusinessLogic(
 
   def startTermination[P](
       task: RunningTask[P],
-      childRefs: ChildRefs)(
-      implicit rootActor: ActorRef) {
+      childRefs: ChildRefs
+    )(
+      implicit rootActor: ActorRef
+    ) {
 
     childRefs.workRouter ! Abort
   }
 
   def startNewGeneration[P](
       task: RunningTask[P],
-      childRefs: ChildRefs)(
-      implicit rootActor: ActorRef) {
+      childRefs: ChildRefs
+    )(
+      implicit rootActor: ActorRef
+    ) {
 
     val job = GenerateParticlesFrom(
       task.evolvingGeneration.previousGen,
@@ -209,11 +225,11 @@ class BusinessLogic(
 
     val report = {
       val evolvingGen = task.evolvingGeneration
-      val prevItNum = evolvingGen.previousGen.iteration
+      val currentGen = evolvingGen.buildingGeneration
       val currentTol = evolvingGen.currentTolerance
 
       StatusReport(
-        StartingGen(prevItNum, currentTol),
+        StartingGen(currentGen, currentTol),
         evolvingGen,
         config
       )
@@ -222,7 +238,12 @@ class BusinessLogic(
     childRefs.reporter ! report
   }
 
-  def sendResultToClient[P](task: RunningTask[P])(implicit rootActor: ActorRef) {
+  def sendResultToClient[P](
+      task: RunningTask[P]
+    )(
+      implicit rootActor: ActorRef
+    ) {
+
     task.client ! task.evolvingGeneration.previousGen
   }
 }

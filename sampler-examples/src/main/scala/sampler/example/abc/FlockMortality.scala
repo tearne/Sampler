@@ -98,7 +98,7 @@ object FlockMortality extends App {
 """
 lapply(c("ggplot2", "reshape2", "jsonlite"), require, character.only=T)
 
-posterior = as.data.frame(fromJSON("posterior.json")$particles)
+posterior = as.data.frame(fromJSON("posterior.json")$'particle-summary')
 observations = read.csv("obseravtions.csv")
 fitted = read.csv("fitted.csv")
 

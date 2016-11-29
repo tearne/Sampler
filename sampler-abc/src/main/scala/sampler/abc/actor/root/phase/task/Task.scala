@@ -1,6 +1,7 @@
-package sampler.abc.actor.root
+package sampler.abc.actor.root.phase.task
 
 import akka.actor.ActorRef
+import sampler.abc.actor.root.phase.task.egen.EvolvingGeneration
 import sampler.abc.{ABCConfig, Population}
 
 trait Task[P] {

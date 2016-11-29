@@ -2,7 +2,8 @@ package sampler.abc.actor.children
 
 import akka.actor.{Actor, ActorLogging, actorRef2Scala}
 import sampler.abc.actor.children.flushing.GenerationFlusher
-import sampler.abc.actor.root.{EvolvingGeneration, ResumingTask, RunningTask}
+import sampler.abc.actor.root.phase.task.egen.EvolvingGeneration
+import sampler.abc.actor.root.phase.task.{ResumingTask, RunningTask}
 
 case class FlushComplete[P](eGeneration: EvolvingGeneration[P])
 

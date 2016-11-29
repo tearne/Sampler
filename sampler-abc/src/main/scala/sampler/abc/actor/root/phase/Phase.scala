@@ -1,13 +1,14 @@
-package sampler.abc.actor
+package sampler.abc.actor.root.phase
 
 import akka.actor.ActorRef
 import akka.event.LoggingAdapter
 import sampler.abc.actor.children.FlushComplete
 import sampler.abc.actor.root._
+import sampler.abc.actor.root.phase.task.{ResumingTask, RunningTask, Task}
 import sampler.abc.refactor.ChildRefs
 
 case class Dependencies(
-  logic: BusinessLogic,
+  logic: PhaseLogic,
   childRefs: ChildRefs,
   rootActor: ActorRef,
   log: LoggingAdapter
@@ -35,22 +36,24 @@ trait RunningPhase[P] extends Phase {
   def task: Task[P]
 }
 
-case class Idle[P](dependencies: Dependencies) extends Phase {
-  import dependencies._
+case class Idle[P](
+    dependencies: Dependencies
+  ) extends Phase {
+    import dependencies._
 
-  def evolve(sender: ActorRef, rootActor: ActorRef) = PartialFunction[Any, Phase]{
-    case MixNow => ignore
-    case startMsg: Start[P] =>
-      val newTask = logic.initialise(startMsg, childRefs, sender)
-      newTask match {
-        case runningTask: RunningTask[P] =>
-          Gathering(dependencies, runningTask)
-        case resumingTask: ResumingTask[P] =>
-          Flushing(dependencies, resumingTask)
-      }
-    case other => unexpected(other)
+    def evolve(sender: ActorRef, rootActor: ActorRef) = PartialFunction[Any, Phase]{
+      case MixNow => ignore
+      case startMsg: Start[P] =>
+        val newTask = logic.initialise(startMsg, childRefs, sender)
+        newTask match {
+          case runningTask: RunningTask[P] =>
+            Gathering(dependencies, runningTask)
+          case resumingTask: ResumingTask[P] =>
+            Flushing(dependencies, resumingTask)
+        }
+      case other => unexpected(other)
+    }
   }
-}
 
 case class Gathering[P](
     dependencies: Dependencies,
@@ -87,7 +90,7 @@ case class Gathering[P](
 
 case class Flushing[P](
     dependencies: Dependencies,
-  task: Task[P]
+    task: Task[P]
   ) extends RunningPhase[P] {
   import dependencies._
 

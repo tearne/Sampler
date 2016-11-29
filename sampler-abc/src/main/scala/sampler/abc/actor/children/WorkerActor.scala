@@ -22,8 +22,9 @@ import java.util.Date
 import akka.actor.{Actor, ActorLogging, ActorRef, FSM, actorRef2Scala}
 import akka.pattern.pipe
 import sampler.abc.{ABCConfig, Generation, Model}
-import sampler.abc.actor.root.{EvolvingGeneration, Failed, ScoredParticles, WeighedParticles}
+import sampler.abc.actor.root.{Failed, ScoredParticles, WeighedParticles}
 import sampler.abc.actor.children.worker._
+import sampler.abc.actor.root.phase.task.egen.EvolvingGeneration
 import sampler.maths.Random
 
 import scala.concurrent.Future

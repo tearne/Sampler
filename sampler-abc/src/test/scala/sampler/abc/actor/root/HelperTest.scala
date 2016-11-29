@@ -5,7 +5,7 @@ import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FreeSpec, Matchers}
 import sampler.abc._
-import sampler.abc.actor.children.flushing.ToleranceCalculator
+import sampler.abc.actor.root.phase.task.egen.{EvolvingGeneration, EvolvingGenerationUtil, ParticleMixer}
 import sampler.maths.Random
 
 import scala.collection.immutable.Queue
@@ -14,9 +14,8 @@ class HelperTest extends FreeSpec with Matchers with MockitoSugar {
 
   trait Setup {
     val particleMixer = mock[ParticleMixer]
-    val instance = new Helper(
+    val instance = new EvolvingGenerationUtil(
       particleMixer,
-      mock[Getters],
       mock[Random]
     )
   }

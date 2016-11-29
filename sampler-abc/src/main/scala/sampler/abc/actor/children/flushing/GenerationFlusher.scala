@@ -1,6 +1,7 @@
 package sampler.abc.actor.children.flushing
 
-import sampler.abc.actor.root.{EvolvingGeneration, Getters, ScoredParticles, WeighedParticles}
+import sampler.abc.actor.root.phase.task.egen.EvolvingGeneration
+import sampler.abc.actor.root.{ScoredParticles, WeighedParticles}
 import sampler.abc.{ABCConfig, Population}
 
 import scala.collection.immutable.Queue
@@ -8,7 +9,6 @@ import scala.collection.immutable.Queue
 class GenerationFlusher(
 		toleranceCalculator: ToleranceCalculator,
 		observedIdsTrimmer: ObservedIdsTrimmer,
-		getters: Getters,
 		config: ABCConfig
 	){
 	

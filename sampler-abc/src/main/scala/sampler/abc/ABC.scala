@@ -22,9 +22,11 @@ import java.util.concurrent.TimeUnit.MILLISECONDS
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.util.Timeout
-import sampler.abc.actor.{Dependencies, Idle, RootActor}
+import sampler.abc.actor.RootActor
 import sampler.abc.actor.children.flushing.{GenerationFlusher, ObservedIdsTrimmer, ToleranceCalculator}
 import sampler.abc.actor.root._
+import sampler.abc.actor.root.phase.PhaseLogic
+import sampler.abc.actor.root.phase.task.egen.{EvolvingGenerationUtil, ParticleMixer}
 import sampler.abc.refactor.ChildActors
 import sampler.cluster.PortFallbackSystemFactory
 import sampler.io.Logging
@@ -52,17 +54,14 @@ trait ABCActorsImpl extends ABCActors {
 
     val system = PortFallbackSystemFactory(config.clusterName)
     val random = Random
-    val getters = new Getters()
 
-    val helper = new Helper(
+    val helper = new EvolvingGenerationUtil(
       new ParticleMixer(),
-      getters,
       random)
 
-    val businessLogic = new BusinessLogic(
+    val businessLogic = new PhaseLogic(
       helper,
-      config,
-      getters
+      config
     )
 
     val generationFlusher = new GenerationFlusher(
@@ -70,8 +69,8 @@ trait ABCActorsImpl extends ABCActors {
       new ObservedIdsTrimmer(
         config.memoryGenerations,
         config.numParticles),
-      getters,
-      config)
+      config
+    )
 
     val childActors = new ChildActors(
       generationFlusher,

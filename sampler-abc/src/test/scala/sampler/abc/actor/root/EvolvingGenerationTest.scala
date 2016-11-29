@@ -3,6 +3,7 @@ package sampler.abc.actor.root
 import org.scalatest.{FreeSpec, Matchers}
 import org.scalatest.mockito.MockitoSugar
 import sampler.abc._
+import sampler.abc.actor.root.phase.task.egen.EvolvingGeneration
 
 import scala.collection.immutable.Queue
 

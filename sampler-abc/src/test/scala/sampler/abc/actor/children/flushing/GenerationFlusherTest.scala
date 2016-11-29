@@ -1,10 +1,11 @@
 package sampler.abc.actor.children.flushing
 
 import org.mockito.Mockito._
-import org.scalatest.{FreeSpec, Matchers}
 import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{FreeSpec, Matchers}
+import sampler.abc.actor.root.WeighedParticles
+import sampler.abc.actor.root.phase.task.egen.EvolvingGeneration
 import sampler.abc.{ABCConfig, Model, Population, Weighted}
-import sampler.abc.actor.root.{EvolvingGeneration, Getters, WeighedParticles}
 
 import scala.collection.immutable.Queue
 
@@ -17,7 +18,6 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 	  val numParticlesReqd: Int
 		val toleranceCalculator = mock[ToleranceCalculator]
 		val observedIdsTrimmer = mock[ObservedIdsTrimmer]
-		val getters = mock[Getters]
 		val config = new ABCConfig(null){
 		  override lazy val numParticles = numParticlesReqd
 	  }
@@ -26,7 +26,6 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 		  new GenerationFlusher(
 				toleranceCalculator,
 				observedIdsTrimmer,
-				getters,
 				config
 			)
 
