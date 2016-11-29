@@ -15,7 +15,7 @@ trait Phase{
 
   implicit val rootActor0 = dependencies.rootActor
 
-  def ignoreUnexpected(msg: Any) = {
+  def reportAndIgnoreUnexpected(msg: Any) = {
     dependencies.log.warning(
       "Unexpected message encountered in {}: {} [...]",
       getClass,

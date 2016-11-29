@@ -16,7 +16,8 @@ case class Gathering[P](
   def evolve(sender: ActorRef, rootActor: ActorRef) = PartialFunction[Any, Phase] {
     case ReportCompleted => ignore
     case Failed =>
-      val newTask = logic.reallocateWorkAfterFailure(task, sender)
+      dependencies.log.warning("Failure in worker, resending job.")
+      val newTask = logic.allocateWork(task, sender)
       this.copy(task = newTask)
     case scored: ScoredParticles[P] =>
       val newTask = logic.addLocallyScoredParticles(task, scored, sender, childRefs)
@@ -36,6 +37,6 @@ case class Gathering[P](
     case MixNow =>
       logic.doMixing(task, childRefs)
       this
-    case other => ignoreUnexpected(other)
+    case other => reportAndIgnoreUnexpected(other)
   }
 }

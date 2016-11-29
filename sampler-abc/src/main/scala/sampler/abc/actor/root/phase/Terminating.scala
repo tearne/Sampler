@@ -17,6 +17,6 @@ case class Terminating[P](
     case ReportCompleted =>
       logic.sendResultToClient(task)
       this
-    case other => ignoreUnexpected(other)
+    case other => reportAndIgnoreUnexpected(other)
   }
 }

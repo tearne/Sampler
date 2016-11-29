@@ -28,6 +28,6 @@ case class Flushing[P](
         logic.startNewGeneration(newTask, childRefs)
         Gathering(dependencies, newTask)
       }
-    case other => ignoreUnexpected(other)
+    case other => reportAndIgnoreUnexpected(other)
   }
 }

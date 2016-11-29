@@ -50,17 +50,6 @@ class PhaseUtil(
     }
   }
 
-  def reallocateWorkAfterFailure[P](
-      task: RunningTask[P],
-      worker: ActorRef
-    )(
-      implicit rootActor: ActorRef
-    ): RunningTask[P] = {
-
-    warn("Failure in worker, resending job.")
-    allocateWork(task, worker)
-  }
-
   def addLocallyScoredParticles[P](
       state: RunningTask[P],
       scored: ScoredParticles[P],

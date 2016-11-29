@@ -22,6 +22,6 @@ case class Idle[P](
           case resumingTask: ResumingTask[P] =>
             Flushing(dependencies, resumingTask)
         }
-      case other => ignoreUnexpected(other)
+      case other => reportAndIgnoreUnexpected(other)
     }
   }
