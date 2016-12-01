@@ -9,7 +9,7 @@ import java.math.MathContext
 
 import sampler.abc.ABCConfig
 import sampler.abc.actor.message.ReportCompleted
-import sampler.abc.actor.root.phase.task.egen.EvolvingGeneration
+import sampler.abc.actor.root.state.task.egen.EvolvingGeneration
 
 sealed trait StatusDelta{
 	def getMsg(): String

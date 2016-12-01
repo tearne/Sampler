@@ -2,11 +2,11 @@ package sampler.abc.actor
 
 import akka.actor.{Actor, ActorLogging}
 import sampler.abc.actor.root.ChildActors
-import sampler.abc.actor.root.phase.{Dependencies, Idle, Phase, PhaseUtil}
+import sampler.abc.actor.root.state.{Dependencies, Idle, State, StateUtil}
 
 class RootActor[P](
     childActors: ChildActors[P],
-    logic: PhaseUtil
+    util: StateUtil
   ) extends Actor
     with ActorLogging {
 
@@ -14,13 +14,13 @@ class RootActor[P](
 
   def receive = behaviour(
     Idle(Dependencies(
-      logic, childRefs, self, log
+      util, childRefs, self, log
     ))
   )
 
-  def behaviour(phase: Phase): Receive = {
+  def behaviour(state: State): Receive = {
     case message => context.become(
-        behaviour(phase.evolve(sender, self)(message))
+        behaviour(state.evolve(sender, self)(message))
       )
   }
 }

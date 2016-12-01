@@ -4,7 +4,7 @@ import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FreeSpec, Matchers}
 import sampler.abc.actor.message.WeighedParticles
-import sampler.abc.actor.root.phase.task.egen.EvolvingGeneration
+import sampler.abc.actor.root.state.task.egen.EvolvingGeneration
 import sampler.abc.{ABCConfig, Model, Population, Weighted}
 
 import scala.collection.immutable.Queue

@@ -1,15 +1,15 @@
-package sampler.abc.actor.root.phase
+package sampler.abc.actor.root.state
 
 import akka.actor.ActorRef
 import sampler.abc.actor.message.{MixNow, Start}
-import sampler.abc.actor.root.phase.task.{ResumingTask, RunningTask}
+import sampler.abc.actor.root.state.task.{ResumingTask, RunningTask}
 
 case class Idle[P](
     dependencies: Dependencies
-  ) extends Phase {
+  ) extends State {
     import dependencies._
 
-    def evolve(sender: ActorRef, rootActor: ActorRef) = PartialFunction[Any, Phase]{
+    def evolve(sender: ActorRef, rootActor: ActorRef) = PartialFunction[Any, State]{
       case MixNow => ignore
       case startMsg: Start[P] =>
         val newTask = logic.initialise(startMsg, childRefs, sender)

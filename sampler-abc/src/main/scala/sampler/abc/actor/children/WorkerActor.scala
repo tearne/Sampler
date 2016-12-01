@@ -21,7 +21,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, FSM, actorRef2Scala}
 import akka.pattern.pipe
 import sampler.abc.actor.children.worker._
 import sampler.abc.actor.message.{Failed, ScoredParticles, WeighedParticles}
-import sampler.abc.actor.root.phase.task.egen.EvolvingGeneration
+import sampler.abc.actor.root.state.task.egen.EvolvingGeneration
 import sampler.abc.{ABCConfig, Generation, Model}
 import sampler.maths.Random
 

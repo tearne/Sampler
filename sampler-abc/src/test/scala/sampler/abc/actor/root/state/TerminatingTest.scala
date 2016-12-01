@@ -1,4 +1,4 @@
-package sampler.abc.actor.root.phase
+package sampler.abc.actor.root.state
 
 import org.scalatest.FreeSpec
 

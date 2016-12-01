@@ -1,17 +1,17 @@
-package sampler.abc.actor.root.phase
+package sampler.abc.actor.root.state
 
 import akka.actor.ActorRef
 import sampler.abc.actor.children.FlushComplete
 import sampler.abc.actor.message.{MixNow, ReportCompleted, ScoredParticles, WeighedParticles}
-import sampler.abc.actor.root.phase.task.Task
+import sampler.abc.actor.root.state.task.Task
 
 case class Flushing[P](
     dependencies: Dependencies,
     task: Task[P]
-  ) extends RunningPhase[P] {
+  ) extends RunningState[P] {
   import dependencies._
 
-  def evolve(sender: ActorRef, rootActor: ActorRef): PartialFunction[Any, Phase] = {
+  def evolve(sender: ActorRef, rootActor: ActorRef): PartialFunction[Any, State] = {
     case _: ScoredParticles[P] =>   ignore
     case _: WeighedParticles[P] =>  ignore
     case MixNow =>                  ignore

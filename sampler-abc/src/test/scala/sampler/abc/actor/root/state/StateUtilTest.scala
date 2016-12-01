@@ -1,9 +1,9 @@
-package sampler.abc.actor.root.phase
+package sampler.abc.actor.root.state
 
 import org.scalatest.FreeSpec
 
-class PhaseUtilTest extends FreeSpec {
-  "PhaseUtil should" - {
+class StateUtilTest extends FreeSpec {
+  "StateUtil should" - {
     "allocate" - {
       "weighing job if available" in fail("TODO")
       "generating job if no weighing jobs available" in fail("TODO")

@@ -26,8 +26,8 @@ import sampler.abc.actor.RootActor
 import sampler.abc.actor.children.flushing.{GenerationFlusher, ObservedIdsTrimmer, ToleranceCalculator}
 import sampler.abc.actor.message.Start
 import sampler.abc.actor.root.{ChildActors, _}
-import sampler.abc.actor.root.phase.PhaseUtil
-import sampler.abc.actor.root.phase.task.egen.{EGenUtil, ParticleMixer}
+import sampler.abc.actor.root.state.StateUtil
+import sampler.abc.actor.root.state.task.egen.{EGenUtil, ParticleMixer}
 import sampler.cluster.PortFallbackSystemFactory
 import sampler.io.Logging
 import sampler.maths.Random
@@ -59,7 +59,7 @@ trait ABCActorsImpl extends ABCActors {
       new ParticleMixer(),
       random)
 
-    val businessLogic = new PhaseUtil(
+    val businessLogic = new StateUtil(
       helper,
       config
     )

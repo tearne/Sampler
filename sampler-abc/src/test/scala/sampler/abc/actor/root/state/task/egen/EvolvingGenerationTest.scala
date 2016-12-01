@@ -1,4 +1,4 @@
-package sampler.abc.actor.root.phase.task.egen
+package sampler.abc.actor.root.state.task.egen
 
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FreeSpec, Matchers}

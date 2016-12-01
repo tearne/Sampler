@@ -1,16 +1,16 @@
-package sampler.abc.actor.root.phase
+package sampler.abc.actor.root.state
 
 import akka.actor.ActorRef
 import sampler.abc.actor.message._
-import sampler.abc.actor.root.phase.task.RunningTask
+import sampler.abc.actor.root.state.task.RunningTask
 
 case class Gathering[P](
     dependencies: Dependencies,
     task: RunningTask[P]
-  ) extends RunningPhase[P] {
+  ) extends RunningState[P] {
   import dependencies._
 
-  def evolve(sender: ActorRef, rootActor: ActorRef) = PartialFunction[Any, Phase] {
+  def evolve(sender: ActorRef, rootActor: ActorRef) = PartialFunction[Any, State] {
     case ReportCompleted => ignore
     case Failed =>
       dependencies.log.warning("Failure in worker, resending job.")

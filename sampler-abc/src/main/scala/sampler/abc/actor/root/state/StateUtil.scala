@@ -1,17 +1,17 @@
-package sampler.abc.actor.root.phase
+package sampler.abc.actor.root.state
 
 import akka.actor.ActorRef
 import sampler.abc.actor.children._
 import sampler.abc.actor.message.{MixPayload, ScoredParticles, Start, WeighedParticles}
 import sampler.abc.actor.root.ChildRefs
-import sampler.abc.actor.root.phase.task.egen.{EGenUtil, EvolvingGeneration}
-import sampler.abc.actor.root.phase.task.{ResumingTask, RunningTask, Task}
+import sampler.abc.actor.root.state.task.egen.{EGenUtil, EvolvingGeneration}
+import sampler.abc.actor.root.state.task.{ResumingTask, RunningTask, Task}
 import sampler.abc.{ABCConfig, Population, UseModelPrior}
 import sampler.io.Logging
 
 import scala.collection.immutable.Queue
 
-class PhaseUtil(
+class StateUtil(
     eGenUtil: EGenUtil,
     config: ABCConfig
   ) extends Logging {
@@ -78,7 +78,7 @@ class PhaseUtil(
 
   def addScoredFromMixing[P](
       mixP: MixPayload[P],
-      state: RunningTask[P],
+      task: RunningTask[P],
       sender: ActorRef,
       childRefs: ChildRefs
     )(
@@ -88,8 +88,8 @@ class PhaseUtil(
     val newTask = {
       val newEGen = eGenUtil.filterAndQueueUnweighedParticles(
         mixP.scoredParticles,
-        state.evolvingGeneration)
-      state.updateEvolvingGeneration(newEGen)
+        task.evolvingGeneration)
+      task.updateEvolvingGeneration(newEGen)
     }
 
     childRefs.reporter ! StatusReport(
@@ -102,7 +102,7 @@ class PhaseUtil(
   }
 
   def addWeighted[P](
-      state: RunningTask[P],
+      task: RunningTask[P],
       weighed: WeighedParticles[P],
       sender: ActorRef,
       childRefs: ChildRefs
@@ -111,8 +111,8 @@ class PhaseUtil(
     ): RunningTask[P] = {
 
     val newTask = {
-      val updatedEGen = eGenUtil.addWeightedParticles(weighed, state.evolvingGeneration)
-      state.updateEvolvingGeneration(updatedEGen)
+      val updatedEGen = eGenUtil.addWeightedParticles(weighed, task.evolvingGeneration)
+      task.updateEvolvingGeneration(updatedEGen)
     }
 
     childRefs.reporter ! StatusReport(
@@ -125,14 +125,14 @@ class PhaseUtil(
   }
 
   def startFlush[P](
-      state: Task[P],
+      task: Task[P],
       childRefs: ChildRefs
     )(
       implicit rootActor: ActorRef
     ) {
 
     childRefs.workRouter ! Abort
-    childRefs.flusher ! state
+    childRefs.flusher ! task
   }
 
   def allocateWork[P](
