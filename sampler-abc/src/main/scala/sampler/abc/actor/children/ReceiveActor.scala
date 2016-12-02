@@ -1,19 +1,16 @@
 package sampler.abc.actor.children
 
 import akka.actor.Actor
-import akka.actor.ActorLogging
 
 /*
- * This actor exists to 
- * a) receive payloads from other cluster nodes and forward them to
- *    the root actor for processing.
- * b) ensure fast response time to Identify messages used for network
- *    load testing.  Using the root actor directly would introduce
- *    unnecessary lag as it processes payloads.
+ * This actor receives payloads from other actors and forwards them
+ * to the root actor for processing.  In the application.conf it is
+ * set up with it's own pinned dispatcher, to ensure that it will
+ * be responsive even when the system is under load, thus helping to
+ * ensure that heartbeat messages are successful.
  */
-class ReceiveActor extends Actor with ActorLogging {
-	def receive = {
-		case msg => 
-		  context.parent.forward(msg)
-	}
+class ReceiveActor extends Actor {
+  def receive = {
+    case msg => context.parent.forward(msg)
+  }
 }
