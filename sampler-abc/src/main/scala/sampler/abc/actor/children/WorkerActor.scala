@@ -85,7 +85,6 @@ trait WorkerActor[P]
 
   when(Idle) {
     case Event(j: Job[P], Uninitialised) =>
-      //log.info(">>>> "+j.toString.take(100)+" [...] "+j.toString.takeRight(100))
       startWork(j)
       goto(Working) using Client(sender)
     case Event(Abort, Uninitialised) =>
