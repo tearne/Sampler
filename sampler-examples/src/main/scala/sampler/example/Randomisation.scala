@@ -1,17 +1,14 @@
 package sampler.example
 
-import java.nio.file.Files
-import java.nio.file.Paths
-import scala.IndexedSeq
+import java.nio.file.{Files, Paths}
+
 import org.apache.commons.io.FileUtils
 import org.json4s.JsonDSL._
 import org.json4s.native.JsonMethods._
-import sampler.Implicits.RichIndexedSeq
-import sampler.data.Distribution
-import sampler.data.DistributionBuilder
+import sampler._
+import sampler.distribution.Distribution
 import sampler.io.Rounding.Roundable
-import sampler.math.Random
-import sampler.math.Statistics
+import sampler.maths.Random
 import sampler.r.script.RScript
 
 /*
@@ -47,9 +44,9 @@ object Randomisation extends App {
 		val total = control + treatment
 	}
 	
-	val controlDist = DistributionBuilder.uniform(controlObs)
-	val treatmentDist = DistributionBuilder.uniform(treatmentObs)
-	val combinedDist = DistributionBuilder.uniform(controlObs ++: treatmentObs)
+	val controlDist = Distribution.uniform(controlObs)
+	val treatmentDist = Distribution.uniform(treatmentObs)
+	val combinedDist = Distribution.uniform(controlObs ++: treatmentObs)
 			
 	def rankStatistic(responses: Seq[Response]) = {
 		val sorted = responses.sorted.zipWithIndex
@@ -68,7 +65,7 @@ object Randomisation extends App {
 		})
 	
 	def buildSamplingDistribution(
-			control: Distribution[Response], 
+			control: Distribution[Response],
 			treatment: Distribution[Response],
 			statistic: Seq[Response] => Double) = {
 		{for{
@@ -83,10 +80,10 @@ object Randomisation extends App {
 			nullObs: Seq[Double],
 			experimentalObs: Seq[Double]
 	){
-		val nullTable = nullObs.toEmpiricalSeq
+		val nullEmpirical = nullObs.toEmpirical
 		
 		def powerAtConfidence(confSeq: Seq[Double]): Seq[Double] = {
-			Statistics.quantiles(nullTable, confSeq)
+      nullEmpirical.percentile(confSeq)
 				.map{criticalRightValue => 
 					experimentalObs.count{e => e > criticalRightValue} / experimentalObs.size.toDouble
 				}

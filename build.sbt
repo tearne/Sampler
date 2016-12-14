@@ -1,5 +1,5 @@
 val buildOrganization = "org.tearne"
-val buildVersion      = "0.2.18"
+val buildVersion      = "0.3.0"
 val buildScalaVersion = "2.11.8"
 
 val akkaVersion       = "2.4.6"
@@ -7,9 +7,11 @@ val logbackClassic    = "ch.qos.logback" % "logback-classic" % "1.1.1"
 val commonsIo         = "commons-io" % "commons-io" % "2.4"
 val commonsMath3      = "org.apache.commons" % "commons-math3" % "3.2"
 val playJson          = "com.typesafe.play" %% "play-json" % "2.4.6" exclude("org.slf4j", "slf4j-simple")
+val cats              = "org.typelevel" %% "cats" % "0.4.1" withSources()
+val rServe            = "org.rosuda.REngine" % "Rserve" % "1.8.1"
 
-EclipseKeys.withSource := true
-EclipseKeys.skipParents in ThisBuild := false
+val scalaTest         = "org.scalatest" %% "scalatest" % "3.0.0" % "test"
+val scalaCheck        = "org.scalacheck" %% "scalacheck" % "1.13.1" % "test"
 
 lazy val commonSettings = Seq(
   organization := buildOrganization,
@@ -30,7 +32,8 @@ lazy val commonSettings = Seq(
 
   libraryDependencies ++= Seq(
     "junit" % "junit" % "4.8" % "test->default",
-    "org.scalatest" %% "scalatest" % "2.2.1" % "test",
+    scalaTest,
+    scalaCheck,
     "org.mockito" % "mockito-all" % "1.9.0" %"test->default",
     "org.slf4j" % "slf4j-api" % "1.7.7",
     "com.novocode" % "junit-interface" % "0.11" % "test"
@@ -53,9 +56,8 @@ lazy val packageSettings = Seq(
 )
 
 lazy val root = project.in(file("."))
-  .aggregate(core, examples, abc, r, spike)
+  .aggregate(core, examples, abc, spike)
   .settings(commonSettings: _*)
-  .settings(publish := { })
 
 lazy val core = project.in(file("sampler-core"))
   .settings(
@@ -65,27 +67,17 @@ lazy val core = project.in(file("sampler-core"))
     libraryDependencies ++= Seq(
       commonsMath3,
       playJson,
+      rServe,
       "org.scalaz" %% "scalaz-core" % "7.1.0",
-      "org.spire-math" %% "spire" % "0.11.0"
+      "org.spire-math" %% "spire" % "0.11.0",
+      cats
     )
   )
   .settings(commonSettings: _*)
   .settings(packageSettings: _*)
 
-lazy val r = (project in file("sampler-r"))
-  .dependsOn(core)
-  .settings(name := "sampler-r")
-  .settings(
-    libraryDependencies ++= Seq(
-      "org.rosuda.REngine" % "Rserve" % "1.8.1",
-      logbackClassic
-    )
-  )
-  .settings(commonSettings: _*)
-  .settings(packageSettings: _*)
-  
 lazy val examples = project.in(file("sampler-examples"))
-  .dependsOn(core, abc, r)
+  .dependsOn(core, abc)
   .settings(name := "sampler-examples")
   .settings(
     libraryDependencies ++= Seq(
@@ -101,7 +93,6 @@ lazy val examples = project.in(file("sampler-examples"))
   )
   .settings(commonSettings: _*)
   .settings(packageSettings: _*)
-  .enablePlugins(JavaAppPackaging)
 
 lazy val abc = project.in(file("sampler-abc"))
   .dependsOn(core)
@@ -126,7 +117,7 @@ lazy val abc = project.in(file("sampler-abc"))
 
   
 lazy val spike = project.in(file("sampler-spike"))
-  .dependsOn(core, r)
+  .dependsOn(core)
   .settings(name := "sampler-spike")
   .settings(publish := { })
   .settings(
@@ -135,7 +126,7 @@ lazy val spike = project.in(file("sampler-spike"))
       logbackClassic,
       "org.json4s" %% "json4s-native" % "3.2.11",
       "org.freemarker" % "freemarker" % "2.3.21",
-      "org.typelevel" %% "cats" % "0.4.1"
+      cats
     )
   )
   .settings(commonSettings: _*)

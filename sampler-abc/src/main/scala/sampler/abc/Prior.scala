@@ -1,13 +1,13 @@
 package sampler.abc
 
-import sampler.data.Distribution
+import sampler.distribution.Distribution
+import sampler._
 
-trait Prior[A] extends Distribution[A]{
-	def density(value: A): Double
-	def draw(): A
-	final override def sample(): A = {
-		val drawn = draw
-		assume(density(drawn) > 0.0)
-		drawn
-	}
+trait Prior[A] {
+  def density(value: A): Double
+
+  protected val distribution: Distribution[A]
+
+  def distributionSupportChecked: Distribution[A] =
+    distribution.map { drawn => assume(density(drawn) > 0.0); drawn }
 }

@@ -1,32 +1,22 @@
 package sampler.example.abc
 
-import java.nio.file.Files
-import java.nio.file.Paths
-import scala.annotation.tailrec
-import org.apache.commons.math3.distribution.NormalDistribution
-import org.apache.commons.math3.random.MersenneTwister
-import org.apache.commons.math3.random.RandomGenerator
-import org.apache.commons.math3.random.SynchronizedRandomGenerator
-import com.typesafe.config.ConfigFactory
-import sampler.abc.ABC
-import sampler.abc.Model
-import sampler.abc.Prior
-import sampler.abc.ABCConfig
-import sampler.data.Distribution
-import sampler.data.ToEmpirical
-import sampler.data.ToSamplable
-import sampler.io.CSV
-import sampler.math.Random
-import sampler.math.Statistics
-import sampler.r.script.RScript
-import sampler.io.Logging
-import sampler.data.DistributionBuilder
-import sampler.abc.Population
-import sampler.io.Tokenable
 import java.math.MathContext
-import sampler.io.Tokens
+import java.nio.file.{Files, Paths}
+
+import com.typesafe.config.ConfigFactory
 import org.apache.commons.io.FileUtils
+import org.apache.commons.math3.distribution.NormalDistribution
+import org.apache.commons.math3.random.{MersenneTwister, RandomGenerator, SynchronizedRandomGenerator}
 import play.api.libs.json.Json
+import sampler.abc._
+import sampler._
+import sampler.io.{CSV, Logging, Tokenable, Tokens}
+import sampler.r.script.RScript
+import sampler.distribution.Distribution
+import sampler.maths.Random
+import sampler.samplable.WithoutReplacementImplicits
+
+import scala.annotation.tailrec
 
 /*
  * This file contains a number of applications
@@ -46,7 +36,7 @@ import play.api.libs.json.Json
  * parameters which generated the outbreak. 
  */
 
-object Data extends ToSamplable with Logging {
+object Data extends WithoutReplacementImplicits with Logging {
 	val wd = Paths.get("results").resolve("Outbreak")
 	val fullObservedDataPath = wd.resolve("diffMatrix.csv")
 	val proportionOfCasesObserved = 0.8
@@ -147,6 +137,7 @@ object FittingApplication extends App {
 
 object MetricTest extends App {
 	import Data._
+  implicit val r = Random
 	val observedMatrix = loadProportionOfTrueOutbreakData(proportionOfCasesObserved)
 	val model = ModelWithSequenceMetric(observedMatrix)
 	
@@ -157,7 +148,7 @@ object MetricTest extends App {
 		(1 to samples).par.map{_ => "%.5f".format(meanDistanceDist.sample)}.seq
 	}
 	
-	import Data.wd 
+	import Data.wd
 	val outFileLocal = wd.resolve("metricTest_local.csv")
 	val outFileCompany = wd.resolve("metricTest_company.csv")
 	
@@ -198,8 +189,7 @@ object MetricTest extends App {
 }
 
 class ABCModel(observed: DifferenceMatrix) 
-		extends Model[Parameters]
-		with ToEmpirical {
+		extends Model[Parameters] {
 	
 	def perturb(p: Parameters) = Parameters.perturb(p)
 	def perturbDensity(a: Parameters, b: Parameters) = Parameters.perturbDensity(a, b)
@@ -209,7 +199,7 @@ class ABCModel(observed: DifferenceMatrix)
 	def distanceToObservations(p: Parameters) = scoringModel.scoreDistribution(p)
 }
 
-case class ModelWithSequenceMetric(observed: DifferenceMatrix) extends ToSamplable with ToEmpirical {
+case class ModelWithSequenceMetric(observed: DifferenceMatrix) {
 	val obsInfecteds = observed.infectedFarms 
 	
 	val directDestByMech: Map[Int, Map[Int, Mechanism]] = obsInfecteds.map{centre =>
@@ -247,7 +237,7 @@ case class ModelWithSequenceMetric(observed: DifferenceMatrix) extends ToSamplab
 	}
 	fitList.foreach(println)
 	
-	def scoreDistribution(params: Parameters) = DistributionBuilder[Double]{
+	def scoreDistribution(params: Parameters) = Distribution.from{_ =>
 		val scores = fitList.toSeq.map{case ToFit(root, mechanism, obsDiff) =>
 			val directDestinations: Set[Int] = directDestByMech(root)
 				.collect{case (dest, `mechanism`) => dest}
@@ -452,7 +442,7 @@ case class Sequence(basesInReverseOrder: IndexedSeq[Int] = IndexedSeq.empty){
 }
 object Sequence{
 	implicit val r = Random
-	val randomBase = DistributionBuilder.uniform((1 to 4).toSeq)
+	val randomBase = Distribution.uniform(1 to 4)
 
 	def mutate(s: Sequence) = Sequence(randomBase.sample +: s.basesInReverseOrder)
 		
@@ -490,8 +480,9 @@ object Parameters{
 			import p._
 			SpreadRates.prior.density(spreadRates)
 		}
-		def draw = 
-			Parameters(SpreadRates.prior.sample)
+		val distribution = Distribution.from { implicit r =>
+      Parameters(SpreadRates.prior.distributionSupportChecked.sample)
+    }
 	}
 	
 	val names = Seq("Local", "Company")
@@ -559,7 +550,12 @@ object SpreadRates{
 			Transmission.prior.density(r.local) *
 			Transmission.prior.density(r.company)
 		}
-		def draw = SpreadRates(Transmission.prior.sample, Transmission.prior.sample)
+		val distribution = Distribution.from{implicit r: Random =>
+      SpreadRates(
+        Transmission.prior.distributionSupportChecked.sample,
+        Transmission.prior.distributionSupportChecked.sample
+      )
+    }
 	}
 	
 	def perturb(r: SpreadRates) = SpreadRates(Transmission.perturb(r.local), Transmission.perturb(r.company))
@@ -572,31 +568,37 @@ object SpreadRates{
 
 case class Transmission(rate: Double) { assert(rate < 1 && rate > 0) }
 object Transmission {
+  val r = Random
+
 	case class UniformPrior(min: Double, max: Double){
-		def density(x: Double) = if(x <= max && x >= min) 1.0/(max-min) else 0
+		def density(x: Double) = if(x <= max && x >= min) 1.0/(max-min) else 0.0
 		def sample = Random.nextDouble(min, max)
 	}
 	val uniformPrior = UniformPrior(0.0, 1.0)
 	
 	private val kernel = new Prior[Double]{
 		val normal = {
-			val syncRand: RandomGenerator = new SynchronizedRandomGenerator(new MersenneTwister())
-			new NormalDistribution(syncRand, 0, 0.05, NormalDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY)
-		}
-		def draw = normal.sample
+      val syncRand: RandomGenerator = new SynchronizedRandomGenerator(new MersenneTwister())
+      new NormalDistribution(syncRand, 0, 0.05, NormalDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY)
+    }
 		def density(at: Double) = normal.density(at)
+    //TODO bit weired that none of these actually use the random
+    val distribution = Distribution.from(r => normal.sample)
 	}
 	
 	def perturb(p: Transmission): Transmission = {
 		def perturbUnit(u: Double): Double = {
-			kernel.map(_ + u).filter(value => value <= 1.0 && value >= 0.0).sample
+			kernel.distributionSupportChecked
+        .map(_ + u)
+        .filter(value => value <= 1.0 && value >= 0.0)
+        .sample(r)
 		}
 		Transmission(perturbUnit(p.rate))
 	}
 	
 	val prior = new Prior[Transmission]{
 		def density(p: Transmission) = uniformPrior.density(p.rate)
-		def draw = Transmission(uniformPrior.sample)
+		val distribution = Distribution.from(r => Transmission(uniformPrior.sample))
 	}
 	
 	def perturbDensity(a: Transmission, b: Transmission): Double = kernel.density(a.rate - b.rate)

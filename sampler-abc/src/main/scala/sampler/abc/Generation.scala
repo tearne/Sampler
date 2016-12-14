@@ -1,33 +1,27 @@
 package sampler.abc
 
-import sampler.data.Distribution
-import sampler.math.Random
-import sampler.data.DistributionBuilder
-import play.api.libs.json._
-import sampler.io.Rounding
-import play.api.libs.json.Writes
-import play.api.libs.json.JsNumber
 import java.math.MathContext
-import sampler.io.Tokenable
-import sampler.io.Tokens
-import java.util.Calendar
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+
+import play.api.libs.json.{JsNumber, _}
+import sampler._
+import sampler.distribution.Distribution
+import sampler.io.{Tokenable, Tokens}
 
 sealed trait Generation[P]{
 	val iteration: Int
 	val tolerance: Double
-	def proposalDistribution(model: Model[P], rnd: Random):Distribution[P]
+	def proposalDistribution(model: Model[P]): Distribution[P]
 }
 
 case class UseModelPrior[P](tolerance: Double = Double.MaxValue) extends Generation[P]{
 	val iteration = 0
 	
 	/*
-	 *  Model & Random are args rather than in constructor so 
-	 *  this class can safely be serialised and used as message.
+	 *  Model is an argument rather than in constructor so
+	 *  class can safely be serialised and used as message.
 	 */
-	def proposalDistribution(model: Model[P], rnd: Random) = model.prior
+	def proposalDistribution(model: Model[P]) = model.prior.distributionSupportChecked
 }
 
 case class Population[P](
@@ -42,15 +36,13 @@ case class Population[P](
 		  .groupBy(_.scored.params)
 		  .map{case (k,v) => (k, v.map(_.weight).sum)}
   }
-  
+
 	/*
-	 *  Model & Random are args rather than in constructor so 
-	 *  this class can safely be serialised and used as message.
+	 *  Model is an argument rather than in constructor so
+	 *  class can safely be serialised and used as message.
 	 */
-	def proposalDistribution(model: Model[P], rnd: Random) = 
-		DistributionBuilder
-		.fromWeightsTable(consolidatedWeightsTable)(rnd)
-		.map(model.perturb)
+	def proposalDistribution(model: Model[P]) =
+	  consolidatedWeightsTable.toDistribution.map(model.perturb)
 	
 	def toJSON(wtPrecision: Int = 8)(implicit tokenable: Tokenable[P]) = {
 		val mc = new MathContext(wtPrecision)

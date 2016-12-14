@@ -18,91 +18,132 @@
 package sampler.abc
 
 import java.util.concurrent.TimeUnit.MILLISECONDS
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
-import com.typesafe.config.ConfigFactory
-import akka.actor.ActorRef
-import akka.actor.ActorSystem
-import akka.actor.Props
+
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.util.Timeout
-import sampler.abc.actor.main.MainActorImpl
+import sampler.abc.actor.RootActor
+import sampler.abc.actor.children.flushing.{GenerationFlusher, ObservedIdsTrimmer, ToleranceCalculator}
+import sampler.abc.actor.message.Start
+import sampler.abc.actor.root.{ChildActors, _}
+import sampler.abc.actor.root.state.StateUtil
+import sampler.abc.actor.root.state.task.egen.{EGenUtil, ParticleMixer}
 import sampler.cluster.PortFallbackSystemFactory
 import sampler.io.Logging
-import sampler.abc.actor.main.Start
+import sampler.maths.Random
+
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+
+case class ActorStuff(rootActor: ActorRef, system: ActorSystem)
 
 trait ABCActors {
-	val system: ActorSystem
-	def entryPointActor[P](
-		model: Model[P],
-		config: ABCConfig,
-		generationHandler: Option[Population[P] => Unit]): ActorRef
+  def initActorStuff[P](
+      model: Model[P],
+      config: ABCConfig,
+      generationHandler: Option[Population[P] => Unit]
+  ): ActorStuff
 }
 
 trait ABCActorsImpl extends ABCActors {
-	val system = PortFallbackSystemFactory("ABC")
+  def initActorStuff[P](
+      model: Model[P],
+      config: ABCConfig,
+      reportHandler: Option[Population[P] => Unit]
+  ) = {
 
-	def entryPointActor[P](
-		model: Model[P],
-		config: ABCConfig,
-		generationHandler: Option[Population[P] => Unit]) = {
+    val system = PortFallbackSystemFactory(config.clusterName)
+    val random = Random
 
-		system.actorOf(
-			Props(classOf[MainActorImpl[P]], model, config, generationHandler),
-			"root")
-	}
+    val helper = new EGenUtil(
+      new ParticleMixer(),
+      random)
+
+    val businessLogic = new StateUtil(
+      helper,
+      config
+    )
+
+    val generationFlusher = new GenerationFlusher(
+      ToleranceCalculator,
+      new ObservedIdsTrimmer(
+        config.memoryGenerations,
+        config.numParticles),
+      config
+    )
+
+    val childActors = new ChildActors(
+      generationFlusher,
+      config,
+      model,
+      reportHandler,
+      random
+    )
+
+    val rootActor = system.actorOf(
+      Props(
+        classOf[RootActor[P]],
+        childActors,
+        businessLogic
+      ),
+      "root"
+    )
+
+    ActorStuff(rootActor, system)
+  }
 }
 
 object ABC extends ABCActorsImpl with Logging {
-	def apply[P](
-			model: Model[P],
-			config: ABCConfig): Population[P] =
-		apply(model, config, None, UseModelPrior[P]())
-		
-	def apply[P](
-			model: Model[P],
-			config: ABCConfig,
-			genHandler: Population[P] => Unit): Population[P] =
-		apply(model, config, Some(genHandler), UseModelPrior())
-	
-  def resumeByRepeatingTolerance[P](
-	    model: Model[P],
-			config: ABCConfig,
-			population: Population[P]
-		): Population[P] = {
-	  apply(model, config, None, population)
-	}
-		
-	def resumeByRepeatingTolerance[P](
-	    model: Model[P],
-			config: ABCConfig,
-			population: Population[P],
-			genHandler: Population[P] => Unit
-		): Population[P] = {
-	  apply(model, config, Some(genHandler), population)
-	}
-		
-	def apply[P](
-			model: Model[P],
-			config: ABCConfig,
-			genHandler: Option[Population[P] => Unit],
-			initialPopulation: Generation[P]): Population[P] = {
-		info("      Job config: "+config.renderJob)
-		info("Algorithm config: "+config.renderAlgorithm)
-		info("  Cluster config: "+config.renderCluster)
+  def apply[P](
+      model: Model[P],
+      config: ABCConfig): Population[P] =
+    apply(model, config, None, UseModelPrior[P]())
 
-		val actor = entryPointActor(model, config, genHandler)
+  def apply[P](
+      model: Model[P],
+      config: ABCConfig,
+      genHandler: Population[P] => Unit): Population[P] =
+    apply(model, config, Some(genHandler), UseModelPrior())
 
-		implicit val timeout = Timeout(config.futuresTimeoutMS, MILLISECONDS)
-		val future = (actor ? Start(initialPopulation)).mapTo[Population[P]]
-		val result = Await.result(future, Duration.Inf)
-		//TODO unlimited timeout just for the future above?
+  def resume[P](
+      model: Model[P],
+      config: ABCConfig,
+      population: Population[P]
+  ): Population[P] = {
+    apply(model, config, None, population)
+  }
 
-		if (config.terminateAtTargetGen) {
-			info("Terminating actor system")
-			system.shutdown
-		}
+  def resume[P](
+      model: Model[P],
+      config: ABCConfig,
+      population: Population[P],
+      genHandler: Population[P] => Unit
+  ): Population[P] = {
+    apply(model, config, Some(genHandler), population)
+  }
 
-		result
-	}
+  def apply[P](
+      model: Model[P],
+      config: ABCConfig,
+      genHandler: Option[Population[P] => Unit],
+      initialPopulation: Generation[P]): Population[P] = {
+    info("      Job config: " + config.renderJob)
+    info("Algorithm config: " + config.renderAlgorithm)
+    info("  Cluster config: " + config.renderCluster)
+
+    val actorStuff = initActorStuff(model, config, genHandler)
+
+    val futureResult = {
+      implicit val timeout = Timeout(config.futuresTimeoutMS, MILLISECONDS)
+      (actorStuff.rootActor ? Start(initialPopulation)).mapTo[Population[P]]
+    }
+    val result = Await.result(futureResult, Duration.Inf)
+
+    if (config.terminateAtTargetGen) {
+      info("Terminating actor system")
+      actorStuff.system.terminate
+    }
+
+    result
+  }
 }

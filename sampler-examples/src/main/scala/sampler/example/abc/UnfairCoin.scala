@@ -16,29 +16,18 @@
 package sampler.example.abc
 
 import java.math.MathContext
-import java.nio.file.Files
-import java.nio.file.Paths
-import scala.BigDecimal
-import org.apache.commons.math3.distribution.NormalDistribution
-import org.apache.commons.math3.random.MersenneTwister
-import org.apache.commons.math3.random.SynchronizedRandomGenerator
+import java.nio.file.{Files, Paths}
+
 import com.typesafe.config.ConfigFactory
-import sampler.abc.ABC
-import sampler.abc.ABCConfig
-import sampler.abc.Model
-import sampler.abc.Prior
-import sampler.abc.StandardReport
-import sampler.data.Distribution
-import sampler.io.Tokenable
-import sampler.io.Tokens
-import sampler.io.Tokens.tokener
-import sampler.math.Random
-import sampler.r.script.RScript
-import sampler.r.script.ToNamedSeq
-import play.api.libs.json.JsValue
-import sampler.abc.Population
 import org.apache.commons.io.FileUtils
-import play.api.libs.json.Json
+import org.apache.commons.math3.distribution.NormalDistribution
+import org.apache.commons.math3.random.{MersenneTwister, SynchronizedRandomGenerator}
+import play.api.libs.json.JsValue
+import sampler.abc._
+import sampler.distribution.Distribution
+import sampler.io.{Tokenable, Tokens}
+import sampler.maths.Random
+import sampler.r.script.RScript
 
 object UnfairCoin extends UnfairCoinCommon with App {
 	ABC(CoinModel, abcConfig, abcReporting)
@@ -79,10 +68,10 @@ object ResumeUnfairCoin extends UnfairCoinCommon with App {
   
   val sixGenConfig = ABCConfig(ConfigFactory
     .parseString("unfair-coin-example.abc.job.generations = 6")
-    .withFallback(ConfigFactory.load)
+    .withFallback(ConfigFactory.load())
     .getConfig("unfair-coin-example"))
   
-  ABC.resumeByRepeatingTolerance(CoinModel, sixGenConfig, prevGeneration, abcReporting)
+  ABC.resume(CoinModel, sixGenConfig, prevGeneration, abcReporting)
   plot()
 }
 
@@ -95,7 +84,7 @@ trait UnfairCoinCommon {
 	
 	def plot(){
     val rScript = """
-      lapply(c("ggplot2", "reshape", "jsonlite", "plyr"), require, character.only=T)
+      lapply(c("ggplot2", "reshape2", "jsonlite", "plyr"), require, character.only=T)
       
       load = function(file) {
       	raw = fromJSON(file)
@@ -160,19 +149,17 @@ object CoinParams {
 }
 
 object CoinModel extends Model[CoinParams] {
-  	val random = Random
-
 	case class Observed(numTrials: Int, numHeads: Int) extends Serializable
   	val observedData = Observed(100,70)
 
-	val prior = new Prior[CoinParams] with Serializable{
+	val prior = new Prior[CoinParams] {
 	    def density(p: CoinParams) = {
 	      if(p.pHeads > 1 || p.pHeads < 0) 0.0
 	      else 1.0
 	    }
 	    
-	    def draw() = {
-	    	CoinParams(random.nextDouble(0.0, 1.0))
+	    val distribution = Distribution.from{ r =>
+	    	CoinParams(r.nextDouble(0.0, 1.0))
 	    }
     }
   	
@@ -183,14 +170,12 @@ object CoinModel extends Model[CoinParams] {
 	def perturb(params: CoinParams) = CoinParams(params.pHeads + normal.sample)
   	def perturbDensity(a: CoinParams, b: CoinParams) = normal.density(a.pHeads - b.pHeads)
     
-    def distanceToObservations(p: CoinParams) = new Distribution[Double] with Serializable{
-    	override def sample() = {
-    		def coinToss() = random.nextBoolean(p.pHeads)
-    		val simulatedHeads = (1 to observedData.numTrials)
-    			.map(i => coinToss)
-    			.count(identity)
-    		if(simulatedHeads == observedData.numHeads) 0
-    		else 1
-    	}
+    def distanceToObservations(p: CoinParams) = Distribution.from{(random: Random) =>
+      def coinToss() = random.nextBoolean(p.pHeads)
+      val simulatedHeads = (1 to observedData.numTrials)
+        .map(i => coinToss)
+        .count(identity)
+      if(simulatedHeads == observedData.numHeads) 0
+      else 1
     }
 }
