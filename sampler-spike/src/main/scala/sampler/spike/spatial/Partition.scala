@@ -1,9 +1,10 @@
 package sampler.spike.spatial
 
-import sampler.data.DistributionBuilder
-import sampler.math.Random
+import sampler.maths.Random
 import java.nio.file.Files
 import java.nio.file.Paths
+
+import sampler.distribution.Distribution
 import sampler.r.script.RScript
 
 object PartitionApp extends App {
@@ -11,7 +12,7 @@ object PartitionApp extends App {
 	implicit val r = Random
 	val fileOut = Paths.get("results", "points.csv")
 	
-	def randomCoord = DistributionBuilder.uniform(0, 100).map(_*10.toInt/10.0).until(_.size == 2).map(s => (s(0), s(1)))
+	def randomCoord = Distribution.uniform(0, 100).map(_*10.toInt/10.0).until(_.size == 2).map(s => (s(0), s(1)))
 	val points = (1 to 1000).map{i => randomCoord.sample}.toSet
 	
 	//points.foreach(println)
