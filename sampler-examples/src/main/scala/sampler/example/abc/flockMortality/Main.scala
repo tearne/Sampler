@@ -101,7 +101,7 @@ object Main extends App {
   println("Sample from population to produce posterior: ")
     
   val numParticles = abcConfig.numGenerations  
-  val sample = Distribution.fromWeightsTable(population.particleWeights)(Random).until(_.size == 1000 * numParticles).sample  
+  val sample = Distribution.fromWeightsTable(population.consolidatedWeightsTable).until(_.size == 1000 * numParticles).sample
   val posterior = Posterior.fromSeq(sample)
   println(posterior.offset.length)
   

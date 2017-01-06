@@ -4,6 +4,7 @@ import sampler.maths.Random
 import java.nio.file.Files
 import java.nio.file.Paths
 
+import sampler._
 import sampler.distribution.Distribution
 import sampler.r.script.RScript
 
@@ -12,7 +13,7 @@ object PartitionApp extends App {
 	implicit val r = Random
 	val fileOut = Paths.get("results", "points.csv")
 	
-	def randomCoord = Distribution.uniform(0, 100).map(_*10.toInt/10.0).until(_.size == 2).map(s => (s(0), s(1)))
+	def randomCoord: Distribution[(Double, Double)] = Distribution.uniform(0, 100).map(_*10/10.0).until(_.size == 2).map(s => (s(0), s(1)))
 	val points = (1 to 1000).map{i => randomCoord.sample}.toSet
 	
 	//points.foreach(println)
@@ -53,7 +54,7 @@ object Helpers{
 			val n =  implicitly[Fractional[T]]
 			import n._
 			val splitCoordinate = 
-				if(DistributionBuilder.bernoulli(0.5).sample) (p:(T,T)) => p._1 
+				if(Distribution.bernoulli(0.5).sample) (p:(T,T)) => p._1
 				else (p:(T,T)) => p._2
 			val sum = items.foldLeft(n.zero){case (acc, i) => n.plus(acc, splitCoordinate(i))}
 			val meanCoord = n.div(sum, n.fromInt(items.size))

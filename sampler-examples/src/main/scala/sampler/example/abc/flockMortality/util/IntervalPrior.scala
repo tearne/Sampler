@@ -3,7 +3,7 @@ package sampler.example.abc.flockMortality.util
 import play.api.libs.json.JsValue
 import play.api.libs.json.Json
 import play.api.libs.json.Writes
-import sampler.math.Random
+import sampler.maths.Random
 
 case class IntervalPrior(
     beta: List[Double],
@@ -55,17 +55,17 @@ object IntervalPrior {
     offsetProduct
   }
   
-  def draw(numSheds: Int, interval: IntervalPrior): Parameters = {
+  def draw(numSheds: Int, interval: IntervalPrior)(implicit r: Random): Parameters = {
     import interval._
-    val rand = Random
+//    val rand = Random
     val p = Parameters(
-        beta = rand.nextDouble(beta.head, beta.last),
-        eta = rand.nextDouble(eta.head, eta.last),
-        gamma = rand.nextDouble(gamma.head, gamma.last),
-        delta = rand.nextDouble(delta.head, delta.last),
-        sigma = rand.nextDouble(sigma.head, sigma.last),
-        sigma2 = rand.nextDouble(sigma2.head, sigma2.last),
-        offset = (0 until numSheds).map(i => rand.nextInt(offset.last - offset.head) + offset.head).toIndexedSeq
+        beta = r.nextDouble(beta.head, beta.last),
+        eta = r.nextDouble(eta.head, eta.last),
+        gamma = r.nextDouble(gamma.head, gamma.last),
+        delta = r.nextDouble(delta.head, delta.last),
+        sigma = r.nextDouble(sigma.head, sigma.last),
+        sigma2 = r.nextDouble(sigma2.head, sigma2.last),
+        offset = (0 until numSheds).map(i => r.nextInt(offset.last - offset.head) + offset.head).toIndexedSeq
       )
       assert(IntervalPrior.density(p, interval) > 0)    
       p

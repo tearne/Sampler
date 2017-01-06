@@ -1,20 +1,16 @@
 package sampler.example.abc.flockMortality.util
 
 import scala.language.existentials
-
 import org.apache.commons.math3.distribution.NormalDistribution
 import org.apache.commons.math3.random.MersenneTwister
 import org.apache.commons.math3.random.RandomGenerator
 import org.apache.commons.math3.random.SynchronizedRandomGenerator
-
 import sampler.abc.Prior
-import sampler.data.Distribution
-import sampler.data.DistributionBuilder
-import sampler.math.Random
+import sampler.distribution.Distribution
 
 case class Model(observed: IndexedSeq[Observed], interval: IntervalPrior) extends sampler.abc.Model[Parameters] {
 
-  val statistics = sampler.math.Statistics
+  //val statistics = sampler.maths.Statistics
   
   val numSheds = observed.size
   
@@ -31,9 +27,11 @@ case class Model(observed: IndexedSeq[Observed], interval: IntervalPrior) extend
   val baselineDeaths = (0 until observed.length).map{ i => baselineMortalityRate(i) * observed(i).flockSize }
   
   // Prior probability density and draw functions
-  val prior = new sampler.abc.Prior[Parameters]{        
+  val prior = new Prior[Parameters]{
     def density(p: Parameters): Double = IntervalPrior.density(p, interval)    
-    def draw() = IntervalPrior.draw(numSheds, interval)
+    val distribution = Distribution.from(
+      r => IntervalPrior.draw(numSheds, interval)(r)
+    )
   }
   
   //===
