@@ -27,11 +27,12 @@ class SSH(keyFile: Path) {
 			"-o", "LogLevel=quiet"
 	)
 	
-	def foregroundCommand(username: String, host: String, command: String): String = {
+	def foregroundCommand(username: String, host: String, command: String, timeoutSeconds: Int = 10): String = {
 		val sshCommand = "ssh" ::
 			List("-t","-t") ::: 
 			keyFileArgs :::
 			noHostFileArgs :::
+		  List("-o", "ConnectTimeout="+timeoutSeconds) :::
 			List(
 				s"$username@$host",
 				command
@@ -40,11 +41,12 @@ class SSH(keyFile: Path) {
 		sshCommand.mkString(" ")
 	}
 	
-	def backgroundCommand(username: String, host: String, command: String): String = {
+	def backgroundCommand(username: String, host: String, command: String, timeoutSeconds: Int = 10): String = {
 		val sshCommand = "ssh" ::
 			List("-f","-n") ::: 
 			keyFileArgs ::: 
 			noHostFileArgs :::
+			List("-o", "ConnectTimeout="+timeoutSeconds) :::
 			List(
 				s"$username@$host",
 				//"""/bin/bash -c 'nohup """+command+""" > /dev/null 2>&1 &'"""
