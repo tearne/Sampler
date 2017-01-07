@@ -8,7 +8,7 @@ object PlotResult extends App {
   //=======================
   // PLOT POSTERIOR
   
-  val outDir = Paths.get("dataOut")  
+  val outDir = Paths.get("results/FlockMortality")
     
   val rScript = 
 """
