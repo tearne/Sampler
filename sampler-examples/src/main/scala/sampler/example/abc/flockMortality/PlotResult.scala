@@ -118,12 +118,13 @@ dev.off()
 """
 
   RScript(rScript, outDir.resolve("script.r"))
-  
+
+  val multiplot = this.getClass.getClassLoader.getResource("multiplot.R").getPath
+
   val rScript2 =
 """
 lapply(c("ggplot2", "scales", "reshape2", "jsonlite"), require, character.only=T)
-
-source("~/ENVIRONMENT/workspaces/workspace_scala/EU1209_ABC/rScripts/multiplot.R")
+source("multiplot")
 
 # IMPORT DATA -------------------------------------------------------------
 
@@ -185,9 +186,7 @@ p5 <- ggplot(melt(posterior$sigma2), aes(x=value)) +
 multiplot(p0, p1, p2, p3, p4, p5, cols=3)
 
 dev.off()
-
-
-"""
+""".replaceFirst("multiplot", multiplot)
   RScript(rScript2, outDir.resolve("posterior.r"))
 
 }
