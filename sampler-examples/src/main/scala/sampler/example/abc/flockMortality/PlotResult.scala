@@ -12,11 +12,11 @@ object PlotResult extends App {
     
   val rScript = 
 """
-lapply(c("ggplot2", "scales", "reshape", "jsonlite"), require, character.only=T)
+lapply(c("ggplot2", "scales", "reshape2", "jsonlite"), require, character.only=T)
 
 sheds = fromJSON("result.json")$observed$id
 
-population = as.data.frame(fromJSON("population.json")$particles)
+population = as.data.frame(fromJSON("population.json")$'particle-summary')
 
 sampledPosterior = population[sample(nrow(population), replace = T, 1000, prob = population$weight),]
 
@@ -121,7 +121,7 @@ dev.off()
   
   val rScript2 =
 """
-lapply(c("ggplot2", "scales", "reshape", "jsonlite"), require, character.only=T)
+lapply(c("ggplot2", "scales", "reshape2", "jsonlite"), require, character.only=T)
 
 source("~/ENVIRONMENT/workspaces/workspace_scala/EU1209_ABC/rScripts/multiplot.R")
 
@@ -129,7 +129,7 @@ source("~/ENVIRONMENT/workspaces/workspace_scala/EU1209_ABC/rScripts/multiplot.R
 
 # Read in truth and posterior results
 results = fromJSON("result.json")
-posterior = results$population$particles
+posterior = results$population$'particle-summary'
 #truth = fromJSON("truth.json")
 
 # Separate offset data from posterior

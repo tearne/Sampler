@@ -1,13 +1,14 @@
 package sampler.example.abc.flockMortality.util
 
-import sampler.Implicits.RichIndexedSeq
-import sampler.math.Statistics.quantile
+
 import play.api.libs.json.JsLookupResult.jsLookupResultToJsLookup
 import play.api.libs.json.JsValue
 import play.api.libs.json.JsValue.jsValueToJsLookup
 import play.api.libs.json.Writes
 import play.api.libs.json.Json
 import play.api.libs.json.JsObject
+
+import sampler._
 
 case class Posterior(
     beta: IndexedSeq[Double], 
@@ -53,15 +54,15 @@ object Posterior{
     paramSeq.map(_.offset)
   )
   
-  def getMedian(posterior: Posterior): Parameters = {
-    val medBeta = quantile(posterior.beta.toEmpiricalSeq, 0.5)
-    val medEta = quantile(posterior.eta.toEmpiricalSeq, 0.5)
-    val medGamma = quantile(posterior.gamma.toEmpiricalSeq, 0.5)
-    val medDelta = quantile(posterior.delta.toEmpiricalSeq, 0.5)
-    val medSigma = quantile(posterior.sigma.toEmpiricalSeq, 0.5)
-    val medSigma2 = quantile(posterior.sigma2.toEmpiricalSeq, 0.5)
+  def getMarginalMedian(posterior: Posterior): Parameters = {
+    val medBeta = posterior.beta.toEmpirical.percentile(0.5)
+    val medEta = posterior.eta.toEmpirical.percentile(0.5)
+    val medGamma = posterior.gamma.toEmpirical.percentile(0.5)
+    val medDelta = posterior.delta.toEmpirical.percentile(0.5)
+    val medSigma = posterior.sigma.toEmpirical.percentile(0.5)
+    val medSigma2 = posterior.sigma2.toEmpirical.percentile(0.5)
     val medOffset = posterior.offset.transpose.map(i =>
-      quantile(i.map(_.toDouble).toEmpiricalTable, 0.5).toInt)
+      i.map(_.toDouble).toEmpirical.percentile(0.5).toInt)
       
     // Create parameter object to use in model
     Parameters(medBeta, medEta, medGamma, medDelta, medSigma, medSigma2, medOffset)

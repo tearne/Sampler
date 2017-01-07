@@ -2,6 +2,7 @@ package flockMortalityExample
 
 import java.nio.file.Files
 import java.nio.file.Paths
+
 import com.typesafe.config.ConfigFactory
 import play.api.libs.json.Json
 import sampler.example.abc.flockMortality.util.Observed
@@ -13,16 +14,19 @@ import sampler.example.abc.flockMortality.util.Parameters
 import sampler.abc.ABC
 import sampler.example.abc.flockMortality.util.JSON
 import sampler.example.abc.flockMortality.util.ABCResult
-import sampler.maths.Random
+import sampler._
 import sampler.distribution.Distribution
 import sampler.example.abc.flockMortality.util.Posterior
 import sampler.example.abc.flockMortality.util.FittedResult
+import sampler.maths.Random
 
 object Main extends App {
   
   //=======================
   // SETUP
-  
+
+  implicit val r = Random
+
   // Name and location of output files
   val outDir = Paths.get("dataOut")  
   val resultsJSON = outDir.resolve("result.json") 
@@ -99,7 +103,7 @@ object Main extends App {
   // SAMPLE FROM POPULATION TO PRODUCE POSTERIOR
   
   println("Sample from population to produce posterior: ")
-    
+
   val numParticles = abcConfig.numGenerations  
   val sample = Distribution.fromWeightsTable(population.consolidatedWeightsTable).until(_.size == 1000 * numParticles).sample
   val posterior = Posterior.fromSeq(sample)
@@ -114,7 +118,7 @@ object Main extends App {
  
   println("Fitting median parameters: ")
   
-  val medianParams = Posterior.getMedian(posterior)
+  val medianParams = Posterior.getMarginalMedian(posterior)
 //  println(medianParams)
   
   val modelFit = FittedResult(model.modelDistribution(medianParams).sample)

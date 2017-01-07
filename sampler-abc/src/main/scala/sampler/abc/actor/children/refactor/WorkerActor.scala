@@ -4,7 +4,7 @@ import akka.actor.Actor
 
 class WorkerActor() extends Actor {
   def receive = behaviour(
-    Idle()
+    null//Idle()
   )
 
   def behaviour(state: State): Receive = {

@@ -7,11 +7,11 @@ import org.apache.commons.math3.random.RandomGenerator
 import org.apache.commons.math3.random.SynchronizedRandomGenerator
 import sampler.abc.Prior
 import sampler.distribution.Distribution
+import sampler.maths.Random
+import sampler._
 
 case class Model(observed: IndexedSeq[Observed], interval: IntervalPrior) extends sampler.abc.Model[Parameters] {
 
-  //val statistics = sampler.maths.Statistics
-  
   val numSheds = observed.size
   
   val meanEggs = observed.map(obs => obs.meanEggs)
@@ -40,7 +40,7 @@ case class Model(observed: IndexedSeq[Observed], interval: IntervalPrior) extend
     
     val width = upper - lower
     
-    val kernel = new Prior[Double] with Distribution[Double] {
+    val kernel = new Prior[Double]{
     
       val normal = {
         val syncRand: RandomGenerator = new SynchronizedRandomGenerator(new MersenneTwister())
@@ -50,14 +50,14 @@ case class Model(observed: IndexedSeq[Observed], interval: IntervalPrior) extend
       def density(at: Double) = {
         normal.density(at)
       }
-      
-      def draw = {
-        val r = normal.sample      
+
+      val distribution = Distribution.from{random =>
+        val r = normal.sample
         if(r.isNaN() || r.isInfinite()) {
           val e = new Exception("here... r = " + r)
           e.printStackTrace()
           throw e
-        }      
+        }
         r
       }
       
@@ -74,22 +74,28 @@ case class Model(observed: IndexedSeq[Observed], interval: IntervalPrior) extend
   val offsetRange = Kernel(interval.offset.head, interval.offset.last)
   
   def perturb(p: Parameters) = {
-    val random = Random
-    val threeDie = DistributionBuilder.uniform(-1, 1)(random)
+    implicit val random = Random
+    // TODO can't stay the same?
+    val threeDie = Distribution.uniform(-1, 1)
+    /*
+      cf:
+    	val threeDie = Distribution.uniform(IndexedSeq(-1,0,1))
+	    private def threeDensity(v: Int) = if(v <= 1 || v >= -1) 1.0 / 3 else 0.0
+     */
     import p._
     Parameters(
-      beta + betaRange.kernel.sample,
-      eta + etaRange.kernel.sample,
-      gamma + gammaRange.kernel.sample,
-      delta + deltaRange.kernel.sample,
-      sigma + sigmaRange.kernel.sample,
-      sigma2 + sigma2Range.kernel.sample,
+      beta + betaRange.kernel.distributionSupportChecked.sample,
+      eta + etaRange.kernel.distributionSupportChecked.sample,
+      gamma + gammaRange.kernel.distributionSupportChecked.sample,
+      delta + deltaRange.kernel.distributionSupportChecked.sample,
+      sigma + sigmaRange.kernel.distributionSupportChecked.sample,
+      sigma2 + sigma2Range.kernel.distributionSupportChecked.sample,
       offset.map(i => i + threeDie.sample)
     )
   }
   
   def perturbDensity(a: Parameters, b: Parameters) = {
-    def threeDensity(v: Int) = if(v <= 1 || v >= -1) 1.0 / 3 else 0
+    def threeDensity(v: Int) = if(v <= 1 || v >= -1) 1.0 / 3 else 0.0
     val offsetProduct =
       (0 until a.offset.length).map(i => threeDensity(a.offset(i) - b.offset(i))).product
     betaRange.kernel.density(a.beta - b.beta) *
@@ -103,7 +109,7 @@ case class Model(observed: IndexedSeq[Observed], interval: IntervalPrior) extend
   
   //===
   // Model  
-  def distanceToObservations(p: Parameters) = modelDistribution(p).map(error => error.distanceToObserved)
+  def distanceToObservations(p: Parameters): Distribution[Double] = modelDistribution(p).map(error => error.distanceToObserved)
   
   def modelDistribution(p: Parameters) = {
     
@@ -168,7 +174,7 @@ case class Model(observed: IndexedSeq[Observed], interval: IntervalPrior) extend
     }
         
     // Deterministic model will always return the same answer
-    DistributionBuilder.continually(solve)
+    Distribution.always(solve)
 
   }
   
