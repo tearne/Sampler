@@ -78,11 +78,11 @@ case class ODE(p: Parameters, mu: Double = 0.0) extends FirstOrderDifferentialEq
 //      yDot(4) = delta * gamma * y(2)                // D: delta gamma I
       
       // Include baseline mortality at a rate mu
-      yDot(0) = - beta * y(0) * y(2) - mu * y(0)         // S: -beta S I - mu S
-      yDot(1) = beta * y(0) * y(2) - eta * y(1)     // E: beta S I - eta E
-      yDot(2) = eta * y(1) - gamma * y(2)           // I: eta E - gamma I
-      yDot(3) = (1 - delta) * gamma * y(2) - mu * y(3)          // R: (1-delta) gamma I - mu R
-      yDot(4) = delta * gamma * y(2) + mu * (y(0)+y(3))        // D: delta gamma I + mu (S+R)
+      yDot(0) = - beta * y(0) * y(2) - mu * y(0)        // S: -beta S I - mu S
+      yDot(1) = beta * y(0) * y(2) - eta * y(1)         // E: beta S I - eta E
+      yDot(2) = eta * y(1) - gamma * y(2)               // I: eta E - gamma I
+      yDot(3) = (1 - delta) * gamma * y(2) - mu * y(3)  // R: (1-delta) gamma I - mu R
+      yDot(4) = delta * gamma * y(2) + mu * (y(0)+y(3)) // D: delta gamma I + mu (S+R)
       
     }
 }
