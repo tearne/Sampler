@@ -22,13 +22,12 @@ lazy val commonSettings = Seq(
     "-unchecked" 
     ,"-deprecation" 
     ,"-feature"
- //   ,"-encoding" 
- //   ,"UTF-8" 
- //   ,"-Xlint"
+//    ,"-encoding"
+//    ,"UTF-8"
+//    ,"-Xlint"
    ),
 
-  //Copy all dependencies to lib_managed
-  retrieveManaged	:= true,
+//  retrieveManaged	:= true,  //Copy dependencies to lib_managed
 
   libraryDependencies ++= Seq(
     "junit" % "junit" % "4.8" % "test->default",
