@@ -1,7 +1,8 @@
 package sampler.abc
 
-import org.scalatest.FreeSpec
 import com.typesafe.config.ConfigFactory
+import org.scalatest.FreeSpec
+
 import scala.concurrent.duration._
 
 class ABCConfigTest extends FreeSpec {
@@ -19,7 +20,7 @@ class ABCConfigTest extends FreeSpec {
 			}
 			cluster {
    			system-name = "MyCluster"
-				particle-memory-generations = 2
+				max-particle-memory = 10000
 				terminate-at-target-generation = true
 				futures-timeout = 10 hour
 				mixing {
@@ -53,7 +54,7 @@ class ABCConfigTest extends FreeSpec {
 		}
 		"Cluster parameters" in {
 			assertResult("MyCluster")(instance.clusterName)
-			assertResult(2)(instance.memoryGenerations)
+			assertResult(10000)(instance.maxParticleMemory)
 			assert(instance.terminateAtTargetGen)
 			assertResult(10.hour.toMillis)(instance.futuresTimeoutMS)
 			assertResult(500)(instance.mixRateMS)

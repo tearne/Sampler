@@ -23,11 +23,11 @@ import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 import sampler.abc.actor.RootActor
-import sampler.abc.actor.children.flushing.{GenerationFlusher, ObservedIdsTrimmer, ToleranceCalculator}
+import sampler.abc.actor.children.flushing.{GenerationFlusher, ToleranceCalculator}
 import sampler.abc.actor.message.Start
-import sampler.abc.actor.root.{ChildActors, _}
+import sampler.abc.actor.root.ChildActors
 import sampler.abc.actor.root.state.StateUtil
-import sampler.abc.actor.root.state.task.egen.{EGenUtil, ParticleMixer}
+import sampler.abc.actor.root.state.task.egen.{EGenUtil, ObservedIdsTrimmer, ParticleMixer}
 import sampler.cluster.PortFallbackSystemFactory
 import sampler.io.Logging
 import sampler.maths.Random
@@ -57,7 +57,8 @@ trait ABCActorsImpl extends ABCActors {
 
     val helper = new EGenUtil(
       new ParticleMixer(),
-      random)
+      random,
+      new ObservedIdsTrimmer(config.maxParticleMemory))
 
     val businessLogic = new StateUtil(
       helper,
@@ -66,9 +67,6 @@ trait ABCActorsImpl extends ABCActors {
 
     val generationFlusher = new GenerationFlusher(
       ToleranceCalculator,
-      new ObservedIdsTrimmer(
-        config.memoryGenerations,
-        config.numParticles),
       config
     )
 

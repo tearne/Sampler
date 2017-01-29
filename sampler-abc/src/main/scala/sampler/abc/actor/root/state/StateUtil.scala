@@ -51,7 +51,7 @@ class StateUtil(
   }
 
   def addLocallyScoredParticles[P](
-      state: RunningTask[P],
+      task: RunningTask[P],
       scored: ScoredParticles[P],
       worker: ActorRef,
       childRefs: ChildRefs
@@ -62,9 +62,9 @@ class StateUtil(
     val newTask = {
       val updatedEGen = eGenUtil.filterAndQueueUnweighedParticles(
         scored,
-        state.evolvingGeneration
+        task.evolvingGeneration
       )
-      state.updateEvolvingGeneration(updatedEGen)
+      task.updateEvolvingGeneration(updatedEGen)
     }
 
     childRefs.reporter ! StatusReport(

@@ -2,12 +2,12 @@ package sampler.abc.actor.root.state.task.egen
 
 import sampler.abc._
 import sampler.abc.actor.message.{ScoredParticles, WeighedParticles}
-import sampler.abc.actor.root._
 import sampler.maths.Random
 
 class EGenUtil(
     particleMixer: ParticleMixer,
-    random: Random
+    random: Random,
+    observedIdsTrimmer: ObservedIdsTrimmer
   ) {
 
   def addWeightedParticles[P](
@@ -33,7 +33,7 @@ class EGenUtil(
 
     gen.copy(
       dueWeighing = particlesDueWeighting.add(filtered),
-      idsObserved = gen.idsObserved ++ newIds
+      idsObserved = observedIdsTrimmer(gen.idsObserved ++ newIds)
     )
   }
 

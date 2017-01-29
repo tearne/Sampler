@@ -8,7 +8,6 @@ import scala.collection.immutable.Queue
 
 class GenerationFlusher(
 		toleranceCalculator: ToleranceCalculator,
-		observedIdsTrimmer: ObservedIdsTrimmer,
 		config: ABCConfig
 	){
 	
@@ -32,7 +31,7 @@ class GenerationFlusher(
 			completedGen,
 			ScoredParticles.empty,
 			WeighedParticles.empty,
-			observedIdsTrimmer(idsObserved)
+			idsObserved
 		)
 	}
 

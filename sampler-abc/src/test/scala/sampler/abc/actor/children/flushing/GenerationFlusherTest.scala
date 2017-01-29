@@ -17,7 +17,6 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 	trait Setup {
 	  val numParticlesReqd: Int
 		val toleranceCalculator = mock[ToleranceCalculator]
-		val observedIdsTrimmer = mock[ObservedIdsTrimmer]
 		val config = new ABCConfig(null){
 		  override lazy val numParticles = numParticlesReqd
 	  }
@@ -25,7 +24,6 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 		val instance: GenerationFlusher = 
 		  new GenerationFlusher(
 				toleranceCalculator,
-				observedIdsTrimmer,
 				config
 			)
 
@@ -43,10 +41,6 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 		)
 		
 		when(toleranceCalculator.apply(seqWeighed, config, 0.1)).thenReturn(0.001)
-
-		val trimmedParticleIds = mock[Queue[Long]]
-		when(observedIdsTrimmer.apply(inProgress.idsObserved))
-			.thenReturn(trimmedParticleIds)
 	}
 	
 	"should" - {
@@ -79,7 +73,7 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 			assert(result.dueWeighing.size === 0)
 			assert(result.weighed.size === 0)
 			assert(result.weighed.numRejected === 0)
-			assert(result.idsObserved === trimmedParticleIds)
+			assert(result.idsObserved === inProgress.idsObserved)
 		}
 		
 		"throw exception if insufficient particles" in new Setup {
@@ -89,6 +83,6 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 			}
 		}
 		
-		"carry over any overflow particles as scored for the next generation" in fail("TODO")
+		"carry over any unweighed particles for the next generation rather than throw away" in pending
 	}
 }

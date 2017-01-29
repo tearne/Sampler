@@ -14,14 +14,16 @@ class EGenUtilTest extends FreeSpec with Matchers with MockitoSugar {
 
   trait Setup {
     val particleMixer = mock[ParticleMixer]
+    val observedIdsTrimmer = mock[ObservedIdsTrimmer]
     val instance = new EGenUtil(
       particleMixer,
-      mock[Random]
+      mock[Random],
+      observedIdsTrimmer
     )
   }
 
   "Helper should" - {
-    val (id1, id2, id3, id4) = (111111, 111112, 111113, 111114)
+    val (id1, id2, id3, id4) = (111111l, 111112l, 111113l, 111114l)
 
     val scored1 = Scored(1, Seq(0, 5), Some(id1))
     val scored2 = Scored(2, Seq(0.5), Some(id2))
@@ -47,13 +49,13 @@ class EGenUtilTest extends FreeSpec with Matchers with MockitoSugar {
       val result = instance.addWeightedParticles(newWeighedSeq, gen1)
       val weighedSeq = result.weighed
 
-      // Note, we are not looking for particles consolidation,
+      // Note, we are not looking for particle consolidation,
       // that comes during flushing.
       assert(weighedSeq === initialSeq.add(newWeighedSeq))
     }
 
     "Filter and queue scored particles for weighing" in new Setup {
-      val scoredSeq = ScoredParticles(Seq(scored1))
+      val scoredSeq = ScoredParticles(Seq(scored1, scored2))
 
       val currentTolerance = 0.1
       val gen1 = EvolvingGeneration[Int](
@@ -64,20 +66,18 @@ class EGenUtilTest extends FreeSpec with Matchers with MockitoSugar {
         Queue()
       )
 
+      when(observedIdsTrimmer.apply(Queue(id1, id2))).thenReturn(Queue(id1)) //Simulate some trimming of observed ids
       val nextGen = instance.filterAndQueueUnweighedParticles(scoredSeq, gen1)
 
       val observedIds = nextGen.idsObserved
       val dueWeighing = nextGen.dueWeighing
 
-      assert(observedIds.size === 1)
-      assert(observedIds.contains(id1))
-
-      assert(dueWeighing.size === 1)
-      assert(dueWeighing.seq.contains(scored1))
+      assert(observedIds === Queue(id1))
+      assert(dueWeighing === scoredSeq)
     }
 
     "Filter and queue scored particles with some IDs already present" in new Setup {
-      val idsAlreadyObserved: Queue[Long] = Queue(id1)
+      val idsAlreadyObserved: Queue[Long] = Queue(id1, id3)
       val initialDueWeighing = ScoredParticles(Seq(scored1))
 
       val gen1 = EvolvingGeneration[Int](
@@ -88,15 +88,14 @@ class EGenUtilTest extends FreeSpec with Matchers with MockitoSugar {
         idsAlreadyObserved
       )
 
-      val scoredSeq = ScoredParticles(Seq(scored1, scored2))
+      val scoredSeq = ScoredParticles(Seq(scored1, scored2)) //Seen 1 already, 2 is new
+      when(observedIdsTrimmer.apply(Queue(id1, id3, id2))).thenReturn(Queue(id3, id2)) //id2 trimmed out
       val nextGen = instance.filterAndQueueUnweighedParticles(scoredSeq, gen1)
 
       val observedIds = nextGen.idsObserved
       val dueWeighing = nextGen.dueWeighing
 
-      assert(observedIds.size === 2)
-      assert(observedIds.contains(id1))
-      assert(observedIds.contains(id2))
+      assert(observedIds === Queue(id3, id2))
 
       assert(dueWeighing.size === 2)
       assert(dueWeighing.seq.contains(scored1))

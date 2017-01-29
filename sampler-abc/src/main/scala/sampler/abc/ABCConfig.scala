@@ -1,8 +1,8 @@
 package sampler.abc
 
-import com.typesafe.config.Config
+import com.typesafe.config.{Config, ConfigRenderOptions}
+
 import scala.concurrent.duration.MILLISECONDS
-import com.typesafe.config.ConfigRenderOptions
 
 case class ABCConfig(config: Config) {
   lazy val job = config.getConfig("abc.job")
@@ -28,6 +28,6 @@ case class ABCConfig(config: Config) {
   lazy val mixPayloadSize =       cluster.getInt("mixing.num-particles")
   lazy val clusterSizeReportMS =  cluster.getDuration("size-reporting", MILLISECONDS)
   lazy val terminateAtTargetGen = cluster.getBoolean("terminate-at-target-generation")
-  lazy val memoryGenerations =    cluster.getInt("particle-memory-generations")
+  lazy val maxParticleMemory =    cluster.getInt("max-particle-memory")
   lazy val futuresTimeoutMS =     cluster.getDuration("futures-timeout", MILLISECONDS)
 }
