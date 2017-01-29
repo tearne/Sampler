@@ -23,17 +23,17 @@ class EGenUtil(
       gen: EvolvingGeneration[P]
     ): EvolvingGeneration[P] = {
 
-    val observedIds = gen.idsObserved
+    val observedIdsSet = gen.idsObserved.toSet
     val particlesDueWeighting = gen.dueWeighing
 
     val filtered = taggedAndScoredParamSets.seq.collect {
-      case s@Scored(_, _, Some(id)) if !observedIds.contains(id) => s
+      case s@Scored(_, _, Some(id)) if !observedIdsSet.contains(id) => s
     }
     val newIds = filtered.collect { case Scored(_, _, Some(id)) => id }
 
     gen.copy(
       dueWeighing = particlesDueWeighting.add(filtered),
-      idsObserved = observedIds ++ newIds
+      idsObserved = gen.idsObserved ++ newIds
     )
   }
 

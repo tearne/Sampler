@@ -3,8 +3,11 @@
 .project
 .classpath
 .settings
+.idea
 workspace
 workspace.xml
+
+**/target/
 
 *.class
 *.log
