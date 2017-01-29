@@ -4,6 +4,7 @@
 .classpath
 .settings
 workspace
+workspace.xml
 
 *.class
 *.log
@@ -27,6 +28,8 @@ lib_managed/
 src_managed/
 project/boot/
 project/plugins/project/
+project/target/
+
 
 .DS_Store
 src/.DS_Store
