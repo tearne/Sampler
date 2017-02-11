@@ -40,6 +40,9 @@ case class Population[P](
 	/*
 	 *  Model is an argument rather than in constructor so
 	 *  class can safely be serialised and used as message.
+	 *
+	 *  Note that perturbations might go out of prior range
+	 *  but will rejected later before the model is run
 	 */
 	def proposalDistribution(model: Model[P]) =
 	  consolidatedWeightsTable.toDistribution.map(model.perturb)
