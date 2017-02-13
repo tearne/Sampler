@@ -11,7 +11,7 @@ val cats              = "org.typelevel" %% "cats" % "0.4.1" withSources()
 val rServe            = "org.rosuda.REngine" % "Rserve" % "1.8.1"
 
 val scalaTest         = "org.scalatest" %% "scalatest" % "3.0.1" % "test"
-val scalaCheck        = "org.scalacheck" %% "scalacheck" % "1.13.1" % "test"
+val scalaCheck        = "org.scalacheck" %% "scalacheck" % "1.13.4" % "test"
 
 lazy val commonSettings = Seq(
   organization := buildOrganization,
