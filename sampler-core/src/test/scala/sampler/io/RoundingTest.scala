@@ -1,8 +1,11 @@
 package sampler.io
 
-import org.scalatest.FreeSpec
+import java.math.MathContext
 
-class RoundingTest extends FreeSpec with Rounding{
+import org.scalatest.FreeSpec
+import org.scalatest.prop.GeneratorDrivenPropertyChecks
+
+class RoundingTest extends FreeSpec with Rounding with GeneratorDrivenPropertyChecks{
   "Decimal places" in {
     assert(1234567890.decimalPlaces(3) === 1234567890)
     assert(123456.7890.decimalPlaces(3) === 123456.789)
@@ -31,5 +34,9 @@ class RoundingTest extends FreeSpec with Rounding{
     assert(12345.67890.significanatFigures(3) === 12300.00000)
     assert(12345.67890.significanatFigures(2) === 12000.00000)
     assert(12345.67890.significanatFigures(1) === 10000.00000)
+  }
+
+  "Sig fig scalaCheck" in forAll{d: Double =>
+    assert(d.significanatFigures(3) == BigDecimal(d, new MathContext(3)).doubleValue)
   }
 }
