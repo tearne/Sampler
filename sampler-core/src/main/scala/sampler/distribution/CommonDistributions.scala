@@ -124,44 +124,38 @@ trait CommonDistributions
 		exponential(rate).until(_.sum >= 1).map(_.size - 1)
 
 	def piecewiseLinear(points: (Double, Double)*): Distribution[Double] ={
-    //TODO use alias method?
-		case class Segment(gradient: Double, intercept: Double, width: Double, xOffset: Double){
+		case class Segment(xPositionOffset: Double, width: Double, gradient: Double, intercept: Double) {
 			assume(intercept >= 0)
 			assume(width > 0)
-			assume(xOffset >= 0)
 
-			val m = gradient
+			val m = math.abs(gradient)
+      val mSign = if(m > 0) 1 else -1
 			val c = intercept
 			val integral = (m * width * 0.5 + c) * width
-			def inverse(y: Double) = math.sqrt(2 * y / m  + c * c / (m * m))
+
+			def inverse(y: Double) = math.sqrt(y * mSign + c * c / (2 * m)) / math.sqrt(m / 2) - c / m
+
+      val dist = Distribution.uniform(0.0, 1.0).map(r => inverse(r * integral) + xPositionOffset)
 		}
 
     val segments = points.sliding(2).map{ case Seq((x1, y1), (x2, y2)) =>
         assume(x1 < x2)
         val width = x2 - x1
-        val gradient = y2 - y1 / width
+        val gradient = (y2 - y1) / width
         val intercept = y1
-        Segment(gradient, intercept, width, x1)
+        Segment(x1, width, gradient, intercept)
       }
         .toIndexedSeq
 
-    val grandIntegral = segments.foldLeft(0.0)(_ + _.integral)
-    val cumulativeAreas = segments.map{_.integral / grandIntegral}.scanLeft(0.0)(_ + _)
+    val segmentDist = Distribution.fromWeightsTable(
+      segments.map(s => s -> s.integral).toMap
+    )
 
-    println(segments)
-    println(grandIntegral)
-    println(cumulativeAreas)
-
-    Distribution.uniform(0.0, 1.0).map{y =>
-      val yScaled = y * grandIntegral
-      val (containingSegment, idx) = segments.zipWithIndex.find(_._1.xOffset <= yScaled).get
-      val yOffset = cumulativeAreas(idx)
-      containingSegment.inverse(yScaled - yOffset)
-    }
+    segmentDist.flatMap(_.dist)   //Choose the segment, then choose value in segment
 	}
 }
 
 object Test extends App {
-  val d = Distribution.piecewiseLinear((1,1), (2,10), (3,2), (10,1))
+  val d = Distribution.piecewiseLinear((1,100), (4,2), (5,10), (6,1))
   (1 to 5).map(_ => d.sample(sampler.maths.Random)).foreach(println)
 }
