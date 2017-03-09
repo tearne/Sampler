@@ -128,34 +128,34 @@ trait CommonDistributions
 			assume(intercept >= 0)
 			assume(width > 0)
 
-			val m = math.abs(gradient)
-      val mSign = if(m > 0) 1 else -1
+      val mSgn = if(gradient < 0) -1 else 1
+			val mAbs = math.abs(gradient)
 			val c = intercept
-			val integral = (m * width * 0.5 + c) * width
+			val integral = (mSgn * mAbs * width * 0.5 + c) * width
 
-			def inverse(y: Double) = math.sqrt(y * mSign + c * c / (2 * m)) / math.sqrt(m / 2) - c / m
+      def inverse(y: Double) =
+        (mSgn * math.sqrt(c * c + mSgn * 2 * mAbs * y)  - mSgn * c ) / mAbs
 
-      val dist = Distribution.uniform(0.0, 1.0).map(r => inverse(r * integral) + xPositionOffset)
+      val dist = Distribution.uniform(0.0, integral).map{y =>
+				inverse(y) + xPositionOffset
+			}
 		}
 
-    val segments = points.sliding(2).map{ case Seq((x1, y1), (x2, y2)) =>
+    val segments = points.sliding(2)
+			.map{ case Seq((x1, y1), (x2, y2)) =>
         assume(x1 < x2)
         val width = x2 - x1
         val gradient = (y2 - y1) / width
         val intercept = y1
         Segment(x1, width, gradient, intercept)
       }
-        .toIndexedSeq
+			.toIndexedSeq
 
     val segmentDist = Distribution.fromWeightsTable(
       segments.map(s => s -> s.integral).toMap
     )
 
-    segmentDist.flatMap(_.dist)   //Choose the segment, then choose value in segment
+		//Choose the segment then sample a value within it
+    segmentDist.flatMap(_.dist)
 	}
-}
-
-object Test extends App {
-  val d = Distribution.piecewiseLinear((1,100), (4,2), (5,10), (6,1))
-  (1 to 5).map(_ => d.sample(sampler.maths.Random)).foreach(println)
 }
