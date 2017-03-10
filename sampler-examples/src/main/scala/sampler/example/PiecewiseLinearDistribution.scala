@@ -15,7 +15,7 @@ object PiecewiseLinearDistribution extends App {
     (0.1, 2.0),
     (0.2, 3.0),
     (0.3, 2.0),
-    (0.4, 5.0),
+    (0.4, 2.0),
     (0.5, 2.0),
     (0.9, 1.5),
     (1.0, 0.0)
@@ -29,7 +29,7 @@ object PiecewiseLinearDistribution extends App {
       "x" -> points.map(_._1),
       "y" -> points.map(_._2)
     ),
-    "samples" -> samples.map(_.decimalPlaces(4))
+    "samples" -> samples.map(_.significanatFigures(4))
   ))
 
   FileUtils.writeStringToFile(

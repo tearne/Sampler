@@ -134,7 +134,8 @@ trait CommonDistributions
 			val integral = (mSgn * mAbs * width * 0.5 + c) * width
 
       def inverse(y: Double) =
-        (mSgn * math.sqrt(c * c + mSgn * 2 * mAbs * y)  - mSgn * c ) / mAbs
+        if(mAbs == 0) y / c
+        else (mSgn * math.sqrt(c * c + mSgn * 2 * mAbs * y)  - mSgn * c ) / mAbs
 
       val dist = Distribution.uniform(0.0, integral).map{y =>
 				inverse(y) + xPositionOffset
