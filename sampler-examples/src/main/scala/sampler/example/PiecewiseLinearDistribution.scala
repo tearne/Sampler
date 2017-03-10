@@ -47,7 +47,7 @@ samples = data.frame(sample = data$samples)
 
 ggplot(points) +
   geom_line(aes(x, y)) +
-  geom_density(data = samples, aes(sample), colour = "blue", adjust = 0.5
+  geom_density(data = samples, aes(sample), colour = "blue", adjust = 0.5)
 """
 
   sampler.r.script.RScript(script, wDir.resolve("script.R"))
