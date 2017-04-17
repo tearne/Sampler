@@ -1,9 +1,11 @@
 package sampler.abc.actor.root.state.task.egen
 
+import java.util.UUID
+
 import scala.collection.immutable.Queue
 
 class ObservedIdsTrimmer(maxParticleMemory: Int) {
-  def apply(queuedIds: Queue[Long]) = {
+  def apply(queuedIds: Queue[UUID]) = {
     val queueSize = queuedIds.size
 
     if (queueSize >= maxParticleMemory) {

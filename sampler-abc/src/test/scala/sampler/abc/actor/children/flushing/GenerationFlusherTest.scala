@@ -1,5 +1,7 @@
 package sampler.abc.actor.children.flushing
 
+import java.util.UUID
+
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FreeSpec, Matchers}
@@ -37,7 +39,7 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 			Population(null, 10, 0.5, 0.75),
 			null,
 			weighedParticles,
-			mock[Queue[Long]]
+			mock[Queue[UUID]]
 		)
 		
 		when(toleranceCalculator.apply(seqWeighed, config, 0.1)).thenReturn(0.001)

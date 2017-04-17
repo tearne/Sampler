@@ -1,5 +1,5 @@
 val buildOrganization = "org.tearne"
-val buildVersion      = "0.3.5"
+val buildVersion      = "0.3.6"
 val buildScalaVersion = "2.11.8"
 
 val akkaVersion       = "2.4.6"
@@ -7,6 +7,7 @@ val logbackClassic    = "ch.qos.logback" % "logback-classic" % "1.1.1"
 val commonsIo         = "commons-io" % "commons-io" % "2.4"
 val commonsMath3      = "org.apache.commons" % "commons-math3" % "3.2"
 val playJson          = "com.typesafe.play" %% "play-json" % "2.4.6" exclude("org.slf4j", "slf4j-simple")
+//val cats              = "org.typelevel" %% "cats" % "0.9.0" withSources()
 val cats              = "org.typelevel" %% "cats" % "0.4.1" withSources()
 val rServe            = "org.rosuda.REngine" % "Rserve" % "1.8.1"
 
@@ -18,6 +19,7 @@ lazy val commonSettings = Seq(
   version      := buildVersion,
   licenses     += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
   scalaVersion := buildScalaVersion,
+//  crossScalaVersions := Seq("2.11.8", "2.12.1"),
   scalacOptions ++= Seq(
     "-unchecked" 
     ,"-deprecation" 
@@ -67,8 +69,8 @@ lazy val core = project.in(file("sampler-core"))
       commonsMath3,
       playJson,
       rServe,
-      "org.scalaz" %% "scalaz-core" % "7.1.0",
-      "org.spire-math" %% "spire" % "0.11.0",
+      "org.scalaz" %% "scalaz-core" % "7.1.10",
+      "org.typelevel" %% "spire" % "0.14.0",
       cats
     )
   )

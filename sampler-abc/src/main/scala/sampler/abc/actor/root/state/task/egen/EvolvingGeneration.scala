@@ -1,5 +1,7 @@
 package sampler.abc.actor.root.state.task.egen
 
+import java.util.UUID
+
 import sampler.abc.actor.message.{ScoredParticles, WeighedParticles}
 import sampler.abc.{Generation, Population, UseModelPrior, Weighted}
 
@@ -10,7 +12,7 @@ case class EvolvingGeneration[P](
   previousGen: Generation[P],
   dueWeighing: ScoredParticles[P],
   weighed: WeighedParticles[P],
-  idsObserved: Queue[Long]
+  idsObserved: Queue[UUID]
 ) {
   def emptyWeighingBuffer() = copy(dueWeighing = ScoredParticles.empty)
 

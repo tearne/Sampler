@@ -1,10 +1,9 @@
 package sampler.distribution
 
-import scala.language.higherKinds
-import sampler.maths.{Random, AliasTable}
+import sampler.maths.{AliasTable, Random}
 import sampler.samplable.Samplable
-import scala.annotation.tailrec
-import sampler.samplable.SamplableSyntax
+
+import scala.language.higherKinds
 
 //TODO Applicative
 
@@ -68,11 +67,19 @@ trait LowPriorityImplicits {
     
     override def flatMap[A,B](e: Distribution[A])(f: A => Distribution[B]): Distribution[B] 
       = FlatMap(e, f)
-      
+
     override def sample[A](e: Distribution[A])(implicit r: Random) 
       = e.sample
     
     override def from[A](f: Random => A): Distribution[A] 
       = Build(f)
+
+//    override def tailRecM[A, B](a: A)(f: (A) => Distribution[Either[A, B]]): Distribution[B] = f(a) match {
+//      case Build(f) => ???
+//      case Pure(v) => ???
+//      case FlatMap(distA, distB) => ???
+//      case EmpiricalTable(items, aliasTable) => ???
+//      case EmpiricalSeq(items) => ???
+//    }
   }
 }

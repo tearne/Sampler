@@ -42,7 +42,7 @@ class GenerationFlusher(
 			pop,
 			ScoredParticles.empty,
 			WeighedParticles.empty,
-			Queue.empty[Long]
+			Queue.empty
 		)
   }
 

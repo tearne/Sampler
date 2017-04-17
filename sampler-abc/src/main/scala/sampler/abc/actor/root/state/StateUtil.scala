@@ -34,7 +34,7 @@ class StateUtil(
             prior,
             ScoredParticles.empty,
             WeighedParticles.empty,
-            Queue.empty[Long]
+            Queue.empty
           )
         )
         startNewGeneration(zeroTask, childRefs)

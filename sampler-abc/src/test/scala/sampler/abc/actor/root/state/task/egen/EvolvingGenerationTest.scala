@@ -1,5 +1,7 @@
 package sampler.abc.actor.root.state.task.egen
 
+import java.util.UUID
+
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FreeSpec, Matchers}
 import sampler.abc._
@@ -46,7 +48,7 @@ class EvolvingGenerationTest extends FreeSpec with Matchers with MockitoSugar {
 	    val weighed1 = WeighedParticles.empty
 	  
 	    val prevGen = mock[Generation[T]]
-	    val idsObserved = mock[Queue[Long]]
+	    val idsObserved = mock[Queue[UUID]]
 	    val scored = mock[ScoredParticles[T]]
 	    val weighed = mock[WeighedParticles[T]]
 	    val eGen = EvolvingGeneration[T](

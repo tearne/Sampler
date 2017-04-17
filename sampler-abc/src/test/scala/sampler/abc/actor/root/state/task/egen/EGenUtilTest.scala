@@ -1,5 +1,7 @@
 package sampler.abc.actor.root.state.task.egen
 
+import java.util.UUID
+
 import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
@@ -23,7 +25,7 @@ class EGenUtilTest extends FreeSpec with Matchers with MockitoSugar {
   }
 
   "Helper should" - {
-    val (id1, id2, id3, id4) = (111111l, 111112l, 111113l, 111114l)
+    val (id1, id2, id3, id4) = (UUID.randomUUID, UUID.randomUUID, UUID.randomUUID, UUID.randomUUID)
 
     val scored1 = Scored(1, Seq(0, 5), Some(id1))
     val scored2 = Scored(2, Seq(0.5), Some(id2))
@@ -43,7 +45,7 @@ class EGenUtilTest extends FreeSpec with Matchers with MockitoSugar {
         null,
         ScoredParticles(Seq()),
         initialSeq,
-        Queue.empty[Long]
+        Queue.empty
       )
 
       val result = instance.addWeightedParticles(newWeighedSeq, gen1)
@@ -77,7 +79,7 @@ class EGenUtilTest extends FreeSpec with Matchers with MockitoSugar {
     }
 
     "Filter and queue scored particles with some IDs already present" in new Setup {
-      val idsAlreadyObserved: Queue[Long] = Queue(id1, id3)
+      val idsAlreadyObserved: Queue[UUID] = Queue(id1, id3)
       val initialDueWeighing = ScoredParticles(Seq(scored1))
 
       val gen1 = EvolvingGeneration[Int](
@@ -124,9 +126,9 @@ class EGenUtilTest extends FreeSpec with Matchers with MockitoSugar {
           Seq(
             weighed1,
             weighed2,
-            Weighted(Scored(5, Seq(0.5), Some(111115)), 0.5),
-            Weighted(Scored(6, Seq(0.5), Some(111116)), 0.5),
-            Weighted(Scored(7, Seq(0.5), Some(111117)), 0.5)
+            Weighted(Scored(5, Seq(0.5), Some(UUID.randomUUID)), 0.5),
+            Weighted(Scored(6, Seq(0.5), Some(UUID.randomUUID)), 0.5),
+            Weighted(Scored(7, Seq(0.5), Some(UUID.randomUUID)), 0.5)
           ),
           numRejected1),
         null
