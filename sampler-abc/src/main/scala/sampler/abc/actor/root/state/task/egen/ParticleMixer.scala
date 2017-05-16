@@ -28,9 +28,7 @@ class ParticleMixer {
           scored -> 1
         }.toMap
 
-      val res = oneOfEachParticle.draw(mixingSize).drawnCounts.map {
-        case (scoredParticle, count) => scoredParticle
-      }.toSeq
+      val res = oneOfEachParticle.draw(mixingSize).drawnCounts.keys.toSeq
 
       Some(ScoredParticles(res))
     } else if (mixPool.size > 0) {
