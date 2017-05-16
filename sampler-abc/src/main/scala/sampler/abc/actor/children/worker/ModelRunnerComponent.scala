@@ -62,8 +62,14 @@ trait ModelRunnerComponent[P] {
 						(1 to numReplicates).map(_ => modelWithMetric.sample(random))
 					}
 
+					def isPriorSupported(params: P): Boolean ={
+						val isSupported = prior.density(params) > 0
+						if(!isSupported) debug(s"Proposed particle not supported by prior: $params")
+						isSupported
+					}
+
 					val res: Option[Scored[P]] = for {
-						params <- Some(proposalDistribution.sample(random)) if prior.density(params) > 0
+						params <- Some(proposalDistribution.sample(random)) if isPriorSupported(params)
 						fitScores <- Some(getScores(params))
 					} yield Scored(params, fitScores)
 
