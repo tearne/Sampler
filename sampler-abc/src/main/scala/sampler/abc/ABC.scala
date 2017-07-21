@@ -56,7 +56,7 @@ trait ABCActorsImpl extends ABCActors {
     val random = Random
 
     val helper = new EGenUtil(
-      new ParticleMixer(),
+      ParticleMixer,
       random,
       new ObservedIdsTrimmer(config.maxParticleMemory))
 

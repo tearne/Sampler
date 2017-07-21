@@ -22,7 +22,7 @@ trait WithoutReplacement[R, T] {
 	
 	/** Draw without replacement 
 	 * 
-	 * @return A [[sampler.data.Sample]] containing the draw counts and remainder left
+	 * @return A [[sampler.samplable.Draw[R,T]] containing the draw counts and remainder left
 	 */
 	def draw(n: Int = 1)(implicit r: Random): Draw[R,T] = {
 		val state = drawState(n)
