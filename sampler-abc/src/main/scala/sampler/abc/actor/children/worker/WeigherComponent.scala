@@ -24,9 +24,14 @@ class Weigher[P](calc: ParticleWeightCalculator[P]){
 			scored <- job.scored.seq
 			wt <- calc.particleWeight(scored, job.tolerance, job.prevGen) if(wt) > 0
 		} yield Weighted(scored, wt)
-		
-		val numRejected = job.scored.size - result.size
-		
-		WeighedParticles(result, numRejected)
+
+
+    val numLocalParticleRejections = {
+      val numberLocallyGenerated = job.scored.seq.count(_.wasLocallyGenerated)
+      val numLocalsAccepted = result.count(w =>  w.scored.wasLocallyGenerated)
+      numberLocallyGenerated - numLocalsAccepted
+    }
+
+		WeighedParticles(result, numLocalParticleRejections)
 	}
 }

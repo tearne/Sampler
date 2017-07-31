@@ -1,6 +1,6 @@
 package sampler.abc.actor.root.state.task.egen
 
-import java.util.UUID
+import sampler.abc.UUID
 
 import scala.collection.immutable.Queue
 

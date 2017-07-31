@@ -1,7 +1,5 @@
 package sampler.abc.actor.root.state.task.egen
 
-import java.util.UUID
-
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FreeSpec, Matchers}
 import sampler.abc._

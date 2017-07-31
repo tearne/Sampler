@@ -1,9 +1,7 @@
 package sampler.abc.actor.root.state.task.egen
 
-import java.util.UUID
-
 import sampler.abc.actor.message.{ScoredParticles, WeighedParticles}
-import sampler.abc.{Generation, Population, UseModelPrior, Weighted}
+import sampler.abc._
 
 import scala.collection.immutable.Queue
 

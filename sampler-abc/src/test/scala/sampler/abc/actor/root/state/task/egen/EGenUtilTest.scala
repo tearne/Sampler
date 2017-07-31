@@ -1,7 +1,5 @@
 package sampler.abc.actor.root.state.task.egen
 
-import java.util.UUID
-
 import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
@@ -25,7 +23,7 @@ class EGenUtilTest extends FreeSpec with Matchers with MockitoSugar {
   }
 
   "Helper should" - {
-    val (id1, id2, id3, id4) = (UUID.randomUUID, UUID.randomUUID, UUID.randomUUID, UUID.randomUUID)
+    val (id1, id2, id3, id4) = (UUID.generate, UUID.generate, UUID.generate, UUID.generate)
 
     val scored1 = Scored(1, Seq(0, 5), Some(id1))
     val scored2 = Scored(2, Seq(0.5), Some(id2))
@@ -126,9 +124,9 @@ class EGenUtilTest extends FreeSpec with Matchers with MockitoSugar {
           Seq(
             weighed1,
             weighed2,
-            Weighted(Scored(5, Seq(0.5), Some(UUID.randomUUID)), 0.5),
-            Weighted(Scored(6, Seq(0.5), Some(UUID.randomUUID)), 0.5),
-            Weighted(Scored(7, Seq(0.5), Some(UUID.randomUUID)), 0.5)
+            Weighted(Scored(5, Seq(0.5), Some(UUID.generate)), 0.5),
+            Weighted(Scored(6, Seq(0.5), Some(UUID.generate)), 0.5),
+            Weighted(Scored(7, Seq(0.5), Some(UUID.generate)), 0.5)
           ),
           numRejected1),
         null

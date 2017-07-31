@@ -1,5 +1,5 @@
 val buildOrganization = "org.tearne"
-val buildVersion      = "0.3.7"
+val buildVersion      = "0.3.8"
 val buildScalaVersion = "2.11.8"
 
 val akkaVersion       = "2.4.6"
@@ -111,7 +111,8 @@ lazy val abc = project.in(file("sampler-abc"))
       "org.apache.jclouds" % "jclouds-core" % "1.9.2",
       "org.apache.jclouds" % "jclouds-compute" % "1.9.2",
       "org.apache.jclouds.driver" % "jclouds-slf4j" % "1.9.1",
-      "com.github.scopt" %% "scopt" % "3.3.0"
+      "com.github.scopt" %% "scopt" % "3.3.0",
+      "com.fasterxml.uuid" % "java-uuid-generator" % "3.1.4"
     )
   )
   .settings(commonSettings: _*)

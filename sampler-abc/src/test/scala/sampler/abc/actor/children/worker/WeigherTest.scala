@@ -16,9 +16,9 @@ class WeigherTest extends FreeSpec with MockitoSugar {
     val calculator = mock[ParticleWeightCalculator[T]]
     val instance = new Weigher(calculator)
 
-    val scored1 = mock[Scored[T]]
-    val scored2 = mock[Scored[T]]
-    val scored3 = mock[Scored[T]]
+    val scored1 = mock[Scored[T]]; when(scored1.wasLocallyGenerated).thenReturn(true)
+    val scored2 = mock[Scored[T]]; when(scored2.wasLocallyGenerated).thenReturn(false)
+    val scored3 = mock[Scored[T]]; when(scored3.wasLocallyGenerated).thenReturn(true)
 
     val weighted1 = Weighted(scored1, 0.3)
     val weighted2 = Weighted(scored2, 0.4)
@@ -28,22 +28,22 @@ class WeigherTest extends FreeSpec with MockitoSugar {
   "Weigher should" - {
     val tolerance = 10.05
     val prevPopulation: Generation[T] = mock[Population[T]]
-    val irrelevant = 0
+    val oneLocalParticleRejected = 1
 
-    "Use PartielWeightCalc to weigh each scored particle" in new Setup {
+    "Use PartielWeightCalc to weigh each scored particle and count num local rejections" in new Setup {
       val scoredParticles = ScoredParticles(
         Seq(scored1, scored2, scored3)
       )
 
       when(calculator.particleWeight(scored1, tolerance, prevPopulation)).thenReturn(Some(0.3))
       when(calculator.particleWeight(scored2, tolerance, prevPopulation)).thenReturn(Some(0.4))
-      when(calculator.particleWeight(scored3, tolerance, prevPopulation)).thenReturn(Some(0.5))
+      when(calculator.particleWeight(scored3, tolerance, prevPopulation)).thenReturn(None)
 
       val weighJob = new WeighJob(scoredParticles, prevPopulation, tolerance)
 
       val expectedWeightedParticles = Success(WeighedParticles(
-    		  Seq(weighted1, weighted2, weighted3), 
-    		  irrelevant
+    		  Seq(weighted1, weighted2),
+          oneLocalParticleRejected
       ))
       assertResult(expectedWeightedParticles) {
         instance.apply(weighJob)
@@ -90,8 +90,8 @@ class WeigherTest extends FreeSpec with MockitoSugar {
       }
       
     }
-    
-    "Not return anything that gets a weight of zero" in fail("TODO")
-    "Not return anything that fails weighing" in fail("TODO")
+
+    "Not return anything that gets a weight of zero" in pending
+    "Not return anything that fails weighing" in pending
   }
 }

@@ -1,13 +1,11 @@
 package sampler.abc.actor.children.flushing
 
-import java.util.UUID
-
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FreeSpec, Matchers}
 import sampler.abc.actor.message.WeighedParticles
 import sampler.abc.actor.root.state.task.egen.EvolvingGeneration
-import sampler.abc.{ABCConfig, Model, Population, Weighted}
+import sampler.abc._
 
 import scala.collection.immutable.Queue
 
@@ -74,7 +72,7 @@ class GenerationFlusherTest extends FreeSpec with Matchers with MockitoSugar {
 			assert(result.currentTolerance === 0.001)
 			assert(result.dueWeighing.size === 0)
 			assert(result.weighed.size === 0)
-			assert(result.weighed.numRejected === 0)
+			assert(result.weighed.numLocalParticlesRejected === 0)
 			assert(result.idsObserved === inProgress.idsObserved)
 		}
 		
