@@ -1,8 +1,7 @@
 package sampler.spike.typeclass.solution
 
 import cats.Eq
-import cats.std.all._
-import cats.syntax.eq._
+import cats.implicits._
 
 object Equals {
   case class TimeStamped(number: Int, time: Long = System.nanoTime)

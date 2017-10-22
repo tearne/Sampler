@@ -7,8 +7,7 @@ val logbackClassic    = "ch.qos.logback" % "logback-classic" % "1.1.1"
 val commonsIo         = "commons-io" % "commons-io" % "2.4"
 val commonsMath3      = "org.apache.commons" % "commons-math3" % "3.2"
 val playJson          = "com.typesafe.play" %% "play-json" % "2.4.6" exclude("org.slf4j", "slf4j-simple")
-//val cats              = "org.typelevel" %% "cats" % "0.9.0" withSources()
-val cats              = "org.typelevel" %% "cats" % "0.4.1" withSources()
+val cats              = "org.typelevel" %% "cats-core" % "1.0.0-MF" withSources()
 val rServe            = "org.rosuda.REngine" % "Rserve" % "1.8.1"
 
 val scalaTest         = "org.scalatest" %% "scalatest" % "3.0.1" % "test"
@@ -57,7 +56,7 @@ lazy val packageSettings = Seq(
 )
 
 lazy val root = project.in(file("."))
-  .aggregate(core, examples, abc, spike)
+  .aggregate(core, examples, abc)//, spike)
   .settings(commonSettings: _*)
 
 lazy val core = project.in(file("sampler-core"))
@@ -70,7 +69,7 @@ lazy val core = project.in(file("sampler-core"))
       playJson,
       rServe,
       "org.scalaz" %% "scalaz-core" % "7.1.10",
-      "org.typelevel" %% "spire" % "0.14.0",
+      "org.typelevel" %% "spire" % "0.14.1",
       cats
     )
   )
@@ -117,7 +116,7 @@ lazy val abc = project.in(file("sampler-abc"))
   )
   .settings(commonSettings: _*)
 
-  
+
 lazy val spike = project.in(file("sampler-spike"))
   .dependsOn(core)
   .settings(name := "sampler-spike")

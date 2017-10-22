@@ -9,17 +9,14 @@ object Equals extends App {
   /*
    * Eq.eqv(a, b) makes sure that a & b must be of the same type  
    */
-  import cats.Eq
-  import cats.std.all._
+  import cats._
+  import cats.implicits._
 //  Eq[String].eqv("1", 1)  // Won't compile
   Eq[String].eqv("1", "2")
   
   /*
-   * Importing 'syntax' allows us to write a.===(b) by bringing
-   * an implicit conversion into scope: 
-   * EqSyntax(a)(implicit ev: Eq[A]).===(b: A)
+   * Implicits allows us to write a.===(b)
    */
-  import cats.syntax.eq._
   "fish" === "cake"  // false
  
   /*
@@ -58,8 +55,6 @@ object Equals extends App {
   
   //This shouldn't compile
 //  Box("One", 1) =!= Box("One", "1")
-  
-  
-  
+
   
 }
