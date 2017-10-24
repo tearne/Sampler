@@ -68,7 +68,7 @@ lazy val core = project.in(file("sampler-core"))
       commonsMath3,
       playJson,
       rServe,
-      "org.scalaz" %% "scalaz-core" % "7.1.10",
+      //"org.scalaz" %% "scalaz-core" % "7.1.10",
       "org.typelevel" %% "spire" % "0.14.1",
       cats
     )
