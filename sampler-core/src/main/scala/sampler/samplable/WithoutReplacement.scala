@@ -53,19 +53,20 @@ trait WithoutReplacementImplicits {
 
     def numRemaining = items.values.sum
 
-    def removeOne(soFar: Counts)(implicit r: Random): State[Counts, Counts] = for (
-      item <- State[Counts, T] { s =>
-        val (items, counts) = s.toIndexedSeq.unzip
-        val countIndex = r.nextInt(s.values.sum)
-        val selectedIndex = counts
-          .view
-          .scanLeft(0)(_ + _)
-          .drop(1)
-          .indexWhere(_ > countIndex)
-        val selected: T = items(selectedIndex)
-        (s.updated(selected, s(selected) - 1), selected)
-      }
-    ) yield soFar.updated(item, soFar.getOrElse(item, 0) + 1)
+    def removeOne(soFar: Counts)(implicit r: Random): State[Counts, Counts] =
+			for (
+				item <- State[Counts, T] { s =>
+					val (items, counts) = s.toIndexedSeq.unzip
+					val countIndex = r.nextInt(s.values.sum)
+					val selectedIndex = counts
+						.view
+						.scanLeft(0)(_ + _)
+						.drop(1)
+						.indexWhere(_ > countIndex)
+					val selected: T = items(selectedIndex)
+					(s.updated(selected, s(selected) - 1), selected)
+				}
+			) yield soFar.updated(item, soFar.getOrElse(item, 0) + 1)
   }
 
   implicit class WithoutReplacemenSeq[T](val items: IndexedSeq[T]) extends WithoutReplacement[IndexedSeq[T], T] {
@@ -76,12 +77,12 @@ trait WithoutReplacementImplicits {
     def numRemaining = items.size
 
     def removeOne(soFar: Counts)(implicit r: Random): State[Remain, Counts] =
-      for (
-        remaining <- State.get[Remain];
-        index = r.nextInt(remaining.size);
-        item <- state(remaining(index));
-        _ <- put(remaining.patch(index, Nil, 1))
-      ) yield soFar.updated(item, soFar.getOrElse(item, 0) + 1)
+      for {
+        remaining <- State.get[Remain]              // Fresh State[Remain, Remain], representing remaining => (remaining, remaining)
+        index = r.nextInt(remaining.size)           // Choose random index to get an item
+        item <- State.pure(remaining(index))        // Equivalent to item = remaining(index)?
+        _ <- State.set(remaining.patch(index, Nil, 1))  // Put the remainder after sampling into a new State[Remaining, Unit]
+      } yield soFar.updated(item, soFar.getOrElse(item, 0) + 1) // Change the Unit (result part) into the counts
   }
 
 }
