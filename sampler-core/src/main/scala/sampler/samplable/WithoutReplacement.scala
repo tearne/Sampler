@@ -26,7 +26,7 @@ trait WithoutReplacement[R, T] {
     */
   def draw(n: Int = 1)(implicit r: Random): Draw[R, T] = {
     val state = drawState(n)
-    val (remainder, drawn) = state.run(items)
+    val (remainder, drawn) = state.run(items).value
     Draw(remainder, drawn)
   }
 
@@ -57,7 +57,7 @@ trait WithoutReplacementImplicits {
 			for (
 				item <- State[Counts, T] { s =>
 					val (items, counts) = s.toIndexedSeq.unzip
-					val countIndex = r.nextInt(s.values.sum)
+					val countIndex = r.nextInt(s.values.sum) // TODO use counts?
 					val selectedIndex = counts
 						.view
 						.scanLeft(0)(_ + _)

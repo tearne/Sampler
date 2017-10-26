@@ -1,6 +1,5 @@
 package sampler.cluster.deploy.bash
 
-import sampler.cluster.deploy.Node
 import java.nio.file.Path
 
 object Script {

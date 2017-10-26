@@ -1,25 +1,26 @@
 package sampler.example.r
 
-import org.json4s.JsonDSL._
-import org.json4s._
-import org.json4s.native.JsonMethods._
 import org.rosuda.REngine.Rserve.RConnection
+import play.api.libs.json.Json
 import sampler.r.rserve.RServeHelper
 
 object RServeHelperExample extends App {
+  //TODO retest with jsonLite in R script
+
 	// Prep some data to send to R
-	val json = 
-		("SomeText" -> "Hello, JSON!") ~
-		("ObsId"-> (1 to 100)) ~
-		("Value"-> (1 to 100).map(_ => math.random))
-	println(pretty(render(json)))
+	val json = Json.obj(
+		"SomeText" -> "Hello, JSON!",
+		"ObsId"-> (1 to 100),
+		"Value"-> (1 to 100).map(_ => math.random)
+  )
+	println(Json.prettyPrint(json))
 	
 	RServeHelper.ensureRunning()
 	val connection = new RConnection
 	
 	//Send the data, concat strings in R, get result back
-	connection.assign("jsonInR", compact(render(json)))
-	val script1 = 
+	connection.assign("jsonInR", Json.stringify(json))
+	val script1 =
 		"""
 			library(rjson)
 			parsed = fromJSON(jsonInR)
@@ -33,8 +34,8 @@ object RServeHelperExample extends App {
 		  toJSON(summary(df))
 		"""
 	val res = connection.parseAndEval(script2)
-	val jsonResult = parse(res.asString)
-	println(pretty(render(jsonResult)))
+	val jsonResult = Json.parse(res.asString)
+	println(Json.prettyPrint(jsonResult))
 	
 	//Always close the connection
 	connection.close

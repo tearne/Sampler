@@ -3,13 +3,16 @@ package sampler.example
 import java.nio.file.{Files, Paths}
 
 import org.apache.commons.io.FileUtils
-import org.json4s.JsonDSL._
-import org.json4s.native.JsonMethods._
+import play.api.libs.json.JsObject
+import play.api.libs.json.Json
+import play.api.libs.json.Json._
 import sampler._
 import sampler.distribution.Distribution
 import sampler.io.Rounding.Roundable
 import sampler.maths.Random
 import sampler.r.script.RScript
+
+import scala.collection.immutable
 
 /*
  * Bootstrap on observations to determine the power of a sampling 
@@ -90,7 +93,7 @@ object Randomisation extends App {
 		}
 	}
 		
-	val results = Map(
+	val results: Seq[Results] = Map(
 				"Rank" -> rankStatistic _ ,
 				"Sum" -> sumStatistic _
 		)
@@ -111,24 +114,27 @@ object Randomisation extends App {
 			
 			Results(statName, nullObs, experimentObs)
 		}
+    .toSeq
 	
 	val confidence = 0.8 until 1 by 0.0002
-	
-	val json = results.map{r => 
-		("stat_name" -> r.statisticName) ~
-		("observations" -> {
-			("null" -> r.nullObs.map(_.decimalPlaces(3))) ~
-			("experimental" -> r.experimentalObs.map(_.decimalPlaces(3)))
-		}) ~
-		("powers" -> {
-			("confidence" -> confidence.map(_.decimalPlaces(3))) ~
-			("power" -> r.powerAtConfidence(confidence).map(_.decimalPlaces(3)))
-		})
-	}
+
+	val jsons: Seq[JsObject] = results.map{ r => obj(
+    "stat_name" -> r.statisticName,
+    "observations" -> Json.obj(
+      "null" -> r.nullObs.map(_.decimalPlaces(3)),
+      "experimental" -> r.experimentalObs.map(_.decimalPlaces(3))
+    ),
+    "powers" -> Json.obj(
+      "confidence" -> confidence.map(_.decimalPlaces(3)),
+      "power" -> r.powerAtConfidence(confidence).map(_.decimalPlaces(3))
+    )
+  )}
+
 	
 	FileUtils.writeStringToFile(
 			wd.resolve("json.json").toFile(), 
-			pretty(render(json)))
+			Json.prettyPrint(Json.arr(jsons))
+  )
 	
 	RScript("""
 	  library(ggplot2)
@@ -165,6 +171,6 @@ object Randomisation extends App {
 	  
 	  dev.off()
 	  """,
-		wd
+		wd.resolve("rscript")
 	)
 }
