@@ -1,5 +1,5 @@
 val buildOrganization = "org.tearne"
-val buildVersion      = "0.3.10"
+val buildVersion      = "0.3.11"
 val buildScalaVersion = "2.12.4"
 
 val akkaVersion       = "2.5.6"

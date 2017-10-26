@@ -117,7 +117,7 @@ trait CommonDistributions
 			
 	//TODO test
 	def exponential(rate: Double) = 
-		uniform(0,1).map(x => - math.log(x) / rate)
+		uniform(0.0,1.0).map(x => - math.log(x) / rate)
 		
 	//TODO test
 	def poisson(rate: Double) = 
