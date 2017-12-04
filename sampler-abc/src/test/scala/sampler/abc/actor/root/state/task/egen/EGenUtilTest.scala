@@ -1,7 +1,7 @@
 package sampler.abc.actor.root.state.task.egen
 
-import org.mockito.Matchers._
 import org.mockito.Mockito._
+import org.mockito.ArgumentMatchers
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FreeSpec, Matchers}
 import sampler.abc._
@@ -160,10 +160,10 @@ class EGenUtilTest extends FreeSpec with Matchers with MockitoSugar {
       val config = mock[ABCConfig]
 
       when(particleMixer.apply(
-        org.mockito.Matchers.eq(gen1),
-        org.mockito.Matchers.eq(config)
+        ArgumentMatchers.eq(gen1),
+        ArgumentMatchers.eq(config)
       )(
-        any[Random]
+        ArgumentMatchers.any[Random]
       )).thenReturn(mixinResponse)
 
       assert(instance.buildMixPayload(gen1, config) === mixinResponse)

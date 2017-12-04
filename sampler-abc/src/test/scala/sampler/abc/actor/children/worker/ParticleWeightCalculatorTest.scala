@@ -5,7 +5,7 @@ import org.scalatest.mockito.MockitoSugar
 import sampler.abc.Model
 import sampler.abc.Prior
 import org.mockito.Mockito._
-import org.mockito.Matchers._
+import org.mockito.ArgumentMatchers.anyInt
 import sampler.abc.Generation
 import sampler.abc.Population
 import sampler.abc.UseModelPrior

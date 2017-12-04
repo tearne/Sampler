@@ -1,6 +1,6 @@
 package sampler.abc.actor.children.worker
 
-import org.mockito.Matchers._
+import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito.when
 import org.scalatest.FreeSpec
 import org.scalatest.mockito.MockitoSugar
@@ -59,7 +59,7 @@ class ModelRunnerTest extends FreeSpec with MockitoSugar {
 	 	}
 		"Return no scored parameters if prior density of param is 0" in new Setup {
   		val zeroPrior = mock[Prior[T]]
-  		when(zeroPrior.density(anyObject[T])).thenReturn(0, 0, 0.5)  //Two cases of zero prior before success
+  		when(zeroPrior.density(any[T])).thenReturn(0, 0, 0.5)  //Two cases of zero prior before success
   		when(instance1.model.prior).thenReturn(zeroPrior)
   	
   		fail("TODO")

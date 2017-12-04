@@ -17,8 +17,9 @@
 
 package sampler.maths
 
+import java.util.concurrent.ThreadLocalRandom
+
 import sampler._
-import scala.concurrent.forkjoin.ThreadLocalRandom
 
 trait Random {
 	def nextDouble(): Double

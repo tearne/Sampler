@@ -1,16 +1,16 @@
 val buildOrganization = "org.tearne"
-val buildVersion      = "0.3.11"
+val buildVersion      = "0.3.12"
 val buildScalaVersion = "2.12.4"
 
-val akkaVersion       = "2.5.6"
+val akkaVersion       = "2.5.7"
 val logbackClassic    = "ch.qos.logback" % "logback-classic" % "1.1.1"
 val commonsIo         = "commons-io" % "commons-io" % "2.4"
 val commonsMath3      = "org.apache.commons" % "commons-math3" % "3.2"
-val playJson          = "com.typesafe.play" %% "play-json" % "2.6.6" //exclude("org.slf4j", "slf4j-simple")
-val cats              = "org.typelevel" %% "cats-core" % "1.0.0-MF" withSources()
+val playJson          = "com.typesafe.play" %% "play-json" % "2.6.7" //exclude("org.slf4j", "slf4j-simple")
+val cats              = "org.typelevel" %% "cats-core" % "1.0.0-RC1" withSources()
 val rServe            = "org.rosuda.REngine" % "Rserve" % "1.8.1"
 
-val scalaTest         = "org.scalatest" %% "scalatest" % "3.0.1" % "test"
+val scalaTest         = "org.scalatest" %% "scalatest" % "3.0.4" % "test"
 val scalaCheck        = "org.scalacheck" %% "scalacheck" % "1.13.4" % "test"
 
 lazy val commonSettings = Seq(
@@ -18,7 +18,7 @@ lazy val commonSettings = Seq(
   version      := buildVersion,
   licenses     += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
   scalaVersion := buildScalaVersion,
-  crossScalaVersions := Seq("2.11.8", "2.12.4"),
+  crossScalaVersions := Seq("2.11.11", "2.12.4"),
   scalacOptions ++= Seq(
     "-unchecked" 
     ,"-deprecation" 
@@ -34,13 +34,9 @@ lazy val commonSettings = Seq(
     "junit" % "junit" % "4.8" % "test->default",
     scalaTest,
     scalaCheck,
-    "org.mockito" % "mockito-all" % "1.9.0" %"test->default",
-    "org.slf4j" % "slf4j-api" % "1.7.7",
-    "com.novocode" % "junit-interface" % "0.11" % "test"
-  ),
-  
-  //Doesn't seem to works
-  libraryDependencies ~= { _.map(_.exclude("org.slf4j", "slf4j-nop")) }
+    "org.mockito" % "mockito-core" % "2.12.0" %"test->default",
+    "org.slf4j" % "slf4j-api" % "1.7.25"
+  )
 )
 
 lazy val packageSettings = Seq(
@@ -102,9 +98,6 @@ lazy val abc = project.in(file("sampler-abc"))
       "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
       "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
       "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",
-      "org.apache.jclouds" % "jclouds-core" % "1.9.2",
-      "org.apache.jclouds" % "jclouds-compute" % "1.9.2",
-      "org.apache.jclouds.driver" % "jclouds-slf4j" % "1.9.1",
       "com.fasterxml.uuid" % "java-uuid-generator" % "3.1.4"
     )
   )

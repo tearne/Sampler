@@ -4,7 +4,7 @@ import org.scalatest.FreeSpec
 import org.scalatest.mockito.MockitoSugar
 import sampler.maths.Random
 import org.mockito.Mockito._
-import org.mockito.Matchers._
+import org.mockito.ArgumentMatchers.anyInt
 
 import scala.collection.immutable.TreeMap
 
