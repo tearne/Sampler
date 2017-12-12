@@ -2,7 +2,7 @@ package sampler.abc
 
 case class Scored[P](params: P, scores: Seq[Double], id: Option[UUID]){
   def meanScore: Double = scores.sum / scores.size
-  def wasLocallyGenerated: Boolean = id.map(_.generatingNodeId == UUID.thisNodeId).getOrElse(false)
+  def wasLocallyGenerated: Boolean = id.exists(_.generatingNodeId == UUID.thisNodeId)
 }
 
 object Scored{

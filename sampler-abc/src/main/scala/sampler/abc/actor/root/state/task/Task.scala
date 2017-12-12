@@ -2,7 +2,7 @@ package sampler.abc.actor.root.state.task
 
 import akka.actor.ActorRef
 import sampler.abc.actor.root.state.task.egen.EvolvingGeneration
-import sampler.abc.{ABCConfig, Population}
+import sampler.abc.{ABCConfig, Population, UseModelPrior}
 
 trait Task[P] {
   val config: ABCConfig
@@ -31,8 +31,16 @@ case class RunningTask[P](
     evolvingGeneration: EvolvingGeneration[P]
   ) extends Task[P] {
 
-  def shouldFlush =
-    evolvingGeneration.weighed.size >= config.numParticles
+  def shouldFlush ={
+    val achievedMinParticles = evolvingGeneration.weighed.size >= config.numParticles
+    val achievedMinLocallyGenParticles ={
+      val required = config.minNumLocalParticles
+      val actual = evolvingGeneration.weighed.seq.count(_.wasLocallyGenerated)
+      actual >= required
+    }
+
+    achievedMinParticles && achievedMinLocallyGenParticles
+  }
 
   def shouldTerminate = {
     evolvingGeneration.previousGen.iteration >= config.numGenerations - 1 &&
