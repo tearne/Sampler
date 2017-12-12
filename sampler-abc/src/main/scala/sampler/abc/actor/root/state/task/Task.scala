@@ -2,7 +2,7 @@ package sampler.abc.actor.root.state.task
 
 import akka.actor.ActorRef
 import sampler.abc.actor.root.state.task.egen.EvolvingGeneration
-import sampler.abc.{ABCConfig, Population, UseModelPrior}
+import sampler.abc.{ABCConfig, Population}
 
 trait Task[P] {
   val config: ABCConfig

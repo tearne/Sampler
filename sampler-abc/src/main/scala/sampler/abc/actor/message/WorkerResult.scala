@@ -18,7 +18,7 @@ case class WeighedParticles[P](seq: Seq[Weighted[P]], numLocalParticlesRejected:
   lazy val size = seq.length
 
   def acceptanceRatio = {
-    val numLocallyGenerated = seq.collect{case w: Weighted[P] if w.wasLocallyGenerated => w}.length
+    val numLocallyGenerated = seq.filter(_.wasLocallyGenerated).length
 
     if(numLocallyGenerated == 0) 0.0
     else numLocallyGenerated.toDouble / (numLocallyGenerated + numLocalParticlesRejected)
