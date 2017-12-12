@@ -18,7 +18,7 @@ class ABCConfigTest extends FreeSpec {
         particle-retries = 100
         particle-chunk-size = 200
         tolerance-descent-percentile = 0.7
-        min-num-local-particles = 5
+        fewest-accepted-local-particles = 5
       }
       cluster {
         system-name = "MyCluster"
