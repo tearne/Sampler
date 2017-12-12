@@ -34,7 +34,7 @@ lazy val commonSettings = Seq(
     "junit" % "junit" % "4.8" % "test->default",
     scalaTest,
     scalaCheck,
-    "org.mockito" % "mockito-core" % "2.12.0" %"test->default",
+    "org.mockito" % "mockito-core" % "2.12.0" % Test,
     "org.slf4j" % "slf4j-api" % "1.7.25"
   )
 )

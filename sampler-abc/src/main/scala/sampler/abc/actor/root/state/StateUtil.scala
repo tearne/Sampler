@@ -78,18 +78,17 @@ class StateUtil(
 
   def addScoredFromMixing[P](
       mixP: MixPayload[P],
-      task: RunningTask[P],
+      previousTask: RunningTask[P],
       sender: ActorRef,
       childRefs: ChildRefs
-    )(
-      implicit rootActor: ActorRef
     ): RunningTask[P] = {
 
     val newTask = {
       val newEGen = eGenUtil.filterAndQueueUnweighedParticles(
         mixP.scoredParticles,
-        task.evolvingGeneration)
-      task.updateEvolvingGeneration(newEGen)
+        previousTask.evolvingGeneration
+      )
+      previousTask.updateEvolvingGeneration(newEGen)
     }
 
     childRefs.reporter ! StatusReport(
@@ -111,7 +110,9 @@ class StateUtil(
     ): RunningTask[P] = {
 
     val newTask = {
-      val updatedEGen = eGenUtil.addWeightedParticles(weighed, task.evolvingGeneration)
+      val updatedEGen = eGenUtil.addWeightedParticles(
+        weighed,
+        task.evolvingGeneration)
       task.updateEvolvingGeneration(updatedEGen)
     }
 
