@@ -20,11 +20,16 @@ package sampler.io
 import org.slf4j.LoggerFactory
 
 trait Logging {
-	private[this] val logger = LoggerFactory.getLogger(getClass.getName)
+  private[this] val logger = LoggerFactory.getLogger(getClass.getName)
 
-	def trace(msg: => String) { if (logger.isTraceEnabled) logger.trace(msg) }
-	def debug(msg: => String) { if (logger.isDebugEnabled) logger.debug(msg) }
-	def info(msg: => String) { if (logger.isInfoEnabled) logger.info(msg) }
-	def warn(msg: => String) { if (logger.isWarnEnabled) logger.warn(msg) }
-	def error(msg: => String) { if (logger.isErrorEnabled) logger.error(msg) }
+  def trace(msg: => String) { if (logger.isTraceEnabled) logger.trace(msg) }
+  def debug(msg: => String) { if (logger.isDebugEnabled) logger.debug(msg) }
+  def info(msg: => String) { if (logger.isInfoEnabled) logger.info(msg) }
+  def warn(msg: => String) { if (logger.isWarnEnabled) logger.warn(msg) }
+  def error(msg: => String) { if (logger.isErrorEnabled) logger.error(msg) }
+
+  def logLocation() = {
+    val ste: StackTraceElement = Thread.currentThread.getStackTrace()(3)
+    logger.debug(s"Location: ${ste.getClassName}:${ste.getMethodName}:${ste.getLineNumber}")
+  }
 }

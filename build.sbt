@@ -1,6 +1,7 @@
-val buildOrganization = "org.tearne"
-val buildVersion      = "0.3.14"
-val buildScalaVersion = "2.12.4"
+val buildOrganization  = "org.tearne"
+val buildVersion       = "0.3.15"
+val buildScalaVersion  = "2.12.6"
+val crossBuildVersions = Seq(buildScalaVersion, "2.11.12")
 
 val akkaVersion       = "2.5.7"
 val logbackClassic    = "ch.qos.logback" % "logback-classic" % "1.1.1"
@@ -18,7 +19,7 @@ lazy val commonSettings = Seq(
   version      := buildVersion,
   licenses     += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
   scalaVersion := buildScalaVersion,
-  crossScalaVersions := Seq("2.11.11", "2.12.4"),
+  crossScalaVersions := crossBuildVersions,
   scalacOptions ++= Seq(
     "-unchecked" 
     ,"-deprecation" 
