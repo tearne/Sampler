@@ -18,12 +18,51 @@
 package sampler.abcd.replicated
 
 import akka.cluster.ddata.ReplicatedData
+import sampler.abcd.Particle
 
-class WorkingGenData[P] extends ReplicatedData {
-  override type T = this.type
+case class WorkingGenData[P](
+    particles: Set[Particle[P]],
+    generationId: Int
+) extends ReplicatedData {
+  //TODO Deltas using ORSet
 
-  override def merge(that: T): T = ???
+  /**
+    * Note that we don't guarantee that the particles added
+    * came from the same previous generation
+    */
+  def addParticle(p: Particle[P]): WorkingGenData[P] = {
+    if(p.towardsGeneration == generationId)
+      copy(particles = particles + p)
+    else if(p.towardsGeneration > generationId)
+      copy(particles = Set(p), generationId = p.towardsGeneration)
+    else {
+      //TODO log me: particle for old generation arrived
+      this
+    }
+  }
+
+  /**
+    * Since the particles may have come from different previous
+    * generations (prior to CRDT convergence) we need to count
+    * in groups based on parent generation
+    */
+  def numConsistentParticles(): Int = particles
+    .groupBy(_.parentGenerationUUID)
+    .values
+    .map(_.size)
+    .max
+
+  override type T = WorkingGenData[P]
+
+  override def merge(that: T): T = {
+    if(this.generationId == that.generationId)
+      copy(that.particles ++ particles)
+    else if(this.generationId > that.generationId)
+      this
+    else
+      that
+  }
 }
 object WorkingGenData{
-  def empty[P]: WorkingGenData[P] = ???
+  def empty[P]: WorkingGenData[P] = WorkingGenData(Set.empty[Particle[P]], 0)
 }

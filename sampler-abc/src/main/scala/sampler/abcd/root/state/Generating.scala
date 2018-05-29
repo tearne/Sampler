@@ -18,9 +18,9 @@
 package sampler.abcd.root.state
 import akka.actor.ActorRef
 import akka.cluster.ddata.Replicator._
-import sampler.abcd.replicated.WorkingGenData
-import sampler.abcd.root.{Dependencies, NewParticle, Start}
+import sampler.abcd.replicated.{PrevGenData, WorkingGenData}
 import sampler.abcd.root.task.Task
+import sampler.abcd.root.{Dependencies, NewParticle}
 
 
 case class Generating[P](dependencies: Dependencies[P], task: Task[P]) extends State[P] {
@@ -28,34 +28,37 @@ case class Generating[P](dependencies: Dependencies[P], task: Task[P]) extends S
   import dependencies._
 
   override def evolve(sender: ActorRef, self: ActorRef): PartialFunction[Any, State[P]] = {
-    case np: NewParticle[P] =>
-      // Now we've got a new particle, let's also get an update to the previous generation in case anything changed
+    case NewParticle(p) =>
       val freeWorkerNode = sender
-      replicator ! Update(WorkingGenKey, WorkingGenData.empty, WriteLocal, Some(freeWorkerNode))(_ addNewParticle p)
+      replicator ! Update(WorkingGenKey, WorkingGenData.empty, WriteLocal, Some(freeWorkerNode))(_ addParticle p)
       stay
 
+      //TODO, think about whether there is a problem if lots of new particles com in at once
 
-      //TODO DANGER, this flow will go screwey with more than two workers, since
-      // the success messages for each might get confused
-
-    case us @ UpdateSuccess(WorkingGenKey, Some(freeWorker: ActorRef)) =>
+    case UpdateSuccess(WorkingGenKey, Some(freeWorker: ActorRef)) =>
+      // Adding the new particle is done, now get the whole thing to see how many particles we have
       replicator ! Get(WorkingGenKey, ReadLocal, Some(freeWorker))
       stay
 
     case gs @ GetSuccess(WorkingGenKey, Some(freeWorker: ActorRef)) =>
-      val workingPopulation = gs.get[WorkingGenData[P]].population
-      if(util.hasEnoughParticles(workingPopulation, config)) {
-        util.flush(workingGenData)
-        Flushing()
+      val workingGenData: WorkingGenData[P] = gs.get(WorkingGenKey)
+      if(util.shouldFlush(workingGenData, config)) {
+        util.startFlush(workingGenData) //This should abort workers, send flush job, etc
+        Flushing(dependencies, task) //TODO should we update the task in some way?
       }
       else {
+        /**
+        Not time to flush.
+        Get the latest prev gen (in case it changed from another node having flushed)
+        and tell worker to build another particle
+         **/
         replicator ! Get(PrevGenKey, ReadLocal, Some(freeWorker))
         stay
       }
 
-    case gs @ GetSuccess(PrevGenKey, Some(frereWorker: ActorRef)) =>
-      val prevPopulation = gs.get[PrevGenData].generation
-      util.allocateWork(freeWorker, prevPopulation)
+    case gs @ GetSuccess(PrevGenKey, Some(freeWorker: ActorRef)) =>
+      val prevGenData = gs.get(PrevGenKey)
+      util.requestParticle(freeWorker, prevGenData)
       stay
     ???
   }

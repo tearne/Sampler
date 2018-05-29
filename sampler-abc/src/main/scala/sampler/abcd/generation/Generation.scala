@@ -17,11 +17,13 @@
 
 package sampler.abcd.generation
 
-import sampler.abcd.Model
+import sampler.abcd.{Model, UUID}
 import sampler.distribution.Distribution
 
 trait Generation[P]{
   val iteration: Int
   val tolerance: Double
+  val uuid: Option[UUID]
+
   def proposalDistribution(model: Model[P]): Distribution[P]
 }

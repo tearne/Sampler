@@ -17,8 +17,6 @@
 
 package sampler.abcd.root.task
 
-import sampler.abcd.generation.Generation
-
 
 case class Task[P](
 )

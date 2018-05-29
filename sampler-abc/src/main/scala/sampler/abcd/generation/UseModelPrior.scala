@@ -17,9 +17,13 @@
 
 package sampler.abcd.generation
 
-import sampler.abcd.Model
+import sampler.abcd.{Model, UUID}
 
-case class UseModelPrior[P](tolerance: Double = Double.MaxValue) extends Generation[P]{
+case class UseModelPrior[P](
+    tolerance: Double = Double.MaxValue,
+    uuid: Option[UUID] = None
+) extends Generation[P] {
+
   val iteration = 0
 
   /*

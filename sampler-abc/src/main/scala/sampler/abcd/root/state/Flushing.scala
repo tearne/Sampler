@@ -20,6 +20,6 @@ package sampler.abcd.root.state
 import akka.actor.ActorRef
 import sampler.abcd.root.Dependencies
 
-case class Flushing(dependencies: Dependencies) extends State {
-  override def evolve(sender: ActorRef, rootActor: ActorRef): PartialFunction[Any, State] = ???
+case class Flushing[P](dependencies: Dependencies[P]) extends State[P] {
+  override def evolve(sender: ActorRef, rootActor: ActorRef): PartialFunction[Any, State[P]] = ???
 }

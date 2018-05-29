@@ -18,9 +18,17 @@
 package sampler.abcd.root
 
 import akka.actor.ActorRef
+import akka.cluster.ddata.Key
 import sampler.abcd.generation.Generation
+import sampler.abcd.replicated.{PrevGenData, WorkingGenData}
 
 case class Utils() {
+
   def initialise[P](startMsg: Start, prevGen: Generation[P], childRefs: ChildRefs, sender: ActorRef) = ???
 
+  def shouldFlush[P](workingGenData: Key[WorkingGenData[P]] => WorkingGenData[P], config: Any): Boolean = ???
+
+  def startFlush[P](workingGenData: Key[WorkingGenData[P]] => WorkingGenData[P]) = ???
+
+  def requestParticle[P](freeWorker: ActorRef, prevGenData: PrevGenData[P]) = ???
 }

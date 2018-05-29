@@ -18,9 +18,31 @@
 package sampler.abcd.replicated
 
 import akka.cluster.ddata.ReplicatedData
+import sampler.abcd.generation.{Generation, Population}
 
-class PrevGenData[P] extends ReplicatedData {
-  override type T = this.type
+case class PrevGenData[P](
+    generation: Generation[P]
+) extends ReplicatedData {
 
-  override def merge(that: T): T = ???
+  def replaceWith(newPop: Population[P]): PrevGenData[P] = {
+    if(newPop.iteration > this.generation.iteration)
+      PrevGenData(newPop)
+    else
+      this //TODO log me?
+  }
+
+  override type T = PrevGenData[P]
+
+  override def merge(that: T): T = {
+    if(this == that)
+      this
+    else if(this.generation.iteration > that.generation.iteration)
+      this
+    else if(this.generation.iteration < that.generation.iteration)
+      that
+    else if(this.generation.uuid.get.timestamp < that.generation.uuid.get.timestamp)  //TODO better option handling
+      this
+    else
+      that
+  }
 }

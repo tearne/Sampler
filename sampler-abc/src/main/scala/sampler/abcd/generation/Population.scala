@@ -33,24 +33,24 @@ case class Population[P](
     uuid: Option[UUID]
 ) extends Generation[P] {
 
-  def winsOver[P](that: Population[P]) = {
-    assume(uuid.isDefined && that.uuid.isDefined, "Should not happen")
-
-    val meUUID = this.uuid.get
-    val themUUID = that.uuid.get
-
-    if(meUUID.timestamp != themUUID.timestamp){
-      // Older wins, since more particles are likely to have been generated from it
-      if(meUUID.timestamp < themUUID.timestamp) this else that
-    }
-    else {
-      if(meUUID.generatingNodeId < themUUID.generatingNodeId) this else that
-    }
-  }
-
-  def precedes(that: Population[P]): Boolean = {
-    (this.iteration < that.iteration) && (this.tolerance <= that.tolerance)
-  }
+//  def winsOver[P](that: Population[P]) = {
+//    assume(parentUUID.isDefined && that.uuid.isDefined, "Should not happen")
+//
+//    val meUUID = this.uuid.get
+//    val themUUID = that.uuid.get
+//
+//    if(meUUID.timestamp != themUUID.timestamp){
+//      // Older wins, since more particles are likely to have been generated from it
+//      if(meUUID.timestamp < themUUID.timestamp) this else that
+//    }
+//    else {
+//      if(meUUID.generatingNodeId < themUUID.generatingNodeId) this else that
+//    }
+//  }
+//
+//  def precedes(that: Population[P]): Boolean = {
+//    (this.iteration < that.iteration) && (this.tolerance <= that.tolerance)
+//  }
 
   lazy val acceptanceRatio: Double =
     particles.size.toDouble / (particles.size + numParticlesRejected)
@@ -120,7 +120,8 @@ object Population{
           scores,
           weight,
           iteration,
-          None        // No UUID for particles loaded from file
+          None,        // No UUID for particles loaded from file
+          None         // No parent generation UUID for particles loaded from file
         )
       }
       posteriorDetails.map(jsBlock => particleParser(jsBlock))
