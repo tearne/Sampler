@@ -15,22 +15,10 @@
  * limitations under the License.
  */
 
-package sampler.abcd.replicated.delta
+package sampler.abcd.root
 
-import sampler.abcd.generation.Population
+import sampler.abcd.Particle
 
-case class DataDelta[P](items: Seq[DeltaItem[P]]){
-  def addItem(item: DeltaItem[P]) = copy(items = item +: items)
+case class Start()
 
-  lazy val particleDeltaItems = items.collect{
-    case p: ParticleDeltaItem[P] => p
-  }
-
-  def containsOnlyParticleDeltas(): Boolean = {
-    particleDeltaItems.size == items.size
-  }
-}
-
-object DataDelta {
-  def newContaining[P](item: DeltaItem[P]) = DataDelta(Seq(item))
-}
+case class NewParticle[P](particle: Particle[P])

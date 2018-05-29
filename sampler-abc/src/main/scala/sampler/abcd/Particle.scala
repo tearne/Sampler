@@ -17,15 +17,14 @@
 
 package sampler.abcd
 
-import sampler.abcd.replicated.delta.ParticleDeltaItem
-
 case class Particle[P](
     params: P,
     repScores: Seq[Double],
     weight: Double,
     towardsGeneration: Int,
-    id: Option[UUID]
-) extends ParticleDeltaItem[P] {
+    id: Option[UUID],
+    parentGenerationUUID: Option[UUID]
+) {
   def meanScore: Double = repScores.sum / repScores.size
   def wasLocallyGenerated: Boolean = id.exists(_.generatingNodeId == UUID.thisNodeId)
 }

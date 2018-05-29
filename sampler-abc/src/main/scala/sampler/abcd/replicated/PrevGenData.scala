@@ -15,28 +15,12 @@
  * limitations under the License.
  */
 
-package sampler.abcd
+package sampler.abcd.replicated
 
-import java.util.{UUID => JUUID}
+import akka.cluster.ddata.ReplicatedData
 
-import com.fasterxml.uuid.{EthernetAddress, Generators}
+class PrevGenData[P] extends ReplicatedData {
+  override type T = this.type
 
-/*
-This wrapper is necessary for mocking, since java.util.UUID is 'final'
- */
-case class UUID(id: JUUID) {
-  def generatingNodeId: Long = id.node()
-  def timestamp: Long = id.timestamp()
-}
-
-object UUID{
-  val generator = Generators
-      .timeBasedGenerator(EthernetAddress.fromInterface())
-
-  def generate(): UUID = UUID(generator.generate())
-
-  val thisNodeId: Long = generator
-      .generate
-      .node
-
+  override def merge(that: T): T = ???
 }

@@ -17,22 +17,20 @@
 
 package sampler.abcd.replicated
 
-import akka.cluster.ddata.DeltaReplicatedData
+import java.util.UUID
+
+import akka.cluster.ddata.ReplicatedData
 import sampler.abcd.Particle
 import sampler.abcd.generation.{Generation, Population}
-import sampler.abcd.replicated.delta.{DataDelta, DeltaItem}
-
 
 case class Data[P](
-    working: Population[P],
-    previous: Generation[P],
-    util: DataUtil = new DataUtil(),
-    deltasOpt: Option[DataDelta[P]] = None
-) extends DeltaReplicatedData {
+    population: Population[P],
+    ancestorUUID: Option[UUID],
+    util: DataUtil = new DataUtil()
+) extends ReplicatedData {
 
   def addParticle(particle: Particle[P]): Data[P] = {
     copy(working = util.addParticle(working, particle))
-      .addDelta(particle)
   }
 
   def logRejectedParticle(): Data[P] = ???
@@ -42,44 +40,24 @@ case class Data[P](
       working = util.nextEmptyPopulationBasedOn(completedGen, nextTolerance),
       previous = completedGen
     )
-      .addDelta(completedGen)
   }
 
-  private def addDelta(item: DeltaItem[P]): Data[P] = {
-    copy(
-      deltasOpt = deltasOpt match {
-        case None => Option(DataDelta.newContaining(item))
-        case some => some.map(_.addItem(item))
-      }
-    )
-  }
-
-  override type D = DataDelta[P]
   override type T = Data[P]
 
-  override def delta: Option[D] = deltasOpt
-
-  override def mergeDelta(thatDelta: D): T =
-    util.merge(this, thatDelta) //TODO should returned value have empty deltas?
-
-  override def resetDelta: T = copy(deltasOpt = None)
-
   override def merge(that: T): T = {
-    assume(
-      this.deltasOpt.isEmpty && that.deltasOpt.isEmpty,
-      "Wrongly assumed no deltas present during merge"
-    )
-
     //If this and that agree on 'previous' then merge 'working'
-    if (this.working.iteration == that.working.iteration) {
-      assume(previous == that.previous)
+    if (this.previous == that.previous) {
       Data(
-        util.mergePopulations(this.working, that.working),
+        util.mergeWorkingPopulations(this.working, that.working),
         previous
       )
     } else {
-      //The one with the most recent generation number wins
-      if (this.working precedes that.working)
+      /*
+      If we have two different version of the previous generation then we can't
+      merge the working generations, as they would have been produced from
+      different proposal distributions.  We have to choose a winner
+       */
+      if (this.previous winsOver that.previous)
         that
       else
         this

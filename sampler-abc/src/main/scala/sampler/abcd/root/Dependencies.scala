@@ -15,28 +15,21 @@
  * limitations under the License.
  */
 
-package sampler.abcd
+package sampler.abcd.root
 
-import java.util.{UUID => JUUID}
+import akka.actor.ActorContext
+import akka.cluster.ddata.{DistributedData, Key}
+import akka.event.LoggingAdapter
+import sampler.abcd.replicated.{PrevGenData, WorkingGenData}
 
-import com.fasterxml.uuid.{EthernetAddress, Generators}
+case class Dependencies[P](
+  util: Utils,
+  childRefs: ChildRefs,
+  context: ActorContext,
+  log: LoggingAdapter
+){
+  val PrevGenKey: Key[PrevGenData[P]] = Key[PrevGenData[P]]("prevGen")
+  val WorkingGenKey: Key[WorkingGenData[P]] = Key[WorkingGenData[P]]("workingGen")
 
-/*
-This wrapper is necessary for mocking, since java.util.UUID is 'final'
- */
-case class UUID(id: JUUID) {
-  def generatingNodeId: Long = id.node()
-  def timestamp: Long = id.timestamp()
-}
-
-object UUID{
-  val generator = Generators
-      .timeBasedGenerator(EthernetAddress.fromInterface())
-
-  def generate(): UUID = UUID(generator.generate())
-
-  val thisNodeId: Long = generator
-      .generate
-      .node
-
+  val replicator = DistributedData(context.system).replicator
 }

@@ -15,28 +15,25 @@
  * limitations under the License.
  */
 
-package sampler.abcd
+package sampler.abcd.root.state
 
-import java.util.{UUID => JUUID}
+import akka.actor.ActorRef
+import sampler.abcd.root.Dependencies
 
-import com.fasterxml.uuid.{EthernetAddress, Generators}
 
-/*
-This wrapper is necessary for mocking, since java.util.UUID is 'final'
- */
-case class UUID(id: JUUID) {
-  def generatingNodeId: Long = id.node()
-  def timestamp: Long = id.timestamp()
-}
+trait State[P]{
+  def evolve(sender: ActorRef, self: ActorRef): PartialFunction[Any, State[P]]
+  def dependencies: Dependencies[P]
 
-object UUID{
-  val generator = Generators
-      .timeBasedGenerator(EthernetAddress.fromInterface())
+  val ignore = this
+  val stay = this
 
-  def generate(): UUID = UUID(generator.generate())
-
-  val thisNodeId: Long = generator
-      .generate
-      .node
-
+  def reportAndIgnoreUnexpected(msg: Any) = {
+    dependencies.log.warning(
+      "Unexpected message encountered in {}: {} [...]",
+      getClass,
+      msg.toString.take(50)
+    )
+    this
+  }
 }

@@ -23,15 +23,30 @@ import java.time.LocalDateTime
 import play.api.libs.json._
 import sampler._
 import sampler.abcd._
-import sampler.abcd.replicated.delta.DeltaItem
 import sampler.io.{Tokenable, Tokens}
 
 case class Population[P](
     particles: Seq[Particle[P]],
     numParticlesRejected: Int,
     iteration: Int,
-    tolerance: Double
-) extends Generation[P] with DeltaItem[P] {
+    tolerance: Double,
+    uuid: Option[UUID]
+) extends Generation[P] {
+
+  def winsOver[P](that: Population[P]) = {
+    assume(uuid.isDefined && that.uuid.isDefined, "Should not happen")
+
+    val meUUID = this.uuid.get
+    val themUUID = that.uuid.get
+
+    if(meUUID.timestamp != themUUID.timestamp){
+      // Older wins, since more particles are likely to have been generated from it
+      if(meUUID.timestamp < themUUID.timestamp) this else that
+    }
+    else {
+      if(meUUID.generatingNodeId < themUUID.generatingNodeId) this else that
+    }
+  }
 
   def precedes(that: Population[P]): Boolean = {
     (this.iteration < that.iteration) && (this.tolerance <= that.tolerance)
@@ -115,7 +130,8 @@ object Population{
       particles,
       numParticlesRejected,
       iteration,
-      tolerance
+      tolerance,
+      None
     )
   }
 }

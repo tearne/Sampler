@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package sampler.abcd.replicated.delta
+package sampler.abcd.root.task
 
-trait DeltaItem[P]
-trait ParticleDeltaItem[P] extends DeltaItem[P]{
-  def towardsGeneration: Int
-}
-case class RejectedParticle(towardsGeneration: Int) extends ParticleDeltaItem[_]
+import sampler.abcd.generation.Generation
+
+
+case class Task[P](
+)

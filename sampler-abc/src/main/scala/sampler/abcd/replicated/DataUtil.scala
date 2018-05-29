@@ -18,11 +18,16 @@
 package sampler.abcd.replicated
 
 import sampler.abcd.Particle
-import sampler.abcd.generation.Population
+import sampler.abcd.generation.{Generation, Population}
 import sampler.abcd.replicated.delta.{DataDelta, DeltaItem, RejectedParticle}
 import sampler.io.Logging
 
 class DataUtil() extends Logging {
+  def mergeWorkingPopulations[P](
+      popA: Population[P],
+      popB: Population[P]
+  ): Population[P] = ???
+
   def nextEmptyPopulationBasedOn[P](
       completedGen: Population[P],
       tolerance: Double
