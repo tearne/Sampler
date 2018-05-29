@@ -3,7 +3,7 @@ val buildVersion       = "0.3.15"
 val buildScalaVersion  = "2.12.6"
 val crossBuildVersions = Seq(buildScalaVersion, "2.11.12")
 
-val akkaVersion       = "2.5.7"
+val akkaVersion       = "2.5.12"
 val logbackClassic    = "ch.qos.logback" % "logback-classic" % "1.1.1"
 val commonsIo         = "commons-io" % "commons-io" % "2.4"
 val commonsMath3      = "org.apache.commons" % "commons-math3" % "3.2"
@@ -95,8 +95,8 @@ lazy val abc = project.in(file("sampler-abc"))
       commonsIo,
       playJson,
       "com.typesafe.akka" %% "akka-actor" % akkaVersion,
-      "com.typesafe.akka" %% "akka-remote" % akkaVersion,
       "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
+      "com.typesafe.akka" %% "akka-distributed-data" % akkaVersion,
       "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
       "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",
       "com.fasterxml.uuid" % "java-uuid-generator" % "3.1.4"
