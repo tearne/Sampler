@@ -15,9 +15,10 @@ class ParticleWeightCalculator[P](model: Model[P], aborter: Aborter) {
 			case _: UseModelPrior[P] => Some(fHat) 	
 			case prevPop: Population[P] =>
 				val numerator = fHat * model.prior.density(particle.params)
-				val denominator = prevPop.weightedParticles.map{case Weighted(Scored(prevParam, _, _), prevWeight) => 
-					prevWeight * model.perturbDensity(prevParam, particle.params)
-				}.sum
+				val denominator = 1.0
+//				val denominator = prevPop.weightedParticles.map{case Weighted(Scored(prevParam, _, _), prevWeight) =>
+//					prevWeight * model.perturbDensity(prevParam, particle.params)
+//				}.sum
 				/*
 				 * Note, denominator should never be zero when running on one node.
 				 * But when running on multiple nodes, mixing could result in 

@@ -58,7 +58,8 @@ case class Population[P](
 		  Map(
 		    "s" -> JsArray(wp.scored.scores.map(d => JsNumber(d))),
 		    "w" -> JsNumber(wp.weight),
-		    "p" -> JsObject(tokenable.getTokens(wp.scored.params).map)
+		    "p" -> JsObject(tokenable.getTokens(wp.scored.params).map),
+				"foreign" -> JsBoolean(wp.wasLocallyGenerated)
 		  )
 		}
 		
