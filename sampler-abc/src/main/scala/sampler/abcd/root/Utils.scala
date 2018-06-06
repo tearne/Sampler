@@ -19,16 +19,27 @@ package sampler.abcd.root
 
 import akka.actor.ActorRef
 import akka.cluster.ddata.Key
+import sampler.abcd.ABCConfig
 import sampler.abcd.generation.Generation
 import sampler.abcd.replicated.{PrevGenData, WorkingGenData}
+import sampler.abcd.root.task.Task
 
 case class Utils() {
 
-  def initialise[P](startMsg: Start, prevGen: Generation[P], childRefs: ChildRefs, sender: ActorRef) = ???
+  def initialise[P](startMsg: Start, prevGen: Generation[P], childRefs: ChildRefs, sender: ActorRef): Unit = ???
 
-  def shouldFlush[P](workingGenData: Key[WorkingGenData[P]] => WorkingGenData[P], config: Any): Boolean = ???
+  def shouldFlush[P](workingGenData: WorkingGenData[P], task: Task[P]): Boolean = ???
 
-  def startFlush[P](workingGenData: Key[WorkingGenData[P]] => WorkingGenData[P]) = ???
+  def startFlush[P](freeWorker: ActorRef, workingGenData: WorkingGenData[P]): Unit = ???
 
-  def requestParticle[P](freeWorker: ActorRef, prevGenData: PrevGenData[P]) = ???
+  def requestParticle[P](freeWorker: ActorRef, prevGenData: PrevGenData[P]): Unit = ???
+
+  def startNewGeneration[P](prevGen: Generation[P], childRefs: ChildRefs): Unit = ???
+
+  def shouldTerminate[P](prevGen: Generation[P], task: Task[P]): Boolean = ???
+
+  def startTermination[P](): Unit = ???
+
+  def sendResultToClient[P](task: Task[P], result: PrevGenData[P]): Unit = ???
+
 }

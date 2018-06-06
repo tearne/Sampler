@@ -18,6 +18,7 @@
 package sampler.abcd.root.state
 import akka.actor.ActorRef
 import akka.cluster.ddata.Replicator._
+import sampler.abcd.Particle
 import sampler.abcd.replicated.{PrevGenData, WorkingGenData}
 import sampler.abcd.root.task.Task
 import sampler.abcd.root.{Dependencies, NewParticle}
@@ -28,9 +29,10 @@ case class Generating[P](dependencies: Dependencies[P], task: Task[P]) extends S
   import dependencies._
 
   override def evolve(sender: ActorRef, self: ActorRef): PartialFunction[Any, State[P]] = {
-    case NewParticle(p) =>
+    case np: NewParticle[P] =>
+      val particle: Particle[P] = np.particle
       val freeWorkerNode = sender
-      replicator ! Update(WorkingGenKey, WorkingGenData.empty, WriteLocal, Some(freeWorkerNode))(_ addParticle p)
+      replicator ! Update(WorkingGenKey, WorkingGenData.empty, WriteLocal, Some(freeWorkerNode)){case a => a.addParticle(particle)}//(_ addParticle p)
       stay
 
       //TODO, think about whether there is a problem if lots of new particles com in at once
@@ -42,8 +44,8 @@ case class Generating[P](dependencies: Dependencies[P], task: Task[P]) extends S
 
     case gs @ GetSuccess(WorkingGenKey, Some(freeWorker: ActorRef)) =>
       val workingGenData: WorkingGenData[P] = gs.get(WorkingGenKey)
-      if(util.shouldFlush(workingGenData, config)) {
-        util.startFlush(workingGenData) //This should abort workers, send flush job, etc
+      if(util.shouldFlush(workingGenData, task)) {
+        util.startFlush(freeWorker, workingGenData) //This should abort workers, send flush job, etc
         Flushing(dependencies, task) //TODO should we update the task in some way?
       }
       else {

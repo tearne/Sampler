@@ -18,7 +18,12 @@
 package sampler.abcd.root
 
 import sampler.abcd.Particle
+import sampler.abcd.generation.Population
 
 case class Start()
 
 case class NewParticle[P](particle: Particle[P])
+
+case class FlushComplete[P](population: Population[P])
+
+case object ReportCompleted

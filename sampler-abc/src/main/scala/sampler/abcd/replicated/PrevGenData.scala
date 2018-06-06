@@ -46,3 +46,6 @@ case class PrevGenData[P](
       that
   }
 }
+object PrevGenData{
+  def empty[P](startGen: Generation[P]) = PrevGenData(startGen)
+}

@@ -17,6 +17,10 @@
 
 package sampler.abcd.root.task
 
+import sampler.abcd.ABCConfig
+
 
 case class Task[P](
+  config: ABCConfig,
+  client: ActorRef
 )

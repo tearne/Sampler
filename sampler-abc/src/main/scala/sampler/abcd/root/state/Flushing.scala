@@ -18,8 +18,41 @@
 package sampler.abcd.root.state
 
 import akka.actor.ActorRef
-import sampler.abcd.root.Dependencies
+import akka.cluster.ddata.Replicator._
+import sampler.abc.actor.root.state.Gathering
+import sampler.abcd.generation.Population
+import sampler.abcd.replicated.PrevGenData
+import sampler.abcd.root.{Dependencies, FlushComplete, NewParticle}
+import sampler.abcd.root.task.Task
 
-case class Flushing[P](dependencies: Dependencies[P]) extends State[P] {
-  override def evolve(sender: ActorRef, rootActor: ActorRef): PartialFunction[Any, State[P]] = ???
+case class Flushing[P](dependencies: Dependencies[P],task: Task[P]) extends State[P] {
+  import dependencies._
+
+  def evolve(sender: ActorRef, rootActor: ActorRef): PartialFunction[Any, State[P]] = {
+    case _: NewParticle[P] => ignore
+
+    case fc: FlushComplete[P] =>
+      // TODO Update PrevGenData with flushedGen
+      val flushedPop = fc.population
+      replicator ! Update(PrevGenKey, WriteLocal, None)(_.replaceWith(flushedPop))
+      stay
+
+    case UpdateSuccess(PrevGenKey, None) =>
+      // Now the gen has been flushed, do a get to ensure we see the outcome of any background updates/merges
+      replicator ! Get(PrevGenKey, ReadLocal, None )
+      stay
+
+    case gs @ GetSuccess(PrevGenKey, None) =>
+      val prevGen = gs.get(PrevGenKey).generation
+      //Determine if should quit
+      if (util.shouldTerminate(prevGen, task)) {
+        util.startTermination()
+        Terminating(dependencies, task)
+      } else {
+        util.startNewGeneration(prevGen, childRefs)
+        Generating(dependencies, task)
+      }
+
+    case other => reportAndIgnoreUnexpected(other)
+  }
 }

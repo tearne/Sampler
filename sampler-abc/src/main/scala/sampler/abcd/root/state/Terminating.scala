@@ -18,23 +18,28 @@
 package sampler.abcd.root.state
 
 import akka.actor.ActorRef
-import sampler.abcd.root.Dependencies
+import akka.cluster.ddata.Replicator.{Get, GetSuccess, ReadLocal}
+import sampler.abcd.root.{Dependencies, ReportCompleted}
 import sampler.abcd.root.task.Task
 
+case class Terminating[P](
+    dependencies: Dependencies[P],
+    task: Task[P]
+  ) extends State[P] {
 
-trait State[P]{
-  def evolve(sender: ActorRef, self: ActorRef): PartialFunction[Any, State[P]]
-  def dependencies: Dependencies[P]
+  import dependencies._
 
-  val ignore = this
-  val stay = this
+  def evolve(sender: ActorRef, rootActor: ActorRef): PartialFunction[Any, State[P]] =
+  {
+    case ReportCompleted =>
+      replicator ! Get(PrevGenKey, ReadLocal, None)
+      stay
 
-  def reportAndIgnoreUnexpected(msg: Any) = {
-    dependencies.log.warning(
-      "Unexpected message encountered in {}: {} [...]",
-      getClass,
-      msg.toString.take(50)
-    )
-    this
+    case gs @ GetSuccess(PrevGenKey, None) =>
+      val result = gs.get(PrevGenKey)
+      util.sendResultToClient(task, result)
+      stay
+
+    case other => reportAndIgnoreUnexpected(other)
   }
 }
