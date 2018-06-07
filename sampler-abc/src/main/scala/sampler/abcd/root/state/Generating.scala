@@ -32,7 +32,7 @@ case class Generating[P](dependencies: Dependencies[P], task: Task[P]) extends S
     case np: NewParticle[P] =>
       val particle: Particle[P] = np.particle
       val freeWorkerNode = sender
-      replicator ! Update(WorkingGenKey, WorkingGenData.empty, WriteLocal, Some(freeWorkerNode)){case a => a.addParticle(particle)}//(_ addParticle p)
+      replicator ! Update(WorkingGenKey, WorkingGenData.empty, WriteLocal, Some(freeWorkerNode)){case a: WorkingGenData[P] => a.addParticle(particle)}//(_ addParticle p)
       stay
 
       //TODO, think about whether there is a problem if lots of new particles com in at once
