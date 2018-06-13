@@ -32,7 +32,7 @@ case class Utils() {
 
   def startFlush[P](freeWorker: ActorRef, workingGenData: WorkingGenData[P]): Unit = ???
 
-  def requestParticle[P](freeWorker: ActorRef, prevGenData: PrevGenData[P]): Unit = ???
+  def allocateWork[P](freeWorker: ActorRef, prevGenData: PrevGenData[P]): Unit = ???
 
   def startNewGeneration[P](prevGen: Generation[P], childRefs: ChildRefs): Unit = ???
 

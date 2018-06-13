@@ -34,7 +34,8 @@ case class Flushing[P](dependencies: Dependencies[P],task: Task[P]) extends Stat
     case fc: FlushComplete[P] =>
       // TODO Update PrevGenData with flushedGen
       val flushedPop = fc.population
-      replicator ! Update(PrevGenKey, WriteLocal, None)(_.replaceWith(flushedPop))
+      replicator ! Update(PrevGenKey, WriteLocal, None){case data: PrevGenData[P] =>
+        data.replaceWith(flushedPop)}
       stay
 
     case UpdateSuccess(PrevGenKey, None) =>

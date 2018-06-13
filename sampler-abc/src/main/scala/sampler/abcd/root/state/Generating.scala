@@ -32,10 +32,15 @@ case class Generating[P](dependencies: Dependencies[P], task: Task[P]) extends S
     case np: NewParticle[P] =>
       val particle: Particle[P] = np.particle
       val freeWorkerNode = sender
-      replicator ! Update(WorkingGenKey, WorkingGenData.empty, WriteLocal, Some(freeWorkerNode)){case a: WorkingGenData[P] => a.addParticle(particle)}//(_ addParticle p)
+      replicator ! Update(
+          WorkingGenKey,
+          WorkingGenData.empty,
+          WriteLocal,
+          Some(freeWorkerNode)
+        ){case data: WorkingGenData[P] => //TODO why is this needed?
+          data.addParticle(particle)
+        }
       stay
-
-      //TODO, think about whether there is a problem if lots of new particles com in at once
 
     case UpdateSuccess(WorkingGenKey, Some(freeWorker: ActorRef)) =>
       // Adding the new particle is done, now get the whole thing to see how many particles we have
@@ -46,7 +51,7 @@ case class Generating[P](dependencies: Dependencies[P], task: Task[P]) extends S
       val workingGenData: WorkingGenData[P] = gs.get(WorkingGenKey)
       if(util.shouldFlush(workingGenData, task)) {
         util.startFlush(freeWorker, workingGenData) //This should abort workers, send flush job, etc
-        Flushing(dependencies, task) //TODO should we update the task in some way?
+        Flushing(dependencies, task)
       }
       else {
         /**
@@ -60,8 +65,7 @@ case class Generating[P](dependencies: Dependencies[P], task: Task[P]) extends S
 
     case gs @ GetSuccess(PrevGenKey, Some(freeWorker: ActorRef)) =>
       val prevGenData = gs.get(PrevGenKey)
-      util.requestParticle(freeWorker, prevGenData)
+      util.allocateWork(freeWorker, prevGenData)
       stay
-    ???
   }
 }

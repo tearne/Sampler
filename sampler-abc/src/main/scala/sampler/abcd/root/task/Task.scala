@@ -17,6 +17,7 @@
 
 package sampler.abcd.root.task
 
+import akka.actor.ActorRef
 import sampler.abcd.ABCConfig
 
 
