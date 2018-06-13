@@ -17,4 +17,9 @@
 
 package sampler.abcd.root
 
-case class ChildRefs()
+import akka.actor.ActorRef
+
+trait ChildRefs {
+  val workRouter: ActorRef
+  val flusher: ActorRef
+}

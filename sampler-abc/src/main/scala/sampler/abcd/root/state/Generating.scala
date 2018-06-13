@@ -50,7 +50,7 @@ case class Generating[P](dependencies: Dependencies[P], task: Task[P]) extends S
     case gs @ GetSuccess(WorkingGenKey, Some(freeWorker: ActorRef)) =>
       val workingGenData: WorkingGenData[P] = gs.get(WorkingGenKey)
       if(util.shouldFlush(workingGenData, task)) {
-        util.startFlush(freeWorker, workingGenData) //This should abort workers, send flush job, etc
+        util.startFlush(workingGenData, childRefs)
         Flushing(dependencies, task)
       }
       else {
@@ -66,6 +66,8 @@ case class Generating[P](dependencies: Dependencies[P], task: Task[P]) extends S
     case gs @ GetSuccess(PrevGenKey, Some(freeWorker: ActorRef)) =>
       val prevGenData = gs.get(PrevGenKey)
       util.allocateWork(freeWorker, prevGenData)
+      // TODO Send report request for status update on console
+      // utils.sendStatusReport(...)
       stay
   }
 }

@@ -28,13 +28,10 @@ case class Idle[P](dependencies: Dependencies[P]) extends State[P] {
 
   override def evolve(sender: ActorRef, self: ActorRef): PartialFunction[Any, State[P]] = {
 
-    case startMsg: Start => {
-      replicator ! Get(PrevGenKey, ReadLocal, Some(startMsg))  //TODO common Get in util?
-    }
-
-    case gs @ GetSuccess(PrevGenKey, Some(startMsg @ Start)) =>
-      val prevGen: Generation[P] = gs.get(PrevGenKey).
-      val task: Task[P] = util.kickOff(startMsg, prevGen, childRefs, sender)
+    case startMsg: Start =>
+      val task: Task[P] = util.kickOff(startMsg, childRefs, sender)
+      //TODO report that a generation is being started
+      // utils.sendStatusReport(...)
       Generating(dependencies, task)
 
     case other => reportAndIgnoreUnexpected(other)

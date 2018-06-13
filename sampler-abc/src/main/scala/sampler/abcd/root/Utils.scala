@@ -18,23 +18,64 @@
 package sampler.abcd.root
 
 import akka.actor.ActorRef
-import akka.cluster.ddata.Key
+import akka.io.Tcp.Abort
 import sampler.abcd.ABCConfig
-import sampler.abcd.generation.Generation
+import sampler.abcd.children.worker.GenerateParticleFrom
+import sampler.abcd.generation.{Generation, UseModelPrior}
 import sampler.abcd.replicated.{PrevGenData, WorkingGenData}
 import sampler.abcd.root.task.Task
 
-case class Utils() {
+case class Utils(config: ABCConfig) {
 
-  def initialise[P](startMsg: Start, prevGen: Generation[P], childRefs: ChildRefs, sender: ActorRef): Unit = ???
+  def kickOff[P](
+    startMsg: Start[P],
+    childRefs: ChildRefs,
+    sender: ActorRef
+  ): Task[P] = {
+    // Tell all the workers to start building particles, either from
+    // the prior or the previous generation
 
-  def shouldFlush[P](workingGenData: WorkingGenData[P], task: Task[P]): Boolean = ???
+    startMsg.initGeneration match {
+      case prior: UseModelPrior[P] =>
+        childRefs.workRouter ! GenerateParticleFrom(startMsg.initGeneration, config)
+        Task(config, sender)
 
-  def startFlush[P](freeWorker: ActorRef, workingGenData: WorkingGenData[P]): Unit = ???
+      case _ => throw new UnsupportedOperationException("Not implemented yet (resuming)")
+    }
+  }
 
-  def allocateWork[P](freeWorker: ActorRef, prevGenData: PrevGenData[P]): Unit = ???
+  def shouldFlush[P](
+      workingGenData: WorkingGenData[P],
+      task: Task[P]
+    ): Boolean = {
 
-  def startNewGeneration[P](prevGen: Generation[P], childRefs: ChildRefs): Unit = ???
+    workingGenData.numConsistentParticles() >= config.numParticles
+  }
+
+  def startFlush[P](
+      workingGenData: WorkingGenData[P],
+      childRefs: ChildRefs
+    ): Unit = {
+
+    childRefs.workRouter ! Abort
+    childRefs.flusher ! workingGenData
+  }
+
+  def allocateWork[P](
+      freeWorker: ActorRef,
+      prevGenData: PrevGenData[P]
+  ): Unit = {
+
+    freeWorker ! GenerateParticleFrom(prevGenData.generation, config)
+  }
+
+  def startNewGeneration[P](
+      prevGen: Generation[P],
+      childRefs: ChildRefs
+  ): Unit = {
+
+    ???
+  }
 
   def shouldTerminate[P](prevGen: Generation[P], task: Task[P]): Boolean = ???
 
@@ -42,4 +83,5 @@ case class Utils() {
 
   def sendResultToClient[P](task: Task[P], result: PrevGenData[P]): Unit = ???
 
+  def sendStatusReport(): Unit = ???
 }

@@ -18,9 +18,9 @@
 package sampler.abcd.root
 
 import sampler.abcd.Particle
-import sampler.abcd.generation.Population
+import sampler.abcd.generation.{Generation, Population}
 
-case class Start()
+case class Start[P](initGeneration: Generation[P])
 
 case class NewParticle[P](particle: Particle[P])
 
