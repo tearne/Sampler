@@ -30,12 +30,13 @@ import sampler.maths.Random
 import sampler.r.script.RScript
 
 object UnfairCoin extends UnfairCoinCommon with App {
-	ABC(CoinModel, abcConfig, abcReporting)
-	plot()
+  ABC(CoinModel, abcConfig, abcReporting)
+  plot()
 }
 
 object ResumeUnfairCoin extends UnfairCoinCommon with App {
-  val prevGenJson = """
+  val prevGenJson =
+    """
 {
   "generation" : 4,
   "tolerance" : 2,
@@ -63,27 +64,30 @@ object ResumeUnfairCoin extends UnfairCoinCommon with App {
 }  
   """
   FileUtils.writeStringToFile(wd.resolve("Gen004.json").toFile, prevGenJson)
+
   def parser(toks: Map[String, JsValue]) = CoinParams(toks("pHeads").as[Double])
+
   val prevGeneration = Population.fromJson(prevGenJson, parser _)
-  
+
   val sixGenConfig = ABCConfig(ConfigFactory
     .parseString("unfair-coin-example.abc.job.generations = 6")
     .withFallback(ConfigFactory.load())
     .getConfig("unfair-coin-example"))
-  
+
   ABC.resume(CoinModel, sixGenConfig, prevGeneration, abcReporting)
   plot()
 }
 
 trait UnfairCoinCommon {
   val wd = Paths.get("results", "UnfairCoin")
-	Files.createDirectories(wd)
-	
-	val abcConfig = ABCConfig(ConfigFactory.load.getConfig("unfair-coin-example"))
-	val abcReporting = StandardReport[CoinParams](wd)
-	
-	def plot(){
-    val rScript = """
+  Files.createDirectories(wd)
+
+  val abcConfig = ABCConfig(ConfigFactory.load.getConfig("unfair-coin-example"))
+  val abcReporting = StandardReport[CoinParams](wd)
+
+  def plot() {
+    val rScript =
+      """
       lapply(c("ggplot2", "reshape2", "jsonlite", "plyr"), require, character.only=T)
       
       load = function(file) {
@@ -130,52 +134,60 @@ trait UnfairCoinCommon {
       
       dev.off()	
     """
-	  
+
     RScript(rScript, wd.resolve("script.r"))
   }
 }
 
 case class CoinParams(pHeads: Double) {
-	def fieldNames = Seq("PHeads")
-	def fields = Seq(pHeads.toString)
+  def fieldNames = Seq("PHeads")
+
+  def fields = Seq(pHeads.toString)
 }
+
 object CoinParams {
-	implicit val tokener: Tokenable[CoinParams] = new Tokenable[CoinParams] {
-		val mc = new MathContext(6)
-		def getTokens(p: CoinParams) = Tokens.named(
-			"pHeads" -> BigDecimal(p.pHeads, mc)
-		)
-	}
+  implicit val tokener: Tokenable[CoinParams] = new Tokenable[CoinParams] {
+    val mc = new MathContext(6)
+
+    def getTokens(p: CoinParams) = Tokens.named(
+      "pHeads" -> BigDecimal(p.pHeads, mc)
+    )
+  }
 }
 
 object CoinModel extends Model[CoinParams] {
-	case class Observed(numTrials: Int, numHeads: Int) extends Serializable
-  	val observedData = Observed(100,70)
 
-	val prior = new Prior[CoinParams] {
-	    def density(p: CoinParams) = {
-	      if(p.pHeads > 1 || p.pHeads < 0) 0.0
-	      else 1.0
-	    }
-	    
-	    val distribution = Distribution.from{ r =>
-	    	CoinParams(r.nextDouble(0.0, 1.0))
-	    }
+  case class Observed(numTrials: Int, numHeads: Int) extends Serializable
+
+  val observedData = Observed(100, 70)
+
+  val prior = new Prior[CoinParams] {
+    def density(p: CoinParams) = {
+      if (p.pHeads > 1 || p.pHeads < 0) 0.0
+      else 1.0
     }
-  	
-    private val normal = {
-    	val syncRand = new SynchronizedRandomGenerator(new MersenneTwister())
-		new NormalDistribution(syncRand, 0, 0.5, NormalDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY)
+
+    val distribution = Distribution.from { r =>
+      CoinParams(r.nextDouble(0.0, 1.0))
     }
-	def perturb(params: CoinParams) = CoinParams(params.pHeads + normal.sample)
-  	def perturbDensity(a: CoinParams, b: CoinParams) = normal.density(a.pHeads - b.pHeads)
-    
-    def distanceToObservations(p: CoinParams) = Distribution.from{(random: Random) =>
-      def coinToss() = random.nextBoolean(p.pHeads)
-      val simulatedHeads = (1 to observedData.numTrials)
-        .map(i => coinToss)
-        .count(identity)
-      if(simulatedHeads == observedData.numHeads) 0
-      else 1
-    }
+  }
+
+  private val normal = {
+    val syncRand = new SynchronizedRandomGenerator(new MersenneTwister())
+    new NormalDistribution(syncRand, 0, 0.5, NormalDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY)
+  }
+
+  def perturb(params: CoinParams) = CoinParams(params.pHeads + normal.sample)
+
+  def perturbDensity(a: CoinParams, b: CoinParams) = normal.density(a.pHeads - b.pHeads)
+
+  def distanceToObservations(p: CoinParams) = Distribution.from { (random: Random) =>
+    def coinToss() = random.nextBoolean(p.pHeads)
+
+    val simulatedHeads = (1 to observedData.numTrials)
+      .map(_ => coinToss)
+      .count(identity)
+    if (simulatedHeads == observedData.numHeads) 0
+    else 1
+  }
 }

@@ -9,7 +9,7 @@ import sampler.abc.{Weighted, Scored}
 class ParticleWeightCalculator[P](model: Model[P], aborter: Aborter) {
 	def particleWeight(particle: Scored[P], tolerance: Double, prevGen: Generation[P]): Option[Double] = {
 		aborter.checkIfAborted()
-		val fHat = particle.scores.filter(_ < tolerance).size.toDouble / particle.scores.size
+		val fHat = particle.scores.count(_ < tolerance).toDouble / particle.scores.size
 		
 		prevGen match {
 			case _: UseModelPrior[P] => Some(fHat) 	
