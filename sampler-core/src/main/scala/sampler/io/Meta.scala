@@ -15,7 +15,7 @@ trait Meta {
     def validateMetaArray(json: JsValue): Unit = {
 
       val path = (__ \ "meta").json.pick[JsArray]
-      assume(json.validate(path).isSuccess, s"No meta block found in $json")
+      //assume(json.validate(path).isSuccess, s"No meta block found in $json")
     }
 
     def update(name: String, value: String): MetaBuilder
@@ -52,7 +52,15 @@ trait Meta {
       __.read[JsArray].map(a => a.append(metaMap))
     )
 
-    def build() = json.transform(updater).get
+    //TODO tidy
+    private val putter: Reads[JsObject] = (__).json.update(
+      __.read[JsObject].map(root => root.+("meta",JsArray(Seq(metaMap)))
+      ))
+
+
+    //TODO neater
+
+    def build() = json.transform(updater).getOrElse(json.transform(putter).get)
   }
 }
 
@@ -72,10 +80,12 @@ object Example extends App {
     }
 
     pancakes {
-       eggs = 4
-       flour = 220
-       milk = 430
-       water = 120
+      recipe {
+         eggs = 4
+         flour = 220
+         milk = 430
+         water = 120
+      }
     }
 """
 
@@ -104,7 +114,11 @@ object Example extends App {
       "application": "my upstream applicaiton",
       "task" : "pre-processing movement data"
     }
-    ]
+    ],
+    "parameters" : {
+      "a" : 2,
+      "b" : 0.01
+    }
   }
 """
 
@@ -114,6 +128,25 @@ object Example extends App {
           .addSystemMeta()
           .addProjectMeta("Updated project")
           .addTaskMeta("Demonstrate adding meta to json")
+          .build
+    )
+  )
+
+  val inStr2 = """
+  {
+    "parameters" : {
+      "a" : 2,
+      "b" : 0.01
+    }
+  }
+"""
+
+  println(
+    Json.prettyPrint(
+      Json.parse(inStr2)
+          .addSystemMeta()
+          .addProjectMeta("Updated project")
+          .addTaskMeta("Demonstrate adding meta to json when no block to start with")
           .build
     )
   )

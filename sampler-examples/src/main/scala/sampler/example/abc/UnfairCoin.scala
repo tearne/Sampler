@@ -83,7 +83,7 @@ trait UnfairCoinCommon {
   Files.createDirectories(wd)
 
   val abcConfig = ABCConfig(ConfigFactory.load.getConfig("unfair-coin-example"))
-  val abcReporting = StandardReport[CoinParams](wd)
+  val abcReporting = StandardReport[CoinParams](wd, abcConfig)
 
   def plot() {
     val rScript =

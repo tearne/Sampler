@@ -1,6 +1,6 @@
 package flockMortalityExample
 
-import java.nio.file.Paths
+import java.nio.file.{Files, Paths}
 import java.time.LocalDateTime
 
 import com.typesafe.config.ConfigFactory
@@ -20,11 +20,8 @@ object Main extends App {
   implicit val r = Random
 
   // Name and location of output files
-  val resultsDir = Paths.get("results").toAbsolutePath
+  val outDir = Paths.get("results").toAbsolutePath
   //  val resultsJSON = outDir.resolve("result.json")
-
-  //  val progressDir = outDir.resolve("Progress").toAbsolutePath
-  //  Files.createDirectories(progressDir)
 
 
   // Read and parse JSON file containing observed data
@@ -84,13 +81,8 @@ object Main extends App {
 
   // Load flock mortality parameters from application.conf
   val abcConfig = ABCConfig(ConfigFactory.load.getConfig("flock-mortality-example"))
-  val thisPackage = this.getClass.getName
-  val outDir = Paths.get(s"${resultsDir.toString}/${thisPackage}/${abcConfig.description}/${LocalDateTime.now.toString}")
-  // TODO automate creation of outDir somewhere else...
 
-  val progressDir = outDir.resolve("Progress").toAbsolutePath
-  // TODO would be better to do this automatically so that plot can call it...currently needs 2 inputs
-  val abcReporting = StandardReport[Parameters](progressDir)
+  val abcReporting = StandardReport[Parameters](outDir, abcConfig)
 
   // Use ABC to produce population of parameters
   val population: Population[Parameters] = ABC(model, abcConfig, abcReporting)
@@ -98,7 +90,7 @@ object Main extends App {
 
   // Format output with metadata
   val out = ABCOutput(abcConfig, population)
-  out.makeOutputs(outDir, progressDir)
+//  out.makeOutputs(outDir)
 
   //  JSON.writeToFile(outDir.resolve("output.json"), out.toJSON())
 
