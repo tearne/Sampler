@@ -3,6 +3,7 @@ val buildVersion       = "0.3.15"
 val buildScalaVersion  = "2.12.6"
 val crossBuildVersions = Seq(buildScalaVersion, "2.11.12")
 
+val typesafeConfig    = "com.typesafe" % "config" % "1.3.2"
 val akkaVersion       = "2.5.7"
 val logbackClassic    = "ch.qos.logback" % "logback-classic" % "1.1.1"
 val commonsIo         = "commons-io" % "commons-io" % "2.4"
@@ -35,6 +36,7 @@ lazy val commonSettings = Seq(
     "junit" % "junit" % "4.8" % "test->default",
     scalaTest,
     scalaCheck,
+    typesafeConfig,
     "org.mockito" % "mockito-core" % "2.12.0" % Test,
     "org.slf4j" % "slf4j-api" % "1.7.25"
   )

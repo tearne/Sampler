@@ -2,7 +2,7 @@ import sampler.distribution.DistributionImplicits
 import sampler.samplable.SamplableSyntax
 import sampler.samplable.WithoutReplacementImplicits
 import sampler.empirical.EmpiricalImplicits
-import sampler.io.Rounding
+import sampler.io.{Meta, Rounding}
 import sampler.maths.RangeCheckImplicits
 
 package object sampler   
@@ -12,3 +12,4 @@ package object sampler
   with EmpiricalImplicits 
   with RangeCheckImplicits
   with Rounding
+  with Meta

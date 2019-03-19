@@ -21,8 +21,8 @@ object ABCResult {
         "prior" -> Json.toJson(data.prior),
         "observed" -> observedJSON,
         "config" -> Json.obj(
-          "generations" -> data.config.numGenerations,
-          "particles" -> data.config.numParticles
+            "generations" -> data.config.numGenerations,
+            "particles" -> data.config.numParticles
         ),
         "population" -> data.population.toJSON()
       )

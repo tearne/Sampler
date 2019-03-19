@@ -26,10 +26,10 @@ case class UseModelPrior[P](tolerance: Double = Double.MaxValue) extends Generat
 }
 
 case class Population[P](
-  weightedParticles: Seq[Weighted[P]],
-  iteration: Int,
-  tolerance: Double,
-  acceptanceRatio: Double
+    weightedParticles: Seq[Weighted[P]],
+    iteration: Int,
+    tolerance: Double,
+    acceptanceRatio: Double
 ) extends Generation[P] {
 
   lazy val consolidatedWeightsTable: Map[P, Double] = {
