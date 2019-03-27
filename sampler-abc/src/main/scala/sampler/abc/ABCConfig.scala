@@ -11,7 +11,6 @@ case class ABCConfig(config: Config) {
   lazy val job: Config = config.getConfig("abc.job")
   lazy val algorithm: Config = config.getConfig("abc.algorithm")
   lazy val cluster: Config = config.getConfig("abc.cluster")
-  lazy val meta: Config = config.getConfig("meta")
 
   def renderJob(): String = job.root.render(ConfigRenderOptions.concise.setOriginComments(false))
 
@@ -37,6 +36,4 @@ case class ABCConfig(config: Config) {
   lazy val terminateAtTargetGen: Boolean = cluster.getBoolean("terminate-at-target-generation")
   lazy val maxParticleMemory: Int = cluster.getInt("max-particle-memory")
   lazy val futuresTimeoutMS: Long = cluster.getDuration("futures-timeout", MILLISECONDS)
-
-  lazy val description: String = meta.getString("description")
 }

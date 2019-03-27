@@ -19,7 +19,7 @@ case class ABCOutput[P](
     Json.obj(
       "runMetaData" -> Map(
         "package" -> thisPackage,
-        "description" -> config.description
+        //"description" -> config.description
         // TODO any other metadata?
       ),
       "population" -> population.toJSON()
@@ -33,7 +33,7 @@ case class ABCOutput[P](
     )
   }
 
-  private def makePlot(outDir: Path, progDir: Path): Unit = {
+  private def makePlot(outDir: Path): Unit = {
     // TODO any other metadata wanted on the plots?
     val script =
       raw"""
@@ -49,7 +49,6 @@ case class ABCOutput[P](
         |description = runMeta$$description
         |
         |setwd("$outDir")
-        |setwd("$progDir")
         |files <- list.files()
         |nGens = length(files)
         |
@@ -189,8 +188,8 @@ case class ABCOutput[P](
     RScript(script, outDir.resolve("myScript.r"))
   }
 
-  def makeOutputs(outDir: Path, progDir: Path)(implicit tokenable: Tokenable[P]): Unit = {
+  def makeOutputs(outDir: Path)(implicit tokenable: Tokenable[P]): Unit = {
     saveOutput(outDir)
-    makePlot(outDir, progDir)
+    makePlot(outDir)
   }
 }

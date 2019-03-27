@@ -14,18 +14,13 @@ import sampler.maths.Random
 
 object Main extends App {
 
-  //=======================
-  // SETUP
-
   implicit val r = Random
 
   // Name and location of output files
   val outDir = Paths.get("results", "flockMortality").toAbsolutePath
   Files.createDirectories(outDir)
-  //  val resultsJSON = outDir.resolve("result.json")
 
-
-  // Read and parse JSON file containing observed data
+  // Observed data
   val observedJsonString =
     """{
     "observed" : [ {
@@ -57,7 +52,7 @@ object Main extends App {
    * offset = start day of infection
    */
 
-  // Read and parse JSON file containing prior
+  // Prior
   val priorJsonString =
     """{
       "type" : "interval",
@@ -74,8 +69,8 @@ object Main extends App {
   val priorJson = Json.parse(priorJsonString)
   val prior = IntervalPrior(priorJson)
 
-  //=======================
-  // USE ABC TO PRODUCE POPULATION OF PARAMETERS
+
+
 
   // Create an instance of Model based on the observed data and prior
   val model = new Model(observed, prior)
@@ -91,7 +86,7 @@ object Main extends App {
 
   // Format output with metadata
   val out = ABCOutput(abcConfig, population)
-//  out.makeOutputs(outDir)
+  out.makeOutputs(outDir)
 
   //  JSON.writeToFile(outDir.resolve("output.json"), out.toJSON())
 

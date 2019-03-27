@@ -11,13 +11,12 @@ object StandardReport extends Meta{
     pop: Population[Params] => {
       val json = pop.toJSON()
           .addSystemMeta
-          .addTask("ABC run - intermediate generation produced with StandardReport")
+          .addTask("ABC generation report")
           .addHistoricMetaFrom(config.asJson)
           .build
 
       val jsonStr = Json.prettyPrint(json)
   		FileUtils.write(wd.resolve(f"$prefix${pop.iteration}%03d.json").toFile, jsonStr)
-
     }
 	}
 }
