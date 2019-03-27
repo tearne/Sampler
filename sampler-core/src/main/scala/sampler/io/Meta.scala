@@ -2,7 +2,6 @@ package sampler.io
 
 import java.time.LocalDateTime
 
-import com.typesafe.config.{Config, ConfigFactory, ConfigRenderOptions}
 import play.api.libs.json._
 
 import scala.sys.process._
@@ -12,143 +11,98 @@ object Meta extends Meta
 trait Meta {
 
   trait MetaBuilderTrait {
-    def validateMetaArray(json: JsValue): Unit = {
+    def add(key: String, value: String): MetaBuilder = add(key, JsString(value))
+    def add(key: String, value: JsValue): MetaBuilder
+    def setHistoricMeta(arr: JsArray): MetaBuilder
 
-      val path = (__ \ "meta").json.pick[JsArray]
-      //assume(json.validate(path).isSuccess, s"No meta block found in $json")
+    def addSystemMeta() = add("date", LocalDateTime.now.toString)
+        .add("hostname", "hostname".!!.takeWhile(_ != System.lineSeparator.charAt(0)))
+        .add("username", System.getProperty("user.name"))
+        .add("simplified-stack", {
+          val distinctStringMatcher: PartialFunction[Seq[String], String] = {
+            case Seq(a, b) if a != b => b
+          }
+
+          val simpleStack: Seq[JsString] = Thread.currentThread
+              .getStackTrace
+              .toSeq
+              .map(_.getClassName.takeWhile(_ != '$'))
+              .sliding(2)
+              .collect(distinctStringMatcher)
+              .map(JsString)
+              .toSeq
+
+          JsArray(simpleStack)
+        })
+
+    def addProject(project: String): MetaBuilder = add("project", project)
+
+    def addTask(name: String) = add("task", name)
+
+    def addHistoricMetaFrom(json: JsValue) = {
+      val metaPicker = (__ \ "meta").json.pick[JsArray]
+
+      json.validate(metaPicker).fold(
+        invalid = _ => throw new AssertionError("No meta found in provided document: "+json),
+        valid = prevMeta => setHistoricMeta(prevMeta)
+      )
     }
-
-    def update(name: String, value: String): MetaBuilder
-
-    def addSystemMeta() = update("date", LocalDateTime.now.toString)
-        .update("hostname", "hostname".!!.takeWhile(_ != System.lineSeparator.charAt(0)))
-        .update("username", System.getProperty("user.name"))
-        .update("class", Thread.currentThread.getStackTrace()(4).getClassName)
-
-    def addProjectMeta(project: String): MetaBuilder = update("project", project)
-
-    def addTaskMeta(name: String) = update("task", name)
   }
 
   implicit class JsonMeta(json: JsValue) extends MetaBuilderTrait {
-    def update(key: String, value: String): MetaBuilder = {
-      validateMetaArray(json)
-      MetaBuilder(Json.obj(key -> value), json)
+    override def addSystemMeta(): MetaBuilder = {
+      MetaBuilder.init(json).addSystemMeta()
+    }
+
+    def add(key: String, value: JsValue): MetaBuilder = {
+      MetaBuilder.init(json).add(key, value)
+    }
+
+    override def setHistoricMeta(arr: JsArray): MetaBuilder = {
+      MetaBuilder.init(json).setHistoricMeta(arr)
     }
   }
 
-  implicit class HOCONMeta(config: Config) extends MetaBuilderTrait {
-    def update(key: String, value: String): MetaBuilder = {
-      val json = Json.parse(config.root.render((ConfigRenderOptions.concise)))
-      validateMetaArray(json)
-      MetaBuilder(Json.obj(key -> value), json)
-    }
-  }
 
-  case class MetaBuilder(metaMap: JsObject, json: JsValue) extends MetaBuilderTrait {
-    def update(key: String, value: String) = copy(metaMap = metaMap.+(key -> JsString(value)))
+  case class MetaBuilder(metaMap: JsObject, json: JsValue, historicMetaOpt: Option[JsArray] = None) extends MetaBuilderTrait {
+    def add(key: String, value: JsValue) = copy(metaMap = metaMap.+(key -> value))
 
-    private val updater: Reads[JsObject] = (__ \ "meta").json.update(
-      __.read[JsArray].map(a => a.append(metaMap))
-    )
-
-    //TODO tidy
-    private val putter: Reads[JsObject] = (__).json.update(
-      __.read[JsObject].map(root => root.+("meta",JsArray(Seq(metaMap)))
-      ))
-
-
-    //TODO neater
-
-    def build() = json.transform(updater).getOrElse(json.transform(putter).get)
-  }
-}
-
-
-object Example extends App {
-  import sampler._
-
-  val inHOCON ="""
-    myApplication {
-      meta = [
-        {
-          project = myProject
-          task = clean the data
-          date = 1/4/1980
-        }
-      ]
+    def setHistoricMeta(arr: JsArray): MetaBuilder = {
+      this.copy(historicMetaOpt = Some(arr))
     }
 
-    pancakes {
-      recipe {
-         eggs = 4
-         flour = 220
-         milk = 430
-         water = 120
+    def build(): JsValue = {
+      val allMeta = historicMetaOpt.getOrElse(JsArray.empty).append(metaMap)
+
+      val putter: Reads[JsObject] = {
+        (__).json.update(
+          __.read[JsObject].map(root => JsObject(
+            // Huh? Despite the meta being at the start, it always gets put at the end?!
+            ("meta", allMeta.as[JsValue]) +: root.as[JsObject].fields
+          ))
+        )
+      }
+
+
+      JsObject {
+        val withMeta = json.transform(putter).get
+
+        //temporary hack to put meta at the top
+        val fieldsAsMap: Map[String, JsValue] = withMeta.fields.toMap
+        val meta: JsValue = fieldsAsMap("meta")
+        ("meta", meta) +: fieldsAsMap.-("meta").toSeq
       }
     }
-"""
+  }
 
-  println(Json.prettyPrint(
-    ConfigFactory.parseString(inHOCON).getConfig("myApplication")
-        .addSystemMeta()
-        .addProjectMeta("My Project 2")
-        .addTaskMeta("Demonstrate augmenting meta with HOCON files")
-        .build
-  ))
-
-  println(Json.prettyPrint(
-    ConfigFactory.parseString(inHOCON).getConfig("pancakes")
-        .addSystemMeta()
-        .addProjectMeta("My Project 3")
-        .addTaskMeta("Demonstrate adding meta when the block doesn't already exist")
-        .build
-  ))
-
-
-  val inStr = """
-  {
-    "meta" : [
-    {
-      "date": "1/2/3",
-      "application": "my upstream applicaiton",
-      "task" : "pre-processing movement data"
-    }
-    ],
-    "parameters" : {
-      "a" : 2,
-      "b" : 0.01
+  object MetaBuilder{
+    def init(json: JsValue): MetaBuilder = {
+      // Assume that the JSON we are adding meta to has no existing meta
+      assume(
+        json.validate( (__ \ 'meta).json.pick ).isError,
+        "can't add meta to a document that already contains meta"
+      )
+      MetaBuilder(JsObject.empty, json, None)
     }
   }
-"""
-
-  println(
-    Json.prettyPrint(
-      Json.parse(inStr)
-          .addSystemMeta()
-          .addProjectMeta("Updated project")
-          .addTaskMeta("Demonstrate adding meta to json")
-          .build
-    )
-  )
-
-  val inStr2 = """
-  {
-    "parameters" : {
-      "a" : 2,
-      "b" : 0.01
-    }
-  }
-"""
-
-  println(
-    Json.prettyPrint(
-      Json.parse(inStr2)
-          .addSystemMeta()
-          .addProjectMeta("Updated project")
-          .addTaskMeta("Demonstrate adding meta to json when no block to start with")
-          .build
-    )
-  )
 }
-

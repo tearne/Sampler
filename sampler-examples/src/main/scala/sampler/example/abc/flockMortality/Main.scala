@@ -20,7 +20,8 @@ object Main extends App {
   implicit val r = Random
 
   // Name and location of output files
-  val outDir = Paths.get("results").toAbsolutePath
+  val outDir = Paths.get("results", "flockMortality").toAbsolutePath
+  Files.createDirectories(outDir)
   //  val resultsJSON = outDir.resolve("result.json")
 
 

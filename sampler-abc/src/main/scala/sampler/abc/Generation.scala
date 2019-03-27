@@ -64,10 +64,7 @@ case class Population[P](
     }
 
     Json.obj(
-      "meta" -> Map(
-        "comment" -> "Weights are not normalised",
-        "created" -> LocalDateTime.now.toString,
-      ),
+      "note" -> "Weights are not normalised",
       "generation" -> iteration,
       "acceptance-ratio" -> acceptanceRatio,
       "tolerance" -> tolerance,

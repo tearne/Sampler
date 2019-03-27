@@ -1,10 +1,13 @@
 package sampler.abc
 
 import com.typesafe.config.{Config, ConfigRenderOptions}
+import play.api.libs.json.Json
 
 import scala.concurrent.duration.MILLISECONDS
 
 case class ABCConfig(config: Config) {
+  lazy val asJson = Json.parse(config.root().render(ConfigRenderOptions.concise()))
+
   lazy val job: Config = config.getConfig("abc.job")
   lazy val algorithm: Config = config.getConfig("abc.algorithm")
   lazy val cluster: Config = config.getConfig("abc.cluster")
