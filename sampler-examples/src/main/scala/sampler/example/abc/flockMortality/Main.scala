@@ -1,15 +1,13 @@
 package flockMortalityExample
 
 import java.nio.file.{Files, Paths}
-import java.time.LocalDateTime
 
 import com.typesafe.config.ConfigFactory
 import play.api.libs.json.Json
-import sampler.example.abc.flockMortality.util._
-import sampler.abc._
-import sampler.example.abc.flockMortality.util.Model
 import sampler._
+import sampler.abc._
 import sampler.distribution.Distribution
+import sampler.example.abc.flockMortality.util.{Model, _}
 import sampler.maths.Random
 
 object Main extends App {
@@ -21,8 +19,7 @@ object Main extends App {
   Files.createDirectories(outDir)
 
   // Observed data
-  val observedJsonString =
-    """{
+  val observedJsonString = """{
     "observed" : [ {
       "id" : 1,
       "size" : 3000,
@@ -69,9 +66,6 @@ object Main extends App {
   val priorJson = Json.parse(priorJsonString)
   val prior = IntervalPrior(priorJson)
 
-
-
-
   // Create an instance of Model based on the observed data and prior
   val model = new Model(observed, prior)
 
@@ -84,11 +78,7 @@ object Main extends App {
   val population: Population[Parameters] = ABC(model, abcConfig, abcReporting)
   //  JSON.writeToFile(outDir.resolve("population.json"), population.toJSON())
 
-  // Format output with metadata
-  val out = ABCOutput(abcConfig, population)
-  out.makeOutputs(outDir)
-
-  //  JSON.writeToFile(outDir.resolve("output.json"), out.toJSON())
+  StandardReport.doPlotting(outDir) // TODO automatically invoke when the model has finished running?
 
   //  val result = ABCResult(prior, observed, abcConfig, population)
   //  val resultJSON = Json.toJson(result)
@@ -133,4 +123,9 @@ object Main extends App {
 
   // Call PlotResult.scala if you want to see the output - the ABC will need to have finished and generated result.json
 
+}
+
+object testing extends App{
+  val outDir = Paths.get("results", "flockMortality").toAbsolutePath
+  StandardReport.doPlotting(outDir)
 }

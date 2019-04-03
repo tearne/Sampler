@@ -31,7 +31,10 @@ import sampler.r.script.RScript
 
 object UnfairCoin extends UnfairCoinCommon with App {
   ABC(CoinModel, abcConfig, abcReporting)
-  plot()
+
+  StandardReport.doPlotting(wd)
+
+//  plot()
 }
 
 object ResumeUnfairCoin extends UnfairCoinCommon with App {
@@ -84,7 +87,6 @@ trait UnfairCoinCommon {
 
   val abcConfig = ABCConfig(ConfigFactory.load.getConfig("unfair-coin-example"))
   val abcReporting = StandardReport[CoinParams](wd, abcConfig)
-
   def plot() {
     val rScript =
       """
