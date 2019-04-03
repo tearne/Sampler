@@ -30,7 +30,8 @@ loadScores = function(file) {
 }
 # load in the metadata - this is the same in every generation so just take from Gen001
 meta = data.frame(fromJSON("Gen001.json")$meta)
-task = meta$task[2]
+# Grab the task description from the last (most recent) meta block and the project description from the first meta block
+task = meta$task[nrow(meta)]
 description = meta$description[1]
 
 # Load the params from all "Gen **.json" files
@@ -68,6 +69,7 @@ nGens = nlevels(params$Gen)
 
 # Define function for colouring metadata plot
 isFinite = function(x) { ! is.infinite(x)}
+
 ##### Begin plotting #####
 pdf(paste(task, ".pdf", sep = ""), width = 12, height = 12, title = description)
 
@@ -94,33 +96,30 @@ for (i in 1 : nVars) {
 	p = params[, c(1, i + 2)]
 	names(p) = c("Gen", "value")
 
-	# this value of binwidth is too large if param is tiny (e.g. beta in sal model)
-	if (typeof(p$value) == "integer") {
-		plotList[[i]] =
-		ggplot(p, aes(x = value, color = Gen)) +
-			geom_step(stat = "count") +
-			xlab(paramNames[i]) +
-			theme(axis.ticks.y = element_blank(), axis.text.y = element_blank(), axis.title.y = element_blank()) +
-			theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1, vjust = 1)) +
-			theme(text = element_text(size = 18))
+	if (is.integer(p$value)) {
+		binwidth = 1
+		text <- grobTree(textGrob("Integer", x = 0.85, y = 0.9, gp = gpar(col = "red")))
 	}else {
-		plotList[[i]] =
-		ggplot(p, aes(x = value, color = Gen)) +
-			geom_line(stat = "density") +
-			xlab(paramNames[i]) +
-			theme(axis.ticks.y = element_blank(), axis.text.y = element_blank(), axis.title.y = element_blank()) +
-			theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1, vjust = 1)) +
-			theme(text = element_text(size = 18))
+		binwidth = (max(p$value) - min(p$value)) / 30
+		text <- grobTree(textGrob("", x = 0.85, y = 0.9, gp = gpar(col = "red")))
 	}
+
+	plotList[[i]] =
+	ggplot(p, aes(x = value, color = Gen)) +
+		geom_line(stat = "density", bw = binwidth) +
+		annotation_custom(text) +
+		xlab(paramNames[i]) +
+		theme(axis.ticks.y = element_blank(), axis.text.y = element_blank(), axis.title.y = element_blank()) +
+		theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1, vjust = 1)) +
+		theme(text = element_text(size = 18))
 }
-# TODO this is nice and smooth - but maybe need an indicator that this was an integer? could be misleading? kind of better to have a steppy density??...i.e. a hist?!
+
 # Arrange the plots into a grid
 plotGridSize = ceiling(sqrt(nVars))
 figure = ggarrange(plotlist = plotList,
 ncol = plotGridSize, nrow = plotGridSize,
 common.legend = TRUE, legend = "right")
-# Add fig title
-annotate_figure(figure, top = text_grob("Parameter Density by Generation", face = "bold", size = 20))
+annotate_figure(figure, top = text_grob("Parameter Density by Generation", size = 24))
 
 # grab the parameters from the last generation only and define medians
 finalParams = params[which(params$Gen == nGens), - c(1)]
@@ -129,14 +128,15 @@ median = round(sapply(finalParams, quantile, probs = c(0.5), na.rm = TRUE), 4)
 # Define the colour scale (for 2D density plot)
 colfunc <- colorRampPalette(rev(brewer.pal(11, "Spectral")))
 colourTrans_trans = function() {trans_new("colourTrans", function(x) x ^ 0.3, function(x) x ^ 0.3)}
-plotList = list()
 
 # Define function to compute correlations
 correlation = function(x) {
 	cor = cor(x)[[2]]
 	round(cor, 2)
 }
+
 ### plot posterior data ###
+plotList = list()
 for (i in 2 : (nVars + 1)) {
 	for (j in 2 : (nVars + 1)) {
 		counter = ((i - 1) - 1) * nVars + (j - 1)
@@ -154,30 +154,23 @@ for (i in 2 : (nVars + 1)) {
 				panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
 				theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1, vjust = 1), axis.text.y = element_text(size = 12))
 		} else if (i == j) {
-			if (typeof(finalParams[, i]) == "integer") {
-				plotList[[counter]] =
-				ggplot(finalParams, aes_string(paramNames[i - 1], fill = 1)) +
-					geom_line(stat = "count") +
-					geom_vline(xintercept = median[[i]]) +
-					annotation_custom(text) +
-					scale_y_continuous(breaks = NULL) +
-					theme_bw() +
-					theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
-					theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1, vjust = 1), axis.text.y = element_text(size = 12))
+			if (is.integer(finalParams[, i])) {
+				binwidth = 1
 			} else {
-				plotList[[counter]] =
-				ggplot(finalParams, aes_string(paramNames[i - 1], fill = 1)) +
-					geom_density(alpha = 0.25) +
-					geom_vline(xintercept = median[[i]]) +
-					annotation_custom(text) +
-					scale_y_continuous(breaks = NULL) +
-					theme_bw() +
-					theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
-					theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1, vjust = 1), axis.text.y = element_text(size = 12))
+				binwidth = (max(finalParams[, i]) - min(finalParams[, i])) / 30
 			}
+			text <- grobTree(textGrob(median[[i]], x = 0.1, y = 0.95, hjust = 0, gp = gpar(col = "red")))
+
 			# Density plots along the diagonal - plot parameter density
-			# TODO geom_step (and geom_line) are not compatible with grobbing...currently fails - fix it!
-			text <- grobTree(textGrob(median[[i]], x = 0, y = 0.95, hjust = 0.1, gp = gpar(col = "red")))
+			plotList[[counter]] =
+			ggplot(finalParams, aes_string(paramNames[i - 1], fill = 1)) +
+				geom_density(alpha = 0.25, bw = binwidth) +
+				geom_vline(xintercept = median[[i]]) +
+				annotation_custom(text) +
+				scale_y_continuous(breaks = NULL) +
+				theme_bw() +
+				theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+				theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1, vjust = 1), axis.text.y = element_text(size = 12))
 		}else {
 			# Above Diagonal - place correlations
 			plotList[[counter]] <-

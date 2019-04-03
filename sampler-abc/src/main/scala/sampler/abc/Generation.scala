@@ -1,12 +1,9 @@
 package sampler.abc
 
-import java.math.MathContext
-import java.time.LocalDateTime
-
 import play.api.libs.json.{JsNumber, _}
 import sampler._
 import sampler.distribution.Distribution
-import sampler.io.{Tokenable, Tokens}
+import sampler.io.Tokenable
 
 sealed trait Generation[P] {
   val iteration: Int
@@ -49,12 +46,12 @@ case class Population[P](
     consolidatedWeightsTable.toDistribution.map(model.perturb)
 
   def toJSON(wtPrecision: Int = 8)(implicit tokenable: Tokenable[P]) = {
-    val mc = new MathContext(wtPrecision)
-    val rows: Iterable[Tokens] = consolidatedWeightsTable.map { case (p, wt) =>
-      tokenable.getTokens(p) + Tokens.named("weight" -> BigDecimal(wt, mc))
-    }
-    val names = rows.head.map.keys
-    val particlesValuesByParam = names.map { name => name -> rows.map(_.map(name)) }.toMap
+    //    val mc = new MathContext(wtPrecision)
+    //    val rows: Iterable[Tokens] = consolidatedWeightsTable.map { case (p, wt) =>
+    //      tokenable.getTokens(p) + Tokens.named("weight" -> BigDecimal(wt, mc))
+    //    }
+    //    val names = rows.head.map.keys
+    //    val particlesValuesByParam = names.map { name => name -> rows.map(_.map(name)) }.toMap
     val details: Seq[Map[String, JsValue]] = weightedParticles.map { wp =>
       Map(
         "s" -> JsArray(wp.scored.scores.map(d => JsNumber(d))),
@@ -68,7 +65,7 @@ case class Population[P](
       "generation" -> iteration,
       "acceptance-ratio" -> acceptanceRatio,
       "tolerance" -> tolerance,
-      "particle-summary" -> particlesValuesByParam,
+      //      "particle-summary" -> particlesValuesByParam,
       "particle-details" -> details
     )
   }

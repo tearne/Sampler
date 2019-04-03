@@ -19,7 +19,8 @@ object Main extends App {
   Files.createDirectories(outDir)
 
   // Observed data
-  val observedJsonString = """{
+  val observedJsonString =
+    """{
     "observed" : [ {
       "id" : 1,
       "size" : 3000,
@@ -78,7 +79,7 @@ object Main extends App {
   val population: Population[Parameters] = ABC(model, abcConfig, abcReporting)
   //  JSON.writeToFile(outDir.resolve("population.json"), population.toJSON())
 
-  StandardReport.doPlotting(outDir) // TODO automatically invoke when the model has finished running?
+  StandardReport.doPlotting(outDir)
 
   //  val result = ABCResult(prior, observed, abcConfig, population)
   //  val resultJSON = Json.toJson(result)
@@ -122,10 +123,4 @@ object Main extends App {
   println("Fitted parameters: " + medianParams.toSeq)
 
   // Call PlotResult.scala if you want to see the output - the ABC will need to have finished and generated result.json
-
-}
-
-object testing extends App{
-  val outDir = Paths.get("results", "flockMortality").toAbsolutePath
-  StandardReport.doPlotting(outDir)
 }
