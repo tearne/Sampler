@@ -46,12 +46,6 @@ case class Population[P](
     consolidatedWeightsTable.toDistribution.map(model.perturb)
 
   def toJSON(wtPrecision: Int = 8)(implicit tokenable: Tokenable[P]) = {
-    //    val mc = new MathContext(wtPrecision)
-    //    val rows: Iterable[Tokens] = consolidatedWeightsTable.map { case (p, wt) =>
-    //      tokenable.getTokens(p) + Tokens.named("weight" -> BigDecimal(wt, mc))
-    //    }
-    //    val names = rows.head.map.keys
-    //    val particlesValuesByParam = names.map { name => name -> rows.map(_.map(name)) }.toMap
     val details: Seq[Map[String, JsValue]] = weightedParticles.map { wp =>
       Map(
         "s" -> JsArray(wp.scored.scores.map(d => JsNumber(d))),
