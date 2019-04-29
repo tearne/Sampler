@@ -1,23 +1,22 @@
 package sampler.example.io
 
-import com.typesafe.config.{ConfigFactory, ConfigRenderOptions}
-import play.api.libs.json.Json
+import com.typesafe.config.{Config, ConfigFactory, ConfigRenderOptions}
+import play.api.libs.json.{JsValue, Json}
 
 object Meta extends App {
 
   import sampler._
 
-  val inputConfig = {
-    val  pretendConfig ="""
+  val config: Config = {
+    val  json ="""
       myApplication {
-        meta = [
-          {
-            project = myProject
-            note = this was in a hocon config
-            task = clean the data
-            date = 1/4/1980
-          }
-        ]
+        breadcrumbs = {
+          kind = Program configuration
+          project = myProject
+          task = clean the data
+          inputs = /shared/drive/project/in/data.csv
+          outputs = /shared/drive/project/out
+        }
       }
 
       notMyApplication {
@@ -30,35 +29,62 @@ object Meta extends App {
       }
     """
 
-    ConfigFactory.parseString(pretendConfig).getConfig("myApplication")
+    ConfigFactory.parseString(json).getConfig("myApplication")
   }
 
-  // Our application would now run and our basic JSON outputs would be produced
+  val parameters: JsValue = {
+    val json ="""{
+      "breadcrumbs" : {
+        "kind" : "model parameters",
+        "project" : "AB123",
+        "task" : "scenario: worst case spread",
+        "date" : "2019-04-25",
 
-  val basicOutputs = {
-    val pretendOutputs = """
-      {
         "parameters" : {
           "alpha" : 2,
           "beta" : 0.01,
           "gamma" : 7.2
-        }
+        },
+
+        "upstream" : [
+          {
+            "type" : "parameter source for alpha, beta, gamma",
+            "source" : "Joe Bloggs",
+            "date" : "2018-03-12"
+          }
+        ]
+      }
+
+    }"""
+    Json.parse(json)
+  }
+
+  // Our application would now run and our basic JSON outputs would be produced
+
+  val rawOutputs: JsValue = {
+    val json = """
+      {
+        "outputValues" : [1,4,3,2,4,1,3,4,2,1,1,1]
       }
     """
-    Json.parse(pretendOutputs)
+    Json.parse(json)
   }
 
   // Now augment the JSON outputs with some metadata
-  val outputsWithMeta = basicOutputs
-        .addSystemMeta()  // User, machine, date, class name etc.
+  val outputsWithMeta =
+    // Start with our raw output data
+    rawOutputs
+        // Add metadata due to this precessing step
+        .addSystemMeta()    // Date, hostname, username, stack trace etc
         .addProject("Sampler examples")
-        .addTask("Demonstrate adding meta to json")
-        // Want to record the lineage by preserving the meta from out input config file
-        .addHistoricMetaFrom(
-          // In this case our config was HOCON/TypeSafe-Config, so we need to render it to JSON first
-          Json.parse(inputConfig.root.render(ConfigRenderOptions.concise()))
-        )
-      .build
+        .addKind("Example model output")
+        .addTask("Demonstrate adding meta to some outputs")
+        // Now add upstream metadata ...
+        // ... from the system config (which was HOCON, so must convert to JSON first)
+        .addUpstream(Json.parse(config.root.render(ConfigRenderOptions.concise())))
+        // ... from the parameters config
+        .addUpstream(parameters)
+        .build
 
   // We'd now write this to disk
   println(Json.prettyPrint(outputsWithMeta))

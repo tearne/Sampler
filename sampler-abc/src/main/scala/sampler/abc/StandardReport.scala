@@ -15,7 +15,7 @@ object StandardReport extends Meta {
       val json = pop.toJSON()
           .addSystemMeta
           .addTask(task)
-          .addHistoricMetaFrom(config.asJson)
+          .addUpstream(config.asJson)
           .build
 
       val jsonStr = Json.prettyPrint(json)

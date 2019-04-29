@@ -10,10 +10,24 @@ object Meta extends Meta
 
 trait Meta {
 
-  trait MetaBuilderTrait {
+  implicit class JsonMeta(json: JsValue) {
+    def addSystemMeta(): MetaBuilder = {
+      MetaBuilder.init(json).addSystemMeta()
+    }
+
+    def add(key: String, value: JsValue): MetaBuilder = {
+      MetaBuilder.init(json).add(key, value)
+    }
+
+    def addUpstreamFrom(arr: JsValue): MetaBuilder = {
+      MetaBuilder.init(json).addUpstream(json)
+    }
+  }
+
+
+  case class MetaBuilder(metaMap: JsObject, json: JsValue, upstream: JsArray = JsArray.empty) {
     def add(key: String, value: String): MetaBuilder = add(key, JsString(value))
-    def add(key: String, value: JsValue): MetaBuilder
-    def setHistoricMeta(arr: JsArray): MetaBuilder
+    def add(key: String, value: JsValue): MetaBuilder = copy(metaMap = metaMap.+(key -> value))
 
     def addSystemMeta() = add("date", LocalDateTime.now.toString)
         .add("hostname", "hostname".!!.takeWhile(_ != System.lineSeparator.charAt(0)))
@@ -37,61 +51,43 @@ trait Meta {
 
     def addProject(project: String): MetaBuilder = add("project", project)
 
-    def addTask(name: String) = add("task", name)
+    def addTask(name: String): MetaBuilder = add("task", name)
 
-    def addHistoricMetaFrom(json: JsValue) = {
-      val metaPicker = (__ \ "meta").json.pick[JsArray]
+    def addKind(text: String): MetaBuilder = add("kind", text)
 
-      json.validate(metaPicker).fold(
-        invalid = _ => throw new AssertionError("No meta found in provided document: "+json),
-        valid = prevMeta => setHistoricMeta(prevMeta)
+    def addUpstream(json: JsValue): MetaBuilder = {
+      val breadcrumbPicker = (__ \ "breadcrumbs").json.pick[JsObject]
+
+      json.validate(breadcrumbPicker).fold(
+        // TODO, warn, don't fail
+        invalid = _ => throw new AssertionError("No breadcrumbs found in provided document: "+json),
+        valid = breadcrumbs => this.copy(upstream = upstream.append(breadcrumbs))
       )
-    }
-  }
-
-  implicit class JsonMeta(json: JsValue) extends MetaBuilderTrait {
-    override def addSystemMeta(): MetaBuilder = {
-      MetaBuilder.init(json).addSystemMeta()
-    }
-
-    def add(key: String, value: JsValue): MetaBuilder = {
-      MetaBuilder.init(json).add(key, value)
-    }
-
-    override def setHistoricMeta(arr: JsArray): MetaBuilder = {
-      MetaBuilder.init(json).setHistoricMeta(arr)
-    }
-  }
-
-
-  case class MetaBuilder(metaMap: JsObject, json: JsValue, historicMetaOpt: Option[JsArray] = None) extends MetaBuilderTrait {
-    def add(key: String, value: JsValue) = copy(metaMap = metaMap.+(key -> value))
-
-    def setHistoricMeta(arr: JsArray): MetaBuilder = {
-      this.copy(historicMetaOpt = Some(arr))
     }
 
     def build(): JsValue = {
-      val allMeta = historicMetaOpt.getOrElse(JsArray.empty).append(metaMap)
+      val allMeta = metaMap.+("upstream", upstream)
 
       val putter: Reads[JsObject] = {
         (__).json.update(
           __.read[JsObject].map(root => JsObject(
             // Huh? Despite the meta being at the start, it always gets put at the end?!
-            ("meta", allMeta.as[JsValue]) +: root.as[JsObject].fields
+            ("breadcrumbs", allMeta.as[JsValue]) +: root.as[JsObject].fields
           ))
         )
       }
 
+      json.transform(putter).get
 
-      JsObject {
-        val withMeta = json.transform(putter).get
 
-        //temporary hack to put meta at the top
-        val fieldsAsMap: Map[String, JsValue] = withMeta.fields.toMap
-        val meta: JsValue = fieldsAsMap("meta")
-        ("meta", meta) +: fieldsAsMap.-("meta").toSeq
-      }
+//      JsObject {
+//        val withMeta = json.transform(putter).get
+//
+//        //temporary hack to put meta at the top
+//        val fieldsAsMap: Map[String, JsValue] = withMeta.fields.toMap
+//        val meta: JsValue = fieldsAsMap("meta")
+//        ("meta", meta) +: fieldsAsMap.-("meta").toSeq
+//      }
     }
   }
 
@@ -102,7 +98,7 @@ trait Meta {
         json.validate( (__ \ 'meta).json.pick ).isError,
         "can't add meta to a document that already contains meta"
       )
-      MetaBuilder(JsObject.empty, json, None)
+      MetaBuilder(JsObject.empty, json)
     }
   }
 }
