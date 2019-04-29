@@ -1,5 +1,5 @@
 val buildOrganization  = "org.tearne"
-val buildVersion       = "0.3.15"
+val buildVersion       = "0.3.18"
 val buildScalaVersion  = "2.12.6"
 val crossBuildVersions = Seq(buildScalaVersion, "2.11.12")
 
