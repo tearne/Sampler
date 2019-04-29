@@ -10,7 +10,7 @@ case class Gathering[P](
   ) extends RunningState[P] {
   import dependencies._
 
-  def evolve(sender: ActorRef, rootActor: ActorRef) = PartialFunction[Any, State] {
+  def evolve(sender: ActorRef, rootActor: ActorRef): PartialFunction[Any, State] = {
     case ReportCompleted => ignore
     case Failed =>
       dependencies.log.warning("Failure in worker, resending job.")

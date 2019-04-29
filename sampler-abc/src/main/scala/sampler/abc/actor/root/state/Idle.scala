@@ -9,7 +9,7 @@ case class Idle[P](
   ) extends State {
     import dependencies._
 
-    def evolve(sender: ActorRef, rootActor: ActorRef) = PartialFunction[Any, State]{
+    def evolve(sender: ActorRef, rootActor: ActorRef): PartialFunction[Any, State] = {
       case MixNow => ignore
       case startMsg: Start[P] =>
         val newTask = logic.initialise(startMsg, childRefs, sender)
