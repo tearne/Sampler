@@ -28,11 +28,9 @@ loadScores = function(file) {
 	Score = unlist(raw$'particle-details'$s)
 	)
 }
-# load in the metadata - this is the same in every generation so just take from Gen001
-meta = data.frame(fromJSON("Gen001.json")$meta)
-# Grab the task description from the last (most recent) meta block and the project description from the first meta block
-task = meta$task[nrow(meta)]
-description = meta$description[1]
+# Grab the task description from meta data
+task = fromJSON("Gen001.json")$breadcrumbs$task
+description = fromJSON("Gen001.json")$breadcrumbs$upstream$description
 
 # Load the params from all "Gen **.json" files
 params = ldply(lapply(Sys.glob("Gen*.json"), loadParams))
@@ -109,6 +107,7 @@ for (i in 1 : nVars) {
 		geom_line(stat = "density", bw = binwidth) +
 		annotation_custom(text) +
 		xlab(paramNames[i]) +
+		scale_colour_hue(h=c(-270, 0)) +
 		theme(axis.ticks.y = element_blank(), axis.text.y = element_blank(), axis.title.y = element_blank()) +
 		theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1, vjust = 1)) +
 		theme(text = element_text(size = 18))
