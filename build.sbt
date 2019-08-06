@@ -1,6 +1,6 @@
 val buildOrganization  = "org.tearne"
-val buildVersion       = "0.3.18"
-val buildScalaVersion  = "2.12.6"
+val buildVersion       = "0.3.19"
+val buildScalaVersion  = "2.12.9"
 val crossBuildVersions = Seq(buildScalaVersion, "2.11.12")
 
 val typesafeConfig    = "com.typesafe" % "config" % "1.3.2"
