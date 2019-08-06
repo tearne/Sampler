@@ -4,6 +4,7 @@ object Equals extends App {
   /*
    *  It's bad to compare objects of different types
    */
+  //noinspection ComparingUnrelatedTypes
   println(List(1,2,3).map(_ == "1"))  // false, false, false!
   
   /*

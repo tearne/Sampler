@@ -1,5 +1,6 @@
 package sampler.abc
 
+import java.io.InputStream
 import java.nio.file.Path
 
 import org.apache.commons.io.FileUtils
@@ -25,7 +26,12 @@ object StandardReport extends Meta {
 
   // TODO should either pass the prefix to the plot or not allow user to change it
   def doPlotting(outDir: Path): Unit = {
-    val scriptAsLines = Source.fromResource("posteriorPlot.r").getLines()
+    // This is not supported in our cross build for Scala 2.11...
+    //val scriptAsLines = Source.fromResource("posteriorPlot.r").getLines()
+    // ... so using this version used instead.
+    val stream: InputStream = getClass.getResourceAsStream("posteriorPlot.r")
+    val scriptAsLines: Iterator[String] = Source.fromInputStream( stream ).getLines
+
     val lineSep = System.lineSeparator()
     val script = scriptAsLines.mkString(lineSep)
     RScript(script, outDir.resolve("posteriorPlot.r"))
